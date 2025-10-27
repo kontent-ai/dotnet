@@ -1,0 +1,11 @@
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/bin/Debug/net8.0/Kontent.Ai.Sync.Abstractions.deps.json
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/bin/Debug/net8.0/Kontent.Ai.Sync.Abstractions.dll
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/bin/Debug/net8.0/Kontent.Ai.Sync.Abstractions.pdb
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.GeneratedMSBuildEditorConfig.editorconfig
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.AssemblyInfoInputs.cache
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.AssemblyInfo.cs
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.csproj.CoreCompileInputs.cache
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.dll
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/refint/Kontent.Ai.Sync.Abstractions.dll
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/Kontent.Ai.Sync.Abstractions.pdb
+/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/Debug/net8.0/ref/Kontent.Ai.Sync.Abstractions.dll

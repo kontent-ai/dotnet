@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Company>Kontent s.r.o.</Company>
+    <Description>Kontent.ai Sync SDK Abstractions - Public API contracts for synchronizing content changes</Description>
+    <PackageTags>kontent-ai;sync;cms;api</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/kontent-ai/delivery-sdk-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/kontent-ai/delivery-sdk-net</PackageProjectUrl>
+    <Authors>Kontent s.r.o.</Authors>
+  </PropertyGroup>
+
+</Project>

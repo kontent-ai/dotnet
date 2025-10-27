@@ -1,0 +1,256 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Tests/Kontent.Ai.Sync.Tests.csproj": {}
+  },
+  "projects": {
+    "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj",
+        "projectName": "Kontent.Ai.Sync.Abstractions",
+        "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj",
+        "packagesPath": "/Users/danielpokorny/.nuget/packages/",
+        "outputPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/danielpokorny/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Tests/Kontent.Ai.Sync.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Tests/Kontent.Ai.Sync.Tests.csproj",
+        "projectName": "Kontent.Ai.Sync.Tests",
+        "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Tests/Kontent.Ai.Sync.Tests.csproj",
+        "packagesPath": "/Users/danielpokorny/.nuget/packages/",
+        "outputPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Tests/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/danielpokorny/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj": {
+                "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj"
+              },
+              "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj": {
+                "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "FluentAssertions": {
+              "target": "Package",
+              "version": "[6.12.0, )"
+            },
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.6.0, )"
+            },
+            "NSubstitute": {
+              "target": "Package",
+              "version": "[5.1.0, )"
+            },
+            "coverlet.collector": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.4.2, )"
+            },
+            "xunit.runner.visualstudio": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.4.5, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj",
+        "projectName": "Kontent.Ai.Sync",
+        "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj",
+        "packagesPath": "/Users/danielpokorny/.nuget/packages/",
+        "outputPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/danielpokorny/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj": {
+                "projectPath": "/Users/danielpokorny/Repos/Kontent.Ai.Sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.Extensions.Configuration.Binder": {
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
+            "Microsoft.Extensions.Http.Resilience": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Microsoft.Extensions.Options": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Microsoft.Extensions.Options.DataAnnotations": {
+              "target": "Package",
+              "version": "[9.0.8, )"
+            },
+            "Refit": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Refit.HttpClientFactory": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
