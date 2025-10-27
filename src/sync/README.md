@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> This SDK is a work in progress. For existing sync API functionality in .NET, use delivery SDK v18.x.
+
 # Kontent.ai Sync SDK for .NET
 
 A modern, lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
