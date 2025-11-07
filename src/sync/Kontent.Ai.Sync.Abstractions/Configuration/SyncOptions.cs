@@ -32,20 +32,19 @@ public sealed class SyncOptions : IValidatableObject
     public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
 
     /// <summary>
-    /// Gets or sets the API key that is used to retrieve content with the Preview API.
+    /// Gets or sets the API mode for accessing Kontent.ai content.
     /// </summary>
-    public string? PreviewApiKey { get; set; }
+    public ApiMode ApiMode { get; set; } = ApiMode.Public;
 
     /// <summary>
-    /// Gets or sets a value that determines if the Preview API is used to retrieve content.
-    /// If the Preview API is used the <see cref="PreviewApiKey"/> must be set.
+    /// Gets or sets the API key for authenticated access (required for Preview and Secure modes).
     /// </summary>
-    public bool UsePreviewApi { get; set; } = false;
+    public string? ApiKey { get; set; }
 
     /// <summary>
     /// Validates cross-field constraints for sync options.
     /// Ensures that <see cref="EnvironmentId"/> is not an empty GUID.
-    /// Ensures that <see cref="PreviewApiKey"/> is set when <see cref="UsePreviewApi"/> is true.
+    /// Ensures that <see cref="ApiKey"/> is set when <see cref="ApiMode"/> is Preview or Secure.
     /// Uses yield semantics so other attribute-based validations also execute.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -57,11 +56,11 @@ public sealed class SyncOptions : IValidatableObject
                 [nameof(EnvironmentId)]);
         }
 
-        if (UsePreviewApi && string.IsNullOrWhiteSpace(PreviewApiKey))
+        if ((ApiMode == ApiMode.Preview || ApiMode == ApiMode.Secure) && string.IsNullOrWhiteSpace(ApiKey))
         {
             yield return new ValidationResult(
-                "PreviewApiKey is required when using the Preview API.",
-                [nameof(PreviewApiKey), nameof(UsePreviewApi)]);
+                $"ApiKey is required when using {ApiMode} API mode.",
+                [nameof(ApiKey), nameof(ApiMode)]);
         }
     }
 }

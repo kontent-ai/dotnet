@@ -43,8 +43,8 @@ public class SyncClientFactoryTests
         services.AddSyncClient("staging", options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-            options.UsePreviewApi = true;
-            options.PreviewApiKey = "staging-key";
+            options.ApiMode = ApiMode.Preview;
+            options.ApiKey = "staging-key";
         });
 
         var serviceProvider = services.BuildServiceProvider();

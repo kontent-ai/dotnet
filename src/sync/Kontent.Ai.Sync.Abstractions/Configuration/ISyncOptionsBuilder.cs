@@ -18,15 +18,21 @@ public interface ISyncOptionsBuilder
     ISyncOptionsBuilder WithEnvironmentId(Guid environmentId);
 
     /// <summary>
-    /// Configures for Production API.
+    /// Configures for public Production API (no authentication).
     /// </summary>
     ISyncOptionsBuilder UseProductionApi();
 
     /// <summary>
-    /// Configures for Preview API.
+    /// Configures for Preview API with authentication.
     /// </summary>
-    /// <param name="previewApiKey">A Preview API key.</param>
-    ISyncOptionsBuilder UsePreviewApi(string previewApiKey);
+    /// <param name="apiKey">A Preview API key.</param>
+    ISyncOptionsBuilder UsePreviewApi(string apiKey);
+
+    /// <summary>
+    /// Configures for secure Production API with authentication.
+    /// </summary>
+    /// <param name="apiKey">A delivery API key.</param>
+    ISyncOptionsBuilder UseSecureApi(string apiKey);
 
     /// <summary>
     /// Disables retry policy for HTTP requests.

@@ -8,9 +8,10 @@ public interface ISyncClient
     /// <summary>
     /// Initializes content synchronization. Returns X-Continuation token via <see cref="ISyncResult{T}.SyncToken"/>.
     /// </summary>
+    /// <param name="options">Optional filtering options to limit the scope of synchronized content.</param>
     /// <param name="cancellationToken">The cancellation token to cancel operation.</param>
     /// <returns>A sync result containing the initialization response and sync token.</returns>
-    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default);
+    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(SyncInitOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves delta updates since the last synchronization.

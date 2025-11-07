@@ -44,8 +44,8 @@ public static class ServiceCollectionExtensions
                 options.EnableResilience = syncOptions.EnableResilience;
                 options.ProductionEndpoint = syncOptions.ProductionEndpoint;
                 options.PreviewEndpoint = syncOptions.PreviewEndpoint;
-                options.PreviewApiKey = syncOptions.PreviewApiKey;
-                options.UsePreviewApi = syncOptions.UsePreviewApi;
+                options.ApiKey = syncOptions.ApiKey;
+                options.ApiMode = syncOptions.ApiMode;
             },
             configureHttpClient,
             configureResilience,
@@ -202,7 +202,7 @@ public static class ServiceCollectionExtensions
             {
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
                 var options = optionsMonitor.Get(name);
-                var baseUrl = options.UsePreviewApi ? options.PreviewEndpoint : options.ProductionEndpoint;
+                var baseUrl = options.ApiMode == ApiMode.Preview ? options.PreviewEndpoint : options.ProductionEndpoint;
                 httpClient.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
             });
 

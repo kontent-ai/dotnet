@@ -65,14 +65,14 @@ public class SyncOptionsValidationTests
     }
 
     [Fact]
-    public void Validate_UsePreviewApi_WithoutApiKey_ReturnsError()
+    public void Validate_PreviewMode_WithoutApiKey_ReturnsError()
     {
         // Arrange
         var options = new SyncOptions
         {
             EnvironmentId = Guid.NewGuid().ToString(),
-            UsePreviewApi = true,
-            PreviewApiKey = null
+            ApiMode = ApiMode.Preview,
+            ApiKey = null
         };
         var context = new ValidationContext(options);
 
@@ -81,20 +81,44 @@ public class SyncOptionsValidationTests
 
         // Assert
         results.Should().ContainSingle(r =>
-            r.MemberNames.Contains(nameof(SyncOptions.PreviewApiKey)) &&
-            r.MemberNames.Contains(nameof(SyncOptions.UsePreviewApi)));
-        results[0].ErrorMessage.Should().Contain("PreviewApiKey is required");
+            r.MemberNames.Contains(nameof(SyncOptions.ApiKey)) &&
+            r.MemberNames.Contains(nameof(SyncOptions.ApiMode)));
+        results[0].ErrorMessage.Should().Contain("ApiKey is required");
+        results[0].ErrorMessage.Should().Contain("Preview");
     }
 
     [Fact]
-    public void Validate_UsePreviewApi_WithApiKey_Succeeds()
+    public void Validate_SecureMode_WithoutApiKey_ReturnsError()
     {
         // Arrange
         var options = new SyncOptions
         {
             EnvironmentId = Guid.NewGuid().ToString(),
-            UsePreviewApi = true,
-            PreviewApiKey = "test-api-key"
+            ApiMode = ApiMode.Secure,
+            ApiKey = null
+        };
+        var context = new ValidationContext(options);
+
+        // Act
+        var results = options.Validate(context).ToList();
+
+        // Assert
+        results.Should().ContainSingle(r =>
+            r.MemberNames.Contains(nameof(SyncOptions.ApiKey)) &&
+            r.MemberNames.Contains(nameof(SyncOptions.ApiMode)));
+        results[0].ErrorMessage.Should().Contain("ApiKey is required");
+        results[0].ErrorMessage.Should().Contain("Secure");
+    }
+
+    [Fact]
+    public void Validate_PreviewMode_WithApiKey_Succeeds()
+    {
+        // Arrange
+        var options = new SyncOptions
+        {
+            EnvironmentId = Guid.NewGuid().ToString(),
+            ApiMode = ApiMode.Preview,
+            ApiKey = "test-api-key"
         };
         var context = new ValidationContext(options);
 
@@ -106,14 +130,14 @@ public class SyncOptionsValidationTests
     }
 
     [Fact]
-    public void Validate_ProductionApi_DoesNotRequireApiKey()
+    public void Validate_SecureMode_WithApiKey_Succeeds()
     {
         // Arrange
         var options = new SyncOptions
         {
             EnvironmentId = Guid.NewGuid().ToString(),
-            UsePreviewApi = false,
-            PreviewApiKey = null
+            ApiMode = ApiMode.Secure,
+            ApiKey = "test-api-key"
         };
         var context = new ValidationContext(options);
 
@@ -121,7 +145,26 @@ public class SyncOptionsValidationTests
         var results = options.Validate(context).ToList();
 
         // Assert
-        results.Should().BeEmpty("production mode should not require API key");
+        results.Should().BeEmpty("valid secure API configuration should pass");
+    }
+
+    [Fact]
+    public void Validate_PublicMode_DoesNotRequireApiKey()
+    {
+        // Arrange
+        var options = new SyncOptions
+        {
+            EnvironmentId = Guid.NewGuid().ToString(),
+            ApiMode = ApiMode.Public,
+            ApiKey = null
+        };
+        var context = new ValidationContext(options);
+
+        // Act
+        var results = options.Validate(context).ToList();
+
+        // Assert
+        results.Should().BeEmpty("public production mode should not require API key");
     }
 
     [Theory]

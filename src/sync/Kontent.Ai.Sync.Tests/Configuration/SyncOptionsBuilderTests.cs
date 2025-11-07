@@ -63,7 +63,7 @@ public class SyncOptionsBuilderTests
             .Build();
 
         // Assert
-        options.UsePreviewApi.Should().BeFalse();
+        options.ApiMode.Should().Be(ApiMode.Public);
     }
 
     [Fact]
@@ -79,8 +79,25 @@ public class SyncOptionsBuilderTests
             .Build();
 
         // Assert
-        options.UsePreviewApi.Should().BeTrue();
-        options.PreviewApiKey.Should().Be(apiKey);
+        options.ApiMode.Should().Be(ApiMode.Preview);
+        options.ApiKey.Should().Be(apiKey);
+    }
+
+    [Fact]
+    public void UseSecureApi_ConfiguresSecureMode()
+    {
+        // Arrange
+        var apiKey = "delivery-api-key";
+
+        // Act
+        var options = SyncOptionsBuilder.CreateInstance()
+            .WithEnvironmentId(Guid.NewGuid())
+            .UseSecureApi(apiKey)
+            .Build();
+
+        // Assert
+        options.ApiMode.Should().Be(ApiMode.Secure);
+        options.ApiKey.Should().Be(apiKey);
     }
 
     [Fact]
@@ -156,8 +173,8 @@ public class SyncOptionsBuilderTests
 
         // Assert
         options.EnvironmentId.Should().Be(environmentId.ToString());
-        options.UsePreviewApi.Should().BeTrue();
-        options.PreviewApiKey.Should().Be(apiKey);
+        options.ApiMode.Should().Be(ApiMode.Preview);
+        options.ApiKey.Should().Be(apiKey);
         options.PreviewEndpoint.Should().Be(customEndpoint);
         options.EnableResilience.Should().BeFalse();
     }
@@ -171,7 +188,7 @@ public class SyncOptionsBuilderTests
             .Build();
 
         // Assert
-        options.UsePreviewApi.Should().BeFalse("default should be production mode");
+        options.ApiMode.Should().Be(ApiMode.Public, "default should be public production mode");
         options.EnableResilience.Should().BeTrue("resilience should be enabled by default");
         options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai");
         options.PreviewEndpoint.Should().Be("https://preview-deliver.kontent.ai");

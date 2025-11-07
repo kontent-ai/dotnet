@@ -41,10 +41,11 @@ internal sealed class SyncAuthenticationHandler : DelegatingHandler
             ? _optionsMonitor.CurrentValue
             : _optionsMonitor.Get(_optionsName);
 
-        // Add Preview API authentication if configured
-        if (options.UsePreviewApi && !string.IsNullOrWhiteSpace(options.PreviewApiKey))
+        // Add API authentication for Preview and Secure modes
+        if ((options.ApiMode == ApiMode.Preview || options.ApiMode == ApiMode.Secure)
+            && !string.IsNullOrWhiteSpace(options.ApiKey))
         {
-            request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {options.PreviewApiKey}");
+            request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {options.ApiKey}");
         }
 
         return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);

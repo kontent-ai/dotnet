@@ -33,15 +33,23 @@ public class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder UseProductionApi()
     {
-        _options.UsePreviewApi = false;
+        _options.ApiMode = ApiMode.Public;
         return this;
     }
 
     /// <inheritdoc/>
-    public ISyncOptionsBuilder UsePreviewApi(string previewApiKey)
+    public ISyncOptionsBuilder UsePreviewApi(string apiKey)
     {
-        _options.UsePreviewApi = true;
-        _options.PreviewApiKey = previewApiKey;
+        _options.ApiMode = ApiMode.Preview;
+        _options.ApiKey = apiKey;
+        return this;
+    }
+
+    /// <inheritdoc/>
+    public ISyncOptionsBuilder UseSecureApi(string apiKey)
+    {
+        _options.ApiMode = ApiMode.Secure;
+        _options.ApiKey = apiKey;
         return this;
     }
 
@@ -68,7 +76,7 @@ public class SyncOptionsBuilder : ISyncOptionsBuilder
 
     private void SetCustomEndpoint(string endpoint)
     {
-        if (_options.UsePreviewApi)
+        if (_options.ApiMode == ApiMode.Preview)
         {
             _options.PreviewEndpoint = endpoint;
         }
@@ -85,7 +93,7 @@ public class SyncOptionsBuilder : ISyncOptionsBuilder
         EnableResilience = _options.EnableResilience,
         ProductionEndpoint = _options.ProductionEndpoint,
         PreviewEndpoint = _options.PreviewEndpoint,
-        PreviewApiKey = _options.PreviewApiKey,
-        UsePreviewApi = _options.UsePreviewApi
+        ApiKey = _options.ApiKey,
+        ApiMode = _options.ApiMode
     };
 }
