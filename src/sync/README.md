@@ -83,12 +83,6 @@ public async Task SyncChangesAsync()
             Console.WriteLine($"Item {item.ChangeType}: {item.Data}");
         }
 
-        // Process changed assets
-        foreach (var asset in delta.Assets)
-        {
-            Console.WriteLine($"Asset {asset.ChangeType}: {asset.Data}");
-        }
-
         // Process changed content types
         foreach (var type in delta.Types)
         {
@@ -413,51 +407,6 @@ services.AddSyncClient(
         });
     });
 ```
-
-### Content Filtering
-
-Filter content during initialization to sync only what you need:
-
-```csharp
-// Filter by content types
-var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
-{
-    ContentTypes = new[] { "article", "blog_post", "author" }
-});
-
-// Filter by collections
-var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
-{
-    Collections = new[] { "web", "mobile_app" }
-});
-
-// Filter by language
-var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
-{
-    Language = "en-US"
-});
-
-// Ignore language fallbacks (exact language match only)
-var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
-{
-    Language = "es-ES",
-    IgnoreLanguageFallbacks = true  // Only Spanish content, no default language fallback
-});
-
-// Combine multiple filters
-var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
-{
-    ContentTypes = new[] { "article", "blog_post" },
-    Collections = new[] { "web" },
-    Language = "en-US"
-});
-```
-
-**Benefits of filtering:**
-- Reduces bandwidth and API usage
-- Faster synchronization
-- Lower memory footprint
-- Focus on relevant content only
 
 ### Pagination
 
