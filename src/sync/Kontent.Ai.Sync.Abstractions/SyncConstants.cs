@@ -6,7 +6,7 @@ namespace Kontent.Ai.Sync.Abstractions;
 public static class SyncConstants
 {
     /// <summary>
-    /// Maximum number of items returned per entity type (items, assets, types, languages, taxonomies) in a single sync response.
+    /// Maximum number of items returned per entity type (items, types, languages, taxonomies) in a single sync response.
     /// When any entity collection reaches this limit, additional calls with the continuation token are required to retrieve remaining items.
     /// </summary>
     /// <remarks>

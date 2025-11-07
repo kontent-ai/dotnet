@@ -14,7 +14,7 @@ public partial interface ISyncApi
     /// <param name="environmentId">The environment ID.</param>
     /// <param name="syncToken">The X-Continuation token from a previous sync.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Delta updates for items, assets, types, languages, and taxonomies.</returns>
+    /// <returns>Delta updates for items, types, languages, and taxonomies.</returns>
     [Get("/{environmentId}/sync")]
     internal Task<IApiResponse<SyncDeltaResponse>> GetDeltaAsync(
         string environmentId,

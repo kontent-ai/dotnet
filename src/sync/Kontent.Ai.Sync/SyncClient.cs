@@ -19,25 +19,11 @@ internal sealed class SyncClient(
     private readonly IOptionsMonitor<SyncOptions> _syncOptions = syncOptions ?? throw new ArgumentNullException(nameof(syncOptions));
 
     /// <inheritdoc/>
-    public async Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(SyncInitOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default)
     {
         var environmentId = _syncOptions.CurrentValue.EnvironmentId;
 
-        // Extract filter parameters from options
-        var contentTypes = options?.ContentTypes;
-        var collections = options?.Collections;
-        var systemLanguage = options?.Language;
-        var language = (options?.IgnoreLanguageFallbacks == true && !string.IsNullOrWhiteSpace(options.Language))
-            ? options.Language
-            : null;
-
-        var rawResponse = await _syncApi.InitializeSyncAsync(
-            environmentId,
-            contentTypes,
-            collections,
-            systemLanguage,
-            language,
-            cancellationToken)
+        var rawResponse = await _syncApi.InitializeSyncAsync(environmentId, cancellationToken)
             .ConfigureAwait(false);
 
         return await rawResponse.ToSyncResultAsync()

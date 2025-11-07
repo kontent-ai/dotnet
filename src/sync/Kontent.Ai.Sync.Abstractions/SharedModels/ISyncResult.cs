@@ -39,7 +39,7 @@ public interface ISyncResult<out T>
 
     /// <summary>
     /// Gets a value indicating whether more changes are available.
-    /// Returns true if any entity collection (items, assets, types, languages, taxonomies)
+    /// Returns true if any entity collection (items, types, languages, taxonomies)
     /// has reached the maximum items per response, suggesting additional data may be available
     /// via subsequent sync requests.
     /// </summary>

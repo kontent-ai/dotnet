@@ -13,10 +13,6 @@ internal sealed class SyncDeltaResponse : ISyncDeltaResponse
     public IReadOnlyList<ISyncItem> Items { get; init; } = Array.Empty<ISyncItem>();
 
     /// <inheritdoc/>
-    [JsonPropertyName("assets")]
-    public IReadOnlyList<ISyncAsset> Assets { get; init; } = Array.Empty<ISyncAsset>();
-
-    /// <inheritdoc/>
     [JsonPropertyName("types")]
     public IReadOnlyList<ISyncType> Types { get; init; } = Array.Empty<ISyncType>();
 

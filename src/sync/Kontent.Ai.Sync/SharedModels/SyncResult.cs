@@ -83,7 +83,6 @@ internal sealed class SyncResult<T> : ISyncResult<T>
 
         // Check if any collection has reached the maximum items per response
         return deltaResponse.Items.Count >= SyncConstants.MaxItemsPerEntityType
-            || deltaResponse.Assets.Count >= SyncConstants.MaxItemsPerEntityType
             || deltaResponse.Types.Count >= SyncConstants.MaxItemsPerEntityType
             || deltaResponse.Languages.Count >= SyncConstants.MaxItemsPerEntityType
             || deltaResponse.Taxonomies.Count >= SyncConstants.MaxItemsPerEntityType;
