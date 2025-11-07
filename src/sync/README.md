@@ -4,10 +4,10 @@
 # Kontent.ai Sync SDK for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
-[![License](https://img.shields.io/github/license/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/blob/master/LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/commits/master)
-[![Issues](https://img.shields.io/github/issues/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/issues)
+[![License](https://img.shields.io/github/license/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/blob/master/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/commits/master)
+[![Issues](https://img.shields.io/github/issues/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/issues)
 
 A lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
 
@@ -113,6 +113,89 @@ public async Task SyncChangesAsync()
 }
 ```
 
+## Sync Token Storage
+
+The SDK returns a sync token with each response that must be stored and used for subsequent delta requests. **Token persistence is your responsibility** - the SDK does not store tokens.
+
+Example implementations for different scenarios:
+
+```csharp
+// Example: In-memory storage (lost on restart)
+private string? _syncToken;
+
+private Task<string> LoadSyncTokenAsync()
+{
+    return Task.FromResult(_syncToken ?? string.Empty);
+}
+
+private Task SaveSyncTokenAsync(string syncToken)
+{
+    _syncToken = syncToken;
+    return Task.CompletedTask;
+}
+
+// Example: File storage (simple persistence)
+public class FileTokenStore
+{
+    private readonly string _filePath;
+
+    public async Task<string> LoadSyncTokenAsync()
+    {
+        if (!File.Exists(_filePath)) return string.Empty;
+        return await File.ReadAllTextAsync(_filePath);
+    }
+
+    public async Task SaveSyncTokenAsync(string syncToken)
+    {
+        await File.WriteAllTextAsync(_filePath, syncToken);
+    }
+}
+
+// Example: Database storage (shared across instances)
+public class DatabaseTokenStore
+{
+    private readonly DbContext _dbContext;
+
+    public async Task<string> LoadSyncTokenAsync(string environmentId)
+    {
+        var token = await _dbContext.SyncTokens
+            .Where(t => t.EnvironmentId == environmentId)
+            .Select(t => t.Token)
+            .FirstOrDefaultAsync();
+
+        return token ?? string.Empty;
+    }
+
+    public async Task SaveSyncTokenAsync(string environmentId, string syncToken)
+    {
+        var existing = await _dbContext.SyncTokens
+            .FirstOrDefaultAsync(t => t.EnvironmentId == environmentId);
+
+        if (existing != null)
+        {
+            existing.Token = syncToken;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            _dbContext.SyncTokens.Add(new SyncToken
+            {
+                EnvironmentId = environmentId,
+                Token = syncToken,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+    }
+}
+```
+
+**Important notes:**
+- Choose storage based on your architecture (single instance vs. distributed, restart requirements, etc.)
+- Losing a token means reinitializing sync from scratch
+- Handle `SyncErrorReason.InvalidSyncToken` errors by reinitializing
+
 ## Configuration Options
 
 ### API Modes
@@ -135,12 +218,12 @@ services.AddSyncClient(options =>
     options.ApiKey = "your-preview-api-key";
 });
 
-// Secure Production API (requires delivery API key)
+// Secure Production API (requires API key)
 services.AddSyncClient(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.ApiMode = ApiMode.Secure;
-    options.ApiKey = "your-delivery-api-key";
+    options.ApiKey = "your-secure-access-api-key";
 });
 ```
 
