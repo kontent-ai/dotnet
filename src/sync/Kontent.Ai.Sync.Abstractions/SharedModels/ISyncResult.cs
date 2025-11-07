@@ -36,4 +36,12 @@ public interface ISyncResult<out T>
     /// Gets the URL used to retrieve this response for debugging purposes.
     /// </summary>
     string? RequestUrl { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether more changes are available.
+    /// Returns true if any entity collection (items, assets, types, languages, taxonomies)
+    /// has reached the maximum items per response, suggesting additional data may be available
+    /// via subsequent sync requests.
+    /// </summary>
+    bool HasMoreChanges { get; }
 }

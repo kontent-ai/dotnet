@@ -26,6 +26,9 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// <inheritdoc/>
     public string? RequestUrl { get; }
 
+    /// <inheritdoc/>
+    public bool HasMoreChanges { get; }
+
     /// <summary>
     /// Creates a successful result.
     /// </summary>
@@ -44,6 +47,7 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         StatusCode = statusCode;
         SyncToken = syncToken;
         RequestUrl = requestUrl;
+        HasMoreChanges = CalculateHasMoreChanges(value);
     }
 
     /// <summary>
@@ -63,6 +67,26 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         StatusCode = statusCode;
         SyncToken = null;
         RequestUrl = requestUrl;
+        HasMoreChanges = false;
+    }
+
+    /// <summary>
+    /// Calculates whether more changes are available based on the response data.
+    /// </summary>
+    private static bool CalculateHasMoreChanges(T value)
+    {
+        // Only delta responses can have more changes
+        if (value is not ISyncDeltaResponse deltaResponse)
+        {
+            return false;
+        }
+
+        // Check if any collection has reached the maximum items per response
+        return deltaResponse.Items.Count >= SyncConstants.MaxItemsPerEntityType
+            || deltaResponse.Assets.Count >= SyncConstants.MaxItemsPerEntityType
+            || deltaResponse.Types.Count >= SyncConstants.MaxItemsPerEntityType
+            || deltaResponse.Languages.Count >= SyncConstants.MaxItemsPerEntityType
+            || deltaResponse.Taxonomies.Count >= SyncConstants.MaxItemsPerEntityType;
     }
 }
 
