@@ -57,25 +57,42 @@ public static class RefitApiResponseExtensions
     {
         var requestUrl = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
         var statusCode = (int)apiResponse.StatusCode;
+        var exception = apiResponse.Error;
+
+        // Determine error reason based on status code and exception type
+        var reason = MapErrorReason(statusCode, exception);
 
         // Try to deserialize error from response body
         IError? error = null;
-        if (!string.IsNullOrWhiteSpace(apiResponse.Error?.Content))
+        if (!string.IsNullOrWhiteSpace(exception?.Content))
         {
             try
             {
-                error = JsonSerializer.Deserialize<Error>(apiResponse.Error.Content, new JsonSerializerOptions
+                error = JsonSerializer.Deserialize<Error>(exception.Content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
+
+                // Update the deserialized error with reason and inner exception
+                error = new Error
+                {
+                    Message = error?.Message ?? exception.Content,
+                    RequestId = error?.RequestId,
+                    ErrorCode = error?.ErrorCode ?? statusCode,
+                    SpecificCode = error?.SpecificCode,
+                    Reason = reason,
+                    InnerException = exception
+                };
             }
             catch
             {
                 // If deserialization fails, create a generic error
                 error = new Error
                 {
-                    Message = apiResponse.Error?.Content ?? "An unknown error occurred.",
-                    ErrorCode = statusCode
+                    Message = exception.Content,
+                    ErrorCode = statusCode,
+                    Reason = reason,
+                    InnerException = exception
                 };
             }
         }
@@ -84,11 +101,59 @@ public static class RefitApiResponseExtensions
             // No error content, create a generic error
             error = new Error
             {
-                Message = apiResponse.ReasonPhrase ?? "An unknown error occurred.",
-                ErrorCode = statusCode
+                Message = apiResponse.ReasonPhrase ?? exception?.Message ?? "An unknown error occurred.",
+                ErrorCode = statusCode,
+                Reason = reason,
+                InnerException = exception
             };
         }
 
         return SyncResult.Failure<T>(requestUrl, statusCode, error);
+    }
+
+    /// <summary>
+    /// Maps HTTP status codes and exception types to error reasons.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code.</param>
+    /// <param name="exception">The exception that occurred, if any.</param>
+    /// <returns>The appropriate error reason.</returns>
+    private static SyncErrorReason MapErrorReason(int statusCode, ApiException? exception)
+    {
+        // Check exception type first
+        if (exception is not null)
+        {
+            var exceptionMessage = exception.Message.ToLowerInvariant();
+
+            // Network-related errors
+            if (exception.InnerException is HttpRequestException ||
+                exception.InnerException is System.Net.Sockets.SocketException ||
+                exceptionMessage.Contains("connection") ||
+                exceptionMessage.Contains("network"))
+            {
+                return SyncErrorReason.NetworkError;
+            }
+
+            // Timeout errors
+            if (exception.InnerException is TaskCanceledException ||
+                exception.InnerException is TimeoutException ||
+                exceptionMessage.Contains("timeout"))
+            {
+                return SyncErrorReason.Timeout;
+            }
+        }
+
+        // Map based on HTTP status code
+        return statusCode switch
+        {
+            401 or 403 => SyncErrorReason.Unauthorized,
+            404 => SyncErrorReason.NotFound,
+            429 => SyncErrorReason.RateLimited,
+            408 => SyncErrorReason.Timeout,
+            500 => SyncErrorReason.ServerError,
+            502 or 503 or 504 => SyncErrorReason.ServerError,
+            >= 400 and < 500 => SyncErrorReason.InvalidResponse,
+            >= 500 => SyncErrorReason.ServerError,
+            _ => SyncErrorReason.Unknown
+        };
     }
 }

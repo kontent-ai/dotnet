@@ -23,4 +23,10 @@ internal sealed class Error : IError
     /// <inheritdoc/>
     [JsonPropertyName("specific_code")]
     public int? SpecificCode { get; init; }
+
+    /// <inheritdoc/>
+    public SyncErrorReason Reason { get; init; } = SyncErrorReason.Unknown;
+
+    /// <inheritdoc/>
+    public Exception? InnerException { get; init; }
 }

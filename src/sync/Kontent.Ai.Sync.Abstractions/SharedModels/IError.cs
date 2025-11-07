@@ -24,4 +24,14 @@ public interface IError
     /// Gets specific code of error.
     /// </summary>
     int? SpecificCode { get; }
+
+    /// <summary>
+    /// Gets the reason for the error, providing a categorized error type.
+    /// </summary>
+    SyncErrorReason Reason { get; }
+
+    /// <summary>
+    /// Gets the underlying exception that caused this error, if available.
+    /// </summary>
+    Exception? InnerException { get; }
 }
