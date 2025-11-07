@@ -3,6 +3,12 @@
 
 # Kontent.ai Sync SDK for .NET
 
+[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
+[![License](https://img.shields.io/github/license/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/blob/master/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/commits/master)
+[![Issues](https://img.shields.io/github/issues/kontent-ai/delivery-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/delivery-sdk-net/issues)
+
 A lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
 
 ## Installation
@@ -22,8 +28,8 @@ using Kontent.Ai.Sync.Extensions;
 services.AddSyncClient(options =>
 {
     options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "your-preview-api-key";
+    options.ApiMode = ApiMode.Preview;
+    options.ApiKey = "your-preview-api-key";
 });
 ```
 
@@ -109,12 +115,41 @@ public async Task SyncChangesAsync()
 
 ## Configuration Options
 
+### API Modes
+
+The SDK supports three authentication modes:
+
+```csharp
+// Public Production API (no authentication)
+services.AddSyncClient(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.ApiMode = ApiMode.Public; // Default
+});
+
+// Preview API (requires API key)
+services.AddSyncClient(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.ApiMode = ApiMode.Preview;
+    options.ApiKey = "your-preview-api-key";
+});
+
+// Secure Production API (requires delivery API key)
+services.AddSyncClient(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.ApiMode = ApiMode.Secure;
+    options.ApiKey = "your-delivery-api-key";
+});
+```
+
 ### Using Options Builder
 
 ```csharp
 services.AddSyncClient(builder => builder
     .WithEnvironmentId("your-environment-id")
-    .UsePreviewApi("your-preview-api-key")
+    .UsePreviewApi("your-preview-api-key")  // or .UseSecureApi() or .UseProductionApi()
     .DisableRetryPolicy()
     .Build());
 ```
@@ -126,8 +161,8 @@ services.AddSyncClient(builder => builder
 {
   "SyncOptions": {
     "EnvironmentId": "your-environment-id",
-    "UsePreviewApi": true,
-    "PreviewApiKey": "your-preview-api-key",
+    "ApiMode": "Preview",
+    "ApiKey": "your-preview-api-key",
     "EnableResilience": true
   }
 }
@@ -146,13 +181,14 @@ Register multiple clients for different environments:
 services.AddSyncClient("production", options =>
 {
     options.EnvironmentId = "prod-environment-id";
+    options.ApiMode = ApiMode.Public;
 });
 
 services.AddSyncClient("staging", options =>
 {
     options.EnvironmentId = "staging-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "staging-preview-key";
+    options.ApiMode = ApiMode.Preview;
+    options.ApiKey = "staging-preview-key";
 });
 
 // ISyncClientFactory is automatically registered when you call AddSyncClient
@@ -184,7 +220,7 @@ public class MultiTenantService
 
 ## Error Handling
 
-The SDK uses the Result pattern for predictable error handling:
+The SDK uses the Result pattern for predictable error handling with structured error reasons:
 
 ```csharp
 var result = await _syncClient.GetDeltaAsync(syncToken);
@@ -197,15 +233,52 @@ if (result.IsSuccess)
 }
 else
 {
-    // Handle error
+    // Handle error with reason-based logic
     var error = result.Error;
-    _logger.LogError(
-        "Sync failed: {Message} (Status: {Status}, RequestId: {RequestId})",
-        error.Message,
-        result.StatusCode,
-        error.RequestId);
+
+    switch (error.Reason)
+    {
+        case SyncErrorReason.RateLimited:
+            _logger.LogWarning("Rate limit exceeded, waiting before retry...");
+            await Task.Delay(TimeSpan.FromSeconds(30));
+            break;
+
+        case SyncErrorReason.Unauthorized:
+            _logger.LogError("Authentication failed. Check your API key.");
+            break;
+
+        case SyncErrorReason.NetworkError:
+            _logger.LogError(error.InnerException, "Network connectivity issue");
+            break;
+
+        case SyncErrorReason.Timeout:
+            _logger.LogWarning("Request timed out, retrying...");
+            break;
+
+        default:
+            _logger.LogError(
+                "Sync failed: {Message} (Reason: {Reason}, Status: {Status}, RequestId: {RequestId})",
+                error.Message,
+                error.Reason,
+                result.StatusCode,
+                error.RequestId);
+            break;
+    }
 }
 ```
+
+### Available Error Reasons
+
+- `Unknown` - Unspecified error
+- `InvalidResponse` - Invalid or unparsable API response
+- `NotFound` - Resource not found (404)
+- `Unauthorized` - Authentication failed (401/403)
+- `RateLimited` - Too many requests (429)
+- `Timeout` - Request timed out
+- `NetworkError` - Connection or DNS failure
+- `InvalidSyncToken` - Sync token is invalid or expired
+- `InvalidConfiguration` - SDK configuration error
+- `ServerError` - Internal server error (500+)
 
 ## Resilience & Retry Policies
 
@@ -258,17 +331,108 @@ services.AddSyncClient(
     });
 ```
 
+### Content Filtering
+
+Filter content during initialization to sync only what you need:
+
+```csharp
+// Filter by content types
+var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
+{
+    ContentTypes = new[] { "article", "blog_post", "author" }
+});
+
+// Filter by collections
+var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
+{
+    Collections = new[] { "web", "mobile_app" }
+});
+
+// Filter by language
+var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
+{
+    Language = "en-US"
+});
+
+// Ignore language fallbacks (exact language match only)
+var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
+{
+    Language = "es-ES",
+    IgnoreLanguageFallbacks = true  // Only Spanish content, no default language fallback
+});
+
+// Combine multiple filters
+var result = await _syncClient.InitializeSyncAsync(new SyncInitOptions
+{
+    ContentTypes = new[] { "article", "blog_post" },
+    Collections = new[] { "web" },
+    Language = "en-US"
+});
+```
+
+**Benefits of filtering:**
+- Reduces bandwidth and API usage
+- Faster synchronization
+- Lower memory footprint
+- Focus on relevant content only
+
 ### Pagination
 
-The Sync API returns a maximum of 100 items per entity type. Use the sync token to paginate:
+The Sync API returns a maximum of 100 items per entity type per response. The SDK provides multiple ways to handle pagination:
+
+#### Automatic Pagination with GetAllDeltaAsync
+
+The simplest approach - automatically fetches all available changes:
 
 ```csharp
 public async Task SyncAllChangesAsync()
 {
     var syncToken = await LoadSyncTokenAsync();
-    bool hasMoreChanges = true;
 
-    while (hasMoreChanges)
+    // Automatically fetch all pages
+    var result = await _syncClient.GetAllDeltaAsync(syncToken);
+
+    if (result.IsSuccess)
+    {
+        _logger.LogInformation(
+            "Fetched {Pages} pages with {Items} total items",
+            result.PagesFetched,
+            result.Responses.Sum(r => r.Items.Count));
+
+        // Process all responses
+        foreach (var response in result.Responses)
+        {
+            await ProcessDeltaAsync(response);
+        }
+
+        // Save the final sync token
+        await SaveSyncTokenAsync(result.FinalSyncToken);
+    }
+}
+```
+
+#### Limit Pages to Control API Usage
+
+```csharp
+// Fetch maximum of 5 pages to control costs/time
+var result = await _syncClient.GetAllDeltaAsync(syncToken, maxPages: 5);
+
+if (result.WasLimitedByMaxPages)
+{
+    _logger.LogWarning("More changes available but stopped at page limit");
+}
+```
+
+#### Manual Pagination with HasMoreChanges
+
+For fine-grained control, use the `HasMoreChanges` property:
+
+```csharp
+public async Task SyncAllChangesAsync()
+{
+    var syncToken = await LoadSyncTokenAsync();
+
+    do
     {
         var result = await _syncClient.GetDeltaAsync(syncToken);
 
@@ -278,20 +442,14 @@ public async Task SyncAllChangesAsync()
             break;
         }
 
-        var delta = result.Value;
-        await ProcessDeltaAsync(delta);
-
-        // Check if there are more changes
-        hasMoreChanges = delta.Items.Count == 100 ||
-                         delta.Assets.Count == 100 ||
-                         delta.Types.Count == 100 ||
-                         delta.Languages.Count == 100 ||
-                         delta.Taxonomies.Count == 100;
+        await ProcessDeltaAsync(result.Value);
 
         // Update sync token
         syncToken = result.SyncToken;
         await SaveSyncTokenAsync(syncToken);
-    }
+
+        // HasMoreChanges automatically checks if any collection has 100+ items
+    } while (result.HasMoreChanges);
 }
 ```
 
@@ -299,12 +457,6 @@ public async Task SyncAllChangesAsync()
 
 - **.NET 8.0** or later
 - **Kontent.ai** environment with Sync API access
-
-## Support
-
-For issues, feature requests, or questions:
-- GitHub Issues: [kontent-ai/delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net)
-- Kontent.ai Documentation: [Sync API Reference](https://kontent.ai/learn/docs/apis/openapi/sync-api/)
 
 ## Related SDKs
 
