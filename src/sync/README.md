@@ -3,17 +3,7 @@
 
 # Kontent.ai Sync SDK for .NET
 
-A modern, lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
-
-## Features
-
-- ✅ **.NET 8.0** - Built with the latest .NET features
-- ✅ **Simple API** - Direct methods, no complex query builders needed
-- ✅ **Result Pattern** - Railway-oriented programming for robust error handling
-- ✅ **Dependency Injection** - First-class DI support with multiple configuration styles
-- ✅ **Resilience** - Built-in retry policies and timeout handling via Polly
-- ✅ **Type-Safe** - Strongly-typed responses with full IntelliSense support
-- ✅ **Modern C#** - Primary constructors, record types, nullable reference types
+A lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
 
 ## Installation
 
@@ -165,9 +155,31 @@ services.AddSyncClient("staging", options =>
     options.PreviewApiKey = "staging-preview-key";
 });
 
-// Access via factory (requires ISyncClientFactory - to be implemented)
-var prodClient = syncClientFactory.Get("production");
-var stagingClient = syncClientFactory.Get("staging");
+// ISyncClientFactory is automatically registered when you call AddSyncClient
+// No additional registration is needed - just inject it
+public class MultiTenantService
+{
+    private readonly ISyncClientFactory _syncClientFactory;
+
+    public MultiTenantService(ISyncClientFactory syncClientFactory)
+    {
+        _syncClientFactory = syncClientFactory;
+    }
+
+    public async Task SyncProductionAsync()
+    {
+        var prodClient = _syncClientFactory.Get("production");
+        var result = await prodClient.InitializeSyncAsync();
+        // Process result...
+    }
+
+    public async Task SyncStagingAsync()
+    {
+        var stagingClient = _syncClientFactory.Get("staging");
+        var result = await stagingClient.InitializeSyncAsync();
+        // Process result...
+    }
+}
 ```
 
 ## Error Handling
@@ -283,24 +295,10 @@ public async Task SyncAllChangesAsync()
 }
 ```
 
-## Architecture
-
-The SDK follows the proven architectural patterns from the Kontent.ai Delivery SDK:
-
-- **Abstractions Project**: Public API contracts and interfaces
-- **Implementation Project**: Internal implementations using Refit
-- **Result Pattern**: Functional error handling without exceptions
-- **Options Pattern**: ASP.NET Core configuration integration
-- **Modern .NET**: C# 12, primary constructors, record types
-
 ## Requirements
 
 - **.NET 8.0** or later
 - **Kontent.ai** environment with Sync API access
-
-## License
-
-This SDK is provided as-is for use with Kontent.ai services.
 
 ## Support
 

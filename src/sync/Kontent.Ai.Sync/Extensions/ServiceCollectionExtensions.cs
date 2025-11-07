@@ -176,6 +176,9 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredKeyedService<ISyncClient>(DefaultName));
         }
 
+        // Register factory for named client access (only once)
+        services.TryAddSingleton<ISyncClientFactory, SyncClientFactory>();
+
         return services;
     }
 
