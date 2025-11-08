@@ -1,5 +1,8 @@
 > [!IMPORTANT]
-> This SDK is a work in progress. For existing sync API functionality in .NET, use delivery SDK v18.x.
+> This SDK is currently in beta and may undergo breaking changes before being released into production.
+> 
+> For stable sync features, use the latest production release of delivery SDK (18.3.0), which includes them.
+> From version 19 of delivery SDK (currently in beta) onwards, the sync features will only be available using this standalone SDK. 
 
 # Kontent.ai Sync SDK for .NET
 
