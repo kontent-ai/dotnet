@@ -12,7 +12,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/commits/master)
 [![Issues](https://img.shields.io/github/issues/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/issues)
 
-A lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/), enabling efficient synchronization of content changes from your Kontent.ai projects.
+A lightweight .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/), enabling efficient synchronization of content changes from your Kontent.ai projects.
 
 ## Installation
 
