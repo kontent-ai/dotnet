@@ -7,7 +7,7 @@ namespace Kontent.Ai.Sync.Models;
 /// <summary>
 /// Represents a delta update for a taxonomy group.
 /// </summary>
-internal sealed class SyncTaxonomy : ISyncTaxonomy
+internal sealed record SyncTaxonomy : ISyncTaxonomy
 {
     /// <inheritdoc/>
     [JsonPropertyName("change_type")]

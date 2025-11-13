@@ -7,7 +7,7 @@ namespace Kontent.Ai.Sync.Models;
 /// <summary>
 /// Represents a delta update for a content type.
 /// </summary>
-internal sealed class SyncType : ISyncType
+internal sealed record SyncType : ISyncType
 {
     /// <inheritdoc/>
     [JsonPropertyName("change_type")]

@@ -7,7 +7,7 @@ namespace Kontent.Ai.Sync.Models;
 /// <summary>
 /// Represents a delta update for a language.
 /// </summary>
-internal sealed class SyncLanguage : ISyncLanguage
+internal sealed record SyncLanguage : ISyncLanguage
 {
     /// <inheritdoc/>
     [JsonPropertyName("change_type")]

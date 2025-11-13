@@ -6,21 +6,27 @@ namespace Kontent.Ai.Sync.Models;
 /// <summary>
 /// Represents delta updates from a sync operation.
 /// </summary>
-internal sealed class SyncDeltaResponse : ISyncDeltaResponse
+internal sealed record SyncDeltaResponse : ISyncDeltaResponse
 {
     /// <inheritdoc/>
     [JsonPropertyName("items")]
-    public IReadOnlyList<ISyncItem> Items { get; init; } = Array.Empty<ISyncItem>();
+    public IReadOnlyList<SyncItem> Items { get; init; } = [];
 
     /// <inheritdoc/>
     [JsonPropertyName("types")]
-    public IReadOnlyList<ISyncType> Types { get; init; } = Array.Empty<ISyncType>();
+    public IReadOnlyList<SyncType> Types { get; init; } = [];
 
     /// <inheritdoc/>
     [JsonPropertyName("languages")]
-    public IReadOnlyList<ISyncLanguage> Languages { get; init; } = Array.Empty<ISyncLanguage>();
+    public IReadOnlyList<SyncLanguage> Languages { get; init; } = [];
 
     /// <inheritdoc/>
     [JsonPropertyName("taxonomies")]
-    public IReadOnlyList<ISyncTaxonomy> Taxonomies { get; init; } = Array.Empty<ISyncTaxonomy>();
+    public IReadOnlyList<SyncTaxonomy> Taxonomies { get; init; } = [];
+
+    // Explicit interface implementations to expose as interfaces
+    IReadOnlyList<ISyncItem> ISyncDeltaResponse.Items => Items;
+    IReadOnlyList<ISyncType> ISyncDeltaResponse.Types => Types;
+    IReadOnlyList<ISyncLanguage> ISyncDeltaResponse.Languages => Languages;
+    IReadOnlyList<ISyncTaxonomy> ISyncDeltaResponse.Taxonomies => Taxonomies;
 }

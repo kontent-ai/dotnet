@@ -190,7 +190,7 @@ public class SyncOptionsBuilderTests
         // Assert
         options.ApiMode.Should().Be(ApiMode.Public, "default should be public production mode");
         options.EnableResilience.Should().BeTrue("resilience should be enabled by default");
-        options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai");
-        options.PreviewEndpoint.Should().Be("https://preview-deliver.kontent.ai");
+        options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai/v2");
+        options.PreviewEndpoint.Should().Be("https://preview-deliver.kontent.ai/v2");
     }
 }

@@ -6,7 +6,7 @@ namespace Kontent.Ai.Sync.Models;
 /// Represents the response from sync initialization.
 /// The actual sync token is returned in the X-Continuation header.
 /// </summary>
-internal sealed class SyncInitResponse : ISyncInitResponse
+internal sealed record SyncInitResponse : ISyncInitResponse
 {
     // This class is intentionally empty as the sync/init endpoint returns
     // an empty response body. The X-Continuation token is extracted from the headers.

@@ -23,13 +23,13 @@ public sealed class SyncOptions : IValidatableObject
     /// Gets or sets the format of the Production API endpoint address.
     /// </summary>
     [Url]
-    public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai";
+    public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai/v2";
 
     /// <summary>
     /// Gets or sets the format of the Preview API endpoint address.
     /// </summary>
     [Url]
-    public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
+    public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai/v2";
 
     /// <summary>
     /// Gets or sets the API mode for accessing Kontent.ai content.

@@ -189,7 +189,7 @@ public class SyncOptionsValidationTests
     }
 
     [Theory]
-    [InlineData("https://deliver.kontent.ai")]
+    [InlineData("https://deliver.kontent.ai/v2")]
     [InlineData("https://custom.endpoint.com")]
     public void DataAnnotations_ValidEndpointUrl_PassesValidation(string validUrl)
     {
