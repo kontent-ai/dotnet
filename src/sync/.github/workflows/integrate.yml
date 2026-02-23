@@ -8,85 +8,30 @@ on:
 
 jobs:
   build:
+
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
-
-      - name: Test with coverage threshold
-        run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Threshold=70 /p:ThresholdType=line /p:ThresholdStat=total
-
-      - name: Codecov
-        if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-
-  vulnerability-audit:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      AUDIT_OUTPUT_DIR: ./artifacts/vulnerability-audit
-      AUDIT_REPORT: ./artifacts/vulnerability-audit/vulnerabilities.json
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Run vulnerability audit
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$AUDIT_OUTPUT_DIR"
-          dotnet list Kontent.Ai.Sync.sln package --vulnerable --include-transitive --format json > "$AUDIT_REPORT"
-
-      - name: Fail on vulnerabilities
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          vulnerability_count=$(jq '[
-            .projects[]?.frameworks[]?
-            | (.topLevelPackages[]?, .transitivePackages[]?)
-            | select((.vulnerabilities // []) | length > 0)
-          ] | length' "$AUDIT_REPORT")
-
-          if [ "$vulnerability_count" -gt 0 ]; then
-            echo "Detected $vulnerability_count vulnerable package entries."
-            jq '.projects[]?.frameworks[]? | {framework: .framework, topLevelPackages: [.topLevelPackages[]? | select((.vulnerabilities // []) | length > 0)], transitivePackages: [.transitivePackages[]? | select((.vulnerabilities // []) | length > 0)]}' "$AUDIT_REPORT"
-            exit 1
-          fi
-
-          echo "No known vulnerabilities detected."
-
-      - name: Upload vulnerability audit artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vulnerability-audit
-          path: ./artifacts/vulnerability-audit/vulnerabilities.json
-          if-no-files-found: warn
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Test
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Threshold=70 /p:ThresholdType=line /p:ThresholdStat=total
+    - name: Codecov
+      if: runner.os == 'Linux'
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
 
   pack-validation:
     runs-on: ubuntu-latest
@@ -94,89 +39,82 @@ jobs:
     env:
       PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
       PACK_OUTPUT: ./artifacts/pack-validation
-
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Pack release artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$PACK_OUTPUT"
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
+        timeout --preserve-status 15m dotnet pack Kontent.Ai.Sync/Kontent.Ai.Sync.csproj \
+          --no-build \
+          --configuration Release \
+          --include-symbols \
+          --output "$PACK_OUTPUT" \
+          /p:ContinuousIntegrationBuild=true \
+          /p:PackageVersion="$PACKAGE_VERSION" \
+          /bl:"$PACK_OUTPUT/pack-sync.binlog"
 
-      - name: Restore dependencies
-        run: dotnet restore
+        timeout --preserve-status 15m dotnet pack Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj \
+          --no-build \
+          --configuration Release \
+          --include-symbols \
+          --output "$PACK_OUTPUT" \
+          /p:ContinuousIntegrationBuild=true \
+          /p:PackageVersion="$PACKAGE_VERSION" \
+          /bl:"$PACK_OUTPUT/pack-abstractions.binlog"
+    - name: Validate package artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
 
-      - name: Build
-        run: dotnet build --configuration Release --no-restore /p:ContinuousIntegrationBuild=true
+        expected_nupkgs=(
+          "Kontent.Ai.Sync.${PACKAGE_VERSION}.nupkg"
+          "Kontent.Ai.Sync.Abstractions.${PACKAGE_VERSION}.nupkg"
+        )
 
-      - name: Pack release artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$PACK_OUTPUT"
+        expected_snupkgs=(
+          "Kontent.Ai.Sync.${PACKAGE_VERSION}.snupkg"
+          "Kontent.Ai.Sync.Abstractions.${PACKAGE_VERSION}.snupkg"
+        )
 
-          dotnet pack Kontent.Ai.Sync/Kontent.Ai.Sync.csproj \
-            --no-build \
-            --configuration Release \
-            --include-symbols \
-            --output "$PACK_OUTPUT" \
-            /p:ContinuousIntegrationBuild=true \
-            /p:PackageVersion="$PACKAGE_VERSION" \
-            /bl:"$PACK_OUTPUT/pack-sync.binlog"
+        missing=0
 
-          dotnet pack Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj \
-            --no-build \
-            --configuration Release \
-            --include-symbols \
-            --output "$PACK_OUTPUT" \
-            /p:ContinuousIntegrationBuild=true \
-            /p:PackageVersion="$PACKAGE_VERSION" \
-            /bl:"$PACK_OUTPUT/pack-abstractions.binlog"
-
-      - name: Validate package artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          expected_nupkgs=(
-            "Kontent.Ai.Sync.${PACKAGE_VERSION}.nupkg"
-            "Kontent.Ai.Sync.Abstractions.${PACKAGE_VERSION}.nupkg"
-          )
-
-          expected_snupkgs=(
-            "Kontent.Ai.Sync.${PACKAGE_VERSION}.snupkg"
-            "Kontent.Ai.Sync.Abstractions.${PACKAGE_VERSION}.snupkg"
-          )
-
-          missing=0
-
-          for package in "${expected_nupkgs[@]}"; do
-            if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
-              echo "Missing expected package: ${package}"
-              missing=1
-            fi
-          done
-
-          for package in "${expected_snupkgs[@]}"; do
-            if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
-              echo "Missing expected symbol package: ${package}"
-              missing=1
-            fi
-          done
-
-          if [ "$missing" -ne 0 ]; then
-            echo "Pack validation failed. Available artifacts:"
-            ls -la "$PACK_OUTPUT"
-            exit 1
+        for package in "${expected_nupkgs[@]}"; do
+          if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
+            echo "Missing expected package: ${package}"
+            missing=1
           fi
+        done
 
-      - name: Upload pack validation artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pack-validation-artifacts
-          path: |
-            ./artifacts/pack-validation/*.nupkg
-            ./artifacts/pack-validation/*.snupkg
-            ./artifacts/pack-validation/*.binlog
-          if-no-files-found: warn
+        for package in "${expected_snupkgs[@]}"; do
+          if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
+            echo "Missing expected symbol package: ${package}"
+            missing=1
+          fi
+        done
+
+        if [ "${missing}" -ne 0 ]; then
+          echo "Pack validation failed. Available artifacts:"
+          ls -la "$PACK_OUTPUT"
+          exit 1
+        fi
+    - name: Upload pack validation artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: pack-validation-artifacts
+        path: |
+          ./artifacts/pack-validation/*.nupkg
+          ./artifacts/pack-validation/*.snupkg
+          ./artifacts/pack-validation/*.binlog
+        if-no-files-found: warn

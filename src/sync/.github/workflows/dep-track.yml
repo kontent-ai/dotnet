@@ -9,57 +9,29 @@ on:
       - main
   schedule:
     - cron: '0 7 * * 1'
-  workflow_dispatch:
 
 jobs:
-  deptrack-build:
+  Deptrack-build:
+
     runs-on: ubuntu-latest
-    env:
-      DT_SERVER_URL: ${{ secrets.DEPENDENCYTRACK_SERVER_URL }}
-      DT_API_KEY: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      - name: Validate Dependency-Track configuration
-        id: deptrack-config
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ -z "$DT_SERVER_URL" ] || [ -z "$DT_API_KEY" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Dependency-Track is not configured. Set DEPENDENCYTRACK_SERVER_URL and DEPENDENCYTRACK_APIKEY secrets to enable uploads."
-            exit 0
-          fi
-
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-
-      - name: Install CycloneDX
-        if: steps.deptrack-config.outputs.enabled == 'true'
-        run: dotnet tool install --global CycloneDX
-
-      - name: Create SBOM
-        if: steps.deptrack-config.outputs.enabled == 'true'
-        run: dotnet CycloneDX ./Kontent.Ai.Sync.sln -o ./cyclone
-
-      - name: Upload SBOM
-        if: steps.deptrack-config.outputs.enabled == 'true'
-        uses: DependencyTrack/gh-upload-sbom@v3
-        with:
-          serverhostname: ${{ secrets.DEPENDENCYTRACK_SERVER_URL }}
-          apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
-          projectname: 'Sync SDK .NET'
-          projectversion: ${{ github.head_ref || github.ref_name }}
-          bomfilename: "./cyclone/bom.xml"
-          autocreate: true
-
-      - name: Dependency-Track skipped
-        if: steps.deptrack-config.outputs.enabled != 'true'
-        run: echo "Dependency-Track upload skipped because required secrets are not configured."
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+    - name: Install CycloneDX
+      run: dotnet tool install --global CycloneDX
+    - name: Create SBOM
+      run: dotnet CycloneDX ./Kontent.Ai.Sync.sln -o ./cyclone
+    - name: Upload SBOM
+      uses: DependencyTrack/gh-upload-sbom@v3
+      with:
+        serverhostname: ${{ secrets.DEPENDENCYTRACK_SERVER_URL }}
+        apikey: ${{ secrets.DEPENDENCYTRACK_APIKEY }}
+        projectname: 'Sync SDK .NET'
+        projectversion: ${{ github.head_ref || github.ref_name }}
+        bomfilename: "./cyclone/bom.xml"
+        autocreate: true
