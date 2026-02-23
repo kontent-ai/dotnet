@@ -8,6 +8,8 @@
     <Threshold>70</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
+    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
+    <ExcludeByFile>**/Extensions/ServiceCollectionExtensions.cs</ExcludeByFile>
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
