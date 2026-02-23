@@ -6,11 +6,11 @@ namespace Kontent.Ai.Sync.SharedModels;
 /// <summary>
 /// Represents an error response from Kontent.ai Sync API.
 /// </summary>
-internal sealed class Error : IError
+internal sealed record Error : IError
 {
     /// <inheritdoc/>
     [JsonPropertyName("message")]
-    public string Message { get; init; } = string.Empty;
+    public string Message { get; init; } = "Unknown error";
 
     /// <inheritdoc/>
     [JsonPropertyName("request_id")]
@@ -25,8 +25,6 @@ internal sealed class Error : IError
     public int? SpecificCode { get; init; }
 
     /// <inheritdoc/>
-    public SyncErrorReason Reason { get; init; } = SyncErrorReason.Unknown;
-
-    /// <inheritdoc/>
-    public Exception? InnerException { get; init; }
+    [JsonIgnore]
+    public Exception? Exception { get; init; }
 }

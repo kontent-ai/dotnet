@@ -1,23 +1,25 @@
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Configuration;
+using Kontent.Ai.Sync.Extensions;
 using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Refit;
+using Polly.Retry;
 
-namespace Kontent.Ai.Sync.Extensions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Extension methods for registering Kontent.ai Sync SDK services.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    private const string DefaultName = "Default";
+    private const string HttpClientNamePrefix = "Kontent.Ai.Sync.HttpClient.";
 
     /// <summary>
     /// Registers the Kontent.ai Sync client with the specified options instance.
@@ -38,15 +40,8 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(syncOptions);
 
         return services.AddSyncClient(
-            DefaultName,
-            options => {
-                options.EnvironmentId = syncOptions.EnvironmentId;
-                options.EnableResilience = syncOptions.EnableResilience;
-                options.ProductionEndpoint = syncOptions.ProductionEndpoint;
-                options.PreviewEndpoint = syncOptions.PreviewEndpoint;
-                options.ApiKey = syncOptions.ApiKey;
-                options.ApiMode = syncOptions.ApiMode;
-            },
+            SyncClientNames.Default,
+            options => SyncOptionsCopyHelper.Copy(syncOptions, options),
             configureHttpClient,
             configureResilience,
             configureRefit);
@@ -73,7 +68,12 @@ public static class ServiceCollectionExtensions
         var builder = SyncOptionsBuilder.CreateInstance();
         var options = buildSyncOptions(builder);
 
-        return services.AddSyncClient(options, configureHttpClient, configureResilience, configureRefit);
+        return services.AddSyncClient(
+            SyncClientNames.Default,
+            opts => SyncOptionsCopyHelper.Copy(options, opts),
+            configureHttpClient,
+            configureResilience,
+            configureRefit);
     }
 
     /// <summary>
@@ -88,15 +88,72 @@ public static class ServiceCollectionExtensions
         IConfiguration configuration,
         string configurationSectionName = "SyncOptions")
     {
+        ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
         var section = string.IsNullOrWhiteSpace(configurationSectionName)
             ? configuration
             : configuration.GetSection(configurationSectionName);
 
-        return services.AddSyncClient(
-            DefaultName,
-            options => section.Bind(options));
+        return services.AddSyncClientFromConfiguration(SyncClientNames.Default, section);
+    }
+
+    /// <summary>
+    /// Registers a named Kontent.ai Sync client using configuration.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="configuration">The configuration instance.</param>
+    /// <param name="configurationSectionName">The configuration section name. Defaults to "SyncOptions".</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        string name,
+        IConfiguration configuration,
+        string configurationSectionName = "SyncOptions")
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var section = string.IsNullOrWhiteSpace(configurationSectionName)
+            ? configuration
+            : configuration.GetSection(configurationSectionName);
+
+        return services.AddSyncClientFromConfiguration(name, section);
+    }
+
+    /// <summary>
+    /// Registers the Kontent.ai Sync client using a configuration section.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configurationSection">The configuration section containing sync options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        IConfigurationSection configurationSection)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configurationSection);
+
+        return services.AddSyncClientFromConfiguration(SyncClientNames.Default, configurationSection);
+    }
+
+    /// <summary>
+    /// Registers a named Kontent.ai Sync client using a configuration section.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="configurationSection">The configuration section containing sync options.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        string name,
+        IConfigurationSection configurationSection)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configurationSection);
+
+        return services.AddSyncClientFromConfiguration(name, configurationSection);
     }
 
     /// <summary>
@@ -111,7 +168,28 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        return services.AddSyncClient(DefaultName, configureOptions);
+        return services.AddSyncClient(SyncClientNames.Default, configureOptions);
+    }
+
+    /// <summary>
+    /// Registers the Kontent.ai Sync client with advanced configuration options.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">Action to configure sync options.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        Action<SyncOptions> configureOptions,
+        Action<IHttpClientBuilder>? configureHttpClient,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    {
+        return services.AddSyncClient(
+            SyncClientNames.Default,
+            configureOptions,
+            configureHttpClient,
+            configureResilience);
     }
 
     /// <summary>
@@ -124,6 +202,7 @@ public static class ServiceCollectionExtensions
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
     /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         string name,
@@ -132,8 +211,11 @@ public static class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
         Action<RefitSettings>? configureRefit = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentNullException.ThrowIfNull(services);
+        ValidateClientName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
+
+        EnsureClientNameNotAlreadyRegistered(services, name);
 
         // Register named options
         services.Configure(name, configureOptions);
@@ -142,7 +224,7 @@ public static class ServiceCollectionExtensions
             .ValidateOnStart();
 
         // Also configure unnamed options for backward compatibility if this is the default name
-        if (name == DefaultName)
+        if (name == SyncClientNames.Default)
         {
             services.Configure(configureOptions);
             services.AddOptions<SyncOptions>()
@@ -150,36 +232,94 @@ public static class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        // Register HTTP client and Refit API
-        RegisterNamedHttpClient(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+    }
 
-        // Register keyed ISyncClient
-        services.AddKeyedSingleton<ISyncClient>(name, (sp, key) =>
+    private static IServiceCollection AddSyncClientFromConfiguration(
+        this IServiceCollection services,
+        string name,
+        IConfiguration configuration,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
+        Action<RefitSettings>? configureRefit = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ValidateClientName(name);
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        EnsureClientNameNotAlreadyRegistered(services, name);
+
+        services.Configure<SyncOptions>(name, configuration);
+        services.AddOptions<SyncOptions>(name)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        if (name == SyncClientNames.Default)
         {
-            var clientName = (string)key!;
-            var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<SyncOptions>>();
-            var syncApi = sp.GetRequiredKeyedService<ISyncApi>(clientName);
-
-            // Create a named options monitor
-            var namedMonitor = new NamedOptionsMonitor<SyncOptions>(optionsMonitor, clientName);
-
-            return new SyncClient(syncApi, namedMonitor);
-        });
-
-        // Register default client accessors if this is the default name
-        if (name == DefaultName)
-        {
-            services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<ISyncApi>(DefaultName));
-
-            services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<ISyncClient>(DefaultName));
+            services.Configure<SyncOptions>(configuration);
+            services.AddOptions<SyncOptions>()
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
         }
 
-        // Register factory for named client access (only once)
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+    }
+
+    private static IServiceCollection CompleteClientRegistration(
+        IServiceCollection services,
+        string name,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
+        Action<RefitSettings>? configureRefit = null)
+    {
+        RegisterNamedHttpClient(services, name, configureHttpClient, configureResilience, configureRefit);
+
+        services.AddKeyedSingleton<ISyncClient>(name, CreateSyncClient);
         services.TryAddSingleton<ISyncClientFactory, SyncClientFactory>();
 
+        if (name == SyncClientNames.Default)
+        {
+            services.TryAddSingleton(sp =>
+                sp.GetRequiredKeyedService<ISyncApi>(SyncClientNames.Default));
+
+            services.TryAddSingleton(sp =>
+                sp.GetRequiredKeyedService<ISyncClient>(SyncClientNames.Default));
+        }
+
         return services;
+    }
+
+    private static ISyncClient CreateSyncClient(IServiceProvider serviceProvider, object? key)
+    {
+        var clientName = (string)key!;
+        var syncApi = serviceProvider.GetRequiredKeyedService<ISyncApi>(clientName);
+        return new SyncClient(syncApi);
+    }
+
+    private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
+
+    private static void ValidateClientName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        if (name.Trim() != name || name.Contains(' '))
+        {
+            throw new ArgumentException(
+                "Client name cannot contain leading/trailing whitespace, or contain spaces. Use underscores or hyphens instead.",
+                nameof(name));
+        }
+    }
+
+    private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)
+    {
+        if (!services.Any(d => d.ServiceType == typeof(ISyncClient) && Equals(d.ServiceKey, name)))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"A SyncClient with the name '{name}' has already been registered. " +
+            $"HTTP client name: '{GetHttpClientName(name)}'. Each client must have a unique name.");
     }
 
     /// <summary>
@@ -194,31 +334,20 @@ public static class ServiceCollectionExtensions
     {
         var refitSettings = CreateRefitSettings(configureRefit);
 
-        // Register named HTTP client with unique name
-        var httpClientName = $"Kontent.Ai.Sync.HttpClient.{name}";
+        var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
             .AddHttpClient(httpClientName)
             .ConfigureHttpClient((serviceProvider, httpClient) =>
             {
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
                 var options = optionsMonitor.Get(name);
-                var baseUrl = options.ApiMode == ApiMode.Preview ? options.PreviewEndpoint : options.ProductionEndpoint;
-                httpClient.BaseAddress = new Uri(baseUrl, UriKind.Absolute);
+                httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
             });
 
-        // Add resilience handler
         ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);
-
-        // Add authentication handler
         AddMessageHandlers(httpClientBuilder, name);
-
-        // Bind Refit client to the HTTP pipeline using typed client pattern
-        httpClientBuilder.AddTypedClient(http => RestService.For<ISyncApi>(http, refitSettings));
-
-        // Apply custom configuration
         configureHttpClient?.Invoke(httpClientBuilder);
 
-        // Register keyed ISyncApi - retrieve from HTTP client factory
         services.AddKeyedTransient(name, (sp, _) =>
         {
             var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -243,18 +372,20 @@ public static class ServiceCollectionExtensions
     private static void ConfigureResilienceHandler(
         IHttpClientBuilder httpClientBuilder,
         string resilienceHandlerName,
-        string optionsName,
+        string clientName,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
         httpClientBuilder.AddResilienceHandler(resilienceHandlerName, (builder, context) =>
         {
             var optionsMonitor = context.ServiceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
-            var options = optionsMonitor.Get(optionsName);
+            var options = optionsMonitor.Get(clientName);
 
             if (!options.EnableResilience)
+            {
                 return;
+            }
 
-            if (configureResilience != null)
+            if (configureResilience is not null)
             {
                 configureResilience(builder);
             }
@@ -266,18 +397,21 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Adds authentication message handlers to an HTTP client.
+    /// Adds tracking and authentication message handlers to an HTTP client.
     /// </summary>
-    private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string optionsName)
+    private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)
     {
+        httpClientBuilder.AddHttpMessageHandler(sp => new TrackingHandler(
+            sp.GetService<ILogger<TrackingHandler>>()));
+
         httpClientBuilder.AddHttpMessageHandler(sp => new SyncAuthenticationHandler(
             sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
-            optionsName));
+            clientName,
+            sp.GetService<ILogger<SyncAuthenticationHandler>>()));
     }
 
     private static void ConfigureDefaultResilience(ResiliencePipelineBuilder<HttpResponseMessage> builder)
     {
-        // Retry policy
         builder.AddRetry(new HttpRetryStrategyOptions
         {
             MaxRetryAttempts = 3,
@@ -285,12 +419,24 @@ public static class ServiceCollectionExtensions
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
             ShouldHandle = args => ValueTask.FromResult(
-                args.Outcome.Result?.IsSuccessStatusCode == false &&
-                IsRetryableStatusCode(args.Outcome.Result?.StatusCode))
+                IsTransientException(args.Outcome.Exception, args.Context.CancellationToken) ||
+                (args.Outcome.Result?.IsSuccessStatusCode == false &&
+                 IsRetryableStatusCode(args.Outcome.Result?.StatusCode))),
+            DelayGenerator = GetRetryAfterDelay
         });
 
-        // Timeout policy
         builder.AddTimeout(TimeSpan.FromSeconds(30));
+    }
+
+    private static ValueTask<TimeSpan?> GetRetryAfterDelay(RetryDelayGeneratorArguments<HttpResponseMessage> args)
+    {
+        if (args.Outcome.Result is { StatusCode: System.Net.HttpStatusCode.TooManyRequests } response
+            && response.Headers.RetryAfter?.Delta is { } retryAfter)
+        {
+            return ValueTask.FromResult<TimeSpan?>(retryAfter);
+        }
+
+        return ValueTask.FromResult<TimeSpan?>(null);
     }
 
     private static bool IsRetryableStatusCode(System.Net.HttpStatusCode? statusCode)
@@ -301,14 +447,24 @@ public static class ServiceCollectionExtensions
             System.Net.HttpStatusCode.BadGateway or
             System.Net.HttpStatusCode.ServiceUnavailable or
             System.Net.HttpStatusCode.GatewayTimeout;
-}
 
-/// <summary>
-/// Wraps an options monitor to always return options for a specific name.
-/// </summary>
-internal sealed class NamedOptionsMonitor<T>(IOptionsMonitor<T> inner, string name) : IOptionsMonitor<T>
-{
-    public T CurrentValue => inner.Get(name);
-    public T Get(string? name) => inner.Get(name ?? throw new ArgumentNullException(nameof(name)));
-    public IDisposable? OnChange(Action<T, string?> listener) => inner.OnChange(listener);
+    private static bool IsTransientException(Exception? exception, CancellationToken requestCancellationToken)
+    {
+        if (exception is null)
+        {
+            return false;
+        }
+
+        if (exception is OperationCanceledException)
+        {
+            if (requestCancellationToken.IsCancellationRequested)
+            {
+                return false;
+            }
+
+            return exception is TaskCanceledException || exception.InnerException is TimeoutException;
+        }
+
+        return exception is HttpRequestException or TimeoutException;
+    }
 }

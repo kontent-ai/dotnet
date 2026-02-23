@@ -26,12 +26,7 @@ public interface IError
     int? SpecificCode { get; }
 
     /// <summary>
-    /// Gets the reason for the error, providing a categorized error type.
-    /// </summary>
-    SyncErrorReason Reason { get; }
-
-    /// <summary>
     /// Gets the underlying exception that caused this error, if available.
     /// </summary>
-    Exception? InnerException { get; }
+    Exception? Exception { get; }
 }

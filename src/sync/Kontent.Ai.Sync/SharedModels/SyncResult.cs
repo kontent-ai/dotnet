@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using Kontent.Ai.Sync.Abstractions;
 
 namespace Kontent.Ai.Sync.SharedModels;
@@ -18,13 +20,16 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     public IError? Error { get; }
 
     /// <inheritdoc/>
-    public int StatusCode { get; }
+    public HttpStatusCode StatusCode { get; }
 
     /// <inheritdoc/>
     public string? SyncToken { get; }
 
     /// <inheritdoc/>
     public string? RequestUrl { get; }
+
+    /// <inheritdoc/>
+    public HttpResponseHeaders? ResponseHeaders { get; }
 
     /// <inheritdoc/>
     public bool HasMoreChanges { get; }
@@ -36,17 +41,20 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// <param name="requestUrl">The request URL.</param>
     /// <param name="statusCode">The HTTP status code.</param>
     /// <param name="syncToken">The sync token for next operation.</param>
+    /// <param name="responseHeaders">HTTP response headers returned by the API.</param>
     internal SyncResult(
         T value,
         string requestUrl,
-        int statusCode = 200,
-        string? syncToken = null)
+        HttpStatusCode statusCode,
+        string? syncToken,
+        HttpResponseHeaders? responseHeaders)
     {
         Value = value;
         IsSuccess = true;
         StatusCode = statusCode;
         SyncToken = syncToken;
         RequestUrl = requestUrl;
+        ResponseHeaders = responseHeaders;
         HasMoreChanges = CalculateHasMoreChanges(value);
     }
 
@@ -56,10 +64,12 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// <param name="requestUrl">The request URL.</param>
     /// <param name="statusCode">The HTTP status code.</param>
     /// <param name="error">The error that occurred.</param>
+    /// <param name="responseHeaders">HTTP response headers returned by the API.</param>
     internal SyncResult(
         string requestUrl,
-        int statusCode,
-        IError? error)
+        HttpStatusCode statusCode,
+        IError? error,
+        HttpResponseHeaders? responseHeaders)
     {
         Value = default!;
         IsSuccess = false;
@@ -67,6 +77,7 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         StatusCode = statusCode;
         SyncToken = null;
         RequestUrl = requestUrl;
+        ResponseHeaders = responseHeaders;
         HasMoreChanges = false;
     }
 
@@ -102,13 +113,15 @@ internal static class SyncResult
     /// <param name="requestUrl">The request URL.</param>
     /// <param name="statusCode">The HTTP status code.</param>
     /// <param name="syncToken">The sync token for next operation.</param>
+    /// <param name="responseHeaders">HTTP response headers returned by the API.</param>
     /// <returns>A successful result.</returns>
     public static ISyncResult<T> Success<T>(
         T value,
         string requestUrl,
-        int statusCode = 200,
-        string? syncToken = null)
-    => new SyncResult<T>(value, requestUrl, statusCode, syncToken);
+        HttpStatusCode statusCode = HttpStatusCode.OK,
+        string? syncToken = null,
+        HttpResponseHeaders? responseHeaders = null)
+    => new SyncResult<T>(value, requestUrl, statusCode, syncToken, responseHeaders);
 
     /// <summary>
     /// Creates a failed result.
@@ -117,10 +130,12 @@ internal static class SyncResult
     /// <param name="requestUrl">The request URL.</param>
     /// <param name="statusCode">The HTTP status code.</param>
     /// <param name="error">The error that occurred.</param>
+    /// <param name="responseHeaders">HTTP response headers returned by the API.</param>
     /// <returns>A failed result.</returns>
     public static ISyncResult<T> Failure<T>(
         string requestUrl,
-        int statusCode,
-        IError? error)
-    => new SyncResult<T>(requestUrl, statusCode, error);
+        HttpStatusCode statusCode,
+        IError? error,
+        HttpResponseHeaders? responseHeaders = null)
+    => new SyncResult<T>(requestUrl, statusCode, error, responseHeaders);
 }

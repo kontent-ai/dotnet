@@ -1,4 +1,4 @@
-using Kontent.Ai.Sync.Abstractions;
+using Kontent.Ai.Sync.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kontent.Ai.Sync;
@@ -9,9 +9,12 @@ namespace Kontent.Ai.Sync;
 internal sealed class SyncClientFactory(IServiceProvider serviceProvider) : ISyncClientFactory
 {
     /// <inheritdoc />
+    public ISyncClient Get() => Get(SyncClientNames.Default);
+
+    /// <inheritdoc />
     public ISyncClient Get(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         try
         {

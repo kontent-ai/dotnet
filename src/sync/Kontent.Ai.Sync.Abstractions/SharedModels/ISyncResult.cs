@@ -24,7 +24,7 @@ public interface ISyncResult<out T>
     /// <summary>
     /// Gets the HTTP status code of the response.
     /// </summary>
-    int StatusCode { get; }
+    HttpStatusCode StatusCode { get; }
 
     /// <summary>
     /// Gets the synchronization token for the next sync operation.
@@ -36,6 +36,11 @@ public interface ISyncResult<out T>
     /// Gets the URL used to retrieve this response for debugging purposes.
     /// </summary>
     string? RequestUrl { get; }
+
+    /// <summary>
+    /// Gets the HTTP response headers from the Sync API.
+    /// </summary>
+    HttpResponseHeaders? ResponseHeaders { get; }
 
     /// <summary>
     /// Gets a value indicating whether more changes are available.

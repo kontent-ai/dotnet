@@ -2,7 +2,6 @@ using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Extensions;
 using Kontent.Ai.Sync.SharedModels;
-using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Sync;
 
@@ -10,20 +9,15 @@ namespace Kontent.Ai.Sync;
 /// Executes requests against the Kontent.ai Sync API.
 /// </summary>
 /// <param name="syncApi">The Refit-generated API client.</param>
-/// <param name="syncOptions">The settings of the Kontent.ai environment.</param>
 internal sealed class SyncClient(
-    ISyncApi syncApi,
-    IOptionsMonitor<SyncOptions> syncOptions) : ISyncClient
+    ISyncApi syncApi) : ISyncClient
 {
     private readonly ISyncApi _syncApi = syncApi ?? throw new ArgumentNullException(nameof(syncApi));
-    private readonly IOptionsMonitor<SyncOptions> _syncOptions = syncOptions ?? throw new ArgumentNullException(nameof(syncOptions));
 
     /// <inheritdoc/>
     public async Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default)
     {
-        var environmentId = _syncOptions.CurrentValue.EnvironmentId;
-
-        var rawResponse = await _syncApi.InitializeSyncAsync(environmentId, cancellationToken)
+        var rawResponse = await _syncApi.InitializeSyncAsync(cancellationToken)
             .ConfigureAwait(false);
 
         return await rawResponse.ToSyncResultAsync()
@@ -33,10 +27,9 @@ internal sealed class SyncClient(
     /// <inheritdoc/>
     public async Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(string syncToken, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(syncToken, nameof(syncToken));
+        ArgumentException.ThrowIfNullOrWhiteSpace(syncToken);
 
-        var environmentId = _syncOptions.CurrentValue.EnvironmentId;
-        var rawResponse = await _syncApi.GetDeltaAsync(environmentId, syncToken, cancellationToken)
+        var rawResponse = await _syncApi.GetDeltaAsync(syncToken, cancellationToken)
             .ConfigureAwait(false);
 
         return await rawResponse.ToSyncResultAsync()
@@ -46,7 +39,7 @@ internal sealed class SyncClient(
     /// <inheritdoc/>
     public async Task<ISyncAllDeltaResult> GetAllDeltaAsync(string syncToken, int? maxPages = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(syncToken, nameof(syncToken));
+        ArgumentException.ThrowIfNullOrWhiteSpace(syncToken);
 
         if (maxPages.HasValue && maxPages.Value <= 0)
         {

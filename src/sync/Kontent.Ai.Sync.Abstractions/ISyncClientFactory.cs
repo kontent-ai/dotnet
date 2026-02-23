@@ -6,6 +6,12 @@ namespace Kontent.Ai.Sync.Abstractions;
 public interface ISyncClientFactory
 {
     /// <summary>
+    /// Gets the default <see cref="ISyncClient"/> instance.
+    /// </summary>
+    /// <returns>The default sync client instance.</returns>
+    ISyncClient Get();
+
+    /// <summary>
     /// Gets a named <see cref="ISyncClient"/> instance.
     /// </summary>
     /// <param name="name">The name of the client to retrieve. This should match the name used during registration.</param>

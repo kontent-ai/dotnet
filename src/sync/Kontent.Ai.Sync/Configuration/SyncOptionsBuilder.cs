@@ -5,7 +5,7 @@ namespace Kontent.Ai.Sync.Configuration;
 /// <summary>
 /// A builder of <see cref="SyncOptions"/> instances.
 /// </summary>
-public class SyncOptionsBuilder : ISyncOptionsBuilder
+public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
 {
     private readonly SyncOptions _options = new();
 
@@ -76,14 +76,9 @@ public class SyncOptionsBuilder : ISyncOptionsBuilder
 
     private void SetCustomEndpoint(string endpoint)
     {
-        if (_options.ApiMode == ApiMode.Preview)
-        {
-            _options.PreviewEndpoint = endpoint;
-        }
-        else
-        {
-            _options.ProductionEndpoint = endpoint;
-        }
+        // Apply to both endpoints so behavior is deterministic regardless of call order.
+        _options.PreviewEndpoint = endpoint;
+        _options.ProductionEndpoint = endpoint;
     }
 
     /// <inheritdoc/>

@@ -11,7 +11,6 @@ public sealed class SyncOptions : IValidatableObject
     /// Gets or sets the environment ID.
     /// </summary>
     [Required]
-    [RegularExpression(@"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", ErrorMessage = "The environment ID must be a valid GUID.")]
     public string EnvironmentId { get; set; } = Guid.Empty.ToString();
 
     /// <summary>
@@ -23,13 +22,13 @@ public sealed class SyncOptions : IValidatableObject
     /// Gets or sets the format of the Production API endpoint address.
     /// </summary>
     [Url]
-    public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai/v2";
+    public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai";
 
     /// <summary>
     /// Gets or sets the format of the Preview API endpoint address.
     /// </summary>
     [Url]
-    public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai/v2";
+    public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
 
     /// <summary>
     /// Gets or sets the API mode for accessing Kontent.ai content.
@@ -49,7 +48,13 @@ public sealed class SyncOptions : IValidatableObject
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (Guid.TryParse(EnvironmentId, out var environmentGuid) && environmentGuid == Guid.Empty)
+        if (!Guid.TryParse(EnvironmentId, out var environmentGuid))
+        {
+            yield return new ValidationResult(
+                "The environment ID must be a valid GUID.",
+                [nameof(EnvironmentId)]);
+        }
+        else if (environmentGuid == Guid.Empty)
         {
             yield return new ValidationResult(
                 "EnvironmentId cannot be an empty GUID.",

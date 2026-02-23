@@ -20,7 +20,8 @@ internal static class RefitSettingsProvider
         return new RefitSettings
         {
             ContentSerializer = new SystemTextJsonContentSerializer(jsonSerializerOptions),
-            CollectionFormat = CollectionFormat.Multi
+            CollectionFormat = CollectionFormat.Multi,
+            UrlParameterKeyFormatter = new CamelCaseUrlParameterKeyFormatter()
         };
     }
 
