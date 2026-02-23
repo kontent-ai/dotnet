@@ -1,17 +1,15 @@
 using FluentAssertions;
+using Kontent.Ai.Sync;
 using Kontent.Ai.Sync.Abstractions;
-using Kontent.Ai.Sync.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Kontent.Ai.Sync.Tests.Extensions;
 
 public class SyncClientFactoryTests
 {
     [Fact]
-    public void Get_WithRegisteredClient_ReturnsClient()
+    public void Get_WithRegisteredNamedClient_ReturnsClient()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddSyncClient("production", options =>
         {
@@ -21,49 +19,35 @@ public class SyncClientFactoryTests
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
-        // Act
         var client = factory.Get("production");
 
-        // Assert
         client.Should().NotBeNull();
         client.Should().BeAssignableTo<ISyncClient>();
     }
 
     [Fact]
-    public void Get_WithMultipleRegisteredClients_ReturnsCorrectClient()
+    public void Get_DefaultClient_ReturnsSameInstanceAsUnkeyedResolution()
     {
-        // Arrange
         var services = new ServiceCollection();
-
-        services.AddSyncClient("production", options =>
+        services.AddSyncClient(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
-
-        services.AddSyncClient("staging", options =>
-        {
-            options.EnvironmentId = Guid.NewGuid().ToString();
-            options.ApiMode = ApiMode.Preview;
-            options.ApiKey = "staging-key";
         });
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
-        // Act
-        var prodClient = factory.Get("production");
-        var stagingClient = factory.Get("staging");
+        var unkeyed = serviceProvider.GetRequiredService<ISyncClient>();
+        var fromGetDefault = factory.Get();
+        var fromGetByName = factory.Get("Default");
 
-        // Assert
-        prodClient.Should().NotBeNull();
-        stagingClient.Should().NotBeNull();
-        prodClient.Should().NotBeSameAs(stagingClient, "different named clients should return different instances");
+        fromGetDefault.Should().BeSameAs(unkeyed);
+        fromGetByName.Should().BeSameAs(unkeyed);
     }
 
     [Fact]
     public void Get_WithUnregisteredClient_ThrowsInvalidOperationException()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddSyncClient("production", options =>
         {
@@ -73,10 +57,8 @@ public class SyncClientFactoryTests
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
-        // Act
-        var act = () => factory.Get("nonexistent");
+        Action act = () => factory.Get("nonexistent");
 
-        // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*nonexistent*")
             .WithMessage("*AddSyncClient*");
@@ -88,7 +70,6 @@ public class SyncClientFactoryTests
     [InlineData(null)]
     public void Get_WithInvalidName_ThrowsArgumentException(string? invalidName)
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddSyncClient("production", options =>
         {
@@ -98,17 +79,14 @@ public class SyncClientFactoryTests
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
-        // Act
-        var act = () => factory.Get(invalidName!);
+        Action act = () => factory.Get(invalidName!);
 
-        // Assert
         act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
-    public void Get_CalledMultipleTimes_ReturnsSameInstance()
+    public void Get_CalledMultipleTimesForSameName_ReturnsSameSingletonInstance()
     {
-        // Arrange
         var services = new ServiceCollection();
         services.AddSyncClient("production", options =>
         {
@@ -118,18 +96,15 @@ public class SyncClientFactoryTests
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
-        // Act
-        var client1 = factory.Get("production");
-        var client2 = factory.Get("production");
+        var first = factory.Get("production");
+        var second = factory.Get("production");
 
-        // Assert
-        client1.Should().BeSameAs(client2, "the same named client should return the same singleton instance");
+        first.Should().BeSameAs(second);
     }
 
     [Fact]
-    public void Factory_RegisteredOnce_WithMultipleAddSyncClientCalls()
+    public void Factory_IsRegisteredOnlyOnce_WithMultipleClients()
     {
-        // Arrange
         var services = new ServiceCollection();
 
         services.AddSyncClient("client1", options =>
@@ -142,50 +117,9 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         });
 
-        // Act
         var serviceProvider = services.BuildServiceProvider();
         var factories = serviceProvider.GetServices<ISyncClientFactory>().ToList();
 
-        // Assert
-        factories.Should().HaveCount(1, "factory should only be registered once even with multiple AddSyncClient calls");
-    }
-
-    [Fact]
-    public void Factory_WorksWithDefaultClient()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddSyncClient(options =>
-        {
-            options.EnvironmentId = Guid.NewGuid().ToString();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
-
-        // Act
-        var client = factory.Get("Default");
-
-        // Assert
-        client.Should().NotBeNull();
-        client.Should().BeAssignableTo<ISyncClient>();
-    }
-
-    [Fact]
-    public void Factory_WorksWithBuilderPattern()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-        services.AddSyncClient("production", options =>
-        {
-            options.EnvironmentId = Guid.NewGuid().ToString();
-        });
-
-        var serviceProvider = services.BuildServiceProvider();
-        var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
-
-        // Act & Assert
-        var client = factory.Get("production");
-        client.Should().NotBeNull();
+        factories.Should().HaveCount(1);
     }
 }

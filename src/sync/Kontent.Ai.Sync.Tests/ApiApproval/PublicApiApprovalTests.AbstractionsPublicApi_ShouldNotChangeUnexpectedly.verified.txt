@@ -1,0 +1,110 @@
+﻿// Kontent.Ai.Sync.Abstractions
+public enum ApiMode : Enum
+    Preview
+    Public
+    Secure
+
+// Kontent.Ai.Sync.Abstractions
+public enum ChangeType : Enum
+    Changed
+    Deleted
+
+// Kontent.Ai.Sync.Abstractions
+public interface IError
+    Nullable<Int32> ErrorCode { get; }
+    Exception Exception { get; }
+    String Message { get; }
+    String RequestId { get; }
+    Nullable<Int32> SpecificCode { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncAllDeltaResult
+    IError Error { get; }
+    String FinalSyncToken { get; }
+    Boolean IsSuccess { get; }
+    Int32 PagesFetched { get; }
+    IReadOnlyList<ISyncDeltaResponse> Responses { get; }
+    Boolean WasLimitedByMaxPages { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncClient
+    Task<ISyncAllDeltaResult> GetAllDeltaAsync(String syncToken, Nullable<Int32> maxPages, CancellationToken cancellationToken)
+    Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
+    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncClientFactory
+    ISyncClient Get()
+    ISyncClient Get(String name)
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncDeltaResponse
+    IReadOnlyList<ISyncItem> Items { get; }
+    IReadOnlyList<ISyncLanguage> Languages { get; }
+    IReadOnlyList<ISyncTaxonomy> Taxonomies { get; }
+    IReadOnlyList<ISyncType> Types { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncInitResponse
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncItem
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncLanguage
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncOptionsBuilder
+    SyncOptions Build()
+    ISyncOptionsBuilder DisableRetryPolicy()
+    ISyncOptionsBuilder UsePreviewApi(String apiKey)
+    ISyncOptionsBuilder UseProductionApi()
+    ISyncOptionsBuilder UseSecureApi(String apiKey)
+    ISyncOptionsBuilder WithCustomEndpoint(String endpoint)
+    ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
+    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
+    ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncResult`1<T>
+    IError Error { get; }
+    Boolean HasMoreChanges { get; }
+    Boolean IsSuccess { get; }
+    String RequestUrl { get; }
+    HttpResponseHeaders ResponseHeaders { get; }
+    HttpStatusCode StatusCode { get; }
+    String SyncToken { get; }
+    T Value { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncTaxonomy
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncType
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public sealed class SyncConstants
+
+// Kontent.Ai.Sync.Abstractions
+public sealed class SyncOptions : IValidatableObject
+    String ApiKey { get; set; }
+    ApiMode ApiMode { get; set; }
+    Boolean EnableResilience { get; set; }
+    String EnvironmentId { get; set; }
+    String PreviewEndpoint { get; set; }
+    String ProductionEndpoint { get; set; }
+    IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+
+// Kontent.Ai.Sync.Abstractions
+public sealed class SyncOptionsExtensions
+    static String GetApiKey(SyncOptions options)
+    static String GetBaseUrl(SyncOptions options)
+

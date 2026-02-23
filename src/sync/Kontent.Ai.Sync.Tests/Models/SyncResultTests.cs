@@ -1,176 +1,129 @@
+using System.Net;
 using FluentAssertions;
 using Kontent.Ai.Sync.Abstractions;
+using Kontent.Ai.Sync.Models;
 using Kontent.Ai.Sync.SharedModels;
-using Xunit;
 
 namespace Kontent.Ai.Sync.Tests.Models;
 
 public class SyncResultTests
 {
     [Fact]
-    public void Success_CreatesSuccessfulResult()
+    public void Success_CreatesSuccessfulResult_WithHeadersAndToken()
     {
-        // Arrange
-        var value = "test-value";
-        var requestUrl = "https://test.com/api";
-        var statusCode = 200;
-        var syncToken = "test-sync-token";
+        var headers = new HttpResponseMessage(HttpStatusCode.OK).Headers;
+        headers.TryAddWithoutValidation("X-Continuation", "token-123");
 
-        // Act
-        var result = SyncResult.Success(value, requestUrl, statusCode, syncToken);
+        var result = SyncResult.Success(
+            value: "test-value",
+            requestUrl: "https://test.com/sync",
+            statusCode: HttpStatusCode.OK,
+            syncToken: "token-123",
+            responseHeaders: headers);
 
-        // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(value);
-        result.RequestUrl.Should().Be(requestUrl);
-        result.StatusCode.Should().Be(statusCode);
-        result.SyncToken.Should().Be(syncToken);
+        result.Value.Should().Be("test-value");
         result.Error.Should().BeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.SyncToken.Should().Be("token-123");
+        result.RequestUrl.Should().Be("https://test.com/sync");
+        result.ResponseHeaders.Should().BeSameAs(headers);
     }
 
     [Fact]
-    public void Success_DefaultStatusCode_Is200()
+    public void Success_DeltaResponseAtLimit_SetsHasMoreChangesTrue()
     {
-        // Act
-        var result = SyncResult.Success("value", "https://test.com");
+        var delta = new SyncDeltaResponse
+        {
+            Items = Enumerable.Range(0, SyncConstants.MaxItemsPerEntityType)
+                .Select(_ => new SyncItem { ChangeType = ChangeType.Changed, Data = new { value = 1 } })
+                .ToList()
+        };
 
-        // Assert
-        result.StatusCode.Should().Be(200);
+        var result = SyncResult.Success<ISyncDeltaResponse>(delta, "https://test.com/sync");
+
+        result.HasMoreChanges.Should().BeTrue();
     }
 
     [Fact]
-    public void Success_NullSyncToken_IsAccepted()
+    public void Success_DeltaResponseBelowLimit_SetsHasMoreChangesFalse()
     {
-        // Act
-        var result = SyncResult.Success("value", "https://test.com", syncToken: null);
+        var delta = new SyncDeltaResponse
+        {
+            Items = Enumerable.Range(0, SyncConstants.MaxItemsPerEntityType - 1)
+                .Select(_ => new SyncItem { ChangeType = ChangeType.Changed, Data = new { value = 1 } })
+                .ToList()
+        };
 
-        // Assert
-        result.SyncToken.Should().BeNull();
+        var result = SyncResult.Success<ISyncDeltaResponse>(delta, "https://test.com/sync");
+
+        result.HasMoreChanges.Should().BeFalse();
     }
 
     [Fact]
-    public void Failure_CreatesFailedResult()
+    public void Failure_CreatesFailedResult_WithHeaders()
     {
-        // Arrange
-        var requestUrl = "https://test.com/api";
-        var statusCode = 404;
+        var headers = new HttpResponseMessage(HttpStatusCode.NotFound).Headers;
+        headers.TryAddWithoutValidation("X-Request-ID", "req-1");
+
         var error = new Error
         {
             Message = "Not found",
             ErrorCode = 404,
-            RequestId = "req-123"
+            RequestId = "req-1"
         };
 
-        // Act
-        var result = SyncResult.Failure<string>(requestUrl, statusCode, error);
+        var result = SyncResult.Failure<string>(
+            requestUrl: "https://test.com/sync",
+            statusCode: HttpStatusCode.NotFound,
+            error: error,
+            responseHeaders: headers);
 
-        // Assert
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().Be(error);
-        result.RequestUrl.Should().Be(requestUrl);
-        result.StatusCode.Should().Be(statusCode);
-        result.SyncToken.Should().BeNull();
         result.Value.Should().BeNull();
-    }
-
-    [Fact]
-    public void Failure_NullError_IsAccepted()
-    {
-        // Act
-        var result = SyncResult.Failure<string>("https://test.com", 500, null);
-
-        // Assert
-        result.Error.Should().BeNull();
-    }
-
-    [Fact]
-    public void Success_WithComplexType_PreservesValue()
-    {
-        // Arrange
-        var complexValue = new { Id = 1, Name = "Test" };
-
-        // Act
-        var result = SyncResult.Success(complexValue, "https://test.com");
-
-        // Assert
-        result.Value.Should().BeEquivalentTo(complexValue);
-    }
-
-    [Fact]
-    public void Failure_WithComplexType_ReturnsDefaultValue()
-    {
-        // Arrange
-        var error = new Error { Message = "Test error" };
-
-        // Act
-        var result = SyncResult.Failure<int>("https://test.com", 400, error);
-
-        // Assert
-        result.Value.Should().Be(0, "default(int) is 0");
+        result.Error.Should().Be(error);
+        result.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        result.SyncToken.Should().BeNull();
+        result.ResponseHeaders.Should().BeSameAs(headers);
+        result.HasMoreChanges.Should().BeFalse();
     }
 
     [Theory]
-    [InlineData(200)]
-    [InlineData(201)]
-    [InlineData(204)]
-    [InlineData(400)]
-    [InlineData(404)]
-    [InlineData(500)]
-    public void StatusCode_IsPreserved(int statusCode)
+    [InlineData(HttpStatusCode.OK)]
+    [InlineData(HttpStatusCode.Created)]
+    [InlineData(HttpStatusCode.NoContent)]
+    [InlineData(HttpStatusCode.BadRequest)]
+    [InlineData(HttpStatusCode.NotFound)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public void StatusCode_IsPreserved(HttpStatusCode statusCode)
     {
-        // Act - Success
         var successResult = SyncResult.Success("value", "url", statusCode);
-
-        // Assert
         successResult.StatusCode.Should().Be(statusCode);
 
-        // Act - Failure
         var failureResult = SyncResult.Failure<string>("url", statusCode, null);
-
-        // Assert
         failureResult.StatusCode.Should().Be(statusCode);
     }
 
     [Fact]
-    public void Error_ContainsAllProperties()
+    public void Error_ExposesUnderlyingException()
     {
-        // Arrange
+        var exception = new InvalidOperationException("boom");
         var error = new Error
         {
-            Message = "Test error message",
-            ErrorCode = 400,
+            Message = "Operation failed",
+            ErrorCode = 500,
             SpecificCode = 1001,
-            RequestId = "req-abc-123"
+            RequestId = "req-abc-123",
+            Exception = exception
         };
 
-        // Act
-        var result = SyncResult.Failure<string>("https://test.com", 400, error);
+        var result = SyncResult.Failure<string>("https://test.com", HttpStatusCode.InternalServerError, error);
 
-        // Assert
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("Test error message");
-        result.Error.ErrorCode.Should().Be(400);
+        result.Error!.Message.Should().Be("Operation failed");
+        result.Error.ErrorCode.Should().Be(500);
         result.Error.SpecificCode.Should().Be(1001);
         result.Error.RequestId.Should().Be("req-abc-123");
-    }
-
-    [Fact]
-    public void Success_EmptyRequestUrl_IsAccepted()
-    {
-        // Act
-        var result = SyncResult.Success("value", string.Empty);
-
-        // Assert
-        result.RequestUrl.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Failure_EmptyRequestUrl_IsAccepted()
-    {
-        // Act
-        var result = SyncResult.Failure<string>(string.Empty, 500, null);
-
-        // Assert
-        result.RequestUrl.Should().BeEmpty();
+        result.Error.Exception.Should().BeSameAs(exception);
     }
 }

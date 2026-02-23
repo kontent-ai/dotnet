@@ -3,166 +3,110 @@ using FluentAssertions;
 using Kontent.Ai.Sync.Extensions;
 using NSubstitute;
 using Refit;
-using Xunit;
 
 namespace Kontent.Ai.Sync.Tests.Extensions;
 
 public class RefitApiResponseExtensionsTests
 {
     [Fact]
-    public async Task ToSyncResultAsync_SuccessfulResponse_ReturnsSyncResult()
+    public async Task ToSyncResultAsync_SuccessfulResponse_ReturnsValueTokenHeadersAndStatus()
     {
-        // Arrange
-        var content = "test-content";
-        var requestUrl = "https://test.com/api";
-        var apiResponse = CreateSuccessResponse(content, requestUrl);
+        var apiResponse = CreateSuccessResponse(
+            content: "payload",
+            requestUrl: "https://test.com/sync",
+            syncToken: "token-1");
 
-        // Act
         var result = await apiResponse.ToSyncResultAsync();
 
-        // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(content);
-        result.RequestUrl.Should().Be(requestUrl);
-        result.StatusCode.Should().Be(200);
+        result.Value.Should().Be("payload");
+        result.RequestUrl.Should().Be("https://test.com/sync");
+        result.SyncToken.Should().Be("token-1");
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.ResponseHeaders.Should().NotBeNull();
         result.Error.Should().BeNull();
     }
 
     [Fact]
-    public async Task ToSyncResultAsync_SuccessfulResponse_ExtractsSyncToken()
+    public async Task ToSyncResultAsync_ApiExceptionWithStructuredError_ParsesError()
     {
-        // Arrange
-        var syncToken = "test-sync-token-12345";
-        var apiResponse = CreateSuccessResponse("content", "https://test.com", syncToken);
+        const string json = """
+            {
+              "message": "The sync token is invalid.",
+              "request_id": "req-123",
+              "error_code": 400,
+              "specific_code": 1010
+            }
+            """;
 
-        // Act
+        var apiResponse = await CreateFailedResponse<string>(
+            statusCode: HttpStatusCode.BadRequest,
+            requestUrl: "https://test.com/sync",
+            errorContent: json);
+
         var result = await apiResponse.ToSyncResultAsync();
 
-        // Assert
-        result.SyncToken.Should().Be(syncToken);
-    }
-
-    [Fact]
-    public async Task ToSyncResultAsync_SuccessfulResponse_NoSyncToken_ReturnsNull()
-    {
-        // Arrange
-        var apiResponse = CreateSuccessResponse("content", "https://test.com");
-
-        // Act
-        var result = await apiResponse.ToSyncResultAsync();
-
-        // Assert
-        result.SyncToken.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task ToSyncResultAsync_FailedResponse_WithErrorContent_ParsesError()
-    {
-        // Arrange
-        var errorJson = @"{
-            ""message"": ""Test error message"",
-            ""request_id"": ""req-123"",
-            ""error_code"": 404,
-            ""specific_code"": 1001
-        }";
-        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.NotFound, "https://test.com", errorJson);
-
-        // Act
-        var result = await apiResponse.ToSyncResultAsync();
-
-        // Assert
         result.IsSuccess.Should().BeFalse();
-        result.StatusCode.Should().Be(404);
+        result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("Test error message");
+        result.Error!.Message.Should().Be("The sync token is invalid.");
         result.Error.RequestId.Should().Be("req-123");
-        result.Error.ErrorCode.Should().Be(404);
-        result.Error.SpecificCode.Should().Be(1001);
+        result.Error.ErrorCode.Should().Be(400);
+        result.Error.SpecificCode.Should().Be(1010);
+        result.Error.Exception.Should().BeOfType<ApiException>();
     }
 
     [Fact]
-    public async Task ToSyncResultAsync_FailedResponse_WithInvalidJson_CreatesGenericError()
+    public async Task ToSyncResultAsync_ApiExceptionWithNonJsonBody_UsesFallbackAndKeepsException()
     {
-        // Arrange
-        var invalidJson = "{ invalid json }";
-        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.BadRequest, "https://test.com", invalidJson);
+        const string rawBody = "<html><body>gateway down</body></html>";
+        var apiResponse = await CreateFailedResponse<string>(
+            statusCode: HttpStatusCode.BadGateway,
+            requestUrl: "https://test.com/sync",
+            errorContent: rawBody);
 
-        // Act
         var result = await apiResponse.ToSyncResultAsync();
 
-        // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be(invalidJson);
+        result.Error!.Message.Should().Contain("Raw response:");
+        result.Error.Message.Should().Contain("gateway down");
+        result.Error.Exception.Should().BeOfType<AggregateException>();
+        var aggregate = (AggregateException)result.Error.Exception!;
+        aggregate.InnerExceptions.Should().HaveCount(2);
+        aggregate.InnerExceptions[0].Should().BeOfType<ApiException>();
     }
 
     [Fact]
-    public async Task ToSyncResultAsync_FailedResponse_NoErrorContent_CreatesGenericError()
+    public async Task ToSyncResultAsync_WithoutApiException_UsesUnknownMessageFallback()
     {
-        // Arrange
-        var reasonPhrase = "Not Found";
-        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.NotFound, "https://test.com", null, reasonPhrase);
+        var apiResponse = CreateFailedResponseWithoutApiException<string>(
+            statusCode: HttpStatusCode.ServiceUnavailable,
+            requestUrl: "https://test.com/sync");
 
-        // Act
         var result = await apiResponse.ToSyncResultAsync();
 
-        // Assert
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be(reasonPhrase);
-        result.Error.ErrorCode.Should().Be(404);
-    }
-
-    [Theory]
-    [InlineData(HttpStatusCode.BadRequest, 400)]
-    [InlineData(HttpStatusCode.Unauthorized, 401)]
-    [InlineData(HttpStatusCode.Forbidden, 403)]
-    [InlineData(HttpStatusCode.NotFound, 404)]
-    [InlineData(HttpStatusCode.InternalServerError, 500)]
-    public async Task ToSyncResultAsync_FailedResponse_PreservesStatusCode(HttpStatusCode httpStatusCode, int expectedCode)
-    {
-        // Arrange
-        var apiResponse = await CreateFailedResponse<string>(httpStatusCode, "https://test.com", null);
-
-        // Act
-        var result = await apiResponse.ToSyncResultAsync();
-
-        // Assert
-        result.StatusCode.Should().Be(expectedCode);
+        result.Error!.Message.Should().Be("Unknown error");
+        result.Error.Exception.Should().BeNull();
     }
 
     [Fact]
-    public async Task ToSyncResultAsync_SuccessfulResponse_ComplexType_PreservesValue()
+    public async Task ToSyncResultAsync_WithNullContentTreatsResponseAsFailure()
     {
-        // Arrange
-        var complexObject = new TestData { Id = 123, Name = "Test" };
-        var apiResponse = CreateSuccessResponse(complexObject, "https://test.com");
-
-        // Act
-        var result = await apiResponse.ToSyncResultAsync();
-
-        // Assert
-        result.Value.Should().BeEquivalentTo(complexObject);
-    }
-
-    [Fact]
-    public async Task ToSyncResultAsync_NullContent_ReturnsFailure()
-    {
-        // Arrange
         var apiResponse = Substitute.For<IApiResponse<string>>();
         apiResponse.IsSuccessStatusCode.Returns(true);
         apiResponse.Content.Returns((string?)null);
         apiResponse.StatusCode.Returns(HttpStatusCode.OK);
         apiResponse.RequestMessage.Returns((HttpRequestMessage?)null);
 
-        // Act
         var result = await apiResponse.ToSyncResultAsync();
 
-        // Assert
-        result.IsSuccess.Should().BeFalse("null content should be treated as failure");
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().NotBeNull();
     }
 
-    // Helper methods
     private static IApiResponse<T> CreateSuccessResponse<T>(T content, string requestUrl, string? syncToken = null)
     {
         var apiResponse = Substitute.For<IApiResponse<T>>();
@@ -173,52 +117,59 @@ public class RefitApiResponseExtensionsTests
         var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUrl);
         apiResponse.RequestMessage.Returns(requestMessage);
 
-        // Create a real HttpResponseMessage to get real headers
         var httpResponse = new HttpResponseMessage(HttpStatusCode.OK);
-        if (syncToken != null)
+        if (syncToken is not null)
         {
             httpResponse.Headers.TryAddWithoutValidation("X-Continuation", syncToken);
         }
-        apiResponse.Headers.Returns(httpResponse.Headers);
 
+        apiResponse.Headers.Returns(httpResponse.Headers);
         return apiResponse;
     }
 
-    private static async Task<IApiResponse<T>> CreateFailedResponse<T>(HttpStatusCode statusCode, string requestUrl, string? errorContent, string? reasonPhrase = null)
+    private static IApiResponse<T> CreateFailedResponseWithoutApiException<T>(
+        HttpStatusCode statusCode,
+        string requestUrl)
     {
         var apiResponse = Substitute.For<IApiResponse<T>>();
         apiResponse.IsSuccessStatusCode.Returns(false);
         apiResponse.StatusCode.Returns(statusCode);
-        apiResponse.ReasonPhrase.Returns(reasonPhrase ?? statusCode.ToString());
+        apiResponse.Error.Returns((ApiException?)null);
+        apiResponse.RequestMessage.Returns(new HttpRequestMessage(HttpMethod.Get, requestUrl));
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUrl);
-        apiResponse.RequestMessage.Returns(requestMessage);
-
-        if (errorContent != null)
-        {
-            // Create a real ApiException with the error content
-            var error = await ApiException.Create(
-                requestMessage,
-                HttpMethod.Get,
-                new HttpResponseMessage(statusCode)
-                {
-                    Content = new StringContent(errorContent),
-                    ReasonPhrase = reasonPhrase
-                },
-                new RefitSettings());
-            apiResponse.Error.Returns(error);
-        }
-
-        // Create a real HttpResponseMessage to get real headers (empty)
         var httpResponse = new HttpResponseMessage(statusCode);
         apiResponse.Headers.Returns(httpResponse.Headers);
 
         return apiResponse;
     }
 
-    public class TestData
+    private static async Task<IApiResponse<T>> CreateFailedResponse<T>(
+        HttpStatusCode statusCode,
+        string requestUrl,
+        string? errorContent)
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        var apiResponse = Substitute.For<IApiResponse<T>>();
+        apiResponse.IsSuccessStatusCode.Returns(false);
+        apiResponse.StatusCode.Returns(statusCode);
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+        apiResponse.RequestMessage.Returns(requestMessage);
+
+        var httpResponse = new HttpResponseMessage(statusCode);
+        if (errorContent is not null)
+        {
+            httpResponse.Content = new StringContent(errorContent);
+        }
+
+        var apiException = await ApiException.Create(
+            requestMessage,
+            HttpMethod.Get,
+            httpResponse,
+            new RefitSettings());
+
+        apiResponse.Error.Returns(apiException);
+        apiResponse.Headers.Returns(httpResponse.Headers);
+
+        return apiResponse;
     }
 }

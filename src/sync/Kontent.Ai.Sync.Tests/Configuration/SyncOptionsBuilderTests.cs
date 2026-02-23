@@ -127,6 +127,7 @@ public class SyncOptionsBuilderTests
 
         // Assert
         productionOptions.ProductionEndpoint.Should().Be(endpoint);
+        productionOptions.PreviewEndpoint.Should().Be(endpoint);
 
         // Act - Preview mode
         var previewOptions = SyncOptionsBuilder.CreateInstance()
@@ -137,6 +138,7 @@ public class SyncOptionsBuilderTests
 
         // Assert
         previewOptions.PreviewEndpoint.Should().Be(endpoint);
+        previewOptions.ProductionEndpoint.Should().Be(endpoint);
     }
 
     [Fact]
@@ -153,6 +155,7 @@ public class SyncOptionsBuilderTests
 
         // Assert
         options.ProductionEndpoint.Should().Be(endpoint.AbsoluteUri);
+        options.PreviewEndpoint.Should().Be(endpoint.AbsoluteUri);
     }
 
     [Fact]
@@ -176,7 +179,60 @@ public class SyncOptionsBuilderTests
         options.ApiMode.Should().Be(ApiMode.Preview);
         options.ApiKey.Should().Be(apiKey);
         options.PreviewEndpoint.Should().Be(customEndpoint);
+        options.ProductionEndpoint.Should().Be(customEndpoint);
         options.EnableResilience.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithEnvironmentId_NullOrWhitespace_Throws(string? environmentId)
+    {
+        var builder = SyncOptionsBuilder.CreateInstance();
+
+        var act = () => builder.WithEnvironmentId(environmentId!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void UsePreviewApi_NullOrWhitespaceKey_Throws(string? apiKey)
+    {
+        var builder = SyncOptionsBuilder.CreateInstance();
+
+        var act = () => builder.UsePreviewApi(apiKey!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void UseSecureApi_NullOrWhitespaceKey_Throws(string? apiKey)
+    {
+        var builder = SyncOptionsBuilder.CreateInstance();
+
+        var act = () => builder.UseSecureApi(apiKey!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void WithCustomEndpoint_NullOrWhitespace_Throws(string? endpoint)
+    {
+        var builder = SyncOptionsBuilder.CreateInstance();
+
+        var act = () => builder.WithCustomEndpoint(endpoint!);
+
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -190,7 +246,7 @@ public class SyncOptionsBuilderTests
         // Assert
         options.ApiMode.Should().Be(ApiMode.Public, "default should be public production mode");
         options.EnableResilience.Should().BeTrue("resilience should be enabled by default");
-        options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai/v2");
-        options.PreviewEndpoint.Should().Be("https://preview-deliver.kontent.ai/v2");
+        options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai");
+        options.PreviewEndpoint.Should().Be("https://preview-deliver.kontent.ai");
     }
 }
