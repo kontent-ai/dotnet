@@ -19,6 +19,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder WithEnvironmentId(string environmentId)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(environmentId);
         _options.EnvironmentId = environmentId;
         return this;
     }
@@ -40,6 +41,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder UsePreviewApi(string apiKey)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
         _options.ApiMode = ApiMode.Preview;
         _options.ApiKey = apiKey;
         return this;
@@ -48,6 +50,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder UseSecureApi(string apiKey)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
         _options.ApiMode = ApiMode.Secure;
         _options.ApiKey = apiKey;
         return this;
@@ -63,6 +66,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder WithCustomEndpoint(string endpoint)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);
         SetCustomEndpoint(endpoint);
         return this;
     }
@@ -70,6 +74,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     /// <inheritdoc/>
     public ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
     {
+        ArgumentNullException.ThrowIfNull(endpoint);
         SetCustomEndpoint(endpoint.AbsoluteUri);
         return this;
     }

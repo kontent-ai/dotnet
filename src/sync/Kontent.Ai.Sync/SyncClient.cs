@@ -9,15 +9,20 @@ namespace Kontent.Ai.Sync;
 /// Executes requests against the Kontent.ai Sync API.
 /// </summary>
 /// <param name="syncApi">The Refit-generated API client.</param>
+/// <param name="environmentId">The environment identifier.</param>
 internal sealed class SyncClient(
-    ISyncApi syncApi) : ISyncClient
+    ISyncApi syncApi,
+    string environmentId) : ISyncClient
 {
     private readonly ISyncApi _syncApi = syncApi ?? throw new ArgumentNullException(nameof(syncApi));
+    private readonly string _environmentId = !string.IsNullOrWhiteSpace(environmentId)
+        ? environmentId
+        : throw new ArgumentException("Environment ID cannot be null or empty.", nameof(environmentId));
 
     /// <inheritdoc/>
     public async Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default)
     {
-        var rawResponse = await _syncApi.InitializeSyncAsync(cancellationToken)
+        var rawResponse = await _syncApi.InitializeSyncAsync(_environmentId, cancellationToken)
             .ConfigureAwait(false);
 
         return await rawResponse.ToSyncResultAsync()
@@ -29,7 +34,7 @@ internal sealed class SyncClient(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(syncToken);
 
-        var rawResponse = await _syncApi.GetDeltaAsync(syncToken, cancellationToken)
+        var rawResponse = await _syncApi.GetDeltaAsync(_environmentId, syncToken, cancellationToken)
             .ConfigureAwait(false);
 
         return await rawResponse.ToSyncResultAsync()

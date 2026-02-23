@@ -12,9 +12,11 @@ internal partial interface ISyncApi
     /// Initializes content synchronization.
     /// Returns an X-Continuation token in the response headers.
     /// </summary>
+    /// <param name="environmentId">The environment identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Empty response with X-Continuation token in headers.</returns>
-    [Post("/v2/sync/init")]
+    [Post("/v2/{environmentId}/sync/init")]
     internal Task<IApiResponse<SyncInitResponse>> InitializeSyncAsync(
+        string environmentId,
         CancellationToken cancellationToken = default);
 }

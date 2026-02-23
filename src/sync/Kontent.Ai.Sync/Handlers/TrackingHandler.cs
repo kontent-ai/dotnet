@@ -7,24 +7,17 @@ namespace Kontent.Ai.Sync.Handlers;
 /// <summary>
 /// Delegating handler that adds SDK tracking headers to outgoing requests.
 /// </summary>
-internal sealed class TrackingHandler : DelegatingHandler
+/// <remarks>
+/// Initializes a new instance of the <see cref="TrackingHandler"/> class.
+/// </remarks>
+/// <param name="logger">Optional logger.</param>
+internal sealed class TrackingHandler(ILogger<TrackingHandler>? logger = null) : DelegatingHandler
 {
     private const string SdkIdHeaderName = "X-KC-SDKID";
     private const string SourceHeaderName = "X-KC-SOURCE";
 
     private static readonly string SdkVersion = GetSdkVersion();
     private static readonly string SdkId = $"nuget.org;Kontent.Ai.Sync;{SdkVersion}";
-
-    private readonly ILogger<TrackingHandler>? _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TrackingHandler"/> class.
-    /// </summary>
-    /// <param name="logger">Optional logger.</param>
-    public TrackingHandler(ILogger<TrackingHandler>? logger = null)
-    {
-        _logger = logger;
-    }
 
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -36,9 +29,9 @@ internal sealed class TrackingHandler : DelegatingHandler
         request.Headers.Remove(SourceHeaderName);
         request.Headers.Add(SourceHeaderName, SdkId);
 
-        if (_logger is not null)
+        if (logger is not null)
         {
-            LoggerMessages.HttpTrackingHeadersAdded(_logger, SdkId);
+            LoggerMessages.HttpTrackingHeadersAdded(logger, SdkId);
         }
 
         return base.SendAsync(request, cancellationToken);

@@ -103,7 +103,7 @@ internal static class RefitApiResponseExtensions
             {
                 Message = message,
                 ErrorCode = (int)statusCode,
-                Exception = exception
+                Exception = new AggregateException(exception, parseException)
             };
         }
 

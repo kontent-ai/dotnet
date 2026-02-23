@@ -6,9 +6,9 @@ namespace Kontent.Ai.Sync.Extensions;
 /// <summary>
 /// Bridges pre-built <see cref="SyncOptions"/> instances into the DI options system.
 /// <para>
-/// <see cref="IOptionsMonitor{T}"/> expects an <c>Action&lt;SyncOptions&gt;</c> that mutates
+/// <c>IOptionsMonitor&lt;T&gt;</c> expects an <c>Action&lt;SyncOptions&gt;</c> that mutates
 /// a framework-managed instance. When the user supplies a fully-constructed object (via
-/// <see cref="SyncOptionsBuilder"/> or a direct instance), this helper copies every public
+/// the options builder or a direct instance), this helper copies every public
 /// writable property into the DI-managed target so the two stay in sync.
 /// </para>
 /// <para>

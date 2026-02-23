@@ -293,7 +293,9 @@ public static class ServiceCollectionExtensions
     {
         var clientName = (string)key!;
         var syncApi = serviceProvider.GetRequiredKeyedService<ISyncApi>(clientName);
-        return new SyncClient(syncApi);
+        var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
+        var options = optionsMonitor.Get(clientName);
+        return new SyncClient(syncApi, options.EnvironmentId);
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
