@@ -3,14 +3,10 @@ name: "Code scanning - action"
 on:
   push:
     branches:
-      - master
-      - vnext
-      - vNext
+      - main
   pull_request:
     branches:
-      - master
-      - vnext
-      - vNext
+      - main
   schedule:
     - cron: '0 18 * * 1'
 
