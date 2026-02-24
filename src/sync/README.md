@@ -1,14 +1,17 @@
 # Kontent.ai Sync SDK for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
-[![License](https://img.shields.io/github/license/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/blob/main/LICENSE.md)
 [![Contributors](https://img.shields.io/github/contributors/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/commits/master)
+[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/commits/main)
 [![Issues](https://img.shields.io/github/issues/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/issues)
 
 Official .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
 
 Use this SDK to initialize sync and process delta updates for content items, content types, languages, and taxonomies.
+
+> [!IMPORTANT]
+> This SDK targets **Sync API v2** exclusively. Sync API v1 is deprecated and not supported.
 
 ## Installation
 
@@ -193,11 +196,13 @@ Important fields:
 
 The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into the next `GetDeltaAsync` or `GetAllDeltaAsync` call.
 
-## Upgrade and Release Docs
+## Upgrade Guide
 
-- Upgrade guide: `docs/upgrade-guide.md`
-- Release readiness checklist: `docs/release-readiness-checklist.md`
-- 1.0.0 release notes draft: `docs/release-notes-1.0.0-draft.md`
+See `docs/upgrade-guide.md` for breaking changes and migration steps.
+
+## Contributing
+
+Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/sync-sdk-net/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
 
 ## License
 
