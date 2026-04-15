@@ -3,7 +3,12 @@ namespace Kontent.Ai.Sync.Abstractions;
 /// <summary>
 /// Executes requests against the Kontent.ai Sync API.
 /// </summary>
-public interface ISyncClient
+/// <remarks>
+/// Implements <see cref="IDisposable"/> and <see cref="IAsyncDisposable"/> to support proper
+/// resource cleanup when created via <c>SyncClientBuilder</c>. When resolved from a DI container,
+/// the container manages the client's lifetime and disposal.
+/// </remarks>
+public interface ISyncClient : IDisposable, IAsyncDisposable
 {
     /// <summary>
     /// Initializes content synchronization. Returns X-Continuation token via <see cref="ISyncResult{T}.SyncToken"/>.

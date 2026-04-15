@@ -99,4 +99,10 @@ internal sealed class SyncClient(
             pagesFetched,
             wasLimitedByMaxPages);
     }
+
+    public void Dispose()
+    {
+    }
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

@@ -11,6 +11,13 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
 
 // Kontent.Ai.Sync.Configuration
+public sealed class SyncClientBuilder
+    ISyncClient Build()
+    SyncClientBuilder ConfigureServices(Action<IServiceCollection> configure)
+    SyncClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
+    static SyncClientBuilder WithOptions(Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions)
+
+// Kontent.Ai.Sync.Configuration
 public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     SyncOptions Build()
     static ISyncOptionsBuilder CreateInstance()

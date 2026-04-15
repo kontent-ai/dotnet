@@ -62,7 +62,7 @@ var deltaResult = await syncClient.GetDeltaAsync(syncToken, cancellationToken);
 
 if (!deltaResult.IsSuccess)
 {
-    Console.WriteLine($"Sync failed: {deltaResult.Error?.Reason} - {deltaResult.Error?.Message}");
+    Console.WriteLine($"Sync failed: {deltaResult.Error?.Message} (request {deltaResult.Error?.RequestId})");
     return;
 }
 
@@ -116,7 +116,7 @@ services.AddSyncClient(o =>
 });
 ```
 
-### Builder API
+### Options builder
 
 ```csharp
 services.AddSyncClient(builder => builder
@@ -146,6 +146,39 @@ Registration:
 ```csharp
 services.AddSyncClient(configuration.GetSection("SyncOptions"));
 ```
+
+## Standalone client (without DI)
+
+For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. The builder spins up a private service collection internally; the returned client owns its dependencies and must be disposed.
+
+```csharp
+using Kontent.Ai.Sync.Abstractions;
+using Kontent.Ai.Sync.Configuration;
+
+await using var client = SyncClientBuilder
+    .WithOptions(opts => opts
+        .WithEnvironmentId("your-environment-id")
+        .UsePreviewApi("preview-api-key")
+        .Build())
+    .Build();
+
+var result = await client.InitializeSyncAsync();
+```
+
+Optional configuration:
+
+```csharp
+await using var client = SyncClientBuilder
+    .WithOptions(opts => opts.WithEnvironmentId("env-id").UseProductionApi().Build())
+    .WithLoggerFactory(loggerFactory)
+    .ConfigureServices(services =>
+    {
+        // Register or replace any service on the internal container.
+    })
+    .Build();
+```
+
+The returned client is thread-safe and should be used as a singleton for the lifetime of your application. Each `Build()` call creates an independent client with its own HTTP client.
 
 ## Named Clients
 
@@ -179,8 +212,9 @@ var result = await syncClient.GetDeltaAsync(syncToken);
 
 if (!result.IsSuccess)
 {
-    Console.WriteLine(result.Error?.Reason);
     Console.WriteLine(result.Error?.Message);
+    Console.WriteLine(result.Error?.RequestId);
+    Console.WriteLine(result.Error?.ErrorCode);
     Console.WriteLine(result.StatusCode);
     return;
 }
@@ -189,7 +223,11 @@ if (!result.IsSuccess)
 Important fields:
 - `ISyncResult<T>.StatusCode` (`HttpStatusCode`)
 - `ISyncResult<T>.ResponseHeaders`
-- `IError.Reason`
+- `ISyncResult<T>.RequestUrl`
+- `ISyncResult<T>.HasMoreChanges`
+- `IError.Message`
+- `IError.RequestId`
+- `IError.ErrorCode` / `IError.SpecificCode`
 - `IError.Exception`
 
 ## Token Persistence

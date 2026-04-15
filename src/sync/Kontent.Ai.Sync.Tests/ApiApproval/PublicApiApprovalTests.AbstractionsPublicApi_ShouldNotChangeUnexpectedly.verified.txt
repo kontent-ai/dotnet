@@ -27,7 +27,7 @@ public interface ISyncAllDeltaResult
     Boolean WasLimitedByMaxPages { get; }
 
 // Kontent.Ai.Sync.Abstractions
-public interface ISyncClient
+public interface ISyncClient : IDisposable, IAsyncDisposable
     Task<ISyncAllDeltaResult> GetAllDeltaAsync(String syncToken, Nullable<Int32> maxPages, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
