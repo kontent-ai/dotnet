@@ -108,3 +108,12 @@ public sealed class SyncOptionsExtensions
     static String GetApiKey(SyncOptions options)
     static String GetBaseUrl(SyncOptions options)
 
+// Kontent.Ai.Sync.Abstractions
+public sealed class SyncSourceTrackingHeaderAttribute : Attribute
+    Boolean LoadFromAssembly { get; }
+    Int32 MajorVersion { get; }
+    Int32 MinorVersion { get; }
+    String PackageName { get; }
+    Int32 PatchVersion { get; }
+    String PreReleaseLabel { get; }
+
