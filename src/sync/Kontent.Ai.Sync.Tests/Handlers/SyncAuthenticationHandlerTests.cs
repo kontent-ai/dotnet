@@ -113,6 +113,47 @@ public class SyncAuthenticationHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_WithCustomEndpointAndExternalHost_StripsAuthorization()
+    {
+        var options = new SyncOptions
+        {
+            EnvironmentId = EnvironmentId,
+            ApiMode = ApiMode.Preview,
+            ApiKey = "preview-key",
+            PreviewEndpoint = "https://preview.example.com"
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://attacker.example/v2/sync");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "stale-key");
+
+        _ = await InvokeSendAsync(handler, request);
+
+        request.RequestUri!.Host.Should().Be("attacker.example");
+        request.Headers.Authorization.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SendAsync_WithPreviewDeliveryUrlAndCustomPreviewEndpoint_RewritesToConfiguredHost()
+    {
+        var options = new SyncOptions
+        {
+            EnvironmentId = EnvironmentId,
+            ApiMode = ApiMode.Preview,
+            ApiKey = "preview-key",
+            PreviewEndpoint = "https://preview.example.com"
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"https://preview-deliver.kontent.ai/v2/{EnvironmentId}/sync");
+
+        _ = await InvokeSendAsync(handler, request);
+
+        request.RequestUri!.Host.Should().Be("preview.example.com");
+        request.Headers.Authorization.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task SendAsync_WithSecureApiKey_AddsAuthorizationHeader()
     {
         var options = new SyncOptions

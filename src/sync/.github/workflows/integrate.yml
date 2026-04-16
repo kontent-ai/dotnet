@@ -22,6 +22,16 @@ jobs:
         global-json-file: global.json
     - name: Restore dependencies
       run: dotnet restore
+    - name: Vulnerability audit
+      shell: bash
+      run: |
+        set -euo pipefail
+        OUTPUT=$(dotnet list package --vulnerable --include-transitive 2>&1)
+        echo "$OUTPUT"
+        if echo "$OUTPUT" | grep -qE '^\s+>'; then
+          echo "::error::Vulnerable packages detected"
+          exit 1
+        fi
     - name: Build
       run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
     - name: Test

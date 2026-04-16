@@ -412,7 +412,7 @@ public static class ServiceCollectionExtensions
             sp.GetService<ILogger<SyncAuthenticationHandler>>()));
     }
 
-    private static void ConfigureDefaultResilience(ResiliencePipelineBuilder<HttpResponseMessage> builder)
+    internal static void ConfigureDefaultResilience(ResiliencePipelineBuilder<HttpResponseMessage> builder)
     {
         builder.AddRetry(new HttpRetryStrategyOptions
         {
@@ -430,7 +430,7 @@ public static class ServiceCollectionExtensions
         builder.AddTimeout(TimeSpan.FromSeconds(30));
     }
 
-    private static ValueTask<TimeSpan?> GetRetryAfterDelay(RetryDelayGeneratorArguments<HttpResponseMessage> args)
+    internal static ValueTask<TimeSpan?> GetRetryAfterDelay(RetryDelayGeneratorArguments<HttpResponseMessage> args)
     {
         if (args.Outcome.Result is { StatusCode: System.Net.HttpStatusCode.TooManyRequests } response
             && response.Headers.RetryAfter?.Delta is { } retryAfter)
@@ -441,7 +441,7 @@ public static class ServiceCollectionExtensions
         return ValueTask.FromResult<TimeSpan?>(null);
     }
 
-    private static bool IsRetryableStatusCode(System.Net.HttpStatusCode? statusCode)
+    internal static bool IsRetryableStatusCode(System.Net.HttpStatusCode? statusCode)
         => statusCode is
             System.Net.HttpStatusCode.TooManyRequests or
             System.Net.HttpStatusCode.RequestTimeout or
@@ -450,7 +450,7 @@ public static class ServiceCollectionExtensions
             System.Net.HttpStatusCode.ServiceUnavailable or
             System.Net.HttpStatusCode.GatewayTimeout;
 
-    private static bool IsTransientException(Exception? exception, CancellationToken requestCancellationToken)
+    internal static bool IsTransientException(Exception? exception, CancellationToken requestCancellationToken)
     {
         if (exception is null)
         {
