@@ -73,6 +73,13 @@ foreach (var item in delta.Items)
 }
 
 await SaveSyncTokenAsync(deltaResult.SyncToken);
+
+// If more pages are pending, keep calling GetDeltaAsync with the new token,
+// or switch to GetAllDeltaAsync to auto-paginate.
+if (deltaResult.HasMoreChanges)
+{
+    // ...
+}
 ```
 
 ### 4. Fetch all pages automatically
@@ -198,7 +205,7 @@ services.AddSyncClient("preview", o =>
 
 public sealed class MultiEnvironmentService(ISyncClientFactory factory)
 {
-    public ISyncClient DefaultClient => factory.Get();
+    public ISyncClient ProductionClient => factory.Get("production");
     public ISyncClient PreviewClient => factory.Get("preview");
 }
 ```
@@ -233,6 +240,41 @@ Important fields:
 ## Token Persistence
 
 The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into the next `GetDeltaAsync` or `GetAllDeltaAsync` call.
+
+## Source Tracking (for Tool Authors)
+
+Every request the SDK sends carries two tracking headers:
+
+- **`X-KC-SDKID`** — identifies this SDK. Always set to `nuget.org;Kontent.Ai.Sync;<version>`. You can't configure it.
+- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Only set when a caller assembly opts in via `SyncSourceTrackingHeaderAttribute`. Omitted otherwise.
+
+**End-user applications don't need to do anything.** This section only matters if you're publishing a library that wraps the Sync SDK.
+
+If you are, add one of the following at assembly level (typically in `AssemblyInfo.cs` or a top-level `using` file). At request time the SDK walks the call stack, locates your assembly, reads the attribute, and composes the header value.
+
+**1. Read name and version from the assembly (most common):**
+
+```csharp
+[assembly: SyncSourceTrackingHeaderAttribute]
+```
+
+Header becomes `<AssemblyName>;<AssemblyInformationalVersion>`.
+
+**2. Override the name, keep version from the assembly:**
+
+```csharp
+[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool")]
+```
+
+Useful when your NuGet package ID differs from your assembly name.
+
+**3. Hard-code everything:**
+
+```csharp
+[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
+```
+
+Useful when you want to pin the reported version independent of assembly metadata.
 
 ## Upgrade Guide
 
