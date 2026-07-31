@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Configuration;
 using Microsoft.Extensions.DependencyInjection;

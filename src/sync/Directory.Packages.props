@@ -24,10 +24,12 @@
     <PackageVersion Include="Refit.HttpClientFactory" Version="8.0.0" />
     <PackageVersion Include="System.Text.Json" Version="8.0.5" />
 
-    <!-- Test dependencies -->
+    <!-- Test dependencies. AwesomeAssertions is the community Apache-2.0 successor to FluentAssertions (which went
+         commercial at v8). v9 uses its own `AwesomeAssertions` namespace (not a `FluentAssertions`-namespace
+         drop-in), so test code imports `AwesomeAssertions`. -->
     <PackageVersion Include="coverlet.collector" Version="3.2.0" />
     <PackageVersion Include="coverlet.msbuild" Version="3.2.0" />
-    <PackageVersion Include="FluentAssertions" Version="7.2.0" />
+    <PackageVersion Include="AwesomeAssertions" Version="9.4.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="Verify.Xunit" Version="28.3.1" />

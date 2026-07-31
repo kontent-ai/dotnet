@@ -1,5 +1,5 @@
 using System.Net;
-using FluentAssertions;
+using AwesomeAssertions;
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Models;
 using Kontent.Ai.Sync.SharedModels;
