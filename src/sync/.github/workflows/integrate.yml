@@ -15,9 +15,11 @@ jobs:
         os: [ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: Restore dependencies
@@ -38,7 +40,7 @@ jobs:
       run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:Threshold=70 /p:ThresholdType=line /p:ThresholdStat=total
     - name: Codecov
       if: runner.os == 'Linux'
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
@@ -50,9 +52,11 @@ jobs:
       PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
       PACK_OUTPUT: ./artifacts/pack-validation
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         global-json-file: global.json
     - name: Restore dependencies
@@ -120,7 +124,7 @@ jobs:
         fi
     - name: Upload pack validation artifacts
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: pack-validation-artifacts
         path: |
