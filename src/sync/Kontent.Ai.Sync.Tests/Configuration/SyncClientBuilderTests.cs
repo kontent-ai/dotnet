@@ -4,7 +4,6 @@ using Kontent.Ai.Sync.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
 

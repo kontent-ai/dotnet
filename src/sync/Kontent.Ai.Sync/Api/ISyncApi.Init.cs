@@ -1,5 +1,4 @@
 using Kontent.Ai.Sync.Models;
-using Refit;
 
 namespace Kontent.Ai.Sync.Api;
 

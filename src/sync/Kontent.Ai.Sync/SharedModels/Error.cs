@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Kontent.Ai.Sync.Abstractions;
 
 namespace Kontent.Ai.Sync.SharedModels;
 

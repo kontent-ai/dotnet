@@ -1,4 +1,3 @@
-using Kontent.Ai.Sync.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kontent.Ai.Sync.Configuration;

@@ -1,5 +1,4 @@
 using System.Net;
-using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync.Extensions;

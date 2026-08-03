@@ -1,4 +1,3 @@
-using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Extensions;

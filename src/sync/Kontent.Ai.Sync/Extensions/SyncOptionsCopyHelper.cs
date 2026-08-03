@@ -1,5 +1,4 @@
 using System.Reflection;
-using Kontent.Ai.Sync.Abstractions;
 
 namespace Kontent.Ai.Sync.Extensions;
 

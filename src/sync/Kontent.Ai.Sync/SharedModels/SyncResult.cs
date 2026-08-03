@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Headers;
-using Kontent.Ai.Sync.Abstractions;
 
 namespace Kontent.Ai.Sync.SharedModels;
 

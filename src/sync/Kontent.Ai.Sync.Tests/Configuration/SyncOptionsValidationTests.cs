@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using AwesomeAssertions;
 using Kontent.Ai.Sync.Abstractions;
-using Xunit;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
 
