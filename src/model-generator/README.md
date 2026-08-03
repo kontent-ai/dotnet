@@ -387,7 +387,7 @@ We would like to express our thanks to the following people who contributed and 
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
 
 <!-- Badge references -->
 [nuget-badge]: https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge

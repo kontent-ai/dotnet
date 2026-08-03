@@ -2,39 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Authors>Kontent s.r.o.</Authors>
-    <Product>Kontent.ai</Product>
-    <PackageIconUrl>https://github.com/kontent-ai/.github/blob/main/logos/kontent-ai-k-icon-color.png?raw=true</PackageIconUrl>
-    <RepositoryUrl>https://github.com/kontent-ai/model-generator-net</RepositoryUrl>
-    <Copyright>© 2025 Kontent.ai s.r.o. All rights reserved.</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageTags>tool;kontent-ai;generator</PackageTags>
+    <Company>Kontent s.r.o.</Company>
     <Description>Core library for the Kontent.ai model generator. Provides the code-generation primitives that emit modern record-based C# models for use with the Kontent.ai Delivery SDK for .NET (v19+). Typically consumed indirectly via the Kontent.Ai.ModelGenerator CLI tool.</Description>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>kontent-ai-k-icon-color.png</PackageIcon>
-    <RepositoryType>git</RepositoryType>
-    <LangVersion>latest</LangVersion>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Kontent.Ai.Delivery" />
-    <PackageReference Include="Kontent.Ai.Management" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Kontent.Ai.Delivery.Abstractions" />
+    <PackageReference Include="Kontent.Ai.Management" />
     <PackageReference Include="Microsoft.CodeAnalysis" />
-    <None Include="../../README.md" Pack="true" PackagePath="" />
-    <None Include="../../kontent-ai-k-icon-color.png" Pack="true" PackagePath="" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
 </Project>

@@ -1,38 +1,32 @@
 <Project>
+  <!-- Import the repo-wide settings first. Without this, MSBuild would stop here
+       when walking up from a project and the root file would never apply. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- Deterministic builds for reproducibility -->
-    <Deterministic>true</Deterministic>
-    <!-- Enable CI-specific source-linked builds when running in CI -->
-    <ContinuousIntegrationBuild Condition="'$(CI)'=='true'">true</ContinuousIntegrationBuild>
+    <!-- Declared in eng/Versions.props, which the root Directory.Build.props imports.
+         The CLI tool and its Core library ship in lockstep on this one number. -->
+    <Version>$(ModelGeneratorVersion)</Version>
+    <PackageProjectUrl>https://github.com/kontent-ai/dotnet/tree/main/src/model-generator</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>tool;kontent-ai;generator</PackageTags>
   </PropertyGroup>
 
-  <!-- Shared packaging and SourceLink configuration -->
-  <!-- Note: test projects set IsPackable=false to exclude themselves -->
   <PropertyGroup>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-    <Authors>Kontent s.r.o.</Authors>
-    <Product>Kontent.ai</Product>
-    <Copyright>© 2026 Kontent s.r.o. All rights reserved.</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/kontent-ai/model-generator-net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/kontent-ai/model-generator-net</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>tool;kontent-ai;generator</PackageTags>
-
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>kontent-ai-k-icon-color.png</PackageIcon>
+    <!-- The generator predates the repo-wide nullable convention that the root
+         Directory.Build.props turns on (188 warnings when measured on 2026-08-03).
+         Adopting it is its own change, not part of the move. -->
+    <Nullable>disable</Nullable>
+    <!-- GenerateDocumentationFile stays on - IDE0005 (unnecessary usings) only runs at
+         build time when it is - but the members are not documented yet, so the
+         missing-doc warning is silenced rather than the doc file switched off. -->
+    <!-- slopwatch-ignore: SW005 The generator has never shipped XML docs (284 members). Writing them is its own change; turning the doc file off instead would silently disable IDE0005. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-    <None Include="../../README.md" Pack="true" PackagePath="" Condition="Exists('../../README.md')" />
-    <None Include="../../kontent-ai-k-icon-color.png" Pack="true" PackagePath="" Condition="Exists('../../kontent-ai-k-icon-color.png')" />
+    <!-- $(MSBuildThisFileDirectory) resolves to src/model-generator/ regardless of how
+         deep the consuming project sits, so this survives the src/ + test/ nesting. -->
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>

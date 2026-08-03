@@ -1,4 +1,3 @@
-using System.Linq;
 using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Helpers;
@@ -13,6 +12,10 @@ namespace Kontent.Ai.ModelGenerator.Core.Services;
 /// </summary>
 internal static class ManagementElementMetadataAdapter
 {
+    /// <param name="element">
+    /// The Management API element metadata to adapt. Element types the generator does not emit
+    /// yet fall through to <c>null</c>.
+    /// </param>
     /// <param name="contentTypeClassName">
     /// PascalCased name of the content-type class the element lives on. Used to build unique
     /// per-element enum names (<c>{ClassName}{PascalElementCodename}</c>) so the same multiple-choice
