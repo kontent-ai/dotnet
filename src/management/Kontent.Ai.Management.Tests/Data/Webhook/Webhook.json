@@ -1,0 +1,121 @@
+{
+  "id": "3e18029a-ed40-406f-a49a-1a8856200e11",
+  "name": "Webhook_all_triggers",
+  "url": "http://test",
+  "secret": "AQA1jsNDjLBUcRRD69GQtuzBBqxGPdz+0XhTKhICv4o=",
+  "headers": [
+    {
+      "key": "key1",
+      "value": "value1"
+    }
+  ],
+  "enabled": true,
+  "last_modified": "2023-12-13T11:22:34.4079256Z",
+  "delivery_triggers": {
+    "content_type": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "content_types": []
+      }
+    },
+    "content_item": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "metadata_changed",
+          "transition_to": null
+        },
+        {
+          "action": "published",
+          "transition_to": null
+        },
+        {
+          "action": "unpublished",
+          "transition_to": null
+        }
+      ],
+      "filters": {
+        "collections": [],
+        "content_types": [],
+        "languages": []
+      }
+    },
+    "taxonomy": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        },
+        {
+          "action": "metadata_changed"
+        },
+        {
+          "action": "term_changed"
+        },
+        {
+          "action": "term_created"
+        },
+        {
+          "action": "term_deleted"
+        },
+        {
+          "action": "terms_moved"
+        }
+      ],
+      "filters": {
+        "taxonomies": []
+      }
+    },
+    "asset": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        },
+        {
+          "action": "metadata_changed"
+        }
+      ]
+    },
+    "language": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "languages": []
+      }
+    },
+    "slot": "published",
+    "events": "all"
+  },
+  "health_status": "working"
+}

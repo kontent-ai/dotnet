@@ -1,0 +1,37 @@
+{
+  "elements": [
+    {
+      "element": { "id": "7ef2ebb4-c480-42b7-ba35-a3078d6cce3f" },
+      "value": [
+        { "id": "4a4f8cb0-e7fe-40ad-9943-66f395e58571" },
+        { "id": "96e493ab-45c4-4505-a3d0-b46192dd179e" }
+      ]
+    },
+    {
+      "element": { "id": "70dfa72d-4599-40cb-aa27-7597470d5e2e" },
+      "value": [
+        { "id": "16d27bf1-e0f4-8646-0e54-1b71efc6947f" }
+      ]
+    }
+  ],
+  "id": "222310d5-a416-4fc1-a4c5-b8c77062987d",
+  "codename": "chemex_paper_filters",
+  "file_name": "chemex-filters.jpg",
+  "title": "Chemex Paper Filters",
+  "size": 36927,
+  "type": "image/jpeg",
+  "url": "https://assets-us-01.kc-usercontent.com/cec32064-07dd-00ff-2101-5bde13c9e30c/222310d5-a416-4fc1-a4c5-b8c77062987d/chemex-filters.jpg",
+  "image_width": 1080,
+  "image_height": 1080,
+  "file_reference": {
+    "id": "222310d5-a416-4fc1-a4c5-b8c77062987d",
+    "type": "internal"
+  },
+  "descriptions": [
+    { "language": { "id": "00000000-0000-0000-0000-000000000000" }, "description": "Chemex Paper Filters" },
+    { "language": { "id": "d1f95fde-af02-b3b5-bd9e-f232311ccab8" }, "description": "Filtros de papel Chemex" },
+    { "language": { "id": "228f96a1-05ba-4dd6-a1ac-d0fe4ef25470" }, "description": null },
+    { "language": { "id": "be484cf2-67f6-410e-8620-f07bf264debc" }, "description": null }
+  ],
+  "last_modified": "2026-05-21T12:33:03.9926347Z"
+}

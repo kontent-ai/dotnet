@@ -1,0 +1,103 @@
+{
+  "id": "5df74e27-1213-484e-b9ae-bcbe90bd5990",
+  "name": "Example webhook",
+  "url": "https://example.com/webhook",
+  "secret": "secret_key",
+  "headers": [
+    {
+      "key": "key1",
+      "value": "value1"
+    }
+  ],
+  "enabled": true,
+  "last_modified": "2023-12-13T11:22:34.4079256Z",
+  "delivery_triggers": {
+    "content_type": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "content_types": []
+      }
+    },
+    "content_item": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "metadata_changed",
+          "transition_to": null
+        },
+        {
+          "action": "published",
+          "transition_to": null
+        },
+        {
+          "action": "unpublished",
+          "transition_to": null
+        }
+      ],
+      "filters": {
+        "collections": [],
+        "content_types": [],
+        "languages": []
+      }
+    },
+    "taxonomy": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        },
+        {
+          "action": "metadata_changed"
+        }
+      ],
+      "filters": {
+        "taxonomies": []
+      }
+    },
+    "asset": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        },
+        {
+          "action": "metadata_changed"
+        }
+      ]
+    },
+    "language": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "languages": []
+      }
+    },
+    "slot": "published",
+    "events": "all"
+  },
+  "health_status": "working"
+}

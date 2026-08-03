@@ -1,0 +1,82 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+
+		<IsPackable>false</IsPackable>
+		<!-- KAIM001: the tests exercise the SDK's own experimental content-model snapshot API -->
+		<NoWarn>CS1591;KAIM001</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="AwesomeAssertions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+		<PackageReference Include="RichardSzalay.MockHttp" />
+		<PackageReference Include="Verify.Xunit" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.msbuild">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Kontent.Ai.Management\Kontent.Ai.Management.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="Kontent.Ai.Management.Attributes.SourceTrackingHeader">
+			<!--
+			More info: https://github.com/kontent-ai/management-sdk-net#add-source-tracking-header
+			<_Parameter1>My.Module</_Parameter1>
+
+			<_Parameter2>1</_Parameter2>
+			<_Parameter2_IsLiteral>true</_Parameter2_IsLiteral>
+
+			<_Parameter3>2</_Parameter3>
+			<_Parameter3_IsLiteral>true</_Parameter3_IsLiteral>
+
+			<_Parameter4>3</_Parameter4>
+			<_Parameter4_IsLiteral>true</_Parameter4_IsLiteral>
+
+			<_Parameter5>beta</_Parameter5>
+			-->
+		</AssemblyAttribute>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Data\which-brewing-fits-you-1080px.jpg">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\brno-cafe-1080px.jpg">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\**\*.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\CustomApp\CustomAppsPage2.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\CustomApp\CustomAppsPage3.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\CustomApp\ModifyCustomApp_Remove_ModifiesCustomApp.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Data\CustomApp\ModifyCustomApp_AddInto_ModifiesCustomApp.json">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+</Project>

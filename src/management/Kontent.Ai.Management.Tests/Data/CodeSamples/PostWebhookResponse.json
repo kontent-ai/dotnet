@@ -1,0 +1,113 @@
+{
+  "id": "5df74e27-1213-484e-b9ae-bcbe90bd5990",
+  "name": "Example webhook",
+  "url": "https://example.com/webhook",
+  "secret": "secret_key",
+  "headers": [
+    {
+      "key": "key1",
+      "value": "value1"
+    },
+    {
+      "key": "key2",
+      "value": "value2"
+    }
+  ],
+  "enabled": true,
+  "last_modified": "2023-12-13T11:22:34.4079256Z",
+  "delivery_triggers": {
+    "content_type": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "deleted"
+        },
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "content_types": [
+          {
+            "id": "dd1439d5-4ee2-4895-a4e4-5b0d9d8c754e"
+          }
+        ]
+      }
+    },
+    "content_item": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "deleted",
+          "transition_to": [
+            {
+              "workflow_identifier": {
+                "id": "88ac5e6e-1c5c-4638-96e1-0d61221ad5bf"
+              },
+              "step_identifier": {
+                "id": "b4363ccd-8f21-45fd-a840-5843d7b7f008"
+              }
+            }
+          ]
+        }
+      ],
+      "filters": {
+        "languages": [
+          {
+            "id": "1aeb9220-f167-4f8e-a7db-1bfec365fa80"
+          }
+        ]
+      }
+    },
+    "taxonomy": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "term_changed"
+        },
+        {
+          "action": "metadata_changed"
+        }
+      ],
+      "filters": {
+        "taxonomies": [
+          {
+            "id": "bef9dd62-a3b8-4146-83e4-33be707899b4"
+          }
+        ]
+      }
+    },
+    "asset": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "changed"
+        },
+        {
+          "action": "created"
+        }
+      ]
+    },
+    "language": {
+      "enabled": true,
+      "actions": [
+        {
+          "action": "created"
+        }
+      ],
+      "filters": {
+        "languages": [
+          {
+            "id": "1aeb9220-f167-4f8e-a7db-1bfec365fa80"
+          }
+        ]
+      }
+    },
+    "slot": "published",
+    "events": "all"
+  },
+  "health_status": "working"
+}

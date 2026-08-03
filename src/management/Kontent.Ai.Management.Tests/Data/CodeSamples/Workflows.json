@@ -1,0 +1,150 @@
+[
+  {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "name": "Default",
+    "codename": "default",
+    "scopes": [],
+    "steps": [
+      {
+        "id": "88ac5e6e-1c5c-4638-96e1-0d61221ad5bf",
+        "name": "Draft",
+        "codename": "draft",
+        "color": "red",
+        "transitions_to": [
+          {
+            "step": {
+              "id": "13145328-b946-4e47-9c9d-6f40c7aaeaef"
+            }
+          }
+        ],
+        "role_ids": []
+      },
+      {
+        "id": "13145328-b946-4e47-9c9d-6f40c7aaeaef",
+        "name": "Review",
+        "codename": "review",
+        "color": "yellow",
+        "transitions_to": [
+          {
+            "step": {
+              "id": "99435d07-a9b7-4273-b439-a6e4bc125140"
+            }
+          }
+        ],
+        "role_ids": []
+      },
+      {
+        "id": "99435d07-a9b7-4273-b439-a6e4bc125140",
+        "name": "Ready for approval",
+        "codename": "ready_for_approval",
+        "color": "mint-green",
+        "transitions_to": [
+          {
+            "step": {
+              "id": "b4363ccd-8f21-45fd-a840-5843d7b7f008"
+            }
+          },
+          {
+            "step": {
+              "id": "7a535a69-ad34-47f8-806a-def1fdf4d391"
+            }
+          }
+        ],
+        "role_ids": []
+      }
+    ],
+    "published_step": {
+      "id": "b4363ccd-8f21-45fd-a840-5843d7b7f008",
+      "name": "Published",
+      "codename": "published",
+      "unpublish_role_ids": [
+        "97730641-4ae1-4fbd-9749-7154c408232a"
+      ],
+      "create_new_version_role_ids": [
+        "97730641-4ae1-4fbd-9749-7154c408232a"
+      ]
+    },
+    "scheduled_step": {
+      "id": "9d2b0228-4d0d-4c23-8b49-01a698857709",
+      "name": "Scheduled",
+      "codename": "scheduled"
+    },
+    "archived_step": {
+      "id": "7a535a69-ad34-47f8-806a-def1fdf4d391",
+      "name": "Archived",
+      "codename": "archived",
+      "role_ids": []
+    }
+  },
+  {
+    "id": "8bfdb62d-7aa1-473b-9d80-311ef93db108",
+    "name": "My workflow",
+    "codename": "my_workflow",
+    "scopes": [
+      {
+        "collections": [
+          {
+            "id": "d29d1904-9011-45ca-8ed3-0f2737a28024"
+          }
+        ],
+        "content_types": [
+          {
+            "id": "1aeb9220-f167-4f8e-a7db-1bfec365fa80"
+          }
+        ]
+      }
+    ],
+    "steps": [
+      {
+        "id": "1d2f9b0b-9d7a-4f24-8a8a-2c1d3f3a4f81",
+        "name": "First step",
+        "codename": "first_step",
+        "color": "sky-blue",
+        "transitions_to": [
+          {
+            "step": {
+              "codename": "second_step"
+            }
+          }
+        ],
+        "role_ids": []
+      },
+      {
+        "id": "2e30bc1c-aebb-5035-9b9b-3d2e4040508f",
+        "name": "Second step",
+        "codename": "second_step",
+        "color": "rose",
+        "transitions_to": [
+          {
+            "step": {
+              "codename": "published"
+            }
+          }
+        ],
+        "role_ids": [
+          "e796887c-38a1-4ab2-a999-c40861bb7a4b"
+        ]
+      }
+    ],
+    "published_step": {
+      "id": "3f41cd2d-bfcc-6146-acac-4e3f5151619f",
+      "name": "Published",
+      "codename": "published",
+      "unpublish_role_ids": [
+        "e796887c-38a1-4ab2-a999-c40861bb7a4b"
+      ],
+      "create_new_version_role_ids": []
+    },
+    "scheduled_step": {
+      "id": "4052de3e-c0dd-7257-bdbd-5f405262720a",
+      "name": "Scheduled",
+      "codename": "scheduled"
+    },
+    "archived_step": {
+      "id": "5163ef4f-d1ee-8368-cece-6051637383b1",
+      "name": "Archived",
+      "codename": "archived",
+      "role_ids": []
+    }
+  }
+]

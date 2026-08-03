@@ -1,0 +1,69 @@
+{
+  "id": "9f74c888-a49a-44e3-8526-d2a3fab50041",
+  "name": "Marketing",
+  "codename": "marketing",
+  "scopes": [
+    {
+      "id": "f5937d83-e5ca-4021-bf9f-821109d52a37",
+      "collections": [
+        {
+          "id": "bbab58d7-5f33-4741-a71d-f5435586519c"
+        }
+      ],
+      "content_types": [
+        {
+          "id": "b33a98e8-2d0b-409a-a601-3df59edd82be"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "64eea830-bf59-4534-bb97-3861a74ea7f1",
+      "name": "Draft",
+      "codename": "draft_2",
+      "color": "red",
+      "transitions_to": [
+        {
+          "step": {
+             "id": "c199950d-99f0-4983-b711-6c4c91624b22"
+          }
+        },
+        {
+          "step": {
+            "id": "7a535a69-ad34-47f8-806a-def1fdf4d391"
+          }
+        }
+      ],
+      "role_ids": [
+        "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+      ]
+    }
+  ],
+  "published_step": {
+    "id": "c199950d-99f0-4983-b711-6c4c91624b22",
+    "name": "Published",
+    "codename": "published",
+    "transitions_to": [],
+    "unpublish_role_ids": [
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+    ],
+    "create_new_version_role_ids": [
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+    ]
+  },
+  "scheduled_step": {
+    "id": "9d2b0228-4d0d-4c23-8b49-01a698857709",
+    "name": "Scheduled",
+    "codename": "scheduled"
+  },
+  "archived_step": {
+    "id": "7a535a69-ad34-47f8-806a-def1fdf4d391",
+    "name": "Archived",
+    "codename": "archived",
+    "transitions_to": [],
+    "role_ids": [
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+    ]
+  }
+}

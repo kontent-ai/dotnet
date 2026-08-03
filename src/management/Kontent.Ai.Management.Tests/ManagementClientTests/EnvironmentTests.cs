@@ -1,0 +1,133 @@
+using AwesomeAssertions;
+using Kontent.Ai.Management.Models.Environments;
+using Kontent.Ai.Management.Models.Environments.Patch;
+using Kontent.Ai.Management.Tests.Base;
+using RichardSzalay.MockHttp;
+using System.Text.Json;
+
+namespace Kontent.Ai.Management.Tests.ManagementClientTests;
+
+public class EnvironmentTests
+{
+    private static string ClonedEnvironment => Fixture("ClonedEnvironment.json");
+    private static string CloningState => Fixture("EnvironmentCloningState.json");
+
+    private static string Fixture(string name)
+        => File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", "Environment", name));
+
+    [Fact]
+    public async Task CloneEnvironmentAsync_ReturnsNewEnvironment()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var clone = new EnvironmentCloneModel
+        {
+            Name = "name",
+            RolesToActivate = new[] { Guid.NewGuid() }
+        };
+
+        mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/clone-environment")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ClonedEnvironment);
+
+        var result = await client.CloneEnvironmentAsync(clone);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<EnvironmentClonedModel>(ClonedEnvironment, SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(clone);
+    }
+
+    [Fact]
+    public async Task CloneEnvironmentAsync_RequestModelIsNull_ThrowsException()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.CloneEnvironmentAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task GetEnvironmentCloningStateAsync_ReturnsCloningState()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/environment-cloning-state")
+            .Respond("application/json", CloningState);
+
+        var result = await client.GetEnvironmentCloningStateAsync();
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<EnvironmentCloningStateModel>(CloningState, SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task MarkEnvironmentAsProduction_MarkEnvironmentAsProduction()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var markAsProduction = new MarkAsProductionModel
+        {
+            EnableWebhooks = true
+        };
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/mark-environment-as-production")
+            .CaptureBody(out var capturedBody)
+            .Respond(System.Net.HttpStatusCode.OK);
+
+        var result = await client.MarkEnvironmentAsProductionAsync(markAsProduction);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        capturedBody.ShouldMatchSerialized(markAsProduction);
+    }
+
+    [Fact]
+    public async Task MarkEnvironmentAsProductionAsync_RequestModelIsNull_ThrowsException()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.MarkEnvironmentAsProductionAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task DeleteEnvironmentAsync_DeletesEnvironment()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        mock.Expect(HttpMethod.Delete, $"{MockClientFactory.BaseUrl}")
+            .Respond(System.Net.HttpStatusCode.OK);
+
+        var result = await client.DeleteEnvironmentAsync();
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ModifyEnvironmentAsync_Rename_RenamesEnvironment()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var changes = new[] {
+            new EnvironmentRenamePatchModel
+            {
+                Value = "newName"
+            }
+        };
+
+        mock.Expect(new HttpMethod("PATCH"), $"{MockClientFactory.BaseUrl}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", Fixture("Environment.json"));
+
+        var result = await client.ModifyEnvironmentAsync(changes);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<EnvironmentModel>(Fixture("Environment.json"), SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(changes, strictOrdering: true);
+    }
+
+    [Fact]
+    public async Task ModifyEnvironmentAsync_RequestModelIsNull_ThrowsException()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.ModifyEnvironmentAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+}

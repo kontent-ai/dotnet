@@ -1,0 +1,34 @@
+{
+  "assets": [
+    {
+      "elements": [
+        { "element": { "id": "7ef2ebb4-c480-42b7-ba35-a3078d6cce3f" }, "value": [] },
+        { "element": { "id": "70dfa72d-4599-40cb-aa27-7597470d5e2e" }, "value": [] }
+      ],
+      "id": "0013263e-f2a9-40b1-9a3e-7ab6510bafe5",
+      "codename": "coffee___kenya",
+      "file_name": "kenya.jpg",
+      "title": "Coffee - Kenya",
+      "size": 74683,
+      "type": "image/jpeg",
+      "url": "https://assets-us-01.kc-usercontent.com/cec32064-07dd-00ff-2101-5bde13c9e30c/0013263e-f2a9-40b1-9a3e-7ab6510bafe5/kenya.jpg",
+      "image_width": 1080,
+      "image_height": 1080,
+      "file_reference": {
+        "id": "0013263e-f2a9-40b1-9a3e-7ab6510bafe5",
+        "type": "internal"
+      },
+      "descriptions": [
+        { "language": { "id": "00000000-0000-0000-0000-000000000000" }, "description": "Kenya Gakuyuni AA Coffee Beans" },
+        { "language": { "id": "d1f95fde-af02-b3b5-bd9e-f232311ccab8" }, "description": "Granos de cafe de Kenia Gakuyuni AA" },
+        { "language": { "id": "228f96a1-05ba-4dd6-a1ac-d0fe4ef25470" }, "description": null },
+        { "language": { "id": "be484cf2-67f6-410e-8620-f07bf264debc" }, "description": null }
+      ],
+      "last_modified": "2018-07-23T09:03:54.276Z"
+    }
+  ],
+  "pagination": {
+    "continuation_token": "asset-page-2-token",
+    "next_page": "https://manage.kontent.ai/v2/projects/<id>/assets?continuationToken=asset-page-2-token"
+  }
+}

@@ -1,0 +1,26 @@
+﻿
+namespace Kontent.Ai.Management.Models.Webhooks.Triggers.Language;
+
+/// <summary>
+/// Represents a language action.
+/// </summary>
+public enum LanguageAction
+{
+    /// <summary>
+    /// Language created action.
+    /// </summary>
+    [EnumMember(Value = "created")]
+    Created,
+
+    /// <summary>
+    /// Language changed action.
+    /// </summary>
+    [EnumMember(Value = "changed")]
+    Changed,
+
+    /// <summary>
+    /// Language deleted action.
+    /// </summary>
+    [EnumMember(Value = "deleted")]
+    Deleted
+}

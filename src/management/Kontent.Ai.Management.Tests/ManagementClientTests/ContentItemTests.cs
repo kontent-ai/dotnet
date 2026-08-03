@@ -1,0 +1,452 @@
+using AwesomeAssertions;
+using Kontent.Ai.Management.Extensions;
+using Kontent.Ai.Management.Models.Items;
+using Kontent.Ai.Management.Tests.Base;
+using RichardSzalay.MockHttp;
+using System.Text.Json;
+
+using static Kontent.Ai.Management.Tests.Base.PagedFixtures;
+
+namespace Kontent.Ai.Management.Tests.ManagementClientTests;
+
+public class ContentItemTests
+{
+    private static string ContentItem => Fixture("ContentItem.json");
+
+    private static string Fixture(string name)
+        => File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", "ContentItem", name));
+
+    [Fact]
+    public async Task ListContentItemsAsync_PagesThroughAllContentItems()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var page1 = Fixture("ContentItemPage1.json");
+        var page2 = Fixture("ContentItemPage2.json");
+        var page3 = Fixture("ContentItemPage3.json");
+        var url = $"{MockClientFactory.BaseUrl}/items";
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+
+        var listResult = await client.ListContentItemsAsync();
+        listResult.IsSuccess.Should().BeTrue();
+        IReadOnlyList<ContentItemModel> contentItems = listResult.Value;
+
+        mock.VerifyNoOutstandingExpectation();
+        contentItems.Should().BeEquivalentTo(ConcatPages<ContentItemModel>(page1, page2, page3));
+    }
+
+    [Fact]
+    public async Task EnumerateContentItemPagesAsync_StreamsAllPages()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var page1 = Fixture("ContentItemPage1.json");
+        var page2 = Fixture("ContentItemPage2.json");
+        var page3 = Fixture("ContentItemPage3.json");
+        var url = $"{MockClientFactory.BaseUrl}/items";
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+
+        var contentItems = new List<ContentItemModel>();
+        await foreach (var page in client.EnumerateContentItemPagesAsync())
+        {
+            page.IsSuccess.Should().BeTrue();
+            contentItems.AddRange(page.Value);
+        }
+
+        mock.VerifyNoOutstandingExpectation();
+        contentItems.Should().BeEquivalentTo(ConcatPages<ContentItemModel>(page1, page2, page3));
+    }
+
+    [Fact]
+    public async Task EnumerateContentItemPagesAsync_PageFails_YieldsFailureThenStops()
+    {
+        // The streaming property: a failed page surfaces as a failed result page (not an exception) and ends the
+        // stream, so the caller keeps what it gathered and sees the failure.
+        var (client, mock) = MockClientFactory.Create();
+        var url = $"{MockClientFactory.BaseUrl}/items";
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", Fixture("ContentItemPage1.json"));
+        mock.Expect(HttpMethod.Get, url).Respond(System.Net.HttpStatusCode.InternalServerError, "application/json", """{ "message": "Server error." }""");
+
+        var pages = new List<IManagementResult<IReadOnlyList<ContentItemModel>>>();
+        await foreach (var page in client.EnumerateContentItemPagesAsync())
+        {
+            pages.Add(page);
+        }
+
+        mock.VerifyNoOutstandingExpectation();
+        pages.Should().HaveCount(2);
+        pages[0].IsSuccess.Should().BeTrue();
+        pages[1].IsSuccess.Should().BeFalse();
+        pages[1].StatusCode.Should().Be(System.Net.HttpStatusCode.InternalServerError);
+    }
+
+    [Fact]
+    public async Task GetContentItemAsync_ById_GetsContentItems()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ById(Guid.NewGuid());
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/items/{identifier.Id}")
+            .Respond("application/json", ContentItem);
+
+        var result = await client.GetContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task GetContentItemAsync_ByCodename_GetsContentItems()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ByCodename("codename");
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/items/codename/{identifier.Codename}")
+            .Respond("application/json", ContentItem);
+
+        var result = await client.GetContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task GetContentItemAsync_ByExternalId_GetsContentItems()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ByExternalId("externalId");
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/items/external-id/{identifier.ExternalId}")
+            .Respond("application/json", ContentItem);
+
+        var result = await client.GetContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task GetContentItemAsync_IdentifierIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.GetContentItemAsync(null!)).Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task CreateContentItemAsync_CreatesContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var createModel = new ContentItemCreateModel
+        {
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Type = expected.Type,
+            ExternalId = expected.ExternalId,
+            Name = expected.Name
+        };
+
+        mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.CreateContentItemAsync(createModel);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(createModel);
+    }
+
+    [Fact]
+    public async Task CreateContentItemAsync_CreateModelIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.CreateContentItemAsync(null!)).Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ById_UpsertModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var upsertModel = new ContentItemUpsertModel
+        {
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Type = expected.Type,
+            Name = expected.Name,
+            SitemapLocations = expected.SitemapLocations
+        };
+
+        var identifier = Reference.ById(Guid.NewGuid());
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/{identifier.Id}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, upsertModel);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(upsertModel);
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ByCodename_UpsertModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var upsertModel = new ContentItemUpsertModel
+        {
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Type = expected.Type,
+            Name = expected.Name,
+            SitemapLocations = expected.SitemapLocations
+        };
+
+        var identifier = Reference.ByCodename("codename");
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/codename/{identifier.Codename}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, upsertModel);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(upsertModel);
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ByExternalId_UpsertModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var upsertModel = new ContentItemUpsertModel
+        {
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Type = expected.Type,
+            Name = expected.Name,
+            SitemapLocations = expected.SitemapLocations
+        };
+
+        var identifier = Reference.ByExternalId("externalId");
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/external-id/{identifier.ExternalId}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, upsertModel);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.ShouldMatchSerialized(upsertModel);
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_UpsertModel_IdentifierIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.UpsertContentItemAsync(null!, new ContentItemUpsertModel { Name = "x" }))
+            .Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_UpsertModelIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+        var identifier = Reference.ByExternalId("externalId");
+
+        await client.Invoking(x => x.UpsertContentItemAsync(identifier, (ContentItemUpsertModel)null!))
+            .Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ById_ItemModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var model = new ContentItemModel
+        {
+            Id = expected.Id,
+            Name = expected.Name,
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Spaces = expected.Spaces,
+            LastModified = expected.LastModified,
+            ExternalId = expected.ExternalId,
+            SitemapLocations = expected.SitemapLocations,
+            Type = expected.Type
+        };
+
+        var identifier = Reference.ById(Guid.NewGuid());
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/{identifier.Id}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, model);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.Value.Should().NotBeNull();
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+            .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ByCodename_ItemModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var model = new ContentItemModel
+        {
+            Id = expected.Id,
+            Name = expected.Name,
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Spaces = expected.Spaces,
+            LastModified = expected.LastModified,
+            ExternalId = expected.ExternalId,
+            SitemapLocations = expected.SitemapLocations,
+            Type = expected.Type
+        };
+
+        var identifier = Reference.ByCodename("codename");
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/codename/{identifier.Codename}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, model);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.Value.Should().NotBeNull();
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+            .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ByExternalId_ItemModel_UpsertsContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var expected = JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default)!;
+
+        var model = new ContentItemModel
+        {
+            Id = expected.Id,
+            Name = expected.Name,
+            Codename = expected.Codename,
+            Collection = expected.Collection,
+            Spaces = expected.Spaces,
+            LastModified = expected.LastModified,
+            ExternalId = expected.ExternalId,
+            SitemapLocations = expected.SitemapLocations,
+            Type = expected.Type
+        };
+
+        var identifier = Reference.ByExternalId("externalId");
+
+        mock.Expect(HttpMethod.Put, $"{MockClientFactory.BaseUrl}/items/external-id/{identifier.ExternalId}")
+            .CaptureBody(out var capturedBody)
+            .Respond("application/json", ContentItem);
+
+        var result = await client.UpsertContentItemAsync(identifier, model);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
+        capturedBody.Value.Should().NotBeNull();
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+            .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ItemModel_IdentifierIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.UpsertContentItemAsync(null!, new ContentItemModel { Id = Guid.Empty, Name = "x", Codename = "x", Type = Reference.ById(Guid.Empty), Collection = Reference.ById(Guid.Empty), Spaces = [], LastModified = default }))
+            .Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task UpsertContentItemAsync_ItemModelIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+        var identifier = Reference.ByExternalId("externalId");
+
+        await client.Invoking(x => x.UpsertContentItemAsync(identifier, (ContentItemModel)null!))
+            .Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task DeleteContentItemAsync_ById_DeletesContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ById(Guid.NewGuid());
+        mock.Expect(HttpMethod.Delete, $"{MockClientFactory.BaseUrl}/items/{identifier.Id}")
+            .Respond(System.Net.HttpStatusCode.OK);
+
+        var result = await client.DeleteContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteContentItemAsync_ByCodename_DeletesContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ByCodename("codename");
+        mock.Expect(HttpMethod.Delete, $"{MockClientFactory.BaseUrl}/items/codename/{identifier.Codename}")
+            .Respond(System.Net.HttpStatusCode.OK);
+
+        var result = await client.DeleteContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteContentItemAsync_ByExternalId_DeletesContentItem()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var identifier = Reference.ByExternalId("external");
+        mock.Expect(HttpMethod.Delete, $"{MockClientFactory.BaseUrl}/items/external-id/{identifier.ExternalId}")
+            .Respond(System.Net.HttpStatusCode.OK);
+
+        var result = await client.DeleteContentItemAsync(identifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeleteContentItemAsync_IdentifierIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        await client.Invoking(x => x.DeleteContentItemAsync(null!)).Should().ThrowAsync<ArgumentNullException>();
+    }
+}
