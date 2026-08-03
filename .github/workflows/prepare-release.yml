@@ -40,6 +40,7 @@ permissions:
 
 jobs:
   prepare:
+    name: Bump version and open PR
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

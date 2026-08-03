@@ -1,4 +1,4 @@
-name: "Code scanning - action"
+name: CodeQL
 
 on:
   push:
@@ -12,8 +12,8 @@ on:
 
 
 jobs:
-  CodeQL-Build:
-
+  analyze:
+    name: Analyze C#
     runs-on: ubuntu-latest
     
     steps:
