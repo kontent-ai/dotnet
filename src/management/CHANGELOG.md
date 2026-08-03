@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0-beta-6 (2026-08-03)  _(prerelease)_
+
 ## 9.0.0-beta-5 (2026-08-03)  _(prerelease)_
 
 A packaging-only fix on top of 9.0.0-beta-4. No API or behavior change — if you are already restoring beta-4 successfully, there is nothing new here.

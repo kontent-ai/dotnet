@@ -9,7 +9,7 @@
   <PropertyGroup>
     <DeliveryVersion>19.4.0</DeliveryVersion>
     <SyncVersion>1.0.0</SyncVersion>
-    <ManagementVersion>9.0.0-beta-5</ManagementVersion>
+    <ManagementVersion>9.0.0-beta-6</ManagementVersion>
     <AspNetCoreVersion>0.17.0-preview.1</AspNetCoreVersion>
     <ModelGeneratorVersion>10.3.0-beta-1</ModelGeneratorVersion>
   </PropertyGroup>
