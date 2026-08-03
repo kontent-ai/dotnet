@@ -21,19 +21,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Referenced directly so Directory.Packages.props decides the version (10.2.0).
-         The published Kontent.Ai.Management 9.0.0-beta-4 asks for Refit 10.1.6, whose author
-         certificate is revoked (NU3012). Highest-wins would still land on the 10.2.0 that
-         Delivery 19.4.0 requires, but NuGet downloads and verifies 10.1.6 while walking the
-         graph and fails there first - so the bad version has to be kept out of the graph, not
-         just out of the result. A direct reference does that; transitive pinning is not usable
-         here because it also drags Roslyn down to delivery's 4.9.2 entry and conflicts (NU1107).
-         AddManagementClient's overloads also expose RefitSettings, so Refit is a real
-         compile-time dependency of the CLI regardless.
-         Remove both once Management ships a build that asks for 10.2.0. -->
-    <PackageReference Include="Refit" />
-    <PackageReference Include="Refit.HttpClientFactory" />
-
     <!-- $(MSBuildThisFileDirectory) resolves to src/model-generator/ regardless of how
          deep the consuming project sits, so this survives the src/ + test/ nesting. -->
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />

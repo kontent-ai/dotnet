@@ -27,8 +27,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <!-- Refit and Refit.HttpClientFactory come from src/model-generator/Directory.Build.props,
-         which explains why they are referenced directly. -->
   </ItemGroup>
 
   <ItemGroup>

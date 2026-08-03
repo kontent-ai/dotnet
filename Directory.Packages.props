@@ -56,7 +56,7 @@
     <PackageVersion Include="System.Text.Json" Version="9.0.15" />
     <!-- Model generator -->
     <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="19.4.0" />
-    <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-beta-4" />
+    <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-beta-5" />
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="4.13.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.15" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.15" />
