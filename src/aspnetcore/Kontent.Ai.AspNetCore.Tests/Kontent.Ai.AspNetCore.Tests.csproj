@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Per-product coverage gate, set just under current coverage so it blocks
+         regression rather than aspiring. Measured 98.58% line on 2026-08-03. -->
+    <Threshold>95</Threshold>
+    <ThresholdType>line</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 

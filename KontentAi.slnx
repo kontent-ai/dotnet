@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/aspnetcore/">
+    <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore.Tests/Kontent.Ai.AspNetCore.Tests.csproj" />
+    <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore/Kontent.Ai.AspNetCore.csproj" />
+  </Folder>
+</Solution>

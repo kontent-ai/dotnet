@@ -251,3 +251,8 @@ paket-files/
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# Code coverage output
+coverage.xml
+*.opencover.xml
+coverage-local/

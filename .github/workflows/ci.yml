@@ -1,0 +1,120 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# A monorepo PR triggers everything, so supersede in-flight runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Refit 10.x is author-signed with a certificate that currently reports as revoked,
+  # which fails NuGet signature verification on the Linux runners (NU3012) during restore.
+  # Disable NuGet signature verification in CI until a re-signed Refit package is available.
+  DOTNET_NUGET_SIGNATURE_VERIFICATION: false
+
+jobs:
+  build:
+    name: Build & test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+      # Coverage thresholds are per-product, set in each test project. A repo-wide
+      # number is not possible: coverage legitimately differs by an order of
+      # magnitude between a thin CLI entry point and a library.
+      - name: Test
+        run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      - name: Restore local tools
+        if: runner.os == 'Linux'
+        run: dotnet tool restore
+      - name: Run Slopwatch
+        if: runner.os == 'Linux'
+        run: dotnet slopwatch analyze -d . --fail-on warning
+      - name: Codecov
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
+  pack-validation:
+    name: Pack validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
+      PACK_OUTPUT: ./artifacts/pack-validation
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --configuration Release --no-restore /p:ContinuousIntegrationBuild=true
+      # Packs every product listed in eng/products.json and asserts each one produced
+      # the packages it claims to. Adding a product to products.json is enough; this
+      # step needs no edit.
+      - name: Pack and validate every product
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACK_OUTPUT"
+          missing=0
+
+          for product in $(jq -r 'keys[]' eng/products.json); do
+            echo "::group::pack $product"
+            for proj in $(jq -r --arg p "$product" '.[$p].projects[]' eng/products.json); do
+              dotnet pack "$proj" \
+                --no-build \
+                --configuration Release \
+                --include-symbols \
+                --output "$PACK_OUTPUT" \
+                /p:ContinuousIntegrationBuild=true \
+                /p:PackageVersion="$PACKAGE_VERSION"
+            done
+            for pkg in $(jq -r --arg p "$product" '.[$p].expectedPackages[]' eng/products.json); do
+              if [ ! -f "${PACK_OUTPUT}/${pkg}.${PACKAGE_VERSION}.nupkg" ]; then
+                echo "Missing expected package: ${pkg}.${PACKAGE_VERSION}.nupkg"
+                missing=1
+              fi
+            done
+            echo "::endgroup::"
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "Pack validation failed. Produced:"
+            ls -la "$PACK_OUTPUT"
+            exit 1
+          fi
+      - name: Upload pack validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pack-validation-artifacts
+          path: |
+            ./artifacts/pack-validation/*.nupkg
+            ./artifacts/pack-validation/*.snupkg
+          if-no-files-found: warn
