@@ -37,6 +37,18 @@
       "Kontent.Ai.Management"
     ]
   },
+  "model-generator": {
+    "versionProperty": "ModelGeneratorVersion",
+    "changelog": "src/model-generator/CHANGELOG.md",
+    "projects": [
+      "src/model-generator/src/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj",
+      "src/model-generator/src/Kontent.Ai.ModelGenerator.Core/Kontent.Ai.ModelGenerator.Core.csproj"
+    ],
+    "expectedPackages": [
+      "Kontent.Ai.ModelGenerator",
+      "Kontent.Ai.ModelGenerator.Core"
+    ]
+  },
   "sync": {
     "versionProperty": "SyncVersion",
     "changelog": "src/sync/CHANGELOG.md",
