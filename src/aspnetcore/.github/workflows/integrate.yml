@@ -1,0 +1,113 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ master, vnext, vNext ]
+  pull_request:
+    branches: [ master, vnext, vNext ]
+
+env:
+  # Refit 10.x is author-signed with a certificate that currently reports as revoked,
+  # which fails NuGet signature verification on the Linux runners (NU3012) during restore.
+  # Disable NuGet signature verification in CI until a re-signed Refit package is available.
+  DOTNET_NUGET_SIGNATURE_VERIFICATION: false
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Test
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+  pack-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
+      PACK_OUTPUT: ./artifacts/pack-validation
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Pack release artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "$PACK_OUTPUT"
+
+        dotnet pack Kontent.Ai.AspNetCore.sln \
+          --no-build \
+          --configuration Release \
+          --include-symbols \
+          --output "$PACK_OUTPUT" \
+          /p:ContinuousIntegrationBuild=true \
+          /p:PackageVersion="$PACKAGE_VERSION" \
+          /bl:"$PACK_OUTPUT/pack-validation.binlog"
+    - name: Validate package artifacts
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        expected_nupkgs=(
+          "Kontent.Ai.AspNetCore.${PACKAGE_VERSION}.nupkg"
+        )
+
+        expected_snupkgs=(
+          "Kontent.Ai.AspNetCore.${PACKAGE_VERSION}.snupkg"
+        )
+
+        missing=0
+
+        for package in "${expected_nupkgs[@]}"; do
+          if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
+            echo "Missing expected package: ${package}"
+            missing=1
+          fi
+        done
+
+        for package in "${expected_snupkgs[@]}"; do
+          if [ ! -f "${PACK_OUTPUT}/${package}" ]; then
+            echo "Missing expected symbol package: ${package}"
+            missing=1
+          fi
+        done
+
+        if [ "${missing}" -ne 0 ]; then
+          echo "Pack validation failed. Available artifacts:"
+          ls -la "$PACK_OUTPUT"
+          exit 1
+        fi
+    - name: Upload pack validation artifacts
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: pack-validation-artifacts
+        path: |
+          ./artifacts/pack-validation/*.nupkg
+          ./artifacts/pack-validation/*.snupkg
+          ./artifacts/pack-validation/pack-validation.binlog
+        if-no-files-found: warn
