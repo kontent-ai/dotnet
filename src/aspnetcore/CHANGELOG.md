@@ -6,6 +6,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 0.17.0-preview.1 (2026-08-03)
+
+### Changed
+- Package metadata and SourceLink now point at the [`kontent-ai/dotnet`](https://github.com/kontent-ai/dotnet)
+  monorepo, where this package is now built. Debugging into SDK source resolves there
+  rather than to `aspnetcore-extensions`. No API or behaviour change.
+
 ## 0.16.1 (2026-04-24)
 
 ### What's Changed
