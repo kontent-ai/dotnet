@@ -97,8 +97,10 @@ jobs:
     # those to ProjectReferences so a breaking change in one product fails in the PR that
     # makes it, rather than months later when a consumer next updates.
     #
-    # Non-blocking for now: promote to a required check once it has proven stable.
-    continue-on-error: true
+    # Blocking. It ran non-blocking through the migration of all five products and stayed
+    # green, so it now fails the build like any other leg. Mark it required in branch
+    # protection too - removing continue-on-error fails the RUN, but only a required
+    # check blocks the MERGE.
     steps:
       - uses: actions/checkout@v7
         with:

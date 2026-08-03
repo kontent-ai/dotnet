@@ -254,5 +254,6 @@ paket-files/
 
 # Code coverage output
 coverage.xml
+coverage.json
 *.opencover.xml
 coverage-local/
