@@ -14,7 +14,7 @@ public sealed class ManagementElementOutput
     /// </summary>
     public IReadOnlyList<EnumDefinition> Enums { get; }
 
-    public ManagementElementOutput(ManagementProperty property, IReadOnlyList<EnumDefinition> enums = null)
+    public ManagementElementOutput(ManagementProperty property, IReadOnlyList<EnumDefinition>? enums = null)
     {
         ArgumentNullException.ThrowIfNull(property);
 

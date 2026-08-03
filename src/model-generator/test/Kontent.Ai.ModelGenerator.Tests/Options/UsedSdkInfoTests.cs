@@ -7,7 +7,7 @@ public class UsedSdkInfoTests
     [Fact]
     public void Constructor_TypeIsNull_Throws()
     {
-        var call = () => new UsedSdkInfo(null, "name");
+        var call = () => new UsedSdkInfo(null!, "name");
 
         call.Should().ThrowExactly<ArgumentNullException>().And.ParamName.Should().Be("type");
     }
@@ -15,7 +15,7 @@ public class UsedSdkInfoTests
     [Fact]
     public void Constructor_NameIsNull_Throws()
     {
-        var call = () => new UsedSdkInfo(typeof(string), null);
+        var call = () => new UsedSdkInfo(typeof(string), null!);
 
         call.Should().ThrowExactly<ArgumentNullException>().And.ParamName.Should().Be("name");
     }

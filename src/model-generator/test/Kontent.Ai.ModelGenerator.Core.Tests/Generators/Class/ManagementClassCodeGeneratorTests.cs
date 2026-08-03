@@ -11,7 +11,7 @@ public class ManagementClassCodeGeneratorTests
     [Fact]
     public void Constructor_NullClassDefinition_Throws()
     {
-        var call = () => new ManagementClassCodeGenerator(classDefinition: null, classFilename: "x");
+        var call = () => new ManagementClassCodeGenerator(classDefinition: null!, classFilename: "x");
 
         call.Should().Throw<ArgumentNullException>().WithParameterName("classDefinition");
     }

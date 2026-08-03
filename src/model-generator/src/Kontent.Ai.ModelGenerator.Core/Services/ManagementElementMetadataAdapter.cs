@@ -22,27 +22,42 @@ internal static class ManagementElementMetadataAdapter
     /// element on two content types produces two distinct, collision-free enums. Unused for
     /// non-enum-producing element types.
     /// </param>
-    public static ManagementElementInput ToInput(ElementMetadataBase element, string contentTypeClassName) =>
-        element switch
+    public static ManagementElementInput? ToInput(ElementMetadataBase element, string contentTypeClassName)
+    {
+        // Codename and Id are nullable on the MAPI models because those shapes double as create
+        // payloads, where the CMS fills both in. Every element of an EXISTING content type - the
+        // only thing the generator ever reads - carries both. Resolving them lazily here keeps
+        // the unsupported-type arm below returning null (warn-and-skip) rather than throwing.
+        string Codename() => element.Codename ?? throw Missing("codename", element);
+        string Id() => element.Id?.ToString() ?? throw Missing("id", element);
+
+        return element switch
         {
-            TextElementMetadataModel t => new TextElementInput(element.Codename, t.Id.ToString()),
-            NumberElementMetadataModel n => new NumberElementInput(element.Codename, n.Id.ToString()),
-            DateTimeElementMetadataModel d => new DateTimeElementInput(element.Codename, d.Id.ToString()),
-            CustomElementMetadataModel c => new CustomElementInput(element.Codename, c.Id.ToString()),
-            UrlSlugElementMetadataModel u => new UrlSlugElementInput(element.Codename, u.Id.ToString()),
+            TextElementMetadataModel => new TextElementInput(Codename(), Id()),
+            NumberElementMetadataModel => new NumberElementInput(Codename(), Id()),
+            DateTimeElementMetadataModel => new DateTimeElementInput(Codename(), Id()),
+            CustomElementMetadataModel => new CustomElementInput(Codename(), Id()),
+            UrlSlugElementMetadataModel => new UrlSlugElementInput(Codename(), Id()),
             MultipleChoiceElementMetadataModel mc => new MultipleChoiceElementInput(
-                Codename: element.Codename,
-                Id: mc.Id.ToString(),
-                EnumTypeName: BuildEnumTypeName(contentTypeClassName, element.Codename),
-                Options: (mc.Options ?? []).Select(o =>
-                    new MultipleChoiceOptionInput(o.Codename, o.Id.ToString())).ToList()),
-            LinkedItemsElementMetadataModel li => new LinkedItemsElementInput(element.Codename, li.Id.ToString()),
-            SubpagesElementMetadataModel sp => new SubpagesElementInput(element.Codename, sp.Id.ToString()),
-            TaxonomyElementMetadataModel tx => new TaxonomyElementInput(element.Codename, tx.Id.ToString()),
-            RichTextElementMetadataModel rt => new RichTextElementInput(element.Codename, rt.Id.ToString()),
-            AssetElementMetadataModel a => new AssetElementInput(element.Codename, a.Id.ToString()),
+                Codename: Codename(),
+                Id: Id(),
+                EnumTypeName: BuildEnumTypeName(contentTypeClassName, Codename()),
+                Options: (mc.Options ?? []).Select(o => new MultipleChoiceOptionInput(
+                    o.Codename ?? throw Missing("option codename", element),
+                    o.Id?.ToString() ?? throw Missing("option id", element))).ToList()),
+            LinkedItemsElementMetadataModel => new LinkedItemsElementInput(Codename(), Id()),
+            SubpagesElementMetadataModel => new SubpagesElementInput(Codename(), Id()),
+            TaxonomyElementMetadataModel => new TaxonomyElementInput(Codename(), Id()),
+            RichTextElementMetadataModel => new RichTextElementInput(Codename(), Id()),
+            AssetElementMetadataModel => new AssetElementInput(Codename(), Id()),
             _ => null,
         };
+    }
+
+    private static InvalidOperationException Missing(string field, ElementMetadataBase element) =>
+        new($"Management element of type '{element.Type}' (codename '{element.Codename ?? "<none>"}') " +
+            $"is missing its {field}. The Management API returns it on every element of an existing " +
+            "content type, so this indicates an unexpected API response.");
 
     private static string BuildEnumTypeName(string contentTypeClassName, string elementCodename) =>
         contentTypeClassName + TextHelpers.GetValidPascalCaseIdentifierName(elementCodename);

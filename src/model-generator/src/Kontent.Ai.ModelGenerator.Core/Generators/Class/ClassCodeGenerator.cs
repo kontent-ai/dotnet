@@ -15,7 +15,7 @@ public abstract class ClassCodeGenerator : GeneralGenerator
 
     public string ClassFilename { get; }
 
-    protected ClassCodeGenerator(ClassDefinition classDefinition, string classFilename, string @namespace = DefaultNamespace) : base(@namespace)
+    protected ClassCodeGenerator(ClassDefinition classDefinition, string classFilename, string? @namespace = DefaultNamespace) : base(@namespace)
     {
         ClassDefinition = classDefinition ?? throw new ArgumentNullException(nameof(classDefinition));
         ClassFilename = string.IsNullOrWhiteSpace(classFilename) ? ClassDefinition.ClassName : classFilename;
@@ -76,10 +76,11 @@ public abstract class ClassCodeGenerator : GeneralGenerator
 
                 // Emit explicit initializer (e.g. = string.Empty / = [] / = RichTextContent.Empty)
                 // when the Property carries one. Used by Semantic nullability mode.
-                if (element.HasInitializer)
+                var initializer = element.Initializer;
+                if (!string.IsNullOrEmpty(initializer))
                 {
                     property = property.WithInitializer(
-                        SyntaxFactory.EqualsValueClause(SyntaxFactory.ParseExpression(element.Initializer)))
+                        SyntaxFactory.EqualsValueClause(SyntaxFactory.ParseExpression(initializer)))
                         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
                 }
             }

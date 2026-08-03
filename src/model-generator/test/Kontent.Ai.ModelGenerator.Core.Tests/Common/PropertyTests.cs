@@ -19,7 +19,7 @@ public class PropertyTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("id")]
-    public void Constructor_IdParamPresent_ObjectIsInitializedWithCorrectValues(string id)
+    public void Constructor_IdParamPresent_ObjectIsInitializedWithCorrectValues(string? id)
     {
         var element = new Property("element_codename", "string", id);
 
@@ -69,7 +69,7 @@ public class PropertyTests
     [InlineData("taxonomy", "IEnumerable<TaxonomyTerm>", "[]")]
     [InlineData("url_slug", "string", "string.Empty")]
     [InlineData("custom", "string?", null)]
-    public void FromContentTypeElement_Semantic_ReturnsTypeAndInitializer(string contentType, string expectedTypeName, string expectedInitializer)
+    public void FromContentTypeElement_Semantic_ReturnsTypeAndInitializer(string contentType, string expectedTypeName, string? expectedInitializer)
     {
         var element = Property.FromContentTypeElement("element_codename", contentType, NullabilityMode.Semantic);
 
@@ -95,9 +95,9 @@ public class PropertyTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void IsDateTimeElementType_NullOrWhiteSpace_ReturnsFalse(string elementType)
+    public void IsDateTimeElementType_NullOrWhiteSpace_ReturnsFalse(string? elementType)
     {
-        var result = Property.IsDateTimeElementType(elementType);
+        var result = Property.IsDateTimeElementType(elementType!);
 
         result.Should().BeFalse();
     }
@@ -105,9 +105,9 @@ public class PropertyTests
     [Theory]
     [InlineData("text")]
     [InlineData("date_time(structured)")]
-    public void IsDateTimeElementType_NotDateTimeElementType_ReturnsFalse(string elementType)
+    public void IsDateTimeElementType_NotDateTimeElementType_ReturnsFalse(string? elementType)
     {
-        var result = Property.IsDateTimeElementType(elementType);
+        var result = Property.IsDateTimeElementType(elementType!);
 
         result.Should().BeFalse();
     }
@@ -124,9 +124,9 @@ public class PropertyTests
     [InlineData("")]
     [InlineData(" ")]
     [InlineData(null)]
-    public void IsRichTextElementType_NullOrWhiteSpace_ReturnsFalse(string elementType)
+    public void IsRichTextElementType_NullOrWhiteSpace_ReturnsFalse(string? elementType)
     {
-        var result = Property.IsRichTextElementType(elementType);
+        var result = Property.IsRichTextElementType(elementType!);
 
         result.Should().BeFalse();
     }
@@ -134,9 +134,9 @@ public class PropertyTests
     [Theory]
     [InlineData("text")]
     [InlineData("rich_text(structured)")]
-    public void IsRichTextElementType_NotDateTimeElementType_ReturnsFalse(string elementType)
+    public void IsRichTextElementType_NotDateTimeElementType_ReturnsFalse(string? elementType)
     {
-        var result = Property.IsRichTextElementType(elementType);
+        var result = Property.IsRichTextElementType(elementType!);
 
         result.Should().BeFalse();
     }
@@ -152,9 +152,9 @@ public class PropertyTests
     [Theory]
     [InlineData("text")]
     [InlineData("modular_content(structured)")]
-    public void IsModularContentElementType_NotModularContentElementType_ReturnsFalse(string elementType)
+    public void IsModularContentElementType_NotModularContentElementType_ReturnsFalse(string? elementType)
     {
-        var result = Property.IsModularContentElementType(elementType);
+        var result = Property.IsModularContentElementType(elementType!);
 
         result.Should().BeFalse();
     }

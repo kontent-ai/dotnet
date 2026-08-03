@@ -11,6 +11,6 @@ public static class CodeGeneratorOptionsExtensions
     /// (e.g. when the generator is running in a non-Delivery mode that doesn't populate
     /// <see cref="CodeGeneratorOptions.DeliveryOptions"/>).
     /// </summary>
-    public static string GetEnvironmentId(this CodeGeneratorOptions options) =>
+    public static string? GetEnvironmentId(this CodeGeneratorOptions options) =>
         options.DeliveryOptions?.EnvironmentId;
 }

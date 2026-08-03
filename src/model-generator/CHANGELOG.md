@@ -14,9 +14,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 - Targets `Kontent.Ai.Management` 9.0.0-beta-4. Management model emission follows that SDK's beta-3 rename of `SnippetIdentifier` to `Snippet`, which unified identifier-pair properties on the bare style. The wire format is unchanged.
 - Consumes `Kontent.Ai.Delivery` 19.4.0.
 - Moved into the [kontent-ai/dotnet](https://github.com/kontent-ai/dotnet) monorepo. Package IDs, the `dotnet tool` install command, and the generated output are unchanged.
+- Nullable reference types are now enabled. Signatures across the generator were corrected to state what they already did — most visibly `ManagementElementMetadataAdapter.ToInput`, which returns `null` for element types the generator does not emit yet (its caller has always checked for null) but declared a non-nullable return. Configuration properties that are only populated in one of the two modes (`DeliveryOptions`, `ManagementOptions`) and the genuinely optional ones (`Namespace`, `OutputDir`, `BaseRecord`) are now nullable.
 
 ### Fixes
 
+- The Delivery type-provider path no longer passes a null document to the output provider when no content types were registered.
+- A missing element `codename` or `id` in a Management API response now fails with a message naming the element, instead of producing a model that does not compile.
 - Restored NuGet signature verification. Refit is now taken at 10.2.0, which is 10.1.6 re-signed with a valid certificate — the 10.1.6 certificate had been revoked, failing restore with NU3012.
 
 ## 10.3.0-beta-1 (2026-06-26)  _(prerelease)_

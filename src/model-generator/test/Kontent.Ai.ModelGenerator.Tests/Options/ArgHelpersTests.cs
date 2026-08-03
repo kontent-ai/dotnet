@@ -75,7 +75,7 @@ public class ArgHelpersTests
             .AddCommandLine(args, ArgHelpers.GetSwitchMappings(args))
             .Build();
 
-        var options = configuration.Get<CodeGeneratorOptions>();
+        var options = configuration.Get<CodeGeneratorOptions>()!;
 
         options.Nullability.Should().Be(expected);
     }
@@ -167,7 +167,7 @@ public class ArgHelpersTests
             .AddCommandLine(bindableArgs, ArgHelpers.GetSwitchMappings(args))
             .Build();
 
-        var options = configuration.Get<CodeGeneratorOptions>();
+        var options = configuration.Get<CodeGeneratorOptions>()!;
 
         options.ManagementOptions.Should().NotBeNull();
         options.ManagementOptions.EnvironmentId.Should().Be("abc-123");

@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Formatting;
 namespace Kontent.Ai.ModelGenerator.Core.Generators;
 
 [Obsolete("TypeProvider is now generated via source generation in Delivery SDK 19.0.0-rc1+. This class will be removed in a future version.")]
-public class TypeProviderCodeGenerator(string @namespace = ClassCodeGenerator.DefaultNamespace) : GeneralGenerator(@namespace)
+public class TypeProviderCodeGenerator(string? @namespace = ClassCodeGenerator.DefaultNamespace) : GeneralGenerator(@namespace)
 {
     public const string ClassName = "CustomTypeProvider";
 
@@ -34,7 +34,7 @@ public class TypeProviderCodeGenerator(string @namespace = ClassCodeGenerator.De
         _contentTypes[codename] = className;
     }
 
-    public string GenerateCode()
+    public string? GenerateCode()
     {
         if (!_contentTypes.Any())
         {
@@ -79,7 +79,7 @@ namespace {Namespace}
     }}
 }}");
 
-    private string CreateCodenameDictionaryValues()
+    private string? CreateCodenameDictionaryValues()
     {
         if (_contentTypes.Count == 0) return null;
 

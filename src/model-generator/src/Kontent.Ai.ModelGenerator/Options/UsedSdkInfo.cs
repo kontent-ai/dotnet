@@ -9,5 +9,7 @@ internal class UsedSdkInfo(Type type, string name)
     public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
     public string Version { get; } = type == null
             ? throw new ArgumentNullException(nameof(type))
-            : Assembly.GetAssembly(type).GetName().Version.ToString(SemanticVersionFieldCount);
+            : (Assembly.GetAssembly(type)?.GetName().Version
+               ?? throw new InvalidOperationException($"Assembly for type '{type}' carries no version."))
+              .ToString(SemanticVersionFieldCount);
 }

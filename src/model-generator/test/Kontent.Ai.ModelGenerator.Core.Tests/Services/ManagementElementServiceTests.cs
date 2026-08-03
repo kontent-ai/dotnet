@@ -10,7 +10,7 @@ public class ManagementElementServiceTests
     [Fact]
     public void Build_NullInput_Throws()
     {
-        var call = () => _sut.Build(null);
+        var call = () => _sut.Build(null!);
 
         call.Should().Throw<ArgumentNullException>();
     }

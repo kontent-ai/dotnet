@@ -5,7 +5,7 @@ using Kontent.Ai.ModelGenerator.Core.Helpers;
 
 namespace Kontent.Ai.ModelGenerator.Core.Common;
 
-public class Property(string codename, string typeName, string id = null, string initializer = null)
+public class Property(string codename, string typeName, string? id = null, string? initializer = null)
 {
     private const string RichTextElementType = "rich_text";
     private const string DateTimeElementType = "date_time";
@@ -13,13 +13,13 @@ public class Property(string codename, string typeName, string id = null, string
 
     public static string ObjectType => nameof(Object).ToLower(CultureInfo.InvariantCulture);
 
-    public string IdentifierOverride { get; init; }
+    public string? IdentifierOverride { get; init; }
 
     public string Identifier => IdentifierOverride ?? TextHelpers.GetValidPascalCaseIdentifierName(Codename);
 
     public string Codename { get; } = codename;
 
-    public string Id { get; } = id;
+    public string? Id { get; } = id;
 
     /// <summary>
     /// Returns return type of the property in a string format (e.g.: "string").
@@ -30,7 +30,7 @@ public class Property(string codename, string typeName, string id = null, string
     /// Optional initializer expression (e.g. <c>string.Empty</c>, <c>[]</c>, <c>RichTextContent.Empty</c>).
     /// When set, the generator emits <c>= {initializer};</c> on the property.
     /// </summary>
-    public string Initializer { get; } = initializer;
+    public string? Initializer { get; } = initializer;
 
     /// <summary>
     /// Gets whether this property is nullable.
@@ -48,7 +48,7 @@ public class Property(string codename, string typeName, string id = null, string
     [Obsolete("Replaced by HasInitializer, which carries the actual initializer expression. This property will be removed in a future version.")]
     public bool RequiresDefaultInitializer => !IsNullable;
 
-    private sealed record DeliveryElementMapping(string StrictTypeName, string SemanticTypeName, string SemanticInitializer);
+    private sealed record DeliveryElementMapping(string StrictTypeName, string SemanticTypeName, string? SemanticInitializer);
 
     private static readonly IImmutableDictionary<string, DeliveryElementMapping> DeliverElementTypesDictionary =
         new Dictionary<string, DeliveryElementMapping>

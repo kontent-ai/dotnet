@@ -32,9 +32,9 @@ public class UserMessageLoggerTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public void LogInfo_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string message)
+    public void LogInfo_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string? message)
     {
-        _userMessageLogger.LogInfo(message);
+        _userMessageLogger.LogInfo(message!);
 
         _stringWriter.ToString().Should().BeEmpty();
 
@@ -58,9 +58,9 @@ public class UserMessageLoggerTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public void LogWarning_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string message)
+    public void LogWarning_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string? message)
     {
-        _userMessageLogger.LogWarning(message);
+        _userMessageLogger.LogWarning(message!);
 
         _stringWriter.ToString().Should().BeEmpty();
 
@@ -84,11 +84,11 @@ public class UserMessageLoggerTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public async Task LogErrorAsync_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string message)
+    public async Task LogErrorAsync_MessageIsNullOrWhitespace_MessageIsNotLoggedToConsole(string? message)
     {
         _stringWriter.GetStringBuilder().Clear();
 
-        await _userMessageLogger.LogErrorAsync(message);
+        await _userMessageLogger.LogErrorAsync(message!);
 
         _stringWriter.ToString().Should().BeEmpty();
 

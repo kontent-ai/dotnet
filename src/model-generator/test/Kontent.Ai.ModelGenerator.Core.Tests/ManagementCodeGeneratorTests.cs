@@ -41,7 +41,7 @@ public class ManagementCodeGeneratorTests
         var typeId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         var type = BuildArticleType(id: typeId);
         SetupClientWithTypes(type);
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -59,7 +59,7 @@ public class ManagementCodeGeneratorTests
     public async Task RunAsync_EmittedCode_HasOnePropertyPerSupportedElement()
     {
         SetupClientWithTypes(BuildArticleType());
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -175,7 +175,7 @@ public class ManagementCodeGeneratorTests
             ],
         };
         SetupClientWithTypes(type);
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -219,7 +219,7 @@ public class ManagementCodeGeneratorTests
             ],
         };
         SetupClientWithTypes(type);
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -267,7 +267,7 @@ public class ManagementCodeGeneratorTests
             ],
         };
         SetupClientWithTypes(type);
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -319,7 +319,7 @@ public class ManagementCodeGeneratorTests
         };
         SetupClientWith(types: [type], snippets: [seoSnippet]);
 
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -363,7 +363,7 @@ public class ManagementCodeGeneratorTests
         };
         SetupClientWith(types: [type], snippets: [snippet]);
 
-        string emitted = null;
+        string? emitted = null;
         _output
             .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
             .Callback<string, string, bool>((content, _, _) => emitted = content);
@@ -458,7 +458,7 @@ public class ManagementCodeGeneratorTests
         ],
     };
 
-    private ManagementCodeGenerator CreateGenerator(string @namespace = null)
+    private ManagementCodeGenerator CreateGenerator(string? @namespace = null)
     {
         var options = Microsoft.Extensions.Options.Options.Create(new CodeGeneratorOptions
         {

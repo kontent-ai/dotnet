@@ -13,10 +13,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- The generator predates the repo-wide nullable convention that the root
-         Directory.Build.props turns on (188 warnings when measured on 2026-08-03).
-         Adopting it is its own change, not part of the move. -->
-    <Nullable>disable</Nullable>
     <!-- GenerateDocumentationFile stays on - IDE0005 (unnecessary usings) only runs at
          build time when it is - but the members are not documented yet, so the
          missing-doc warning is silenced rather than the doc file switched off. -->

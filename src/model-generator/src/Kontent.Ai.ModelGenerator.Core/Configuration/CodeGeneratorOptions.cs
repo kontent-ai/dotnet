@@ -14,24 +14,24 @@ public class CodeGeneratorOptions
     /// <summary>
     /// Delivery Client configuration. Populated when generating Delivery models (the default mode).
     /// </summary>
-    public DeliveryOptions DeliveryOptions { get; set; }
+    public DeliveryOptions? DeliveryOptions { get; set; }
 
     /// <summary>
     /// Management Client configuration. Populated when generating Management models
     /// (CLI flag <c>-m</c> / <c>--management</c>). Presence of a non-null value flips the
     /// generator into management mode at the orchestrator level.
     /// </summary>
-    public ManagementOptions ManagementOptions { get; set; }
+    public ManagementOptions? ManagementOptions { get; set; }
 
     /// <summary>
     /// Namespace name of the generated classes
     /// </summary>
-    public string Namespace { get; set; }
+    public string? Namespace { get; set; }
 
     /// <summary>
     /// Output directory for the generated files
     /// </summary>
-    public string OutputDir { get; set; }
+    public string? OutputDir { get; set; }
 
     /// <summary>
     /// Indicates whether the CustomTypeProvider class should be generated
@@ -42,7 +42,7 @@ public class CodeGeneratorOptions
     /// <summary>
     /// Indicates whether a base record should be created and all output records should derive from it using a partial record.
     /// </summary>
-    public string BaseRecord { get; set; }
+    public string? BaseRecord { get; set; }
 
     /// <summary>
     /// Controls how nullability is expressed on generated element properties.
@@ -55,7 +55,7 @@ public class CodeGeneratorOptions
     /// Use <see cref="BaseRecord"/> instead.
     /// </summary>
     [Obsolete("Use BaseRecord instead. This property will be removed in a future version.")]
-    public string BaseClass
+    public string? BaseClass
     {
         get => BaseRecord;
         set => BaseRecord = value;

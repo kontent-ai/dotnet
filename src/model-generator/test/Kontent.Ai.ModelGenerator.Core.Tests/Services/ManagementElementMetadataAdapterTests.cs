@@ -53,7 +53,7 @@ public class ManagementElementMetadataAdapterTests
     [Fact]
     public void ToInput_UrlSlugElement_MapsToUrlSlugInput()
     {
-        var element = WithId(new UrlSlugElementMetadataModel { Codename = "slug", Name = "n", DependsOn = null }, SampleId);
+        var element = WithId(new UrlSlugElementMetadataModel { Codename = "slug", Name = "n", DependsOn = null! }, SampleId);
 
         ManagementElementMetadataAdapter.ToInput(element, "Article").Should().BeOfType<UrlSlugElementInput>();
     }
@@ -115,7 +115,7 @@ public class ManagementElementMetadataAdapterTests
             ],
         }, SampleId);
 
-        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article");
+        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article")!;
 
         input.EnumTypeName.Should().Be("ArticleCategory");
         input.Options.Should().HaveCount(2);
@@ -134,7 +134,7 @@ public class ManagementElementMetadataAdapterTests
             Options = [new MultipleChoiceOptionModel { Codename = "x", Name = "n", Id = Guid.NewGuid() }],
         }, SampleId);
 
-        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article");
+        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article")!;
 
         input.EnumTypeName.Should().Be("ArticleTags");
     }
@@ -147,10 +147,10 @@ public class ManagementElementMetadataAdapterTests
             Codename = "category",
             Name = "n",
             Mode = MultipleChoiceMode.Single,
-            Options = null,
+            Options = null!,
         }, SampleId);
 
-        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article");
+        var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article")!;
 
         input.Options.Should().BeEmpty();
     }
@@ -162,7 +162,7 @@ public class ManagementElementMetadataAdapterTests
     {
         // ContentTypeSnippet is expanded inline by the orchestrator rather than emitted as a property;
         // guidelines are dropped earlier in the orchestrator.
-        var element = WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null }, SampleId);
+        var element = WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null! }, SampleId);
 
         ManagementElementMetadataAdapter.ToInput(element, "Article").Should().BeNull();
     }

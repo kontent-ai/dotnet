@@ -16,7 +16,7 @@ public static class SnippetExpander
 {
     public static IEnumerable<ElementMetadataBase> Expand(
         IEnumerable<ElementMetadataBase> elements,
-        Func<Reference, ContentTypeSnippetModel> resolveSnippet,
+        Func<Reference, ContentTypeSnippetModel?> resolveSnippet,
         Action<string> warn)
     {
         ArgumentNullException.ThrowIfNull(resolveSnippet);

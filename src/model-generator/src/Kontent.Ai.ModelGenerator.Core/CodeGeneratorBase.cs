@@ -68,7 +68,7 @@ public abstract class CodeGeneratorBase(
 
     protected abstract Task<ICollection<ClassCodeGenerator>> GetClassCodeGenerators();
 
-    protected void WriteConsoleErrorMessage(Exception exception, string elementCodename, string elementType, string className)
+    protected void WriteConsoleErrorMessage(Exception exception, string? elementCodename, string elementType, string className)
     {
         switch (exception)
         {
@@ -118,8 +118,14 @@ public abstract class CodeGeneratorBase(
             baseClassCodeGenerator.AddClassNameToExtend(codeGenerator.ClassDefinition.ClassName);
         }
 
+        var baseRecord = Options.BaseRecord;
+        if (string.IsNullOrEmpty(baseRecord))
+        {
+            return;
+        }
+
         var baseClassCode = baseClassCodeGenerator.GenerateBaseClassCode();
-        WriteToOutputProvider(baseClassCode, Options.BaseRecord, false);
+        WriteToOutputProvider(baseClassCode, baseRecord, false);
 
         var baseClassExtenderCode = baseClassCodeGenerator.GenerateExtenderCode();
         WriteToOutputProvider(baseClassExtenderCode, baseClassCodeGenerator.ExtenderClassName, true);

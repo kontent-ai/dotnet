@@ -24,9 +24,9 @@ public class ClassDefinitionFactoryTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void Constructor_CodenameIsNullEmptyOrWhiteSpace_Throws(string codename)
+    public void Constructor_CodenameIsNullEmptyOrWhiteSpace_Throws(string? codename)
     {
-        var call = () => _factory.CreateClassDefinition(codename);
+        var call = () => _factory.CreateClassDefinition(codename!);
 
         call.Should().Throw<ArgumentException>();
     }

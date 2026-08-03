@@ -63,7 +63,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
 
     internal ClassCodeGenerator BuildClassCodeGenerator(
         ContentTypeModel contentType,
-        Func<Reference, ContentTypeSnippetModel> resolveSnippet)
+        Func<Reference, ContentTypeSnippetModel?> resolveSnippet)
     {
         var classDefinition = ClassDefinitionFactory.CreateClassDefinition(contentType.Codename);
         if (contentType.Id != Guid.Empty)
@@ -123,7 +123,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
     /// pre-fetched snippet list. The MAPI returns snippet refs as <c>{id}</c> in the type
     /// metadata; we accept codename and external-id matches too for resilience.
     /// </summary>
-    private static Func<Reference, ContentTypeSnippetModel> BuildSnippetResolver(
+    private static Func<Reference, ContentTypeSnippetModel?> BuildSnippetResolver(
         IReadOnlyList<ContentTypeSnippetModel> snippets)
     {
         var byId = new Dictionary<Guid, ContentTypeSnippetModel>();

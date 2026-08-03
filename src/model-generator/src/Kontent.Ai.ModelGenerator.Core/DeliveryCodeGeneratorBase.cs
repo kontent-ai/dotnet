@@ -48,6 +48,11 @@ public abstract class DeliveryCodeGeneratorBase(
         }
 
         var typeProviderCode = typeProviderCodeGenerator.GenerateCode();
+        if (typeProviderCode is null)
+        {
+            return;
+        }
+
         WriteToOutputProvider(typeProviderCode, TypeProviderCodeGenerator.ClassName, true);
     }
 #pragma warning restore CS0618

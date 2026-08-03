@@ -13,7 +13,7 @@ public class SnippetExpanderTests
     [Fact]
     public void Expand_NullElements_YieldsNothing()
     {
-        var result = SnippetExpander.Expand(null, _ => null, _warnings.Add).ToList();
+        var result = SnippetExpander.Expand(null!, _ => null, _warnings.Add).ToList();
 
         result.Should().BeEmpty();
         _warnings.Should().BeEmpty();
@@ -109,7 +109,7 @@ public class SnippetExpanderTests
     [Fact]
     public void Expand_SnippetWithNullReference_WarnsAndSkips()
     {
-        var snippetEl = WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null }, Guid.NewGuid());
+        var snippetEl = WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null! }, Guid.NewGuid());
 
         var result = SnippetExpander.Expand([snippetEl], _ => null, _warnings.Add).ToList();
 
@@ -131,7 +131,7 @@ public class SnippetExpanderTests
             [
                 x,
                 // MAPI shouldn't allow this but defend if it ever appears.
-                WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null }, Guid.NewGuid()),
+                WithId(new ContentTypeSnippetElementMetadataModel { Snippet = null! }, Guid.NewGuid()),
             ],
         };
         var snippetEl = WithId(
@@ -176,7 +176,7 @@ public class SnippetExpanderTests
     [Fact]
     public void Expand_NullResolver_Throws()
     {
-        var call = () => SnippetExpander.Expand([], null, _warnings.Add).ToList();
+        var call = () => SnippetExpander.Expand([], null!, _warnings.Add).ToList();
 
         call.Should().Throw<ArgumentNullException>();
     }
@@ -184,7 +184,7 @@ public class SnippetExpanderTests
     [Fact]
     public void Expand_NullWarn_Throws()
     {
-        var call = () => SnippetExpander.Expand([], _ => null, null).ToList();
+        var call = () => SnippetExpander.Expand([], _ => null, null!).ToList();
 
         call.Should().Throw<ArgumentNullException>();
     }

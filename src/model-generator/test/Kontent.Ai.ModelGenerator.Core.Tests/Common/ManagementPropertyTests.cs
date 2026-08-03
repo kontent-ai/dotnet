@@ -35,7 +35,7 @@ public class ManagementPropertyTests
     [Fact]
     public void Constructor_NullAttributes_Throws()
     {
-        var call = () => new ManagementProperty("c", "string?", "id", attributes: null);
+        var call = () => new ManagementProperty("c", "string?", "id", attributes: null!);
 
         call.Should().Throw<ArgumentNullException>();
     }

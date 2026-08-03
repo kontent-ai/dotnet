@@ -9,9 +9,9 @@ public class ClassDeclarationHelperTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("  ")]
-    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Throws(string customComment)
+    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Throws(string? customComment)
     {
-        var call = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment);
+        var call = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment!);
 
         call.Should().Throw<ArgumentNullException>()
             .And.ParamName.Should().Be(nameof(customComment));
@@ -20,9 +20,9 @@ public class ClassDeclarationHelperTests
     [Theory]
     [InlineData("some comment")]
     [InlineData("//some comment")]
-    public void GenerateSyntaxTrivia_CustomCommentIsNotComment_Throws(string customComment)
+    public void GenerateSyntaxTrivia_CustomCommentIsNotComment_Throws(string? customComment)
     {
-        var call = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment);
+        var call = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment!);
 
         call.Should()
             .Throw<ArgumentException>();

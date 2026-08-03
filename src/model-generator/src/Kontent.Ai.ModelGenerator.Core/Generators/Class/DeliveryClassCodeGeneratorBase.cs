@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Kontent.Ai.ModelGenerator.Core.Generators.Class;
 
-public abstract class DeliveryClassCodeGeneratorBase(ClassDefinition classDefinition, string classFilename, string @namespace = ClassCodeGenerator.DefaultNamespace) : ClassCodeGenerator(classDefinition, classFilename, @namespace)
+public abstract class DeliveryClassCodeGeneratorBase(ClassDefinition classDefinition, string classFilename, string? @namespace = ClassCodeGenerator.DefaultNamespace) : ClassCodeGenerator(classDefinition, classFilename, @namespace)
 {
     protected override AttributeListSyntax[] BuildPropertyAttributes(Property property) =>
     [

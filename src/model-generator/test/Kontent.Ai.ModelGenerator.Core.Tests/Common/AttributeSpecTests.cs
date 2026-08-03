@@ -35,9 +35,9 @@ public class AttributeSpecTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Constructor_NameIsNullOrWhitespace_Throws(string name)
+    public void Constructor_NameIsNullOrWhitespace_Throws(string? name)
     {
-        var call = () => new AttributeSpec(name);
+        var call = () => new AttributeSpec(name!);
 
         call.Should().Throw<ArgumentException>();
     }

@@ -14,7 +14,7 @@ public class ClassCodeGeneratorTests
 
 
         call.Should().ThrowExactly<TargetInvocationException>()
-            .And.InnerException.Message.Should().Contain("classDefinition");
+            .And.InnerException!.Message.Should().Contain("classDefinition");
     }
 
     [Theory]
@@ -25,7 +25,7 @@ public class ClassCodeGeneratorTests
 
         var expectedClassFilename = "Classdefinitioncodename";
 
-        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, classFilename));
+        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, classFilename))!;
 
         classCodeGenerator.Should().NotBeNull();
         classCodeGenerator.ClassFilename.Should().Be(expectedClassFilename);
@@ -40,7 +40,7 @@ public class ClassCodeGeneratorTests
 
         var expectedClassFilename = "CustomClassFileName";
 
-        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, classFilename));
+        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, classFilename))!;
 
         classCodeGenerator.Should().NotBeNull();
         classCodeGenerator.ClassFilename.Should().Be(expectedClassFilename);
@@ -48,11 +48,11 @@ public class ClassCodeGeneratorTests
 
     [Theory]
     [MemberData(nameof(GetTypesWithEmptyStringParam))]
-    public void Constructor_NamespaceIsNullOrEmptyOrWhiteSpace_Returns_DefaultNamespace(Type type, string @namespace)
+    public void Constructor_NamespaceIsNullOrEmptyOrWhiteSpace_Returns_DefaultNamespace(Type type, string? @namespace)
     {
         var classDefinitionCodename = "classdefinitioncodename";
 
-        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, null, @namespace));
+        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, null, @namespace))!;
 
         classCodeGenerator.Should().NotBeNull();
         classCodeGenerator.Namespace.Should().Be(ClassCodeGenerator.DefaultNamespace);
@@ -65,7 +65,7 @@ public class ClassCodeGeneratorTests
         var classDefinitionCodename = "classdefinitioncodename";
         var customNamespace = "CustomNamespace";
 
-        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, null, customNamespace));
+        var classCodeGenerator = (ClassCodeGenerator)Activator.CreateInstance(type, ConstructorParams(classDefinitionCodename, null, customNamespace))!;
 
 
         classCodeGenerator.Should().NotBeNull();
@@ -81,13 +81,13 @@ public class ClassCodeGeneratorTests
     public static IEnumerable<object[]> GetTypesWithEmptyStringParam()
     {
         yield return new object[] { typeof(PartialClassCodeGenerator), "" };
-        yield return new object[] { typeof(DeliveryClassCodeGenerator), null };
+        yield return new object[] { typeof(DeliveryClassCodeGenerator), null! };
     }
 
-    private static object[] ConstructorParams(string classDefinitionCodename = null, string classFileName = null, string @namespace = null)
+    private static object?[] ConstructorParams(string? classDefinitionCodename = null, string? classFileName = null, string? @namespace = null)
         => [GetClassDefinition(classDefinitionCodename), classFileName, @namespace];
 
-    private static ClassDefinition GetClassDefinition(string classDefinitionCodename) => classDefinitionCodename == null
+    private static ClassDefinition? GetClassDefinition(string? classDefinitionCodename) => classDefinitionCodename == null
         ? null
         : new ClassDefinition(classDefinitionCodename);
 }

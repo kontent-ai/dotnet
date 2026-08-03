@@ -8,7 +8,7 @@ public class TextHelpersTests
     [Fact]
     public void GetUpperSnakeCasedIdentifierName_ThrowsAnExceptionForNullValue()
     {
-        var getUpperSnakeCasedIdentifierNameCall = () => TextHelpers.GetUpperSnakeCasedIdentifierName(null);
+        var getUpperSnakeCasedIdentifierNameCall = () => TextHelpers.GetUpperSnakeCasedIdentifierName(null!);
 
         getUpperSnakeCasedIdentifierNameCall.Should().ThrowExactly<ArgumentNullException>();
     }
@@ -43,7 +43,7 @@ public class TextHelpersTests
     [Fact]
     public void GetValidPascalCaseIdentifierName_ThrowsAnExceptionForNullValue()
     {
-        var getValidPascalCaseIdentifierNameCall = () => TextHelpers.GetValidPascalCaseIdentifierName(null);
+        var getValidPascalCaseIdentifierNameCall = () => TextHelpers.GetValidPascalCaseIdentifierName(null!);
 
         getValidPascalCaseIdentifierNameCall.Should().ThrowExactly<ArgumentNullException>();
     }
@@ -79,9 +79,9 @@ public class TextHelpersTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public void GenerateCommentString_CustomCommentIsNullOrEmptyOrWhiteSpace_Throws(string customComment)
+    public void GenerateCommentString_CustomCommentIsNullOrEmptyOrWhiteSpace_Throws(string? customComment)
     {
-        var generateCommentStringCall = () => TextHelpers.GenerateCommentString(customComment);
+        var generateCommentStringCall = () => TextHelpers.GenerateCommentString(customComment!);
 
         generateCommentStringCall.Should().ThrowExactly<ArgumentNullException>();
     }
@@ -108,9 +108,9 @@ public class TextHelpersTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public void GetEnumerableType_TypeNameIsNullOrWhitespace_Throws(string typeName)
+    public void GetEnumerableType_TypeNameIsNullOrWhitespace_Throws(string? typeName)
     {
-        var getEnumerableTypeCall = () => TextHelpers.GetEnumerableType(typeName);
+        var getEnumerableTypeCall = () => TextHelpers.GetEnumerableType(typeName!);
 
         getEnumerableTypeCall.Should().ThrowExactly<ArgumentException>();
     }

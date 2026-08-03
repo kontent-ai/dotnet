@@ -19,7 +19,7 @@ public sealed class AttributeSpec
     /// </summary>
     public IReadOnlyList<AttributeArg> Arguments { get; }
 
-    public AttributeSpec(string name, IReadOnlyList<AttributeArg> arguments = null)
+    public AttributeSpec(string name, IReadOnlyList<AttributeArg>? arguments = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
@@ -36,7 +36,7 @@ public sealed class AttributeArg
     /// <summary>
     /// Argument name, or <c>null</c> for a positional argument.
     /// </summary>
-    public string Name { get; }
+    public string? Name { get; }
 
     /// <summary>
     /// The literal value the emitter will render. Supported runtime types: <c>string</c>,
@@ -44,7 +44,7 @@ public sealed class AttributeArg
     /// </summary>
     public object Value { get; }
 
-    public AttributeArg(object value, string name = null)
+    public AttributeArg(object value, string? name = null)
     {
         Value = value;
         Name = name;

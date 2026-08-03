@@ -13,7 +13,7 @@ namespace Kontent.Ai.ModelGenerator.Core.Generators.Class;
 public sealed class ManagementClassCodeGenerator(
     ClassDefinition classDefinition,
     string classFilename,
-    string @namespace = ClassCodeGenerator.DefaultNamespace)
+    string? @namespace = ClassCodeGenerator.DefaultNamespace)
     : ClassCodeGenerator(classDefinition, classFilename, @namespace)
 {
     private const string ElementsModelInterfaceName = "IElementsModel";
@@ -142,6 +142,8 @@ public sealed class ManagementClassCodeGenerator(
             long l => SyntaxFactory.LiteralExpression(
                 SyntaxKind.NumericLiteralExpression,
                 SyntaxFactory.Literal(l)),
-            _ => SyntaxFactory.ParseExpression(value.ToString()),
+            _ => SyntaxFactory.ParseExpression(
+                value.ToString() ?? throw new InvalidOperationException(
+                    $"Attribute argument of type '{value.GetType()}' has a null string representation.")),
         };
 }

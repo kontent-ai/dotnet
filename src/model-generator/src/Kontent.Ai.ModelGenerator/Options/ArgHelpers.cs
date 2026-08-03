@@ -62,7 +62,7 @@ internal static class ArgHelpers
         {
             if (!StartsWithArgumentName(a)) return false;
 
-            var argumentName = SplitArgument(a).FirstOrDefault();
+            var argumentName = SplitArgument(a).FirstOrDefault() ?? string.Empty;
             return !ArgMappingsRegister.AllMappingsKeys.Contains(argumentName) &&
                    !IsOptionPropertyValid(DeliveryProgramOptionsData, argumentName) &&
                    !IsOptionPropertyValid(ManagementProgramOptionsData, argumentName) &&
@@ -98,7 +98,7 @@ internal static class ArgHelpers
             if (!StartsWithArgumentName(arg)) continue;
 
             string key;
-            string value;
+            string? value;
             var inlineSeparator = arg.IndexOf(NameAndValueSeparator);
             if (inlineSeparator >= 0)
             {

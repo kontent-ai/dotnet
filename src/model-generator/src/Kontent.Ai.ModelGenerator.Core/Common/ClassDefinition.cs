@@ -29,7 +29,7 @@ public class ClassDefinition(string codeName)
     /// emission path so the generated <c>[KontentType]</c> attribute carries both codename and id;
     /// left <c>null</c> by the Delivery path.
     /// </summary>
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
     public void AddProperty(Property property)
     {
