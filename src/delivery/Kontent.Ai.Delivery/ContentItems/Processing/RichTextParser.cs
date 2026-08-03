@@ -1,0 +1,229 @@
+using AngleSharp.Dom;
+using AngleSharp.Html.Parser;
+using Kontent.Ai.Delivery.ContentItems.RichText;
+using Kontent.Ai.Delivery.ContentItems.RichText.Blocks;
+using Kontent.Ai.Delivery.Logging;
+using Microsoft.Extensions.Logging;
+
+namespace Kontent.Ai.Delivery.ContentItems.Processing;
+
+internal sealed class RichTextParser(
+    IHtmlParser parser,
+    IContentDependencyExtractor dependencyExtractor,
+    ILogger? logger = null)
+{
+    /// <summary>
+    /// Maximum depth for recursive rich text parsing to prevent stack overflow on deeply nested content.
+    /// Intentionally conservative (100) compared to API max (124) to provide stack safety margin.
+    /// </summary>
+    private const int MaxParsingDepth = 100;
+
+    /// <summary>
+    /// Converts a rich text element to structured content.
+    /// </summary>
+    internal async Task<IRichTextContent?> ConvertAsync<TElement>(
+        TElement contentElement,
+        Func<string, Task<object?>> getLinkedItem,
+        DependencyTrackingContext? dependencyContext,
+        CancellationToken cancellationToken = default) where TElement : IContentElementValue<string>
+    {
+        if (contentElement is not IRichTextElementValue element)
+            return null;
+
+        var document = await parser.ParseDocumentAsync(element.Value, cancellationToken);
+
+        if (document.Body is null)
+        {
+            if (logger is not null)
+            {
+                LoggerMessages.RichTextParsingFailed(logger, element.Codename);
+            }
+            throw new InvalidOperationException("Failed to parse rich text HTML: document body is null.");
+        }
+
+        // Extract dependencies for caching (delegated to extractor)
+        dependencyExtractor.ExtractFromRichTextElement(element, dependencyContext);
+
+        List<IRichTextBlock> blocks = [];
+        foreach (var childNode in document.Body.ChildNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var block = await ParseNodeAsync(childNode, element, getLinkedItem, currentDepth: 0, cancellationToken);
+            if (block is not null)
+                blocks.Add(block);
+        }
+
+        return new RichTextContent(blocks, element.Links, element.Images, element.ModularContent);
+    }
+
+    private async Task<IRichTextBlock?> ParseNodeAsync(
+        INode node,
+        IRichTextElementValue element,
+        Func<string, Task<object?>> getLinkedItem,
+        int currentDepth,
+        CancellationToken cancellationToken)
+    {
+        // Guard against excessive recursion depth to prevent stack overflow
+        if (currentDepth > MaxParsingDepth)
+        {
+            if (logger is not null)
+            {
+                LoggerMessages.RichTextMaxDepthExceeded(logger, MaxParsingDepth);
+            }
+            return null;
+        }
+
+        return node switch
+        {
+            // Parse special Kontent.ai elements
+            IElement { TagName: "OBJECT" } el
+                => await ParseEmbeddedContentAsync(el, getLinkedItem),
+
+            IElement { TagName: "FIGURE" } el when TryGetInlineImage(el, element, out var image)
+                => image,
+
+            IElement { TagName: "A" } el when TryGetItemId(el, out var itemId)
+                => await ParseContentItemLinkAsync(el, itemId, element, getLinkedItem, currentDepth, cancellationToken),
+
+            // Parse all HTML elements into structured tree
+            IElement el
+                => await ParseHtmlElementAsync(el, element, getLinkedItem, currentDepth, cancellationToken),
+
+            // Text nodes become TextNode leaf blocks.
+            IText text when !string.IsNullOrEmpty(text.TextContent)
+                => new TextNode(text.TextContent),
+
+            _ => null
+        };
+    }
+
+
+    private async Task<IRichTextBlock?> ParseEmbeddedContentAsync(IElement element, Func<string, Task<object?>> getLinkedItem)
+    {
+        var codename = element.GetAttribute("data-codename");
+        if (string.IsNullOrEmpty(codename))
+        {
+            if (logger is not null)
+            {
+                LoggerMessages.EmbeddedContentMissingCodename(logger);
+            }
+            throw new InvalidOperationException(
+                "Embedded item/component is missing required 'data-codename' attribute. " +
+                $"Element HTML: {element.OuterHtml}");
+        }
+
+        var contentItem = await getLinkedItem(codename);
+
+        // ContentItem<T> implements IEmbeddedContent<T>, so we can cast directly
+        // If content item couldn't be resolved (depth limit, etc.), return null
+        // Null blocks are filtered out by the caller
+        if (contentItem is not IEmbeddedContent embeddedContent)
+        {
+            if (logger is not null)
+            {
+                LoggerMessages.EmbeddedContentNotFound(logger, codename);
+            }
+            return null;
+        }
+
+        return embeddedContent;
+    }
+
+    private async Task<IRichTextBlock> ParseContentItemLinkAsync(
+        IElement anchorElement,
+        Guid itemId,
+        IRichTextElementValue elementValue,
+        Func<string, Task<object?>> getLinkedItem,
+        int currentDepth,
+        CancellationToken cancellationToken)
+    {
+        var metadata = elementValue.Links?.TryGetValue(itemId, out var link) == true ? link : null;
+
+        List<IRichTextBlock> children = [];
+        foreach (var childNode in anchorElement.ChildNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken);
+            if (childBlock is not null)
+                children.Add(childBlock);
+        }
+
+        // Extract other attributes (excluding data-item-id)
+        var attributes = anchorElement.Attributes
+            .Where(a => a.Name != "data-item-id")
+            .ToDictionary(a => a.Name, a => a.Value);
+
+        return new ContentItemLink(itemId, metadata, children, attributes);
+    }
+
+    private async Task<IRichTextBlock> ParseHtmlElementAsync(
+        IElement element,
+        IRichTextElementValue elementValue,
+        Func<string, Task<object?>> getLinkedItem,
+        int currentDepth,
+        CancellationToken cancellationToken)
+    {
+        List<IRichTextBlock> children = [];
+        foreach (var childNode in element.ChildNodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken);
+            if (childBlock is not null)
+                children.Add(childBlock);
+        }
+
+        var attributes = element.Attributes.ToDictionary(a => a.Name, a => a.Value);
+
+        return new HtmlNode(element.TagName.ToLowerInvariant(), attributes, children);
+    }
+
+    private bool TryGetItemId(IElement element, out Guid itemId)
+    {
+        var dataItemId = element.GetAttribute("data-item-id");
+        if (Guid.TryParse(dataItemId, out itemId))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(dataItemId) && logger is not null)
+        {
+            LoggerMessages.RichTextLinkIdParsingFailed(logger, dataItemId);
+        }
+        return false;
+    }
+
+    private bool TryGetInlineImage(
+        IElement figureBlock,
+        IRichTextElementValue element,
+        out IInlineImage image)
+    {
+        var img = figureBlock.Children
+            .FirstOrDefault(child => child.TagName?.Equals("img", StringComparison.OrdinalIgnoreCase) == true);
+
+        if (img is null)
+        {
+            image = null!;
+            return false;
+        }
+
+        var dataAssetId = img.GetAttribute("data-asset-id");
+        if (!Guid.TryParse(dataAssetId, out var assetId))
+        {
+            image = null!;
+            return false;
+        }
+
+        if (element.Images?.TryGetValue(assetId, out var inlineImage) == true)
+        {
+            image = inlineImage;
+            return true;
+        }
+
+        if (logger is not null)
+        {
+            LoggerMessages.InlineImageNotFound(logger, assetId);
+        }
+        image = null!;
+        return false;
+    }
+}

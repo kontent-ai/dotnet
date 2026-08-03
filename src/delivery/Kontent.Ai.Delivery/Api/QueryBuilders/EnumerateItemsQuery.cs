@@ -1,0 +1,218 @@
+using System.Runtime.CompilerServices;
+using Kontent.Ai.Delivery.Api.Filtering;
+using Kontent.Ai.Delivery.ContentItems;
+using Kontent.Ai.Delivery.ContentItems.Mapping;
+using Kontent.Ai.Delivery.Logging;
+using Microsoft.Extensions.Logging;
+
+namespace Kontent.Ai.Delivery.Api.QueryBuilders;
+
+/// <inheritdoc cref="IEnumerateItemsQuery{TModel}"/>
+internal sealed class EnumerateItemsQuery<TModel>(
+    IDeliveryApi api,
+    ContentItemMapper contentItemMapper,
+    ITypeProvider typeProvider,
+    string? defaultRenditionPreset = null,
+    Uri? customAssetDomain = null,
+    ILogger? logger = null) : IEnumerateItemsQuery<TModel>
+{
+    private EnumItemsParams _params = new();
+    private bool _waitForLoadingNewContent;
+    private readonly SerializedFilterCollection _serializedFilters = [];
+    private string? _continuationToken;
+    private bool _typeFilterApplied;
+    private static bool IsDynamicModel => ModelTypeHelper.IsDynamic<TModel>();
+
+    public IEnumerateItemsQuery<TModel> WithLanguage(string languageCodename, LanguageFallbackMode languageFallbackMode = LanguageFallbackMode.Enabled)
+    {
+        _params = _params with { Language = languageCodename };
+        if (languageFallbackMode == LanguageFallbackMode.Disabled)
+        {
+            SystemFilterHelpers.AddSystemLanguageFilter(_serializedFilters, languageCodename);
+        }
+        return this;
+    }
+
+    public IEnumerateItemsQuery<TModel> WithElements(params string[] elementCodenames)
+    {
+        _params = _params with { Elements = string.Join(",", elementCodenames) };
+        return this;
+    }
+
+    public IEnumerateItemsQuery<TModel> WithoutElements(params string[] elementCodenames)
+    {
+        _params = _params with { ExcludeElements = string.Join(",", elementCodenames) };
+        return this;
+    }
+
+    public IEnumerateItemsQuery<TModel> OrderBy(string elementOrAttributePath, OrderingMode orderingMode = OrderingMode.Ascending)
+    {
+        _params = _params with
+        {
+            OrderBy = orderingMode == OrderingMode.Ascending
+                ? $"{elementOrAttributePath}[asc]"
+                : $"{elementOrAttributePath}[desc]"
+        };
+        return this;
+    }
+
+    public IEnumerateItemsQuery<TModel> WaitForLoadingNewContent(bool enabled = true)
+    {
+        _waitForLoadingNewContent = enabled;
+        return this;
+    }
+
+    public IEnumerateItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+    {
+        ArgumentNullException.ThrowIfNull(build);
+        var filterBuilder = new ItemsFilterBuilder(_serializedFilters);
+        build(filterBuilder);
+        return this;
+    }
+
+    private void ApplyGenericTypeFilter()
+    {
+        if (_typeFilterApplied)
+            return;
+        _typeFilterApplied = true;
+
+        SystemFilterHelpers.AddGenericTypeFilter<TModel>(_serializedFilters, typeProvider, logger);
+    }
+
+    public async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyGenericTypeFilter();
+
+        bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
+        var (deliveryResult, continuationToken) = await FetchFeedPageAsync(
+            _continuationToken,
+            waitForLoadingNewContent,
+            cancellationToken).ConfigureAwait(false);
+
+        if (!deliveryResult.IsSuccess)
+        {
+            return CreateFailureResult(deliveryResult);
+        }
+
+        var response = await PreparePageAsync(deliveryResult.Value, continuationToken, cancellationToken).ConfigureAwait(false);
+        return WrapSuccess(response, deliveryResult);
+    }
+
+    private Func<CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>>? CreateNextPageFetcher(string? continuationToken) => string.IsNullOrEmpty(continuationToken) ? null : (ct => CreateContinuationQuery(continuationToken).ExecuteAsync(ct));
+
+    public async IAsyncEnumerable<IContentItem<TModel>> EnumerateAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        if (logger is not null)
+            LoggerMessages.PaginationStarted(logger, "ItemsFeed");
+
+        var pageResult = await ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        var pageCount = 0;
+        var totalItems = 0;
+
+        while (pageResult is { IsSuccess: true })
+        {
+            pageCount++;
+
+            foreach (var item in pageResult.Value.Items)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                totalItems++;
+                yield return item;
+            }
+
+            if (!pageResult.Value.HasNextPage)
+            {
+                if (logger is not null)
+                    LoggerMessages.PaginationCompleted(logger, "ItemsFeed", pageCount, totalItems);
+                yield break;
+            }
+
+            var nextPageResult = await pageResult.Value.FetchNextPageAsync(cancellationToken).ConfigureAwait(false);
+            if (nextPageResult is not { IsSuccess: true })
+            {
+                if (logger is not null)
+                    LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed");
+                yield break;
+            }
+
+            pageResult = nextPageResult;
+        }
+
+        if (logger is not null)
+            LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed");
+    }
+
+    private async Task<(IDeliveryResult<DeliveryItemsFeedResponse<TModel>> DeliveryResult, string? ContinuationToken)> FetchFeedPageAsync(
+        string? continuationToken,
+        bool? waitForLoadingNewContent,
+        CancellationToken cancellationToken)
+    {
+        var resp = await api
+            .GetItemsFeedInternalAsync<TModel>(
+                _params,
+                _serializedFilters.ToQueryDictionary(),
+                continuationToken,
+                waitForLoadingNewContent,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var deliveryResult = await resp.ToDeliveryResultAsync(logger).ConfigureAwait(false);
+        return (deliveryResult, resp.Continuation());
+    }
+
+    private async Task<DeliveryItemsFeedResponse<TModel>> PreparePageAsync(
+        DeliveryItemsFeedResponse<TModel> content,
+        string? continuationToken,
+        CancellationToken cancellationToken)
+    {
+        if (!IsDynamicModel)
+        {
+            foreach (var item in content.Items)
+            {
+                await contentItemMapper.CompleteItemAsync(
+                        item,
+                        content.ModularContent,
+                        dependencyContext: null,
+                        defaultRenditionPreset,
+                        customAssetDomain,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        return content with
+        {
+            ContinuationToken = continuationToken,
+            NextPageFetcher = CreateNextPageFetcher(continuationToken)
+        };
+    }
+
+    private EnumerateItemsQuery<TModel> CreateContinuationQuery(string continuationToken)
+    {
+        var nextQuery = new EnumerateItemsQuery<TModel>(
+            api,
+            contentItemMapper,
+            typeProvider,
+            defaultRenditionPreset,
+            customAssetDomain,
+            logger)
+        {
+            _params = _params,
+            _waitForLoadingNewContent = this._waitForLoadingNewContent,
+            _continuationToken = continuationToken,
+            _typeFilterApplied = _typeFilterApplied
+        };
+
+        nextQuery._serializedFilters.CopyFrom(_serializedFilters);
+        return nextQuery;
+    }
+
+    private static IDeliveryResult<IDeliveryItemsFeedResponse<TModel>> WrapSuccess(
+        DeliveryItemsFeedResponse<TModel> response,
+        IDeliveryResult<DeliveryItemsFeedResponse<TModel>> apiResult) =>
+        DeliveryResult.SuccessFrom<IDeliveryItemsFeedResponse<TModel>, DeliveryItemsFeedResponse<TModel>>(response, apiResult);
+
+    private static IDeliveryResult<IDeliveryItemsFeedResponse<TModel>> CreateFailureResult(
+        IDeliveryResult<DeliveryItemsFeedResponse<TModel>> deliveryResult) =>
+        DeliveryResult.FailureFrom<IDeliveryItemsFeedResponse<TModel>, DeliveryItemsFeedResponse<TModel>>(deliveryResult);
+}

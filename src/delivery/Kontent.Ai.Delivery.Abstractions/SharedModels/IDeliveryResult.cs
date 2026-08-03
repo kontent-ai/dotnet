@@ -1,0 +1,81 @@
+using System.Net;
+using System.Net.Http.Headers;
+
+namespace Kontent.Ai.Delivery.Abstractions;
+
+/// <summary>
+/// Represents the result of a Delivery API operation.
+/// </summary>
+/// <typeparam name="T">The type of the result value.</typeparam>
+public interface IDeliveryResult<out T>
+{
+    /// <summary>
+    /// Gets the result value when the operation was successful.
+    /// </summary>
+    T Value { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the operation was successful.
+    /// </summary>
+    bool IsSuccess { get; }
+
+    /// <summary>
+    /// Gets the error that occurred during the operation.
+    /// </summary>
+    IError? Error { get; }
+
+    /// <summary>
+    /// Gets the HTTP status code of the response.
+    /// </summary>
+    HttpStatusCode StatusCode { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether the content is stale.
+    /// Stale content indicates that there is a more recent version, but it will become available later.
+    /// </summary>
+    bool HasStaleContent { get; }
+
+    /// <summary>
+    /// Gets the URL used to retrieve this response for debugging purposes.
+    /// </summary>
+    string? RequestUrl { get; }
+
+    /// <summary>
+    /// Gets the HTTP response headers from the Delivery API.
+    /// Returns <c>null</c> when the result is served from SDK cache (<see cref="IsCacheHit"/> is <c>true</c>).
+    /// </summary>
+    HttpResponseHeaders? ResponseHeaders { get; }
+
+    /// <summary>
+    /// Gets the source of this result, indicating whether it came from the API origin, CDN cache,
+    /// SDK cache, or the SDK cache's fail-safe mechanism.
+    /// </summary>
+    ResponseSource ResponseSource { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether this result was served from the SDK's local cache
+    /// (MemoryCacheManager or HybridCacheManager).
+    /// Equivalent to <c><see cref="ResponseSource"/> is <see cref="ResponseSource.Cache"/> or <see cref="ResponseSource.FailSafe"/></c>.
+    /// When <c>true</c>, <see cref="ResponseHeaders"/> will be <c>null</c> and properties like
+    /// <see cref="StatusCode"/> and <see cref="HasStaleContent"/> contain synthetic values.
+    /// </summary>
+    /// <remarks>
+    /// This is distinct from CDN-level caching (e.g., Fastly). To check for CDN cache hits,
+    /// inspect <see cref="ResponseSource"/> or the <see cref="ResponseHeaders"/> for headers like <c>X-Cache</c>.
+    /// </remarks>
+    bool IsCacheHit { get; }
+
+    /// <summary>
+    /// Gets the canonical dependency keys describing the content entities this result depends on,
+    /// or <see langword="null"/> when dependency keys were not collected.
+    /// Always <see langword="null"/> for failed results (<see cref="IsSuccess"/> is <see langword="false"/>).
+    /// </summary>
+    /// <remarks>
+    /// Dependency keys use canonical SDK formats such as <c>item_{codename}</c>, <c>asset_{guid}</c>,
+    /// <c>type_{codename}</c>, <c>taxonomy_{group}</c>, or scope sentinels like
+    /// <see cref="DeliveryCacheDependencies.ItemsListScope"/>.
+    /// These keys can be used for downstream cache invalidation scenarios
+    /// such as ASP.NET output-cache tagging.
+    /// </remarks>
+    IReadOnlyList<string>? DependencyKeys { get; }
+}

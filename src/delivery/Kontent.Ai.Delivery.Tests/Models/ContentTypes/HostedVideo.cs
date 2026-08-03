@@ -1,0 +1,15 @@
+using System.Text.Json.Serialization;
+using Kontent.Ai.Delivery.Attributes;
+using Kontent.Ai.Delivery.SharedModels;
+
+namespace Kontent.Ai.Delivery.Tests.Models.ContentTypes;
+
+[ContentTypeCodename("hosted_video")]
+public record HostedVideo
+{
+    [JsonPropertyName("video_host")]
+    public IEnumerable<MultipleChoiceOption>? VideoHost { get; init; }
+
+    [JsonPropertyName("video_id")]
+    public string? VideoId { get; init; }
+}

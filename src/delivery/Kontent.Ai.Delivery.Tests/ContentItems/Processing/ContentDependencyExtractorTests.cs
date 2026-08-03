@@ -1,0 +1,292 @@
+using System.Text.Json;
+using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.ContentItems.Processing;
+
+namespace Kontent.Ai.Delivery.Tests.ContentItems.Processing;
+
+/// <summary>
+/// Tests for <see cref="ContentDependencyExtractor"/>.
+/// Verifies correct extraction of cache dependencies from content item elements.
+/// </summary>
+public class ContentDependencyExtractorTests
+{
+    private readonly ContentDependencyExtractor _extractor = new();
+
+    #region Rich Text Element Extraction Tests
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithImages_TracksAssetDependencies()
+    {
+        var imageId1 = Guid.NewGuid();
+        var imageId2 = Guid.NewGuid();
+
+        var element = new MockRichTextElement();
+        element.ImagesBacking.Add(imageId1, new MockInlineImage());
+        element.ImagesBacking.Add(imageId2, new MockInlineImage());
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains($"asset_{imageId1}", dependencies);
+        Assert.Contains($"asset_{imageId2}", dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithLinks_TracksItemDependencies()
+    {
+        var linkId1 = Guid.NewGuid();
+        var linkId2 = Guid.NewGuid();
+
+        var element = new MockRichTextElement();
+        element.LinksBacking.Add(linkId1, new MockContentLink { Codename = "article_1" });
+        element.LinksBacking.Add(linkId2, new MockContentLink { Codename = "article_2" });
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains("item_article_1", dependencies);
+        Assert.Contains("item_article_2", dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithModularContent_TracksItemDependencies()
+    {
+        var element = new MockRichTextElement();
+        element.ModularContentBacking.AddRange(["hero_section", "testimonial", "cta_button"]);
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains("item_hero_section", dependencies);
+        Assert.Contains("item_testimonial", dependencies);
+        Assert.Contains("item_cta_button", dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithAllDependencyTypes_TracksAll()
+    {
+        var imageId = Guid.NewGuid();
+        var linkId = Guid.NewGuid();
+
+        var element = new MockRichTextElement();
+        element.ImagesBacking.Add(imageId, new MockInlineImage());
+        element.LinksBacking.Add(linkId, new MockContentLink { Codename = "linked_article" });
+        element.ModularContentBacking.Add("inline_component");
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains($"asset_{imageId}", dependencies);
+        Assert.Contains("item_linked_article", dependencies);
+        Assert.Contains("item_inline_component", dependencies);
+        Assert.Equal(3, dependencies.Count);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithNullContext_DoesNotThrow()
+    {
+        var element = new MockRichTextElement();
+        element.ImagesBacking.Add(Guid.NewGuid(), new MockInlineImage());
+
+        var exception = Record.Exception(() => _extractor.ExtractFromRichTextElement(element, null));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithNullImages_DoesNotThrow()
+    {
+        var element = new MockRichTextElement
+        {
+            Images = null!
+        };
+        element.ModularContentBacking.Add("item1");
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains("item_item1", dependencies);
+        Assert.Single(dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithNullLinks_DoesNotThrow()
+    {
+        var imageId = Guid.NewGuid();
+        var element = new MockRichTextElement();
+        element.ImagesBacking.Add(imageId, new MockInlineImage());
+        element.Links = null!;
+        element.ModularContentBacking.Add("item1");
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains($"asset_{imageId}", dependencies);
+        Assert.Contains("item_item1", dependencies);
+        Assert.Equal(2, dependencies.Count);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithNullModularContent_DoesNotThrow()
+    {
+        var imageId = Guid.NewGuid();
+        var linkId = Guid.NewGuid();
+
+        var element = new MockRichTextElement();
+        element.ImagesBacking.Add(imageId, new MockInlineImage());
+        element.LinksBacking.Add(linkId, new MockContentLink { Codename = "article" });
+        element.ModularContent = null!;
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains($"asset_{imageId}", dependencies);
+        Assert.Contains("item_article", dependencies);
+        Assert.Equal(2, dependencies.Count);
+    }
+
+    [Fact]
+    public void ExtractFromRichTextElement_WithEmptyCollections_TracksNothing()
+    {
+        var element = new MockRichTextElement();
+
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromRichTextElement(element, context);
+
+        Assert.Empty(context.Dependencies);
+    }
+
+    #endregion
+
+    #region Taxonomy Element Extraction Tests
+
+    [Fact]
+    public void ExtractFromTaxonomyElement_WithValidTaxonomyGroup_TracksDependency()
+    {
+        var json = """
+        {
+            "taxonomy_group": "categories",
+            "value": []
+        }
+        """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromTaxonomyElement(element, context);
+
+        var dependencies = context.Dependencies.ToList();
+        Assert.Contains("taxonomy_categories", dependencies);
+        Assert.Single(dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromTaxonomyElement_WithNullContext_DoesNotThrow()
+    {
+        var json = """
+        {
+            "taxonomy_group": "tags",
+            "value": []
+        }
+        """;
+        var element = JsonDocument.Parse(json).RootElement;
+
+        var exception = Record.Exception(() => _extractor.ExtractFromTaxonomyElement(element, null));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void ExtractFromTaxonomyElement_WithoutTaxonomyGroup_TracksNothing()
+    {
+        var json = """
+        {
+            "value": []
+        }
+        """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromTaxonomyElement(element, context);
+
+        Assert.Empty(context.Dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromTaxonomyElement_WithNullTaxonomyGroup_TracksNothing()
+    {
+        var json = """
+        {
+            "taxonomy_group": null,
+            "value": []
+        }
+        """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromTaxonomyElement(element, context);
+
+        Assert.Empty(context.Dependencies);
+    }
+
+    [Fact]
+    public void ExtractFromTaxonomyElement_WithEmptyObject_TracksNothing()
+    {
+        var json = "{}";
+        var element = JsonDocument.Parse(json).RootElement;
+        var context = new DependencyTrackingContext();
+
+        _extractor.ExtractFromTaxonomyElement(element, context);
+
+        Assert.Empty(context.Dependencies);
+    }
+
+    #endregion
+
+    #region Mock Classes
+
+    private class MockRichTextElement : IRichTextElementValue
+    {
+        public string Value { get; set; } = "<p>Mock content</p>";
+        public string Codename { get; set; } = "mock_element";
+        public string Name { get; set; } = "Mock Element";
+        public string Type { get; set; } = "rich_text";
+        public Dictionary<Guid, IInlineImage> ImagesBacking { get; set; } = new();
+        public Dictionary<Guid, IContentLink> LinksBacking { get; set; } = new();
+        public List<string> ModularContentBacking { get; set; } = [];
+        public IReadOnlyDictionary<Guid, IInlineImage> Images { get => ImagesBacking; set => ImagesBacking = (Dictionary<Guid, IInlineImage>)value!; }
+        public IReadOnlyDictionary<Guid, IContentLink> Links { get => LinksBacking; set => LinksBacking = (Dictionary<Guid, IContentLink>)value!; }
+        public IReadOnlyList<string> ModularContent { get => ModularContentBacking; set => ModularContentBacking = (List<string>)value!; }
+    }
+
+    private class MockInlineImage : IInlineImage
+    {
+        public string Description { get; set; } = "Mock image";
+        public int Height { get; set; } = 100;
+        public Guid ImageId { get; set; } = Guid.NewGuid();
+        public string Url { get; set; } = "https://example.com/image.jpg";
+        public int Width { get; set; } = 100;
+    }
+
+    private class MockContentLink : IContentLink
+    {
+        public required string Codename { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string ContentTypeCodename { get; set; } = "article";
+        public string UrlSlug { get; set; } = string.Empty;
+    }
+
+    #endregion
+}

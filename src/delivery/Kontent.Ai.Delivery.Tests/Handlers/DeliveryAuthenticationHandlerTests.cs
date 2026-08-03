@@ -1,0 +1,549 @@
+using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Configuration;
+using Kontent.Ai.Delivery.Handlers;
+using Kontent.Ai.Delivery.Logging;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Kontent.Ai.Delivery.Tests.Handlers;
+
+public class DeliveryAuthenticationHandlerTests
+{
+    private const string TestEnvironmentId = "12345678-1234-1234-1234-123456789012";
+    private const string TestPreviewApiKey = "preview.api.key";
+    private const string TestSecureApiKey = "secure.api.key";
+
+    [Fact]
+    public async Task SendAsync_WithPreviewApiKey_AddsAuthorizationHeader()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.Headers.Authorization);
+        Assert.Equal("Bearer", request.Headers.Authorization.Scheme);
+        Assert.Equal(TestPreviewApiKey, request.Headers.Authorization.Parameter);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithSecureAccessApiKey_AddsAuthorizationHeader()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UseSecureAccess = true,
+            SecureAccessApiKey = TestSecureApiKey
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.Headers.Authorization);
+        Assert.Equal("Bearer", request.Headers.Authorization.Scheme);
+        Assert.Equal(TestSecureApiKey, request.Headers.Authorization.Parameter);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithoutApiKey_DoesNotAddAuthorizationHeader()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = false,
+            UseSecureAccess = false
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.Null(request.Headers.Authorization);
+    }
+
+    [Fact]
+    public async Task SendAsync_WhenKeyBecomesEmpty_ClearsAuthorizationHeader()
+    {
+        var optionsWithKey = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var optionsWithoutKey = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = false
+        };
+
+        var optionsMonitor = new TestOptionsMonitor<DeliveryOptions>(optionsWithKey);
+        optionsMonitor.AddNamedOptions(TestClientName, optionsWithKey);
+        var handler = new DeliveryAuthenticationHandler(new MonitorOptionsAccessor(optionsMonitor, TestClientName))
+        {
+            InnerHandler = new TestHandler()
+        };
+
+        var request1 = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+        await InvokeSendAsync(handler, request1);
+
+        Assert.NotNull(request1.Headers.Authorization);
+        Assert.Equal(TestPreviewApiKey, request1.Headers.Authorization.Parameter);
+
+        optionsMonitor.AddNamedOptions(TestClientName, optionsWithoutKey);
+
+        var request2 = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+        // Pre-populate with old auth header to simulate request reuse or stale state
+        request2.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "old-stale-key");
+        await InvokeSendAsync(handler, request2);
+
+        Assert.Null(request2.Headers.Authorization);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithEnvironmentId_InjectsIntoPath()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal($"/{TestEnvironmentId}/items", request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithEnvironmentIdAlreadyInPath_DoesNotDuplicate()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, $"https://deliver.kontent.ai/{TestEnvironmentId}/items");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal($"/{TestEnvironmentId}/items", request.RequestUri.AbsolutePath);
+        var pathSegments = request.RequestUri.AbsolutePath.Split('/');
+        var envIdCount = Array.FindAll(pathSegments, s => s == TestEnvironmentId).Length;
+        Assert.Equal(1, envIdCount);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithNamedOptions_UsesCorrectConfiguration()
+    {
+        var defaultOptions = new DeliveryOptions
+        {
+            EnvironmentId = "default-env-id"
+        };
+
+        var namedOptions = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var optionsMonitor = new TestOptionsMonitor<DeliveryOptions>(defaultOptions);
+        optionsMonitor.AddNamedOptions("named", namedOptions);
+
+        var handler = new DeliveryAuthenticationHandler(new MonitorOptionsAccessor(optionsMonitor, "named"))
+        {
+            InnerHandler = new TestHandler()
+        };
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        _ = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.Headers.Authorization);
+        Assert.Equal(TestPreviewApiKey, request.Headers.Authorization.Parameter);
+        Assert.NotNull(request.RequestUri);
+        Assert.Contains(TestEnvironmentId, request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_PreservesQueryParameters()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items?system.type=article&limit=5");
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("?system.type=article&limit=5", request.RequestUri.Query);
+    }
+
+    [Fact]
+    public async Task SendAsync_HandlesPathWithoutLeadingSlash()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai")
+        {
+            RequestUri = new Uri("https://deliver.kontent.ai/items", UriKind.Absolute)
+        };
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal($"/{TestEnvironmentId}/items", request.RequestUri.AbsolutePath);
+    }
+
+    [Theory]
+    [InlineData(false, "https://custom-delivery.example.com")]
+    [InlineData(false, "https://custom-delivery.example.com/")]
+    [InlineData(true, "https://custom-delivery.example.com")]
+    [InlineData(true, "https://custom-delivery.example.com/")]
+    public async Task SendAsync_WithCustomBaseUrl_UsesCustomBase(bool usePreviewApi, string customEndpoint)
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = usePreviewApi,
+            ProductionEndpoint = customEndpoint,
+            PreviewEndpoint = customEndpoint
+        };
+
+        var handler = CreateHandler(options);
+        var requestUrl = usePreviewApi
+            ? "https://preview-deliver.kontent.ai/items"
+            : "https://deliver.kontent.ai/items";
+        var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("https", request.RequestUri.Scheme);
+        Assert.Equal("custom-delivery.example.com", request.RequestUri.Host);
+        Assert.Equal($"/{TestEnvironmentId}/items", request.RequestUri.AbsolutePath);
+        Assert.Equal($"https://custom-delivery.example.com/{TestEnvironmentId}/items", request.RequestUri.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithAssetCdnUrl_LeavesUntouched()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var assetUrl = "https://assets-eu-01.kc-usercontent.com/abc123/def456/image.png";
+        var request = new HttpRequestMessage(HttpMethod.Get, assetUrl);
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("assets-eu-01.kc-usercontent.com", request.RequestUri.Host);
+        Assert.Equal("/abc123/def456/image.png", request.RequestUri.AbsolutePath);
+        Assert.DoesNotContain(TestEnvironmentId, request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithExternalWebhookUrl_LeavesUntouched()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var webhookUrl = "https://external-service.com/webhook/callback?token=abc123";
+        var request = new HttpRequestMessage(HttpMethod.Post, webhookUrl);
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("external-service.com", request.RequestUri.Host);
+        Assert.Equal("/webhook/callback", request.RequestUri.AbsolutePath);
+        Assert.Equal("?token=abc123", request.RequestUri.Query);
+        Assert.DoesNotContain(TestEnvironmentId, request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithExternalUrl_DoesNotAttachSdkAuthorizationHeader()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://external-service.com/webhook/callback");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "stale-sdk-key");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("external-service.com", request.RequestUri.Host);
+        Assert.Null(request.Headers.Authorization);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithRelativeUri_InjectsEnvironmentId()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/items", UriKind.Relative));
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal($"/{TestEnvironmentId}/items", request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithManagementApiUrl_LeavesUntouched()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var managementUrl = $"https://manage.kontent.ai/{TestEnvironmentId}/content-items";
+        var request = new HttpRequestMessage(HttpMethod.Get, managementUrl);
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("manage.kontent.ai", request.RequestUri.Host);
+        Assert.Equal($"/{TestEnvironmentId}/content-items", request.RequestUri.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithNullRequestUri_SetsBaseUri()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var handler = CreateHandler(options);
+        var request = new HttpRequestMessage(HttpMethod.Get, (Uri?)null);
+
+        var response = await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Contains("deliver.kontent.ai", request.RequestUri.Host);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithLogger_ExternalUrl_LogsAuthCleared()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var logger = new TestLogger<DeliveryAuthenticationHandler>();
+        var handler = CreateHandlerWithLogger(options, logger);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://external-service.com/api");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.Null(request.Headers.Authorization);
+        Assert.Contains(logger.Entries, e => e.EventId == LogEventIds.HttpAuthCleared);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithLogger_EndpointRewrite_LogsRewrite()
+    {
+        // Request targets deliver.kontent.ai but configured base is preview-deliver.kontent.ai
+        // This triggers ShouldRewriteUri=true AND host change logging
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var logger = new TestLogger<DeliveryAuthenticationHandler>();
+        var handler = CreateHandlerWithLogger(options, logger);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Equal("preview-deliver.kontent.ai", request.RequestUri.Host);
+        Assert.Contains(logger.Entries, e => e.EventId == LogEventIds.HttpEndpointRewritten);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithLogger_ApiKey_LogsAuthSet()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId,
+            UsePreviewApi = true,
+            PreviewApiKey = TestPreviewApiKey
+        };
+
+        var logger = new TestLogger<DeliveryAuthenticationHandler>();
+        var handler = CreateHandlerWithLogger(options, logger);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://preview-deliver.kontent.ai/items");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.Headers.Authorization);
+        Assert.Equal(TestPreviewApiKey, request.Headers.Authorization.Parameter);
+        Assert.Contains(logger.Entries, e => e.EventId == LogEventIds.HttpAuthSet);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithLogger_NoApiKey_LogsAuthCleared()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var logger = new TestLogger<DeliveryAuthenticationHandler>();
+        var handler = CreateHandlerWithLogger(options, logger);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.Null(request.Headers.Authorization);
+        Assert.Contains(logger.Entries, e => e.EventId == LogEventIds.HttpAuthCleared);
+    }
+
+    [Fact]
+    public async Task SendAsync_WithLogger_EnvironmentIdInjection_LogsInjection()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = TestEnvironmentId
+        };
+
+        var logger = new TestLogger<DeliveryAuthenticationHandler>();
+        var handler = CreateHandlerWithLogger(options, logger);
+        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/items");
+
+        await InvokeSendAsync(handler, request);
+
+        Assert.NotNull(request.RequestUri);
+        Assert.Contains(TestEnvironmentId, request.RequestUri.AbsolutePath);
+        Assert.Contains(logger.Entries, e => e.EventId == LogEventIds.HttpEnvironmentIdInjected);
+    }
+
+    private const string TestClientName = "test";
+
+    private static IDeliveryOptionsAccessor AccessorFor(DeliveryOptions options)
+    {
+        var monitor = new TestOptionsMonitor<DeliveryOptions>(options);
+        monitor.AddNamedOptions(TestClientName, options);
+        return new MonitorOptionsAccessor(monitor, TestClientName);
+    }
+
+    private static DeliveryAuthenticationHandler CreateHandlerWithLogger(
+        DeliveryOptions options,
+        ILogger<DeliveryAuthenticationHandler> logger) =>
+        new(AccessorFor(options), logger)
+        {
+            InnerHandler = new TestHandler()
+        };
+
+    private static DeliveryAuthenticationHandler CreateHandler(DeliveryOptions options) =>
+        new(AccessorFor(options))
+        {
+            InnerHandler = new TestHandler()
+        };
+
+    private static async Task<HttpResponseMessage> InvokeSendAsync(
+        DeliveryAuthenticationHandler handler,
+        HttpRequestMessage request,
+        CancellationToken cancellationToken = default)
+    {
+        using var invoker = new HttpMessageInvoker(handler, disposeHandler: false);
+        return await invoker.SendAsync(request, cancellationToken);
+    }
+
+    private class TestHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+    }
+
+    private class TestOptionsMonitor<TOptions>(TOptions currentValue) : IOptionsMonitor<TOptions>
+        where TOptions : class
+    {
+        private readonly TOptions _currentValue = currentValue;
+        private readonly Dictionary<string, TOptions> _namedOptions = [];
+
+        public TOptions CurrentValue => _currentValue;
+
+        public TOptions Get(string? name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return _currentValue;
+            }
+
+            return _namedOptions.TryGetValue(name, out var options)
+                ? options
+                : _currentValue;
+        }
+
+        public IDisposable OnChange(Action<TOptions, string> listener) => new EmptyDisposable();
+
+        public void AddNamedOptions(string name, TOptions options) => _namedOptions[name] = options;
+
+        private class EmptyDisposable : IDisposable
+        {
+            public void Dispose() { }
+        }
+    }
+
+    private sealed record LogEntry(int EventId, string Message);
+
+    private class TestLogger<T> : ILogger<T>
+    {
+        private readonly List<LogEntry> _entries = [];
+
+        public IReadOnlyList<LogEntry> Entries => _entries;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            _entries.Add(new LogEntry(eventId.Id, formatter(state, exception)));
+        }
+    }
+}
