@@ -27,10 +27,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <!-- AddManagementClient's overloads expose RefitSettings in their signatures, so the type
-         must be referenced here even though we don't touch Refit directly. Matches the Refit
-         version pulled in transitively by the Management/Delivery SDKs. -->
-    <PackageReference Include="Refit" />
+    <!-- Refit and Refit.HttpClientFactory come from src/model-generator/Directory.Build.props,
+         which explains why they are referenced directly. -->
   </ItemGroup>
 
   <ItemGroup>
