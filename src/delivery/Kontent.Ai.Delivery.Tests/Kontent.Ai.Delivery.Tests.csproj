@@ -3,10 +3,13 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
     <NoWarn>CS1591</NoWarn>
     <!-- Set just under current coverage so it blocks regression rather than aspiring.
          Measured 86.37% line on 2026-08-03; the previous 70 sat 16 points below actual. -->
+    <!-- Kontent.Ai.Urls is exercised by its own test project (100%); this one never touches
+         it, so leaving it in the report only dilutes the total. Caching has no test project
+         of its own, so it deliberately stays. -->
+    <Exclude>[Kontent.Ai.Urls]*</Exclude>
     <Threshold>85</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>

@@ -8,16 +8,14 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <!-- Both test projects reference both assemblies, so an unscoped report mixes in the
          module the OTHER project covers and the total becomes meaningless (19% here).
          Scope to the assembly this project actually tests. -->
     <Include>[KontentModelGenerator]*</Include>
     <!-- Set just under current coverage so it blocks regression rather than aspiring.
-         Measured 82.41% line on 2026-08-03. -->
-    <Threshold>80</Threshold>
+         Measured 88.99% line on 2026-08-03. -->
+    <Threshold>87</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
   </PropertyGroup>
