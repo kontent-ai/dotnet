@@ -1,10 +1,10 @@
 # Kontent.ai Sync SDK for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
-[![License](https://img.shields.io/github/license/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/blob/main/LICENSE.md)
-[![Contributors](https://img.shields.io/github/contributors/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/commits/main)
-[![Issues](https://img.shields.io/github/issues/kontent-ai/sync-sdk-net?style=for-the-badge)](https://github.com/kontent-ai/sync-sdk-net/issues)
+[![License](https://img.shields.io/github/license/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
+[![Contributors](https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/graphs/contributors)
+[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/commits/main)
+[![Issues](https://img.shields.io/github/issues/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/issues)
 
 Official .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
 
@@ -282,7 +282,7 @@ See `docs/upgrade-guide.md` for breaking changes and migration steps.
 
 ## Contributing
 
-Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/sync-sdk-net/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
+Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/dotnet/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
 
 ## License
 

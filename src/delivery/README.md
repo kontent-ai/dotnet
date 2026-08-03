@@ -11,7 +11,7 @@
 The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn/docs/apis/openapi/delivery-api/), enabling you to retrieve content from your Kontent.ai projects with a modern, type-safe, and highly extensible client library.
 
 > [!TIP]
-> **Building an ASP.NET Core app?** Check out [**Kontent.ai ASP.NET Core Extensions**](https://github.com/kontent-ai/aspnetcore-extensions) — a companion package that adds a `<rich-text>` tag helper for rendering Kontent.ai rich text in Razor views (with full `IHtmlResolver` integration), an `<img-asset>` tag helper for responsive images with automatic `srcset`/`sizes`, and webhook signature validation middleware.
+> **Building an ASP.NET Core app?** Check out [**Kontent.ai ASP.NET Core Extensions**](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) — a companion package that adds a `<rich-text>` tag helper for rendering Kontent.ai rich text in Razor views (with full `IHtmlResolver` integration), an `<img-asset>` tag helper for responsive images with automatic `srcset`/`sizes`, and webhook signature validation middleware.
 
 ## Table of Contents
 
@@ -630,7 +630,7 @@ The SDK supports strongly-typed models for compile-time safety and IntelliSense 
 
 #### Generate Models
 
-Use the [Kontent.ai Model Generator](https://github.com/kontent-ai/model-generator-net) to generate C# classes from your content types:
+Use the [Kontent.ai Model Generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) to generate C# classes from your content types:
 
 ```bash
 dotnet tool install -g Kontent.Ai.ModelGenerator
@@ -639,7 +639,7 @@ KontentModelGenerator --environmentid <your-environment-id> --outputdir Models
 
 #### Source Generation for Type Resolution
 
-The [Kontent.ai Model Generator](https://github.com/kontent-ai/model-generator-net) automatically includes the `[ContentTypeCodename]` attribute on generated model classes. When combined with the source generation package, this provides:
+The [Kontent.ai Model Generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) automatically includes the `[ContentTypeCodename]` attribute on generated model classes. When combined with the source generation package, this provides:
 
 - **Compile-time validation** - Duplicate codenames and invalid configurations are caught during build
 - **Auto-discovered type provider** - No manual DI registration needed
@@ -1893,26 +1893,26 @@ For more advanced scenarios and in-depth guides, explore the following documenta
 
 ## Contributing
 
-Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/delivery-sdk-net/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
+Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/dotnet/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) file for details.
 
 ---
 
-**Questions or feedback?** Visit our [GitHub Issues](https://github.com/kontent-ai/delivery-sdk-net/issues) or check the [Kontent.ai Developer Hub](https://kontent.ai/learn/docs).
+**Questions or feedback?** Visit our [GitHub Issues](https://github.com/kontent-ai/dotnet/issues) or check the [Kontent.ai Developer Hub](https://kontent.ai/learn/docs).
 
 
-[last-commit]: https://img.shields.io/github/last-commit/kontent-ai/delivery-sdk-net?style=for-the-badge
-[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/delivery-sdk-net?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/delivery-sdk-net/graphs/contributors
-[issues-shield]: https://img.shields.io/github/issues/kontent-ai/delivery-sdk-net.svg?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/delivery-sdk-net/issues
-[license-shield]: https://img.shields.io/github/license/kontent-ai/delivery-sdk-net?label=license&style=for-the-badge
-[license-url]: https://github.com/kontent-ai/delivery-sdk-net/blob/master/LICENSE.md
+[last-commit]: https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge
+[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge
+[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
+[issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet.svg?style=for-the-badge
+[issues-url]: https://github.com/kontent-ai/dotnet/issues
+[license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet?label=license&style=for-the-badge
+[license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
 [stack-shield]: https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white&style=for-the-badge
-[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/delivery-sdk-net?style=for-the-badge
+[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge&flag=delivery
 [codecov-url]: https://app.codecov.io/github/kontent-ai/delivery-sdk-net
 [nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Delivery
 [nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Delivery.svg?style=for-the-badge

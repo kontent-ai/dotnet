@@ -575,7 +575,7 @@ Each wrapper has an implicit conversion for the common case, so `PublishingDate 
 > A date & time value is stored as a **UTC instant**; `DisplayTimeZone` is only a hint for how the editor renders it and never changes the instant. The element accepts a `DateTimeOffset` (not a `DateTime`) so the moment is unambiguous — a bare `DateTime` would be resolved against the machine's local zone. Whatever offset you supply is normalized to UTC on the wire.
 
 > [!TIP]
-> You don't have to hand-write these models. The [**Kontent.ai model generator**](https://github.com/kontent-ai/model-generator-net) generates strongly-typed records from your content model. Management-model generation is currently in active development — watch the repository for its release.
+> You don't have to hand-write these models. The [**Kontent.ai model generator**](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) generates strongly-typed records from your content model. Management-model generation is currently in active development — watch the repository for its release.
 
 ### Rich text and inline components
 
@@ -846,21 +846,21 @@ For migration details, see the [upgrade guide](./docs/upgrade-guide.md). For mor
 
 ## Contributing
 
-See the [contributing](./CONTRIBUTING.md) page for the best places to file issues, start discussions, and begin contributing.
+See the [contributing](https://github.com/kontent-ai/dotnet/blob/main/CONTRIBUTING.md) page for the best places to file issues, start discussions, and begin contributing.
 
 ## License
 
-Distributed under the MIT License — see [`LICENSE.md`](./LICENSE.md) for details.
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.
 
-[last-commit-shield]: https://img.shields.io/github/last-commit/kontent-ai/management-sdk-net?style=for-the-badge
-[issues-shield]: https://img.shields.io/github/issues/kontent-ai/management-sdk-net?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/management-sdk-net/issues
-[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/management-sdk-net?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/management-sdk-net/graphs/contributors
-[license-shield]: https://img.shields.io/github/license/kontent-ai/management-sdk-net?style=for-the-badge
-[license-url]: https://github.com/kontent-ai/management-sdk-net/blob/master/LICENSE.md
-[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/management-sdk-net?style=for-the-badge
-[codecov-url]: https://codecov.io/gh/kontent-ai/management-sdk-net
+[last-commit-shield]: https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge
+[issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet?style=for-the-badge
+[issues-url]: https://github.com/kontent-ai/dotnet/issues
+[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge
+[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
+[license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet?style=for-the-badge
+[license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
+[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge&flag=management
+[codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
 [nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge
 [nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
 [stack-shield]: https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16?style=for-the-badge&logo=stackoverflow&logoColor=white

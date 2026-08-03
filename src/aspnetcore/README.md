@@ -5,7 +5,7 @@
 [![Stack Overflow](https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white&style=for-the-badge)](https://stackoverflow.com/tags/kontent-ai)
 [![Discord](https://img.shields.io/discord/821885171984891914?color=%237289DA&label=Kontent.ai%20Discord&logo=discord&style=for-the-badge)](https://discord.gg/SKCxwPtevJ)
 
-Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai/delivery-sdk-net) that provides ASP.NET Core–specific helpers: responsive image tag helpers, a rich-text tag helper that renders structured content via `IHtmlResolver`, and webhook signature validation middleware.
+Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) that provides ASP.NET Core–specific helpers: responsive image tag helpers, a rich-text tag helper that renders structured content via `IHtmlResolver`, and webhook signature validation middleware.
 
 ## Installation
 
@@ -164,7 +164,7 @@ For partial views, view components, or scenarios that benefit from an explicit `
 
 #### Without DI registration
 
-Both the tag helper and the extension method fall back to `new HtmlResolverBuilder().Build()` when no resolver is provided and none is registered in DI. This uses the SDK's built-in defaults: HTML-encoded text nodes, default inline-image rendering, and diagnostic HTML comments for missing embedded-content and content-item-link resolvers. See the [Delivery SDK documentation](https://github.com/kontent-ai/delivery-sdk-net) for the full `IHtmlResolverBuilder` API.
+Both the tag helper and the extension method fall back to `new HtmlResolverBuilder().Build()` when no resolver is provided and none is registered in DI. This uses the SDK's built-in defaults: HTML-encoded text nodes, default inline-image rendering, and diagnostic HTML comments for missing embedded-content and content-item-link resolvers. See the [Delivery SDK documentation](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) for the full `IHtmlResolverBuilder` API.
 
 ## Webhooks
 
