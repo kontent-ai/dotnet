@@ -6,9 +6,9 @@
     <!-- Build infrastructure -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.202" />
     <!-- Core dependencies -->
-    <PackageVersion Include="Kontent.Ai.Delivery" Version="19.3.1" />
-    <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="19.3.1" />
-    <PackageVersion Include="Kontent.Ai.Urls" Version="19.3.1" />
+    <PackageVersion Include="Kontent.Ai.Delivery" Version="19.4.0" />
+    <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="19.4.0" />
+    <PackageVersion Include="Kontent.Ai.Urls" Version="19.4.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="9.0.15" />
     <!-- Test dependencies -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />

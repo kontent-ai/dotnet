@@ -11,11 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  # Refit 10.x is author-signed with a certificate that currently reports as revoked,
-  # which fails NuGet signature verification on the Linux runners (NU3012) during restore.
-  # Disable NuGet signature verification in CI until a re-signed Refit package is available.
-  DOTNET_NUGET_SIGNATURE_VERIFICATION: false
 
 jobs:
   build:

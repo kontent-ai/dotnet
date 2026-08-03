@@ -7,9 +7,6 @@ on:
   release:
     types: [published]
 
-env:
-  # See ci.yml - Refit 10.x author signature currently reports as revoked (NU3012).
-  DOTNET_NUGET_SIGNATURE_VERIFICATION: false
   PACK_OUTPUT: ./artifacts/release-pack
 
 jobs:
