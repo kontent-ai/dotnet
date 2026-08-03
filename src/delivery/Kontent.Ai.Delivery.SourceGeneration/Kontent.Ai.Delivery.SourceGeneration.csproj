@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     <Company>Kontent s.r.o.</Company>
     <Description>Kontent.ai Delivery SDK - Source Generator for Content Type Registry. Emits ContentTypeCodenameAttribute for marking model classes.</Description>
     <PackageTags>kontent-ai;source-generation;roslyn;analyzer</PackageTags>

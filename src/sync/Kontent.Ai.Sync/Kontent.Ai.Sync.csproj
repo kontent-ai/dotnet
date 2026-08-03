@@ -19,8 +19,6 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <Company>Kontent s.r.o.</Company>
     <PackageId>Kontent.Ai.Sync</PackageId>
     <Description>Official .NET SDK for Kontent.ai Sync API v2 - Efficiently synchronize content changes from your Kontent.ai projects</Description>

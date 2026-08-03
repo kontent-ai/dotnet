@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <NoWarn>CS1591</NoWarn>
     <!-- Set just under current coverage so it blocks regression rather than aspiring.
          Measured 88.03% line on 2026-08-03. -->
