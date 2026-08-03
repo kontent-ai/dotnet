@@ -8,6 +8,7 @@
        workflow refuses to publish if the tag and the property disagree. -->
   <PropertyGroup>
     <DeliveryVersion>19.3.1</DeliveryVersion>
+    <SyncVersion>1.0.0</SyncVersion>
     <ManagementVersion>9.0.0-beta-4</ManagementVersion>
     <AspNetCoreVersion>0.17.0-preview.1</AspNetCoreVersion>
   </PropertyGroup>
