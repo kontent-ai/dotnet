@@ -1,0 +1,91 @@
+name: Prepare release
+
+# Bumps a product's version and promotes its changelog, then opens a PR.
+# Run it from Actions -> Prepare release -> Run workflow.
+#
+# This does NOT publish anything. Merging the PR it opens, then creating a GitHub
+# Release tagged <product>-v<version>, is what triggers release.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Product to release'
+        required: true
+        type: choice
+        options:
+          - aspnetcore
+          - management
+      bump:
+        description: 'How to move the version'
+        required: true
+        default: patch
+        type: choice
+        options:
+          - prerelease   # 9.0.0-beta-4 -> 9.0.0-beta-5
+          - release      # 9.0.0-beta-4 -> 9.0.0
+          - patch        # 0.16.1 -> 0.16.2
+          - minor        # 0.16.1 -> 0.17.0
+          - major        # 0.16.1 -> 1.0.0
+          - explicit     # whatever you type below
+      version:
+        description: 'Explicit version, e.g. 1.0.0-rc1 (only used when bump = explicit)'
+        required: false
+        type: string
+
+permissions:
+  contents: write        # push the branch
+  pull-requests: write   # open the PR
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Inputs are user-supplied strings, so they are passed as environment variables
+      # and quoted - never interpolated into the shell command itself.
+      - name: Bump version and promote changelog
+        id: bump
+        env:
+          PRODUCT: ${{ inputs.product }}
+          BUMP: ${{ inputs.bump }}
+          EXPLICIT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$BUMP" = "explicit" ]; then
+            if [ -z "$EXPLICIT" ]; then
+              echo "bump=explicit requires the 'version' input"; exit 1
+            fi
+            ARG="$EXPLICIT"
+          else
+            ARG="$BUMP"
+          fi
+          dotnet run eng/scripts/update-version.cs -- "$PRODUCT" "$ARG"
+          NEW=$(dotnet msbuild eng/Versions.props -getProperty:"$(jq -r --arg p "$PRODUCT" '.[$p].versionProperty' eng/products.json)" | tr -d '[:space:]')
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRODUCT: ${{ inputs.product }}
+          NEW_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          BRANCH="release/${PRODUCT}-v${NEW_VERSION}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git commit -am "bump ${PRODUCT} to ${NEW_VERSION}"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "bump ${PRODUCT} to ${NEW_VERSION}" \
+            --body "Prepared by the *Prepare release* workflow.
+
+          Review the version property and the promoted changelog entry, then merge.
+          Publishing happens when a GitHub Release tagged \`${PRODUCT}-v${NEW_VERSION}\` is created." \
+            --base main \
+            --head "$BRANCH"

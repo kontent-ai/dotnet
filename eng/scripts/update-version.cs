@@ -76,19 +76,62 @@ return 0;
 
 static string? NextVersion(string current, string bump)
 {
-    if (bump is not ("major" or "minor" or "patch")) return bump; // explicit version
+    var dash = current.IndexOf('-');
+    var core = dash < 0 ? current : current[..dash];
+    var pre  = dash < 0 ? null : current[(dash + 1)..];   // e.g. "beta-4", "preview.1", "rc1"
 
-    var core = current.Split('-')[0];               // drop any prerelease suffix
-    var parts = core.Split('.');
-    if (parts.Length != 3 || !parts.All(p => int.TryParse(p, out _))) return null;
-
-    var (ma, mi, pa) = (int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
-    return bump switch
+    switch (bump)
     {
-        "major" => $"{ma + 1}.0.0",
-        "minor" => $"{ma}.{mi + 1}.0",
-        _       => $"{ma}.{mi}.{pa + 1}",
-    };
+        // 9.0.0-beta-4 -> 9.0.0-beta-5 ; 0.17.0-preview.1 -> 0.17.0-preview.2 ; 1.0.0-rc1 -> 1.0.0-rc2
+        case "prerelease":
+            if (pre is null)
+            {
+                Console.Error.WriteLine($"'{current}' is already stable. Use an explicit version to start a prerelease.");
+                return null;
+            }
+            var m = Regex.Match(pre, @"^(?<prefix>.*?)(?<num>\d+)$");
+            if (!m.Success)
+            {
+                Console.Error.WriteLine($"prerelease suffix '{pre}' has no trailing number to increment. Use an explicit version.");
+                return null;
+            }
+            return $"{core}-{m.Groups["prefix"].Value}{int.Parse(m.Groups["num"].Value) + 1}";
+
+        // 9.0.0-beta-4 -> 9.0.0  (promote the prerelease to its GA)
+        case "release":
+            if (pre is null)
+            {
+                Console.Error.WriteLine($"'{current}' is already stable - nothing to promote.");
+                return null;
+            }
+            return core;
+
+        case "major" or "minor" or "patch":
+            // Refuse rather than silently skipping the GA: 9.0.0-beta-4 + patch would
+            // otherwise produce 9.0.1, jumping straight past the 9.0.0 release.
+            if (pre is not null)
+            {
+                Console.Error.WriteLine($"'{current}' is a prerelease. Use 'prerelease' ({core}-{pre} -> next), " +
+                                        $"'release' (-> {core}), or an explicit version.");
+                return null;
+            }
+            var parts = core.Split('.');
+            if (parts.Length != 3 || !parts.All(x => int.TryParse(x, out _)))
+            {
+                Console.Error.WriteLine($"'{current}' is not major.minor.patch - use an explicit version.");
+                return null;
+            }
+            var (ma, mi, pa) = (int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2]));
+            return bump switch
+            {
+                "major" => $"{ma + 1}.0.0",
+                "minor" => $"{ma}.{mi + 1}.0",
+                _       => $"{ma}.{mi}.{pa + 1}",
+            };
+
+        default:
+            return bump;   // explicit version
+    }
 }
 
 static string? FindRepoRoot()
