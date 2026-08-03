@@ -1,0 +1,149 @@
+# Kontent.Ai.Sync
+
+Covers `Kontent.Ai.Sync` and `Kontent.Ai.Sync.Abstractions`, which ship in lockstep
+on one version.
+
+Entries before the move to this monorepo were imported from the GitHub Releases of
+[kontent-ai/sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net).
+
+## Unreleased
+
+## 1.0.0 (2026-04-16)
+
+First stable release of the **Kontent.ai Sync SDK for .NET**, targeting the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
+
+### What's Changed Since 1.0.0-rc1
+
+#### New Features
+
+- **Standalone client**: `SyncClientBuilder` constructs a fully-wired `ISyncClient` without requiring a host DI container. Suitable for console apps, Azure Functions isolated workers, scripts, and tests. The returned client owns its dependencies and must be disposed.
+- **Downstream source tracking**: `[assembly: SyncSourceTrackingHeaderAttribute]` lets libraries built on the Sync SDK opt into `X-KC-SOURCE` ecosystem analytics, mirroring the Delivery SDK's convention.
+
+#### Fixes
+
+- **`X-KC-SOURCE` header value** — previously echoed the SDK's own `X-KC-SDKID`, which is reserved for downstream tools. The header is now omitted unless a caller assembly declares `SyncSourceTrackingHeaderAttribute`.
+- **Commit SHA leak** — SourceLink embeds the build commit SHA into `AssemblyInformationalVersion` (e.g. `1.0.0+<sha>`). The tracking headers now strip the `+metadata` suffix so only the semantic version reaches Kontent.ai.
+- **Transitive CVE fix** — pinned `System.Text.Json` to 8.0.5 to address two High-severity advisories in the 8.0.0 transitive version ([GHSA-hh2w-p6rv-4g7w](https://github.com/advisories/GHSA-hh2w-p6rv-4g7w), [GHSA-8g4q-xg66-9fp4](https://github.com/advisories/GHSA-8g4q-xg66-9fp4)).
+
+#### Improvements
+
+- **CI vulnerability audit** — `dotnet list package --vulnerable` now runs on every PR/push and fails the build on any reported advisory.
+- **Expanded test coverage** — resilience pipeline classifiers, `Retry-After` delta respect, trusted-host auth stripping with custom endpoints, and tracking header composition (including SHA-strip regression guard).
+- **Explicit `PackageId`** declared on both shippable projects for defensive metadata.
+
+### Migration from Legacy (Delivery SDK-based) Sync
+
+See [`docs/upgrade-guide.md`](upgrade-guide.md) for step-by-step migration instructions.
+
+### Installation
+
+```bash
+dotnet add package Kontent.Ai.Sync --version 1.0.0
+```
+
+### Requirements
+
+- .NET 8.0 or later
+- Kontent.ai environment with Sync API access
+
+**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/1.0.0-rc1...1.0.0
+
+## 1.0.0-rc1 (2026-02-24)
+
+First release candidate of the **Kontent.ai Sync SDK for .NET**, targeting the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
+
+> [!IMPORTANT]
+> This is a release candidate. The API surface is considered stable, but breaking changes may still occur before the final 1.0.0 release.
+
+### What's Changed Since 0.0.3
+
+#### Breaking Changes
+
+- `ISyncResult<T>.StatusCode` changed from `int` to `HttpStatusCode`
+- `IError.InnerException` replaced by `IError.Exception`
+- `IError.Reason` and `SyncErrorReason` enum removed — use `ErrorCode`/`SpecificCode` instead
+- `Kontent.Ai.Sync.Extensions` namespace removed — use `Kontent.Ai.Sync` for all `AddSyncClient` extensions
+
+#### New Features
+
+- **Configuration binding**: `AddSyncClient(IConfigurationSection)` overload for `appsettings.json` support
+- **Builder API**: Fluent configuration with `WithEnvironmentId()`, `UsePreviewApi()`, `UseSecureApi()`, and more
+- **Default client access**: `ISyncClientFactory.Get()` without a name returns the default client
+- **Response headers**: `ISyncResult<T>.ResponseHeaders` exposes full HTTP response headers
+- **Input validation**: Builder methods reject null/empty/whitespace values at registration time
+
+#### Improvements
+
+- Resilience pipeline aligned with Delivery SDK standards, including `Retry-After` support for `429`
+- Stricter named client validation — null, empty, whitespace, and duplicate names are rejected at registration
+
+### Migration from legacy, delivery-sdk-based sync functionality
+
+See [`docs/upgrade-guide.md`](upgrade-guide.md) for step-by-step migration instructions.
+
+### Installation
+
+```bash
+dotnet add package Kontent.Ai.Sync --version 1.0.0-rc1
+```
+
+### Requirements
+
+- .NET 8.0 or later
+- Kontent.ai environment with Sync API access
+
+
+**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/0.0.3...1.0.0-rc1
+
+## 0.0.3 (2025-11-13)
+
+### What's changed?
+
+- Fixed faulty enum and interface deserialization resulting in deltas not being deserialized properly
+
+**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/0.0.2...0.0.3
+
+## 0.0.2 (2025-11-07)
+
+This is the first standalone release of the **Kontent.ai Sync SDK for .NET**, enabling efficient synchronization of content changes from your Kontent.ai projects using the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/).
+
+>[!IMPORTANT]
+>This SDK is released as beta. Breaking changes may happen before official release.
+
+>[!NOTE]
+>Version 0.0.1 was missing an important commit due to human (mine...) error. 0.0.2 is to be treated as the first working release.
+
+### What's New
+
+This is the first standalone release of the **Kontent.ai Sync SDK for .NET**, enabling efficient synchronization of content changes from your Kontent.ai projects using the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
+
+### What's New
+
+Previously, Sync API functionality was included in the Delivery SDK (last available in [v18.3.0](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/18.3.0)). Starting with Delivery SDK v19, sync functionality has been extracted into this dedicated package to:
+
+- Provide a focused, lightweight SDK specifically for synchronization workflows
+- Enable independent versioning and feature development
+- Support Sync API v2 exclusively (v1 deprecated)
+
+### Key Features
+
+- **Three API modes**: Public, Preview, and Secure production access
+- **Automatic pagination**: `GetAllDeltaAsync` helper for fetching all changes
+- **Structured error handling**: Categorized error reasons for precise error handling
+- **Resilience built-in**: Retry policies with exponential backoff using Polly
+- **Multi-tenant support**: Named clients via factory pattern
+
+### Installation
+
+```bash
+dotnet add package Kontent.Ai.Sync
+```
+
+### Migration from Delivery SDK
+
+If you're currently using sync functionality from Delivery SDK v18.x, refer to the [README](README.md) for complete setup instructions with the new standalone SDK.
+
+### Requirements
+
+- .NET 8.0 or later
+- Kontent.ai environment with Sync API access

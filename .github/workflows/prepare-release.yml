@@ -16,6 +16,7 @@ on:
           - aspnetcore
           - delivery
           - management
+          - sync
       bump:
         description: 'How to move the version'
         required: true

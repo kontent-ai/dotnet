@@ -71,6 +71,14 @@ jobs:
           files: src/delivery/Kontent.Ai.Delivery.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Urls.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/coverage.opencover.xml
           flags: delivery
           fail_ci_if_error: true
+      - name: Codecov (sync)
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/sync/Kontent.Ai.Sync.Tests/coverage.opencover.xml
+          flags: sync
+          fail_ci_if_error: true
       - name: Restore local tools
         if: runner.os == 'Linux'
         run: dotnet tool restore
