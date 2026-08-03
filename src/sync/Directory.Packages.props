@@ -12,9 +12,11 @@
     </PackageVersion>
 
     <!-- HTTP transport (Refit-backed, System.Text.Json content serializer in Refit core).
-         Pinned to the version delivery-sdk-net and management-sdk-net both carry. -->
-    <PackageVersion Include="Refit" Version="10.1.6" />
-    <PackageVersion Include="Refit.HttpClientFactory" Version="10.1.6" />
+         Pinned to the version delivery-sdk-net and management-sdk-net both carry.
+         10.2.0 is 10.1.6 re-signed with a valid certificate; the 10.1.6 signing cert was revoked
+         and fails NuGet signature verification (NU3012) on restore. See reactiveui/refit#2114. -->
+    <PackageVersion Include="Refit" Version="10.2.0" />
+    <PackageVersion Include="Refit.HttpClientFactory" Version="10.2.0" />
 
     <!-- Core dependencies -->
     <!-- M.E.* pinned to the 9.0.x servicing band: Refit.HttpClientFactory 10.x pulls in Microsoft.Extensions.Http 9.x transitively. -->
