@@ -8,6 +8,7 @@
     <Threshold>95</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
+    <!-- slopwatch-ignore: SW005 test project, not public API - XML docs carry no consumer value -->
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
