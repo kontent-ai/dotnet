@@ -1,0 +1,12 @@
+{
+  "aspnetcore": {
+    "versionProperty": "AspNetCoreVersion",
+    "changelog": "src/aspnetcore/CHANGELOG.md",
+    "projects": [
+      "src/aspnetcore/Kontent.Ai.AspNetCore/Kontent.Ai.AspNetCore.csproj"
+    ],
+    "expectedPackages": [
+      "Kontent.Ai.AspNetCore"
+    ]
+  }
+}

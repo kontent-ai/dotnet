@@ -1,4 +1,8 @@
 <Project>
+  <!-- Shipped package versions, one property per product. Imported here so every
+       project can see them; each product picks its own in src/<product>/Directory.Build.props. -->
+  <Import Project="$(MSBuildThisFileDirectory)eng/Versions.props" />
+
   <!-- Repo-wide build settings. Every project below inherits these.
        Per-product overrides live in src/<product>/Directory.Build.props, which must
        explicitly import this file - MSBuild stops at the first Directory.Build.props

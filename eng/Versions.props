@@ -1,0 +1,12 @@
+<Project>
+  <!-- Single source of truth for shipped package versions.
+       One property per product; every project in that product inherits it via
+       src/<product>/Directory.Build.props.
+
+       To release: bump the property here (eng/scripts/update-version.cs does it and
+       promotes the changelog), merge, then tag <product>-v<version>. The release
+       workflow refuses to publish if the tag and the property disagree. -->
+  <PropertyGroup>
+    <AspNetCoreVersion>0.16.1</AspNetCoreVersion>
+  </PropertyGroup>
+</Project>
