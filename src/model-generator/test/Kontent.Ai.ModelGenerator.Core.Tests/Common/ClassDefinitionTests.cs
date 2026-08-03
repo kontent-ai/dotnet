@@ -22,7 +22,7 @@ public class ClassDefinitionTests
         var userDefinedSystemProperty = Property.FromContentTypeElement("system", "text");
         classDefinition.AddProperty(userDefinedSystemProperty);
 
-        classDefinition.Properties.First().Should().Be(userDefinedSystemProperty);
+        classDefinition.Properties[0].Should().Be(userDefinedSystemProperty);
     }
 
     [Fact]

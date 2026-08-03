@@ -43,6 +43,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <!-- Sonar runs for every product. Product-specific rule suppressions live in each
+         src/<product>/.editorconfig, scoped by path and each carrying its reason. -->
+    <PackageReference Include="SonarAnalyzer.CSharp"
+                      PrivateAssets="all"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <!-- One icon for every package. The products previously shipped two byte-different
          but visually identical copies under different names. -->
     <None Include="$(MSBuildThisFileDirectory)kontent-ai-k-icon-color.png" Pack="true" PackagePath="" Visible="false" />

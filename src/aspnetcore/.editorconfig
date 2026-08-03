@@ -1,0 +1,15 @@
+# ASP.NET Core extensions-specific analyzer suppressions.
+# Deliberately no `root = true` - this file adds to the repo-root .editorconfig
+# rather than replacing it, and keeps these narrow path rules from applying repo-wide.
+
+# S125 misfires on the prose explaining why a rendition skips srcset: it reads the
+# parenthesised "(width/height/fit/crop)" clause as code. The comment documents a
+# non-obvious rendering decision; the file holds no actual dead code.
+[**/AssetTagHelper.cs]
+dotnet_diagnostic.S125.severity = none
+
+# The empty `Marker` type exists to be a type token: the test registers and resolves it to
+# prove the builder-only overload wires DI correctly. Giving it members or turning it into
+# an interface (S2094) would defeat the point - it must be a concrete type with no behaviour.
+[**/RichTextServiceCollectionExtensionsTests.cs]
+dotnet_diagnostic.S2094.severity = none

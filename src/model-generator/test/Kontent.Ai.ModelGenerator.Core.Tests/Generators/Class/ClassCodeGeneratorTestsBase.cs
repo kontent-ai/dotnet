@@ -11,7 +11,7 @@ public abstract class ClassCodeGeneratorTestsBase
     protected readonly ClassDefinition ClassDefinition = new("complete_content_type");
     protected readonly Mock<IUserMessageLogger> LoggerMock = new();
 
-    protected void AssertCompiledCode(CSharpCompilation compilation)
+    protected static void AssertCompiledCode(CSharpCompilation compilation)
     {
         using var ms = new MemoryStream();
         var result = compilation.Emit(ms);

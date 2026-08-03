@@ -42,9 +42,9 @@ public abstract class DeliveryCodeGeneratorBase(
 
         var typeProviderCodeGenerator = new TypeProviderCodeGenerator(Options.Namespace);
 
-        foreach (var codeGenerator in classCodeGenerators)
+        foreach (var classDefinition in classCodeGenerators.Select(cg => cg.ClassDefinition))
         {
-            typeProviderCodeGenerator.AddContentType(codeGenerator.ClassDefinition.Codename, codeGenerator.ClassDefinition.ClassName);
+            typeProviderCodeGenerator.AddContentType(classDefinition.Codename, classDefinition.ClassName);
         }
 
         var typeProviderCode = typeProviderCodeGenerator.GenerateCode();

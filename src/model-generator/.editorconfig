@@ -1,0 +1,45 @@
+# Model-generator-specific analyzer suppressions.
+# Deliberately no `root = true` - this file adds to the repo-root .editorconfig
+# rather than replacing it, and keeps these narrow path rules from applying repo-wide.
+
+# S125 misfires across the emitters because their comments quote C# to explain what is being
+# emitted - "{ get; init; }", "namespace Foo;", "'partial' immediately before the type keyword".
+# The analyzer reads the quoted syntax as commented-out code. None of these files hold dead code.
+[**/{ClassCodeGenerator,ManagementClassCodeGenerator}.cs]
+dotnet_diagnostic.S125.severity = none
+
+# `Properties` and `PropertyCodenameConstants` are `protected` members of public generator base
+# classes, so they are part of the subclassing surface. S2365's fix - turning them into methods -
+# is a source-breaking change for derived generators. Worth revisiting in the next major; not
+# worth breaking the contract for now.
+[**/{ClassCodeGenerator,DeliveryClassCodeGeneratorBase}.cs]
+dotnet_diagnostic.S2365.severity = none
+
+# `FilenameSuffix` is a `protected` member of the public generator base. Making it static per
+# S2325 changes how derived classes reference it, so it is the same breaking-change trade-off
+# as S2365 above.
+[**/CodeGeneratorBase.cs]
+dotnet_diagnostic.S2325.severity = none
+
+# Two deliberate patterns in the CLI argument parser:
+# S127 - `value = args[++i]` consumes the following token as the current flag's value. Advancing
+#   the loop variable IS the parse step for space-separated "--key value" syntax; the alternative
+#   is a second index tracked in parallel, which is harder to follow, not safer.
+# S2326 - `ProgramOptionsData<T>` never uses T in a member, but T carries
+#   [DynamicallyAccessedMembers(PublicProperties)], which is what preserves the bound options
+#   type's properties under trimming. Dropping the parameter would drop the trimming annotation.
+[**/ArgHelpers.cs]
+dotnet_diagnostic.S127.severity = none
+dotnet_diagnostic.S2326.severity = none
+
+# The null/whitespace guard tests for the element-type predicates are genuinely identical in body -
+# each asserts its own predicate rejects the same inputs. S4144 wants them merged or differentiated,
+# but the duplication is one call per predicate and merging would obscure which predicate failed.
+[**/PropertyTests.cs]
+dotnet_diagnostic.S4144.severity = none
+
+# The TODO records a known test-isolation problem (StringWriter shared between UserMessageLoggerTests
+# and ArgHelpersTests via Console.Error). It is a tracked note, not an unfinished edit - S1135 should
+# not fail the build over it.
+[**/AssemblyInfo.cs]
+dotnet_diagnostic.S1135.severity = none

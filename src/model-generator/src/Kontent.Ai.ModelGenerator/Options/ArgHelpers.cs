@@ -166,7 +166,7 @@ internal static class ArgHelpers
 
     private static bool StartsWithArgumentName(string arg) => arg.StartsWith(NamePrefix);
 
-    private class ProgramOptionsData<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
+    private sealed class ProgramOptionsData<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
     {
         public IEnumerable<PropertyInfo> OptionProperties { get; }
         public string OptionsName { get; }
@@ -184,22 +184,5 @@ internal static class ArgHelpers
             OptionsName = type.Name;
         }
 
-        public ProgramOptionsData(
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)]
-            Type optionsType,
-            Type sdkType,
-            string sdkName)
-        {
-            UsedSdkInfo = new UsedSdkInfo(sdkType, sdkName);
-            Type = optionsType;
-            OptionProperties = optionsType.GetProperties();
-            OptionsName = optionsType.Name;
-        }
-    }
-
-    private class DecidingArgs(string shorthandedArgName, string fullArgName)
-    {
-        public string ShorthandedArgName { get; } = $"{NamePrefix}{shorthandedArgName}";
-        public string FullArgName { get; } = fullArgName;
     }
 }

@@ -46,7 +46,7 @@ public class RichTextExtensionsTests
         var richText = new EmptyRichTextContent();
         var resolver = new RecordingHtmlResolver();
         using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => richText.ToHtmlContentAsync(resolver, cts.Token));

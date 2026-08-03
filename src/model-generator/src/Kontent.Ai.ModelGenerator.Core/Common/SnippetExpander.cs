@@ -22,11 +22,14 @@ public static class SnippetExpander
         ArgumentNullException.ThrowIfNull(resolveSnippet);
         ArgumentNullException.ThrowIfNull(warn);
 
-        if (elements is null)
-        {
-            yield break;
-        }
+        return elements is null ? [] : Iterate(elements, resolveSnippet, warn);
+    }
 
+    private static IEnumerable<ElementMetadataBase> Iterate(
+        IEnumerable<ElementMetadataBase> elements,
+        Func<Reference, ContentTypeSnippetModel?> resolveSnippet,
+        Action<string> warn)
+    {
         foreach (var element in elements)
         {
             if (element is ContentTypeSnippetElementMetadataModel snippetEl)

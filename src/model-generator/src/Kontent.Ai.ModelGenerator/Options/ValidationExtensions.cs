@@ -16,12 +16,12 @@ public static class ValidationExtensions
     {
         if (codeGeneratorOptions.DeliveryOptions == null)
         {
-            throw new Exception($"You have to provide the '{nameof(DeliveryOptions.EnvironmentId)}' argument. See http://bit.ly/k-params for more details on configuration.");
+            throw new InvalidOperationException($"You have to provide the '{nameof(DeliveryOptions.EnvironmentId)}' argument. See http://bit.ly/k-params for more details on configuration.");
         }
 
         if (string.IsNullOrWhiteSpace(codeGeneratorOptions.DeliveryOptions.EnvironmentId))
         {
-            throw new Exception($"You have to provide the '{nameof(DeliveryOptions.EnvironmentId)}' argument. See http://bit.ly/k-params for more details on configuration.");
+            throw new InvalidOperationException($"You have to provide the '{nameof(DeliveryOptions.EnvironmentId)}' argument. See http://bit.ly/k-params for more details on configuration.");
         }
     }
 
@@ -34,13 +34,13 @@ public static class ValidationExtensions
         if (codeGeneratorOptions.ManagementOptions == null
             || string.IsNullOrWhiteSpace(codeGeneratorOptions.ManagementOptions.EnvironmentId))
         {
-            throw new Exception(
+            throw new InvalidOperationException(
                 $"You have to provide the '{nameof(ManagementOptions.EnvironmentId)}' argument when using management mode.");
         }
 
         if (string.IsNullOrWhiteSpace(codeGeneratorOptions.ManagementOptions.ApiKey))
         {
-            throw new Exception(
+            throw new InvalidOperationException(
                 $"You have to provide the '{nameof(ManagementOptions.ApiKey)}' (or '-k') argument when using management mode.");
         }
     }

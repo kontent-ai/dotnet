@@ -10,7 +10,7 @@ namespace Kontent.Ai.ModelGenerator.Options;
 /// The mode is detected by <see cref="ArgHelpers"/> from the args list itself
 /// (presence of <c>-m</c> / <c>--management</c>) before configuration binding.
 /// </summary>
-internal class ArgMappingsRegister
+internal static class ArgMappingsRegister
 {
     public const string ManagementShortFlag = "-m";
     public const string ManagementLongFlag = "--management";
