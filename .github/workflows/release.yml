@@ -75,16 +75,34 @@ jobs:
           set -euo pipefail
           missing=0
           for nupkg in "$PACK_OUTPUT"/*.nupkg; do
-            unzip -p "$nupkg" '*.nuspec' \
+            echo "::group::$(basename "$nupkg")"
+            # `|| true` because grep exits 1 when a package declares no internal dependencies.
+            # That is the normal case for a base SDK (Kontent.Ai.Management, Kontent.Ai.Urls,
+            # both Abstractions packages, ...), not an error - and under `pipefail` it would
+            # otherwise fail the whole step.
+            deps=$(unzip -p "$nupkg" '*.nuspec' \
               | grep -oE '<dependency id="Kontent\.Ai\.[^"]+" version="[^"]+"' \
               | sed -E 's/.*id="([^"]+)" version="\[?([^",]+).*/\1 \2/' \
-              | while read -r id ver; do
-                  url="https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr 'A-Z' 'a-z')/index.json"
-                  if ! curl -fsS "$url" | jq -e --arg v "$ver" '.versions | index($v)' >/dev/null; then
-                    echo "Dependency $id $ver is not on nuget.org"; exit 1
-                  fi
-                  echo "ok: $id $ver"
-                done || missing=1
+              | sort -u || true)
+
+            if [ -z "$deps" ]; then
+              echo "no internal dependencies"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Fed by here-string rather than a pipe: a piped `while` runs in a subshell, so
+            # assignments to $missing inside it would be discarded.
+            while read -r id ver; do
+              url="https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr 'A-Z' 'a-z')/index.json"
+              if curl -fsS "$url" | jq -e --arg v "$ver" '.versions | index($v)' >/dev/null; then
+                echo "ok: $id $ver"
+              else
+                echo "NOT PUBLISHED: $id $ver is not on nuget.org"
+                missing=1
+              fi
+            done <<< "$deps"
+            echo "::endgroup::"
           done
           [ "$missing" -eq 0 ]
 
