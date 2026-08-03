@@ -1,0 +1,10 @@
+{
+  "suppressions": [
+    {
+      "ruleId": "SW005",
+      "pattern": "**/*Tests/**",
+      "justification": "Test projects are not part of any public API surface, so CS1591 (missing XML doc on a public member) carries no consumer value. Shipped projects deliberately do not suppress it."
+    }
+  ],
+  "globalSuppressions": []
+}
