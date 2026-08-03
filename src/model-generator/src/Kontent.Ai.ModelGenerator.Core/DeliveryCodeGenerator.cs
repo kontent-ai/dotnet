@@ -1,0 +1,81 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.ModelGenerator.Core.Common;
+using Kontent.Ai.ModelGenerator.Core.Configuration;
+using Kontent.Ai.ModelGenerator.Core.Contract;
+using Kontent.Ai.ModelGenerator.Core.Generators.Class;
+using Microsoft.Extensions.Options;
+
+namespace Kontent.Ai.ModelGenerator.Core;
+
+public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
+{
+    private readonly IDeliveryClient _deliveryClient;
+
+    public DeliveryCodeGenerator(
+        IOptions<CodeGeneratorOptions> options,
+        IOutputProvider outputProvider,
+        IDeliveryClient deliveryClient,
+        IClassCodeGeneratorFactory classCodeGeneratorFactory,
+        IClassDefinitionFactory classDefinitionFactory,
+        IDeliveryElementService deliveryElementService,
+        IUserMessageLogger logger)
+        : base(options, outputProvider, classCodeGeneratorFactory, classDefinitionFactory, deliveryElementService, logger)
+    {
+        _deliveryClient = deliveryClient;
+    }
+
+    protected override async Task<ICollection<ClassCodeGenerator>> GetClassCodeGenerators()
+    {
+        var deliveryTypesResponse = (await _deliveryClient.GetTypes().ExecuteAsync()).Value;
+
+        var codeGenerators = new List<ClassCodeGenerator>();
+        if (deliveryTypesResponse == null)
+        {
+            return codeGenerators;
+        }
+
+        foreach (var contentType in deliveryTypesResponse.Types)
+        {
+            try
+            {
+                // Modern delivery generates single file per content type (no partials)
+                codeGenerators.Add(GetClassCodeGenerator(contentType));
+            }
+            catch (InvalidIdentifierException)
+            {
+                WriteConsoleErrorMessage(contentType.System.Codename);
+            }
+        }
+
+        return codeGenerators;
+    }
+
+    internal ClassCodeGenerator GetClassCodeGenerator(IContentType contentType)
+    {
+        var classDefinition = ClassDefinitionFactory.CreateClassDefinition(contentType.System.Codename);
+
+        foreach (var element in contentType.Elements)
+        {
+            try
+            {
+                var elementType = DeliveryElementService.GetElementType(element.Value.Type);
+                var property = Property.FromContentTypeElement(element.Key, elementType, Options.Nullability);
+                classDefinition.AddPropertyCodenameConstant(property.Codename);
+                classDefinition.AddProperty(property);
+            }
+            catch (Exception e)
+            {
+                WriteConsoleErrorMessage(e, element.Key, element.Value.Type, classDefinition.ClassName);
+            }
+        }
+
+        // Modern delivery: no system property
+
+        var classFilename = GetFileClassName(classDefinition.ClassName);
+
+        return ClassCodeGeneratorFactory.CreateClassCodeGenerator(Options, classDefinition, classFilename, Logger);
+    }
+}

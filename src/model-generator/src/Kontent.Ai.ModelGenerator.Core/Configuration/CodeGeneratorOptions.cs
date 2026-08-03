@@ -1,0 +1,64 @@
+﻿using System;
+using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Management.Configuration;
+
+namespace Kontent.Ai.ModelGenerator.Core.Configuration;
+
+/// <summary>
+/// Configuration options for generating modern Delivery SDK model classes (records).
+/// This is a beta version that only supports the modern Delivery SDK (v19+).
+/// </summary>
+public class CodeGeneratorOptions
+{
+    private const bool DefaultWithTypeProvider = false;
+
+    /// <summary>
+    /// Delivery Client configuration. Populated when generating Delivery models (the default mode).
+    /// </summary>
+    public DeliveryOptions DeliveryOptions { get; set; }
+
+    /// <summary>
+    /// Management Client configuration. Populated when generating Management models
+    /// (CLI flag <c>-m</c> / <c>--management</c>). Presence of a non-null value flips the
+    /// generator into management mode at the orchestrator level.
+    /// </summary>
+    public ManagementOptions ManagementOptions { get; set; }
+
+    /// <summary>
+    /// Namespace name of the generated classes
+    /// </summary>
+    public string Namespace { get; set; }
+
+    /// <summary>
+    /// Output directory for the generated files
+    /// </summary>
+    public string OutputDir { get; set; }
+
+    /// <summary>
+    /// Indicates whether the CustomTypeProvider class should be generated
+    /// </summary>
+    [Obsolete("TypeProvider is now generated via source generation in Delivery SDK 19.0.0-rc1+. This option will be removed in a future version.")]
+    public bool WithTypeProvider { get; set; } = DefaultWithTypeProvider;
+
+    /// <summary>
+    /// Indicates whether a base record should be created and all output records should derive from it using a partial record.
+    /// </summary>
+    public string BaseRecord { get; set; }
+
+    /// <summary>
+    /// Controls how nullability is expressed on generated element properties.
+    /// Defaults to <see cref="NullabilityMode.Strict"/>; will switch to
+    /// <see cref="NullabilityMode.Semantic"/> in the next major version.
+    /// </summary>
+    public NullabilityMode Nullability { get; set; } = NullabilityMode.Strict;
+
+    /// <summary>
+    /// Use <see cref="BaseRecord"/> instead.
+    /// </summary>
+    [Obsolete("Use BaseRecord instead. This property will be removed in a future version.")]
+    public string BaseClass
+    {
+        get => BaseRecord;
+        set => BaseRecord = value;
+    }
+}

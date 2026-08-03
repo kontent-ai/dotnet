@@ -1,0 +1,35 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  # Refit 10.x is author-signed with a certificate that currently reports as revoked,
+  # which fails NuGet signature verification on the Linux runners (NU3012) during restore.
+  # Disable NuGet signature verification in CI until a re-signed Refit package is available.
+  DOTNET_NUGET_SIGNATURE_VERIFICATION: false
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+    - name: Test
+      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+    - name: Codecov
+      uses: codecov/codecov-action@v5

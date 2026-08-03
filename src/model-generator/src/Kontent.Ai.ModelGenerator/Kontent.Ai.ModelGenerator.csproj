@@ -1,0 +1,68 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>KontentModelGenerator</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <PackageId>Kontent.Ai.ModelGenerator</PackageId>
+    <Authors>Kontent s.r.o.</Authors>
+    <Company>Kontent s.r.o.</Company>
+    <Product>Kontent.ai</Product>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>kontent-ai-k-icon-color.png</PackageIcon>
+    <PackageIconUrl>https://github.com/kontent-ai/.github/blob/main/logos/kontent-ai-k-icon-color.png?raw=true</PackageIconUrl>
+    <RepositoryUrl>https://github.com/kontent-ai/model-generator-net</RepositoryUrl>
+    <Copyright>© 2025 Kontent.ai s.r.o. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>tool;kontent-ai;generator</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <Description>CLI tool that generates modern record-based C# models from your Kontent.ai content types for use with the Kontent.ai Delivery SDK for .NET (v19+). Install as a global or local .NET tool: `dotnet tool install -g Kontent.Ai.ModelGenerator`. See the README for usage.</Description>
+    <RepositoryType>git</RepositoryType>
+    <LangVersion>latest</LangVersion>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
+  </ItemGroup>
+
+  <!-- Default OutputDir is './output'; exclude anything matching that pattern from compile
+       so smoke-running the CLI in-place doesn't pollute the project with generated .cs files
+       (which would otherwise be picked up by the SDK-style implicit Compile glob). -->
+  <ItemGroup>
+    <Compile Remove="output/**/*.cs" />
+    <Compile Remove="output-*/**/*.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis" />
+    <!-- AddManagementClient's overloads expose RefitSettings in their signatures, so the type
+         must be referenced here even though we don't touch Refit directly. Matches the Refit
+         version pulled in transitively by the Management/Delivery SDKs. 10.2.0 is 10.1.6
+         re-signed with a valid certificate (the 10.1.6 cert was revoked, NU3012). -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Refit" />
+
+    <None Include="../../README.md" Pack="true" PackagePath="" />
+    <None Include="../../kontent-ai-k-icon-color.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kontent.Ai.ModelGenerator.Core\Kontent.Ai.ModelGenerator.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="Kontent.Ai.Delivery.DeliverySourceTrackingHeader" />
+  </ItemGroup>
+
+</Project>

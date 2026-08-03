@@ -1,0 +1,131 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Kontent.Ai.ModelGenerator.Core.Common;
+using Kontent.Ai.ModelGenerator.Core.Configuration;
+using Kontent.Ai.ModelGenerator.Core.Contract;
+using Kontent.Ai.ModelGenerator.Core.Generators.Class;
+using Microsoft.Extensions.Options;
+
+namespace Kontent.Ai.ModelGenerator.Core;
+
+public abstract class CodeGeneratorBase(
+    IOptions<CodeGeneratorOptions> options,
+    IOutputProvider outputProvider,
+    IClassCodeGeneratorFactory classCodeGeneratorFactory,
+    IClassDefinitionFactory classDefinitionFactory,
+    IUserMessageLogger logger)
+{
+    protected readonly IUserMessageLogger Logger = logger;
+    protected readonly IClassCodeGeneratorFactory ClassCodeGeneratorFactory = classCodeGeneratorFactory;
+    protected readonly IClassDefinitionFactory ClassDefinitionFactory = classDefinitionFactory;
+    protected readonly CodeGeneratorOptions Options = options.Value;
+    protected readonly IOutputProvider OutputProvider = outputProvider;
+
+    // Modern delivery models don't use filename suffixes (single file generation)
+    protected string FilenameSuffix => "";
+    private string NoContentTypeAvailableMessage =>
+        $@"No content type available for the environment ({Options.GetEnvironmentId()}). Check the environment and project settings at https://app.kontent.ai/.";
+
+    public async Task<int> RunAsync()
+    {
+        await GenerateContentTypeModels();
+
+        if (!string.IsNullOrEmpty(Options.BaseRecord))
+        {
+            await GenerateBaseClass();
+        }
+
+        return 0;
+    }
+
+    protected string GetFileClassName(string className) => $"{className}{FilenameSuffix}";
+
+    protected void WriteToOutputProvider(string content, string fileName, bool overwriteExisting)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return;
+        }
+
+        OutputProvider.Output(content, fileName, overwriteExisting);
+        Logger.LogInfo($"{fileName} class was successfully created.");
+    }
+
+    protected void WriteToOutputProvider(ICollection<ClassCodeGenerator> classCodeGenerators)
+    {
+        foreach (var codeGenerator in classCodeGenerators)
+        {
+            OutputProvider.Output(codeGenerator.GenerateCode(), codeGenerator.ClassFilename,
+                codeGenerator.OverwriteExisting);
+        }
+
+        Logger.LogInfo($"{classCodeGenerators.Count} content type models were successfully created.");
+    }
+
+    protected static void AddProperty(Property property, ref ClassDefinition classDefinition)
+    {
+        classDefinition.AddPropertyCodenameConstant(property.Codename);
+        classDefinition.AddProperty(property);
+    }
+
+    protected abstract Task<ICollection<ClassCodeGenerator>> GetClassCodeGenerators();
+
+    protected void WriteConsoleErrorMessage(Exception exception, string elementCodename, string elementType, string className)
+    {
+        switch (exception)
+        {
+            case InvalidOperationException:
+                Logger.LogWarning($"Element '{elementCodename}' is already present in Content Type '{className}'.");
+                break;
+            case InvalidIdentifierException:
+                Logger.LogWarning($"Can't create valid C# Identifier from '{elementCodename}'. Skipping element.");
+                break;
+            case ArgumentNullException or ArgumentException:
+                Logger.LogWarning($"Skipping unknown Content Element type '{elementType}'. (Content Type: '{className}', Element Codename: '{elementCodename}').");
+                break;
+        }
+    }
+
+    protected void WriteConsoleErrorMessage(string contentTypeCodename)
+    {
+        Logger.LogWarning($"Skipping Content Type '{contentTypeCodename}'. Can't create valid C# identifier from its name.");
+    }
+
+    private async Task GenerateContentTypeModels()
+    {
+        var classCodeGenerators = await GetClassCodeGenerators();
+
+        if (!classCodeGenerators.Any())
+        {
+            Logger.LogInfo(NoContentTypeAvailableMessage);
+            return;
+        }
+
+        WriteToOutputProvider(classCodeGenerators);
+    }
+
+    private async Task GenerateBaseClass()
+    {
+        var classCodeGenerators = await GetClassCodeGenerators();
+
+        if (!classCodeGenerators.Any())
+        {
+            return;
+        }
+
+        var baseClassCodeGenerator = new BaseClassCodeGenerator(Options);
+
+        foreach (var codeGenerator in classCodeGenerators)
+        {
+            baseClassCodeGenerator.AddClassNameToExtend(codeGenerator.ClassDefinition.ClassName);
+        }
+
+        var baseClassCode = baseClassCodeGenerator.GenerateBaseClassCode();
+        WriteToOutputProvider(baseClassCode, Options.BaseRecord, false);
+
+        var baseClassExtenderCode = baseClassCodeGenerator.GenerateExtenderCode();
+        WriteToOutputProvider(baseClassExtenderCode, baseClassCodeGenerator.ExtenderClassName, true);
+    }
+}
