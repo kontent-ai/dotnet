@@ -37,9 +37,14 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
-      # Coverage thresholds are per-product, set in each test project. A repo-wide
-      # number is not possible: coverage legitimately differs by an order of
-      # magnitude between a thin CLI entry point and a library.
+      # Coverage is collected and ENFORCED here: each test project sets its own
+      # Threshold/ThresholdType and coverlet fails the run if coverage drops below it.
+      # A repo-wide number is not possible - coverage legitimately differs by an order
+      # of magnitude between a thin CLI entry point and a library.
+      #
+      # Nothing is uploaded anywhere. Codecov was dropped deliberately; re-adding it is
+      # a reporting concern only, and would need a CODECOV_TOKEN repo secret plus
+      # per-product `flags` so five products do not merge into one meaningless number.
       - name: Test
         run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
       - name: Restore local tools
@@ -48,12 +53,6 @@ jobs:
       - name: Run Slopwatch
         if: runner.os == 'Linux'
         run: dotnet slopwatch analyze -d . --fail-on warning
-      - name: Codecov
-        if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
 
   pack-validation:
     name: Pack validation
