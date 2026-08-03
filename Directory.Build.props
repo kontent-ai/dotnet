@@ -1,0 +1,42 @@
+<Project>
+  <!-- Repo-wide build settings. Every project below inherits these.
+       Per-product overrides live in src/<product>/Directory.Build.props, which must
+       explicitly import this file - MSBuild stops at the first Directory.Build.props
+       it finds walking up from a project, it does not merge them. -->
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+    <!-- Enable CI-specific source-linked builds when running in CI -->
+    <ContinuousIntegrationBuild Condition="'$(CI)'=='true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Shared packaging and SourceLink configuration.
+       Test and benchmark projects set IsPackable=false to exclude themselves.
+       Product-specific metadata (PackageProjectUrl, readme, icon, tags, version)
+       is set per product, not here. -->
+  <PropertyGroup>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <Authors>Kontent s.r.o.</Authors>
+    <Product>Kontent.ai</Product>
+    <Copyright>© 2026 Kontent s.r.o. All rights reserved.</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/kontent-ai/dotnet.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+  </ItemGroup>
+</Project>
