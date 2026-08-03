@@ -1,7 +1,7 @@
 using System.Reflection;
 using Kontent.Ai.Management.Models.Shared;
-using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.Management.Models.Types.Elements;
+using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.ModelGenerator.Core.Common;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests.Common;

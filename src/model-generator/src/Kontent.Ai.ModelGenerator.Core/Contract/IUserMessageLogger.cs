@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace Kontent.Ai.ModelGenerator.Core.Contract;
+﻿namespace Kontent.Ai.ModelGenerator.Core.Contract;
 
 public interface IUserMessageLogger
 {

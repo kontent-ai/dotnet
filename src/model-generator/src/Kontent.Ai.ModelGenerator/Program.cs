@@ -1,18 +1,14 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using Kontent.Ai.Delivery;
-using Kontent.Ai.Delivery.Extensions;
 using Kontent.Ai.Management.Extensions;
 using Kontent.Ai.ModelGenerator.Core;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
-using Kontent.Ai.ModelGenerator.Options;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Services;
+using Kontent.Ai.ModelGenerator.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.ModelGenerator;
 

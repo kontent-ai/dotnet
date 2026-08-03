@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Kontent.Ai.ModelGenerator.Core.Helpers;
+﻿using Kontent.Ai.ModelGenerator.Core.Helpers;
 
 namespace Kontent.Ai.ModelGenerator.Core.Common;
 

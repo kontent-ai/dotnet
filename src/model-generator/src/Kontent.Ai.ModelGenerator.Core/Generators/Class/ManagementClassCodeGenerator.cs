@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace Kontent.Ai.ModelGenerator.Core.Common;
 
 /// <summary>

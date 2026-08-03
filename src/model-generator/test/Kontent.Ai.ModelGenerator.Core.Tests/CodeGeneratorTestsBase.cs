@@ -1,6 +1,6 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Common;
-using Moq;
 using Kontent.Ai.ModelGenerator.Core.Contract;
+using Moq;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests;
 

@@ -1,5 +1,4 @@
-﻿using System;
-using Kontent.Ai.ModelGenerator.Core.Configuration;
+﻿using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Generators.Class;
 

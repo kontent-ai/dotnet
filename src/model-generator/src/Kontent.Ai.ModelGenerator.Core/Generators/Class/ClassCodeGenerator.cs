@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using Kontent.Ai.ModelGenerator.Core.Common;
+﻿using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
-using Kontent.Ai.ModelGenerator.Core.Contract;
+﻿using Kontent.Ai.ModelGenerator.Core.Contract;
 
 namespace Kontent.Ai.ModelGenerator;
 

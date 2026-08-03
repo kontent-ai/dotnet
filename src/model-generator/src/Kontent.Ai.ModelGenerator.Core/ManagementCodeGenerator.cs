@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Models.Shared;
-using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.Management.Models.Types;
 using Kontent.Ai.Management.Models.Types.Elements;
+using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;

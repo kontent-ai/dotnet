@@ -1,16 +1,15 @@
 using System.Reflection;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Models.Shared;
-using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.Management.Models.Types;
 using Kontent.Ai.Management.Models.Types.Elements;
-using LimitType = Kontent.Ai.Management.Models.Types.LimitType;
+using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Services;
-using Microsoft.Extensions.Options;
 using Moq;
+using LimitType = Kontent.Ai.Management.Models.Types.LimitType;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests;
 

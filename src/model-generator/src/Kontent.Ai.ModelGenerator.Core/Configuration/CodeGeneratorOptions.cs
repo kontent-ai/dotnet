@@ -1,5 +1,4 @@
-﻿using System;
-using Kontent.Ai.Delivery.Abstractions;
+﻿using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Management.Configuration;
 
 namespace Kontent.Ai.ModelGenerator.Core.Configuration;

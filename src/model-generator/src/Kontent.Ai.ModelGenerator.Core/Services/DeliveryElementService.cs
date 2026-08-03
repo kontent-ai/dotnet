@@ -1,6 +1,4 @@
-﻿using System;
-using Kontent.Ai.ModelGenerator.Core.Common;
-using Kontent.Ai.ModelGenerator.Core.Configuration;
+﻿using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Microsoft.Extensions.Options;
 

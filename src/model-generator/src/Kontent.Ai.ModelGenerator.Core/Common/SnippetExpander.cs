@@ -1,8 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Kontent.Ai.Management.Models.Shared;
-using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.Management.Models.Types.Elements;
+using Kontent.Ai.Management.Models.TypeSnippets;
 
 namespace Kontent.Ai.ModelGenerator.Core.Common;
 
