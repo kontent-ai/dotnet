@@ -7,6 +7,7 @@ on:
   release:
     types: [published]
 
+env:
   PACK_OUTPUT: ./artifacts/release-pack
 
 jobs:
