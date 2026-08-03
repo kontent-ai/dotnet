@@ -4,6 +4,18 @@
     <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore.Tests/Kontent.Ai.AspNetCore.Tests.csproj" />
     <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore/Kontent.Ai.AspNetCore.csproj" />
   </Folder>
+  <Folder Name="/src/delivery/">
+    <Project Path="src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/Kontent.Ai.Delivery.Abstractions.Tests.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.Abstractions/Kontent.Ai.Delivery.Abstractions.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.Benchmarks/Kontent.Ai.Delivery.Benchmarks.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.Caching/Kontent.Ai.Delivery.Caching.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.SourceGeneration.Tests/Kontent.Ai.Delivery.SourceGeneration.Tests.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.SourceGeneration/Kontent.Ai.Delivery.SourceGeneration.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Delivery/Kontent.Ai.Delivery.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Urls.Tests/Kontent.Ai.Urls.Tests.csproj" />
+    <Project Path="src/delivery/Kontent.Ai.Urls/Kontent.Ai.Urls.csproj" />
+  </Folder>
   <Folder Name="/src/management/">
     <Project Path="src/management/Kontent.Ai.Management.Tests/Kontent.Ai.Management.Tests.csproj" />
     <Project Path="src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj" />

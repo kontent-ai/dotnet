@@ -63,12 +63,45 @@ jobs:
           files: src/management/Kontent.Ai.Management.Tests/coverage.opencover.xml
           flags: management
           fail_ci_if_error: true
+      - name: Codecov (delivery)
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/delivery/Kontent.Ai.Delivery.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Urls.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/coverage.opencover.xml
+          flags: delivery
+          fail_ci_if_error: true
       - name: Restore local tools
         if: runner.os == 'Linux'
         run: dotnet tool restore
       - name: Run Slopwatch
         if: runner.os == 'Linux'
         run: dotnet slopwatch analyze -d . --fail-on warning
+
+  project-references:
+    name: Build against repo source
+    runs-on: ubuntu-latest
+    # Early-warning leg (§7). The default `build` job compiles every product against the
+    # PUBLISHED Kontent.Ai.* packages, which is what consumers actually get. This one flips
+    # those to ProjectReferences so a breaking change in one product fails in the PR that
+    # makes it, rather than months later when a consumer next updates.
+    #
+    # Non-blocking for now: promote to a required check once it has proven stable.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore /p:UseProjectReferences=true
+      - name: Build
+        run: dotnet build --no-restore /p:UseProjectReferences=true /p:ContinuousIntegrationBuild=true
+      - name: Test
+        run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=true
 
   pack-validation:
     name: Pack validation
@@ -133,3 +166,36 @@ jobs:
             ./artifacts/pack-validation/*.nupkg
             ./artifacts/pack-validation/*.snupkg
           if-no-files-found: warn
+
+  redis-validation:
+    name: Redis integration tests (delivery)
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+      # These tests are skipped in the normal run unless KONTENT_SDK_RUN_REDIS_TESTS is set,
+      # so this job is the only thing that exercises them.
+      - name: Redis integration tests
+        run: dotnet test src/delivery/Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj --no-build --filter "FullyQualifiedName~RedisCacheIntegrationTests"
+        env:
+          KONTENT_SDK_RUN_REDIS_TESTS: "true"
+          KONTENT_SDK_REDIS_CONNECTION: "localhost:6379"

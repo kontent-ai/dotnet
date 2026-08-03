@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "createdAt": "2026-08-03T15:27:11.38975+00:00",
-  "updatedAt": "2026-08-03T15:27:11.392879+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-08-03 15:27:11 UTC",
+  "createdAt": "2026-08-03T16:09:14.634609+00:00",
+  "updatedAt": "2026-08-03T16:09:14.638134+00:00",
+  "description": "Initial baseline created by 'slopwatch init' on 2026-08-03 16:09:14 UTC",
   "entries": [
     {
       "hash": "073b9b8c3bf254fb",
@@ -11,7 +11,7 @@
       "lineNumber": 12,
       "codeSnippet": "SuppressMessage(\"Design\", \"S3453:Classes should not have only \\\"private\\\" constructors\", Justification = \"Static facade over the inherited static factories; must never be instantiated.\")",
       "message": "SuppressMessage attribute suppressing Design:S3453:Classes should not have only \\\"private\\\" constructors",
-      "baselinedAt": "2026-08-03T15:27:11.392837+00:00"
+      "baselinedAt": "2026-08-03T16:09:14.638043+00:00"
     },
     {
       "hash": "8bf28c88c5092cc4",
@@ -20,7 +20,115 @@
       "lineNumber": 26,
       "codeSnippet": "#pragma warning disable xUnit1013 // Public test method should be marked as test",
       "message": "#pragma warning disable for warnings xUnit1013 without matching restore in same scope",
-      "baselinedAt": "2026-08-03T15:27:11.392879+00:00"
+      "baselinedAt": "2026-08-03T16:09:14.638085+00:00"
+    },
+    {
+      "hash": "18831f0c7b0ab284",
+      "ruleId": "SW002",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Abstractions/QueryBuilders/Filtering/IItemFieldFilter.cs",
+      "lineNumber": 1,
+      "codeSnippet": "#pragma warning disable CS1591 // Missing XML comment - filter methods are self-documenting",
+      "message": "#pragma warning disable for warnings CS1591 without matching restore in same scope",
+      "baselinedAt": "2026-08-03T16:09:14.638088+00:00"
+    },
+    {
+      "hash": "9f55d12315a59e18",
+      "ruleId": "SW002",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Abstractions/QueryBuilders/Filtering/ITaxonomyFieldFilter.cs",
+      "lineNumber": 1,
+      "codeSnippet": "#pragma warning disable CS1591 // Missing XML comment - filter methods are self-documenting",
+      "message": "#pragma warning disable for warnings CS1591 without matching restore in same scope",
+      "baselinedAt": "2026-08-03T16:09:14.638089+00:00"
+    },
+    {
+      "hash": "e2269eaa9224d59d",
+      "ruleId": "SW002",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Abstractions/QueryBuilders/Filtering/ITypeFieldFilter.cs",
+      "lineNumber": 1,
+      "codeSnippet": "#pragma warning disable CS1591 // Missing XML comment - filter methods are self-documenting",
+      "message": "#pragma warning disable for warnings CS1591 without matching restore in same scope",
+      "baselinedAt": "2026-08-03T16:09:14.638094+00:00"
+    },
+    {
+      "hash": "0bbe170abdd5ae9c",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/RichText/StronglyTypedEmbeddedContentTests.cs",
+      "lineNumber": 133,
+      "codeSnippet": "new HtmlResolverBuilder()\n            .WithContentResolver<Tweet>(async tweet =>\n            {\n                await Task.Delay(1); // Simulate async work\n                return $\"<div class=\\\"async-tweet\\\">{tweet.Elements.DisplayOptions?.FirstOrDefault()?.Name ?? \"Async tweet\"}</div>\";\n            })\n            .Build()",
+      "message": "Test uses Task.Delay(?) which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.638102+00:00"
+    },
+    {
+      "hash": "74e2189a7e3710ef",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/RichText/StronglyTypedEmbeddedContentTests.cs",
+      "lineNumber": 136,
+      "codeSnippet": "Task.Delay(1)",
+      "message": "Test uses Task.Delay(1) which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.638103+00:00"
+    },
+    {
+      "hash": "782b8b87c502153a",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/RichText/RichTextIntegrationTests.cs",
+      "lineNumber": 156,
+      "codeSnippet": "new HtmlResolverBuilder()\n            .WithContentResolver(\"tweet\", async (content) =>\n            {\n                // Simulate async database lookup\n                await Task.Delay(1);\n                var tweetData = $\"Tweet by {content.System.Codename}\";\n                return $\"<div class=\\\"tweet\\\" data-id=\\\"{content.System.Id}\\\">{tweetData}</div>\";\n            })\n            .WithContentResolver(\"hosted_video\", async (content) =>\n            {\n                await Task.Delay(1);\n                return $\"<div class=\\\"video\\\" data-codename=\\\"{content.System.Codename}\\\"><iframe src=\\\"video.mp4\\\"></iframe></div>\";\n            })\n            .Build()",
+      "message": "Test uses Task.Delay(?) which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.63811+00:00"
+    },
+    {
+      "hash": "95500a9f50571147",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/RichText/RichTextIntegrationTests.cs",
+      "lineNumber": 156,
+      "codeSnippet": "new HtmlResolverBuilder()\n            .WithContentResolver(\"tweet\", async (content) =>\n            {\n                // Simulate async database lookup\n                await Task.Delay(1);\n                var tweetData = $\"Tweet by {content.System.Codename}\";\n                return $\"<div class=\\\"tweet\\\" data-id=\\\"{content.System.Id}\\\">{tweetData}</div>\";\n            })\n            .WithContentResolver(\"hosted_video\", async (content) =>\n            {\n                await Task.Delay(1);\n                return $\"<div class=\\\"video\\\" data-codename=\\\"{content.System.Codename}\\\"><iframe src=\\\"video.mp4\\\"></iframe></div>\";\n            })",
+      "message": "Test uses Task.Delay(\"hosted_video\") which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.638113+00:00"
+    },
+    {
+      "hash": "ddc38dfa9a5a84fc",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/RichText/RichTextIntegrationTests.cs",
+      "lineNumber": 160,
+      "codeSnippet": "Task.Delay(1)",
+      "message": "Test uses Task.Delay(1) which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.638115+00:00"
+    },
+    {
+      "hash": "127e82b2893a22cf",
+      "ruleId": "SW004",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/Caching/CachingIntegrationTests.cs",
+      "lineNumber": 164,
+      "codeSnippet": "Task.Delay(200)",
+      "message": "Test uses Task.Delay(200) which may indicate a timing-dependent test",
+      "baselinedAt": "2026-08-03T16:09:14.638123+00:00"
+    },
+    {
+      "hash": "b35d17d9b18d1d6f",
+      "ruleId": "SW005",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.SourceGeneration/Kontent.Ai.Delivery.SourceGeneration.csproj",
+      "lineNumber": 17,
+      "codeSnippet": "<NoWarn>RS2008;CS1591</NoWarn>",
+      "message": "Setting NoWarn to suppress warnings: RS2008;CS1591",
+      "baselinedAt": "2026-08-03T16:09:14.638131+00:00"
+    },
+    {
+      "hash": "446a6b599be3fbef",
+      "ruleId": "SW005",
+      "filePath": "src/delivery/Kontent.Ai.Delivery.Benchmarks/Kontent.Ai.Delivery.Benchmarks.csproj",
+      "lineNumber": 9,
+      "codeSnippet": "<NoWarn>CS1591</NoWarn>",
+      "message": "Setting NoWarn to suppress warnings: CS1591",
+      "baselinedAt": "2026-08-03T16:09:14.638132+00:00"
+    },
+    {
+      "hash": "473facf6588b9e9d",
+      "ruleId": "SW003",
+      "filePath": "src/delivery/Kontent.Ai.Delivery/ContentItems/TypeProvider.cs",
+      "lineNumber": 95,
+      "codeSnippet": "catch\n        {\n            // Ignore exceptions - assembly might not be loadable\n        }",
+      "message": "Empty catch block swallows exceptions without handling",
+      "baselinedAt": "2026-08-03T16:09:14.638134+00:00"
     }
   ]
 }

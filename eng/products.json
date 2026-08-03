@@ -9,6 +9,24 @@
       "Kontent.Ai.AspNetCore"
     ]
   },
+  "delivery": {
+    "versionProperty": "DeliveryVersion",
+    "changelog": "src/delivery/CHANGELOG.md",
+    "projects": [
+      "src/delivery/Kontent.Ai.Delivery/Kontent.Ai.Delivery.csproj",
+      "src/delivery/Kontent.Ai.Delivery.Abstractions/Kontent.Ai.Delivery.Abstractions.csproj",
+      "src/delivery/Kontent.Ai.Delivery.Caching/Kontent.Ai.Delivery.Caching.csproj",
+      "src/delivery/Kontent.Ai.Delivery.SourceGeneration/Kontent.Ai.Delivery.SourceGeneration.csproj",
+      "src/delivery/Kontent.Ai.Urls/Kontent.Ai.Urls.csproj"
+    ],
+    "expectedPackages": [
+      "Kontent.Ai.Delivery",
+      "Kontent.Ai.Delivery.Abstractions",
+      "Kontent.Ai.Delivery.Caching",
+      "Kontent.Ai.Delivery.SourceGeneration",
+      "Kontent.Ai.Urls"
+    ]
+  },
   "management": {
     "versionProperty": "ManagementVersion",
     "changelog": "src/management/CHANGELOG.md",

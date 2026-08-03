@@ -5,7 +5,9 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <NoWarn>CS1591</NoWarn>
-    <Threshold>70</Threshold>
+    <!-- Set just under current coverage so it blocks regression rather than aspiring.
+         Measured 86.37% line on 2026-08-03; the previous 70 sat 16 points below actual. -->
+    <Threshold>85</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
   </PropertyGroup>

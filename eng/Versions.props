@@ -7,6 +7,7 @@
        promotes the changelog), merge, then tag <product>-v<version>. The release
        workflow refuses to publish if the tag and the property disagree. -->
   <PropertyGroup>
+    <DeliveryVersion>19.3.1</DeliveryVersion>
     <ManagementVersion>9.0.0-beta-4</ManagementVersion>
     <AspNetCoreVersion>0.17.0-preview.1</AspNetCoreVersion>
   </PropertyGroup>

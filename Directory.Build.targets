@@ -1,0 +1,47 @@
+<Project>
+  <!-- Flip in-repo Kontent.Ai.* PackageReferences to ProjectReferences.
+       Modelled on Azure SDK's UseProjectReferenceToAzureClients.
+
+         dotnet build                                # default: against published packages
+         dotnet build /p:UseProjectReferences=true   # against repo source
+
+       The DEFAULT is deliberately PackageReference. It reproduces what a consumer
+       actually gets, and keeps each product independently releasable - a product here
+       consumes its siblings from nuget.org exactly as an external consumer does.
+
+       The switched build is the early-warning system: a breaking change in Delivery
+       shows up as a red build in the PR that makes it, rather than months later when
+       a consumer next updates. CI runs both legs.
+
+       Done at evaluation time rather than in a target: Directory.Build.targets is
+       imported after the project body, so PackageReference items already exist here,
+       and swapping now means the rest of the build (restore included) sees the result.
+
+       Kontent.Ai.Delivery.SourceGeneration is deliberately absent - it is consumed as
+       an analyzer (OutputItemType="Analyzer" ReferenceOutputAssembly="false"), so a
+       blind swap would change how it is applied rather than just where it comes from.
+
+       This list must stay in step with eng/products.json. -->
+
+  <ItemGroup Condition="'$(UseProjectReferences)' == 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/delivery/Kontent.Ai.Delivery/Kontent.Ai.Delivery.csproj"
+                      Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Delivery'))" />
+    <PackageReference Remove="Kontent.Ai.Delivery" />
+
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/delivery/Kontent.Ai.Delivery.Abstractions/Kontent.Ai.Delivery.Abstractions.csproj"
+                      Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Delivery.Abstractions'))" />
+    <PackageReference Remove="Kontent.Ai.Delivery.Abstractions" />
+
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/delivery/Kontent.Ai.Delivery.Caching/Kontent.Ai.Delivery.Caching.csproj"
+                      Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Delivery.Caching'))" />
+    <PackageReference Remove="Kontent.Ai.Delivery.Caching" />
+
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/delivery/Kontent.Ai.Urls/Kontent.Ai.Urls.csproj"
+                      Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Urls'))" />
+    <PackageReference Remove="Kontent.Ai.Urls" />
+
+    <ProjectReference Include="$(MSBuildThisFileDirectory)src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj"
+                      Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Management'))" />
+    <PackageReference Remove="Kontent.Ai.Management" />
+  </ItemGroup>
+</Project>

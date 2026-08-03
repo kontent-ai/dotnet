@@ -1,0 +1,1716 @@
+# Kontent.Ai.Delivery
+
+Covers `Kontent.Ai.Delivery`, `.Abstractions`, `.Caching`, `.SourceGeneration` and `Kontent.Ai.Urls`,
+which ship in lockstep on one version.
+
+Entries before the move to this monorepo were imported from the GitHub Releases of
+[kontent-ai/delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net).
+
+## Unreleased
+
+## 19.3.1 (2026-07-30)
+
+### Kontent.ai .NET Delivery SDK 19.3.1
+
+Patch release: picks up a security fix in AngleSharp. No public API or behavior changes.
+
+**Security**
+
+- Upgraded AngleSharp from 1.3.0 to 1.5.0, resolving CVE-2026-54570 — mXSS via a MathML annotation-xml HTML integration point bypass.
+- Delivery is only partially exposed to this. Rich text parsing goes through AngleSharp, but serialization does not: the SDK rebuilds parsed content into its own block tree and renders it through HtmlResolver, which HTML-encodes attribute values and text nodes instead of using AngleSharp's formatter. The upgrade clears the advisory for every consumer regardless.
+
+**Internal**
+
+Test-only dependency updates. Neither package ships in Kontent.Ai.Delivery:
+
+- Microsoft.CodeAnalysis.CSharp.Analyzer.Testing 1.1.2 → 1.1.4, which drops a transitive System.Formats.Asn1 5.0.0 (GHSA-447r-wph3-92pm).
+- FluentAssertions moved to the range [7.2.2,8.0.0) — takes the newest Apache 2.0 release and prevents the build from drifting into the commercially licensed 8.x.
+
+Full Changelog: https://github.com/kontent-ai/delivery-sdk-net/compare/19.3.0...19.3.1
+
+## 19.3.0 (2026-06-24)
+
+Maintenance release: HTTP transport alignment with the modernized Management SDK, plus internal streamlining of dependency-injection registration and options handling. The public API is unchanged.
+
+#### Dependencies
+
+- Upgraded `Refit` and `Refit.HttpClientFactory` from **8.0.0** to **10.1.6**, and moved the `Microsoft.Extensions.*` dependencies to the **9.x** servicing band.
+- This brings Delivery onto the same Refit and `Microsoft.Extensions.Http` versions as the modernized `Kontent.Ai.Management` SDK, so both can be referenced in a single project (e.g. the Kontent.ai model generator) with one Refit in the dependency closure.
+- Target framework is unchanged (`net8.0`). No code changes were required — Delivery already uses `System.Text.Json` for Refit serialization.
+
+#### Internal improvements
+
+These are implementation-only changes with no public API or behavior impact:
+
+- DI registration and runtime options access are streamlined behind a single internal options accessor. The `DeliveryClient` and the authentication handler no longer thread an `IOptionsMonitor` plus client name around; they read effective options through one abstraction, which also removes a duplicate handler constructor.
+- Options copying during client registration no longer uses reflection — values are copied explicitly, dropping the internal reflection-based helper.
+
+#### Upgrade notes
+
+- `RefitSettings` (exposed via `RefitSettingsProvider.CreateDefaultSettings()` and the `configureRefit` parameter on `AddDeliveryClient(...)`) now resolves from Refit 10. Its public shape is unchanged, so existing configuration code compiles as-is.
+- If your application **directly** references `Refit` 8.x, it will now float to 10.x and inherit Refit's own 8→10 breaking changes. Review the [Refit release notes](https://github.com/reactiveui/refit/releases) if you call Refit APIs directly.
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.2.0...19.3.0
+
+## 19.2.0 (2026-05-04)
+
+Minor release adding a canonical empty value for rich text and sealing `RichTextContent` against post-construction mutation. Pre-requisite for upcoming improvements to model generator (default values instead of strict nullability everywhere).
+
+> [!IMPORTANT]
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade-guide.md) before you start.
+
+#### What's new
+
+- `RichTextContent.Empty` — shared singleton representing the `<p><br></p>` value Kontent.ai returns for empty rich text.
+- `RichTextContent` is now immutable. Blocks and metadata are supplied at construction time only; the internal `AddRange` method and the `Links` / `Images` / `ModularContentCodenames` setters are gone.
+
+```csharp
+public record Article
+{
+    public RichTextContent BodyCopy { get; init; } = RichTextContent.Empty;
+}
+```
+
+#### Migration from 19.1
+
+The public parameterless `RichTextContent()` constructor has been removed. It produced a `Count == 0` instance that could not be populated through any public API — effectively unusable. Replace any call sites with `RichTextContent.Empty`, or remove them.
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.1.0...19.2.0
+
+## 19.1.0 (2026-04-27)
+
+Minor release adding `IServiceProvider`-aware DI registration overloads so SDK options can be composed from sibling services already registered in the container.
+
+> [!IMPORTANT]
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade-guide.md) before you start.
+
+#### What's new
+
+- `(IServiceProvider, options)` overloads on `AddDeliveryClient`, `AddDeliveryMemoryCache`, `AddDeliveryHybridCache`, and the matching `DeliveryClientBuilder.WithMemoryCache` / `WithHybridCache` builder methods.
+- `configureRefit` forwarding on the default advanced `AddDeliveryClient(...)` overloads, for parity with named-client registration.
+- Repeated cache registration for the same client is now explicitly last-wins — earlier keyed `IDeliveryCacheManager` registrations are removed before the new one is added.
+
+```csharp
+services.Configure<SiteOptions>(configuration.GetSection("Site"));
+
+services.AddDeliveryMemoryCache("production", (sp, options) =>
+{
+    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+    options.DefaultExpiration = site.CacheExpiration;
+    options.IsFailSafeEnabled = true;
+});
+```
+
+The cache callback runs the first time the cache manager is resolved, not at registration time. Resolve only singleton-safe dependencies (`IOptions<T>`, `IOptionsMonitor<T>`, configuration, loggers) — not `IOptionsSnapshot<T>` or other scoped services.
+
+#### Migration from 19.0
+
+No code changes required. Use the new `(IServiceProvider, options)` overloads when SDK options need to be composed from other DI services; keep using the plain `Action<...>` overloads when you want eager validation at registration time.
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.0.0...19.1.0
+
+## 19.0.0 (2026-04-19)
+
+Production release of the revamped 19.0 SDK, consolidating pre-release iterations into a stable GA. Changes vs RC5: SDK tracking headers no longer leak SourceLink build metadata, and per-content-type cache invalidation tags now flow through to cached item entries.
+
+> [!IMPORTANT]
+> **Upgrading from 18.x?** 19.0 is a ground-up design overhaul of the SDK — every public surface area has changed. Read the [upgrade guide](docs/upgrade-guide.md) and the [quick migration checklist](docs/upgrade-guide.md#quick-migration-checklist) before you start.
+
+#### Public API surface changes
+
+19.0 replaces the 18.x public API across every area:
+
+- **Query methods** — `GetItemAsync<T>(...)` / `GetItemsAsync<T>(...)` replaced by the fluent `GetItem<T>("codename").ExecuteAsync()` / `GetItems<T>().ExecuteAsync()` builder pattern.
+- **Filtering** — Parameter classes (`EqualsFilter`, `InFilter`, `LanguageParameter`, …) replaced by fluent `.Where(...)`, `.Language(...)`, `.OrderBy(...)`, etc.
+- **Response handling** — Direct response types replaced by `IDeliveryResult<T>` / `IDeliveryItemListingResult<T>` with a result pattern (`IsSuccess` / `Value` / `Error` / `StatusCode` / `DependencyKeys` / `ResponseSource`).
+- **Model structure** — Flat properties (`item.Title`) replaced by `IContentItem<T>` wrapper (`result.Value.System`, `result.Value.Elements.Title`).
+- **Caching** — Legacy `Kontent.Ai.Delivery.Caching` replaced by the FusionCache-backed redesign (`MemoryCacheManager` / `HybridCacheManager`, tag-based invalidation, `DependencyKeys`, `CacheResult<T>`, `CacheStorageMode`).
+- **Resilience** — `IRetryPolicy` replaced by Polly-based `configureResilience` pipelines.
+- **Rich text** — `IContentLinkUrlResolver` / `IInlineContentItemsResolver<T>` replaced by the `HtmlResolverBuilder` fluent API.
+- **DI registration** — New overloads, keyed services, named clients, and `ConfigureServices(...)` hook; `AddDeliveryClientCache` split into `AddDeliveryMemoryCache` / `AddDeliveryHybridCache`.
+- **Sync API** — Removed from this package; moved to the standalone [`Kontent.Ai.Sync`](https://github.com/kontent-ai/sync-sdk-net) package.
+
+The full type-by-type surface diff, including renamed / removed / added members across every RC, is enumerated in the [upgrade guide](docs/upgrade-guide.md). The public-API approval snapshot (`Kontent.Ai.Delivery.Abstractions.Tests/ApiApproval/PublicApiApprovalTests.PublicApi_ShouldNotChangeUnexpectedly.verified.txt`) is the authoritative reference for the 19.0.0 surface.
+
+#### Bug fixes from rc5
+
+- **SDK tracking headers no longer leak build metadata** — The `X-KC-SDKID` and `X-KC-SOURCE` headers previously included the SourceLink-appended commit SHA (e.g. `nuget.org;Kontent.Ai.Delivery;5.0.0-rc.5+a1b2c3d`) because the SDK derived the version from `FileVersionInfo.ProductVersion`, which mirrors `AssemblyInformationalVersionAttribute` and therefore carried the `+metadata` suffix when built with SourceLink + `ContinuousIntegrationBuild`. Both headers now emit clean SemVer (`nuget.org;Kontent.Ai.Delivery;5.0.0-rc.5`). Pre-release labels are preserved; only the SemVer build-metadata suffix (everything from `+` onward) is stripped. Version extraction no longer performs disk I/O via `FileVersionInfo.GetVersionInfo(assembly.Location)`, improving reliability under NativeAOT, trimming, and single-file publishing. The legacy Xamarin Android `FileNotFoundException` workaround has been removed.
+
+#### Improvements from rc5
+
+- **Per-content-type cache invalidation tag on cached item entries** — The `type_{codename}` cache dependency tag — previously attached only to cached type-definition responses from `GetType()` / `GetTypes()` — is now also attached to every cached item / item-list response whose payload references at least one item of that content type (including transitive references via modular content, linked-items elements, and rich-text inline items). Invalidating `type_{codename}` therefore evicts **both** the cached type definition and any item caches referencing items of that type, giving consumers a granular invalidation signal for content-type webhooks without resorting to the coarse `DeliveryCacheDependencies.ItemsListScope`.
+
+  Runtime behavior:
+  - Cached `GetItem<T>()` and `GetItems<T>()` responses now carry an additional `type_{codename}` dependency key for every content type referenced by the response (including the primary item(s) and every entry in `ModularContent`).
+  - These keys are surfaced via `IDeliveryResult<T>.DependencyKeys` alongside existing `item_{codename}`, `asset_{guid}`, and `taxonomy_{group}` keys, so downstream tag-based caches (e.g. ASP.NET output cache) automatically benefit as well.
+  - No change to cache-key format, storage, or expiration — only the set of tags attached to each entry grows.
+
+  Recommended webhook pattern for content-type change or deletion events:
+  ```csharp
+  await cacheManager.InvalidateAsync([
+      $"type_{typeCodename}",
+      DeliveryCacheDependencies.TypesListScope]);
+  ```
+  This single call now invalidates the cached type definition, every cached item / item-list response containing items of that type, and the types-list cache.
+
+  The change is purely additive inside `DependencyTrackingContext` (internal) and the item-query builders. XML documentation on `IDeliveryCacheManager` has been updated to describe the broadened semantics of `type_{codename}`.
+
+#### Documentation updates
+
+- `docs/upgrade-guide.md` — Comprehensive 18.x → 19.0 migration guide covering query methods, filtering, caching, resilience, rich text, response handling, model structure, DI registration, removed features, new features, and Sync API migration.
+- `docs/caching-guide.md` — Updated dependency-tracking section, invalidation matrix, and webhook recipe to describe the broadened `type_{codename}` semantics.
+
+#### Migration from 18.x
+
+See [`docs/upgrade-guide.md`](docs/upgrade-guide.md). Every call site that uses the SDK will need code changes — the guide is structured as an eleven-section walkthrough with before/after snippets for each area, plus a quick checklist.
+
+#### Migration from RC5
+
+No code changes required for the RC5 → GA delta. Existing cache-invalidation calls keep working; consumers can opt into the finer-grained type-invalidation behavior by switching from `DeliveryCacheDependencies.ItemsListScope` to `type_{codename}` where the coarse scope was used as a workaround for missing per-type invalidation.
+
+If you are catching the RC line up to GA, also review the cumulative changes introduced across the pre-release cycle via the per-RC changelogs linked below.
+
+---
+
+See [rc5 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc5), [rc4 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc4), [rc3 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc3), [rc2 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc2), and [rc1 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc1) for per-RC changelogs.
+
+
+### What's Changed
+* Modernization by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/407
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.3.0...19.0.0
+
+## 19.0.0-rc5 (2026-04-13)  _(prerelease)_
+
+`InvalidateAsync` parameter reorder for idiomatic .NET convention, `ContinuationToken` removed from `IDeliveryResult<T>`, `IError.ErrorCode` semantic fix, `TryGet` added to `IDeliveryClientFactory`, rich text whitespace fix, and internal cache manager simplifications.
+
+#### New
+
+- **`IDeliveryClientFactory.TryGet(string name)`** — Returns the named client, or `null` if no client with that name has been registered. Use this instead of catching `InvalidOperationException` from `Get` when the client's presence is conditional.
+
+#### Breaking changes
+- **`InvalidateAsync` parameter order changed** — `IDeliveryCacheManager.InvalidateAsync` signature changed from `(CancellationToken, params string[])` to `(string[], CancellationToken)`. The `CancellationToken` now follows standard .NET convention as the last parameter. The `params` keyword was removed; use collection expressions instead. If you implement a custom `IDeliveryCacheManager`, update the parameter order.
+- **`IDeliveryResult<T>.ContinuationToken` removed** — The property was always `null` except for items-feed responses, where it was an internal HTTP protocol detail (`X-Continuation` header) that leaked into the public contract. Feed pagination is fully handled by `IDeliveryItemsFeedResponse.HasNextPage` / `FetchNextPageAsync()`. If you implement or mock `IDeliveryResult<T>`, remove the `ContinuationToken` member. If you read `result.ContinuationToken` at call sites, remove those reads and rely on the feed response interface instead.
+- **`IError.ErrorCode` no longer populated for non-Kontent.ai errors** — Previously, when an error could not be parsed as a structured Kontent.ai API error (network failure, non-JSON response body, empty body), `ErrorCode` was set to the HTTP status code integer as a fallback. This conflated two different concepts: Kontent.ai application error codes and HTTP status codes. `ErrorCode` is now `null` in those cases. The HTTP status is already available on `IDeliveryResult.StatusCode`. If your error-handling code checks `error.ErrorCode` expecting the HTTP status for non-API errors, switch to `result.StatusCode`.
+
+#### Bug fixes
+- **Rich text: whitespace between adjacent inline elements preserved** — A single space (or any whitespace-only text node) that separates two inline elements — e.g. `</a> <strong>` or `</strong> <em>` — was silently dropped during rich text parsing. The rendered HTML was missing those spaces, causing words to run together. The parser now retains whitespace-only text nodes so the resolved HTML matches the original content.
+
+#### Internal improvements
+- **Extracted shared cache policy helper in `FusionCacheManager`** — Fail-safe, jitter, and eager-refresh option configuration is now applied via a single `ApplyCachePolicy` helper, eliminating duplication across `CreateMemory` and `CreateHybrid` factory methods.
+- **Removed dead `_ownsFusionCache` field** — Both factory methods always owned the `IFusionCache` instance. The conditional dispose branch was unreachable and has been removed.
+- **Reduced allocation in `InvalidateAsync`** — The common path (all dependency keys valid) no longer allocates an intermediate array from LINQ filtering.
+
+#### Migration from RC4
+
+1. Update `InvalidateAsync` call sites — move `CancellationToken` to the last argument and wrap string arguments in collection expressions:
+   ```csharp
+   // Before (RC4)
+   await cacheManager.InvalidateAsync(default, "item_hero");
+   await cacheManager.InvalidateAsync(default, "item_hero", "item_author");
+   await cacheManager.InvalidateAsync(stoppingToken, "items_news");
+
+   // After (RC5)
+   await cacheManager.InvalidateAsync(["item_hero"]);
+   await cacheManager.InvalidateAsync(["item_hero", "item_author"]);
+   await cacheManager.InvalidateAsync(["items_news"], stoppingToken);
+   ```
+
+2. If you implement `IDeliveryCacheManager`, update the `InvalidateAsync` signature:
+   ```csharp
+   // Before (RC4)
+   public Task<bool> InvalidateAsync(CancellationToken cancellationToken = default, params string[] dependencyKeys)
+
+   // After (RC5)
+   public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
+   ```
+
+3. If you pass a `string[]` variable directly, the call simplifies (no `default` needed):
+   ```csharp
+   // Before (RC4)
+   await cacheManager.InvalidateAsync(default, dependencyKeys);
+
+   // After (RC5)
+   await cacheManager.InvalidateAsync(dependencyKeys);
+   ```
+
+4. Remove `ContinuationToken` from any `IDeliveryResult<T>` implementations or mocks:
+   ```csharp
+   // Before (RC4) — implementing or mocking IDeliveryResult<T>
+   public string? ContinuationToken => null;
+
+   // After (RC5) — remove the member entirely
+   ```
+   If you read `result.ContinuationToken` to drive feed pagination, use the feed response instead:
+   ```csharp
+   // Before (RC4)
+   while (!string.IsNullOrEmpty(result.ContinuationToken)) { ... }
+
+   // After (RC5)
+   while (result.Value.HasNextPage)
+   {
+       result = await result.Value.FetchNextPageAsync();
+   }
+   ```
+
+5. If you check `error.ErrorCode` expecting the HTTP status code for transport-level or non-JSON errors, switch to `result.StatusCode`:
+   ```csharp
+   // Before (RC4) — ErrorCode was set to HTTP status for non-Kontent.ai errors
+   if (result.Error?.ErrorCode == 503) { ... }
+
+   // After (RC5) — use StatusCode; ErrorCode is null for non-structured errors
+   if (result.StatusCode == HttpStatusCode.ServiceUnavailable) { ... }
+   ```
+
+See [rc4 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc4), [rc3 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc3), [rc2 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc2), and [rc1 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc1) for previous changelogs.
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.0.0-rc4...19.0.0-rc5
+
+## 19.0.0-rc4 (2026-03-18)  _(prerelease)_
+
+Dependency keys on all delivery results, cache envelope architecture, and `CacheResult<T>` to preserve dependency metadata through the cache boundary.
+
+#### Breaking changes
+- **`IDeliveryCacheManager.GetOrSetAsync<T>` return type changed** — Return type changed from `Task<T?>` to `Task<CacheResult<T>?>`. The new `CacheResult<T>` record carries both the cached value (`Value`) and its canonical dependency keys (`DependencyKeys`). If you implement a custom `IDeliveryCacheManager`, update the return type and wrap values in `CacheResult<T>`. Built-in `MemoryCacheManager` and `HybridCacheManager` are updated automatically.
+- **`IDeliveryResult<T>` now includes `DependencyKeys` property** — A new `IReadOnlyList<string>? DependencyKeys` property has been added to `IDeliveryResult<T>`. Returns `null` when dependency keys were not collected, or a list of canonical keys when available. If you manually implement or mock `IDeliveryResult<T>`, add the new member (return `null` for no-op implementations).
+
+#### New features
+- **Dependency keys exposed on all delivery results** — Every `IDeliveryResult<T>` now carries the canonical dependency keys describing which content entities the response depends on (e.g., `item_hero`, `asset_a5e1c4b2`, `taxonomy_personas`). These keys enable downstream cache invalidation scenarios such as ASP.NET output-cache tagging, CDN surrogate keys, or any external cache that needs content-aware invalidation. Access via `result.DependencyKeys` (`null` when not collected, non-null list when available).
+- **`CacheResult<T>` type** — New public record `CacheResult<T>(T Value, IReadOnlyList<string> DependencyKeys)` returned by `IDeliveryCacheManager.GetOrSetAsync<T>`. Preserves dependency keys through the cache boundary so they can be surfaced on delivery results even for cache hits.
+
+#### Internal improvements
+- **Dependency extraction always active** — `ContentDependencyExtractor` is now always registered (previously a no-op `NullContentDependencyExtractor` was used when caching was disabled). This enables dependency keys on results regardless of cache configuration.
+- **Cache envelope architecture** — `FusionCacheManager` now stores values in an internal `CacheEnvelope<T>` that preserves dependency keys alongside the cached value, eliminating the need for query builders to manually wrap/unwrap dependency metadata.
+
+#### Migration from RC3
+
+1. If you implement `IDeliveryCacheManager`, update `GetOrSetAsync` return type:
+   ```csharp
+   // Before
+   public async Task<T?> GetOrSetAsync<T>(...) where T : class
+   {
+       var entry = await factory(cancellationToken);
+       return entry?.Value;
+   }
+
+   // After
+   public async Task<CacheResult<T>?> GetOrSetAsync<T>(...) where T : class
+   {
+       var entry = await factory(cancellationToken);
+       if (entry is null) return null;
+       return new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
+   }
+   ```
+
+2. If you implement or mock `IDeliveryResult<T>`, add the new `DependencyKeys` property:
+   ```csharp
+   public IReadOnlyList<string>? DependencyKeys => null;
+   ```
+
+3. If you read properties from the cache manager return value, access `.Value` first:
+   ```csharp
+   // Before
+   var cached = await cacheManager.GetOrSetAsync("key", factory);
+   if (cached != null) DoSomething(cached.SomeProperty);
+
+   // After
+   var cached = await cacheManager.GetOrSetAsync("key", factory);
+   if (cached != null) DoSomething(cached.Value.SomeProperty);
+   ```
+
+See [rc3 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc3), [rc2 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc2), and [rc1 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc1) for previous changelogs.
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.0.0-rc3...19.0.0-rc4
+
+## 19.0.0-rc3 (2026-03-06)  _(prerelease)_
+
+> [!NOTE]
+> RC3 includes all changes from RC2 that were not included in the RC2 package due to a packaging error, plus one additional naming change.
+
+Response provenance metadata, asset nullability improvements, hybrid cache rename, and reliability fixes across caching, query serialization, and rich text processing.
+
+#### Breaking changes
+- **`EnumerateItemsAsync` renamed to `EnumerateAsync`** — The terminal method on `IEnumerateItemsQuery<TModel>`, `IDynamicEnumerateItemsQuery`, `IItemUsedInQuery`, and `IAssetUsedInQuery` has been renamed from `EnumerateItemsAsync` to `EnumerateAsync`. The "Items" suffix was redundant given the query context. Find-and-replace `.EnumerateItemsAsync(` → `.EnumerateAsync(` in your code.
+- **Response source metadata on delivery results** — `IDeliveryResult<T>` now includes a `ResponseSource` property (`Origin`, `Cdn`, `Cache`, `FailSafe`) to distinguish API/CDN responses from SDK cache and fail-safe responses. `IsCacheHit` remains available and maps to `Cache` or `FailSafe`. If you manually implement or mock `IDeliveryResult<T>`, add the new `ResponseSource` member.
+- **Asset width/height are now nullable** — `IAsset.Width` and `IAsset.Height` changed from `int` to `int?`. Missing or non-numeric values now map to `null` instead of defaulting to `0`. Add null checks if your code assumes these fields are always present.
+- **`DistributedCacheManager` renamed to `HybridCacheManager`** — Public DI extension methods renamed to better reflect the hybrid (L1 memory + L2 distributed) caching behavior:
+  | Before | After |
+  |---|---|
+  | `AddDeliveryDistributedCache()` | `AddDeliveryHybridCache()` |
+  | `WithDistributedCache()` | `WithHybridCache()` |
+
+  Microsoft's `IDistributedCache`, `AddDistributedMemoryCache`, `AddStackExchangeRedisCache`, etc. are **not** affected.
+- **`InvalidateAsync` returns `Task<bool>`** — `IDeliveryCacheManager.InvalidateAsync` now returns `Task<bool>` instead of `Task`. Returns `true` on success, `false` on failure. Exceptions are still swallowed and logged — callers who don't check the return value get fire-and-forget behavior; callers who care can check and retry.
+- **`ConfigureFusionCacheOptions` callback** — New `Action<object>? ConfigureFusionCacheOptions` property on `DeliveryCacheOptions` allows advanced FusionCache configuration (backplane, eager refresh, etc.) without leaking FusionCache types into the Abstractions API. The callback receives the `FusionCacheOptions` instance after SDK defaults are applied.
+
+#### New features
+- **`WithoutElements` on feed queries** — `IEnumerateItemsQuery<TModel>` and `IDynamicEnumerateItemsQuery` now expose `WithoutElements(params string[] elementCodenames)` to exclude elements from feed responses, matching the existing method on item/items queries.
+
+#### Fixed
+- **Elements projection serialized as repeated query parameters** — `.WithElements()` and `.WithoutElements()` produced multiple `elements=` / `excludeElements=` query parameters (e.g., `elements=title&elements=summary`) instead of a single comma-delimited value (`elements=title,summary`). The API ignored the repeated keys, effectively applying only the last value.
+- **`_failSafeActiveKeys` leak in long-running services** — `FusionCacheManager` now cleans up `_failSafeActiveKeys` entries when FusionCache evicts them, preventing unbounded memory growth.
+- **`PurgeAsync` incorrectly cleared fail-safe tracking** — `PurgeAsync` now only clears `_failSafeActiveKeys` when `allowFailSafe == false`. Previously it cleared unconditionally, causing stale entries to report `ResponseSource.Cache` instead of `ResponseSource.FailSafe` until the next hit.
+- **Rich text void element handling scoped to Kontent.ai spec** — `HtmlElementResolver` now only treats `<br>` and `<img>` as void elements, matching the [Kontent.ai rich text allowed elements](https://kontent.ai/learn/docs/apis/delivery-api/content-elements#html-5-elements-allowed-in-rich-text). Previously used a per-call `HashSet` with 14 HTML5 void elements.
+- **`IDeliveryResult<T>.Value` behavior documented** — Added XML doc specifying that `Value` may be `default` when `IsSuccess` is `false`.
+
+#### Migration from RC2
+
+1. Find-and-replace in your startup/DI code:
+   - `AddDeliveryDistributedCache` → `AddDeliveryHybridCache`
+   - `WithDistributedCache` → `WithHybridCache`
+
+2. If your code reads `IAsset.Width` or `IAsset.Height`, add null checks:
+   ```csharp
+   // Before
+   var width = asset.Width;
+
+   // After
+   if (asset.Width is not null)
+   {
+       var width = asset.Width.Value;
+   }
+   ```
+
+3. If you implement or mock `IDeliveryResult<T>`, add the new `ResponseSource` member.
+
+4. If you implement `IDeliveryCacheManager`, update `InvalidateAsync` to return `bool`.
+
+5. Find-and-replace `.EnumerateItemsAsync(` → `.EnumerateAsync(` in any code using feed or used-in queries.
+
+See [rc2 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc2) and [rc1 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc1) for previous changelogs.
+
+## 19.0.0-rc2 (2026-03-04)  _(prerelease)_
+
+Response provenance metadata, asset nullability improvements, hybrid cache rename, and reliability fixes across caching, query serialization, and rich text processing.
+
+#### Breaking changes
+- **Response source metadata on delivery results** — `IDeliveryResult<T>` now includes a `ResponseSource` property (`Origin`, `Cdn`, `Cache`, `FailSafe`) to distinguish API/CDN responses from SDK cache and fail-safe responses. `IsCacheHit` remains available and maps to `Cache` or `FailSafe`. If you manually implement or mock `IDeliveryResult<T>`, add the new `ResponseSource` member.
+- **Asset width/height are now nullable** — `IAsset.Width` and `IAsset.Height` changed from `int` to `int?`. Missing or non-numeric values now map to `null` instead of defaulting to `0`. Add null checks if your code assumes these fields are always present.
+- **`DistributedCacheManager` renamed to `HybridCacheManager`** — Public DI extension methods renamed to better reflect the hybrid (L1 memory + L2 distributed) caching behavior:
+  | Before | After |
+  |---|---|
+  | `AddDeliveryDistributedCache()` | `AddDeliveryHybridCache()` |
+  | `WithDistributedCache()` | `WithHybridCache()` |
+
+  Microsoft's `IDistributedCache`, `AddDistributedMemoryCache`, `AddStackExchangeRedisCache`, etc. are **not** affected.
+- **`InvalidateAsync` returns `Task<bool>`** — `IDeliveryCacheManager.InvalidateAsync` now returns `Task<bool>` instead of `Task`. Returns `true` on success, `false` on failure. Exceptions are still swallowed and logged — callers who don't check the return value get fire-and-forget behavior; callers who care can check and retry.
+- **`ConfigureFusionCacheOptions` callback** — New `Action<object>? ConfigureFusionCacheOptions` property on `DeliveryCacheOptions` allows advanced FusionCache configuration (backplane, eager refresh, etc.) without leaking FusionCache types into the Abstractions API. The callback receives the `FusionCacheOptions` instance after SDK defaults are applied.
+
+#### New features
+- **`WithoutElements` on feed queries** — `IEnumerateItemsQuery<TModel>` and `IDynamicEnumerateItemsQuery` now expose `WithoutElements(params string[] elementCodenames)` to exclude elements from feed responses, matching the existing method on item/items queries.
+
+#### Fixed
+- **Elements projection serialized as repeated query parameters** — `.WithElements()` and `.WithoutElements()` produced multiple `elements=` / `excludeElements=` query parameters (e.g., `elements=title&elements=summary`) instead of a single comma-delimited value (`elements=title,summary`). The API ignored the repeated keys, effectively applying only the last value.
+- **`_failSafeActiveKeys` leak in long-running services** — `FusionCacheManager` now cleans up `_failSafeActiveKeys` entries when FusionCache evicts them, preventing unbounded memory growth.
+- **`PurgeAsync` incorrectly cleared fail-safe tracking** — `PurgeAsync` now only clears `_failSafeActiveKeys` when `allowFailSafe == false`. Previously it cleared unconditionally, causing stale entries to report `ResponseSource.Cache` instead of `ResponseSource.FailSafe` until the next hit.
+- **Rich text void element handling scoped to Kontent.ai spec** — `HtmlElementResolver` now only treats `<br>` and `<img>` as void elements, matching the [Kontent.ai rich text allowed elements](https://kontent.ai/learn/docs/apis/delivery-api/content-elements#html-5-elements-allowed-in-rich-text). Previously used a per-call `HashSet` with 14 HTML5 void elements.
+- **`IDeliveryResult<T>.Value` behavior documented** — Added XML doc specifying that `Value` may be `default` when `IsSuccess` is `false`.
+
+#### Migration from RC1
+
+1. Find-and-replace in your startup/DI code:
+   - `AddDeliveryDistributedCache` → `AddDeliveryHybridCache`
+   - `WithDistributedCache` → `WithHybridCache`
+
+2. If your code reads `IAsset.Width` or `IAsset.Height`, add null checks:
+   ```csharp
+   // Before
+   var width = asset.Width;
+
+   // After
+   if (asset.Width is not null)
+   {
+       var width = asset.Width.Value;
+   }
+   ```
+
+3. If you implement or mock `IDeliveryResult<T>`, add the new `ResponseSource` member.
+
+4. If you implement `IDeliveryCacheManager`, update `InvalidateAsync` to return `bool`.
+
+See [rc1 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/19.0.0-rc1) for previous changelog.
+
+## 19.0.0-rc1 (2026-02-20)  _(prerelease)_
+
+Attribute-based type resolution with source generation, plus performance and reliability improvements across query execution, caching, and content item processing.
+
+#### Breaking changes
+- Renamed `ITypeProvider.TryGetModelType()` to `ITypeProvider.GetType()` for naming consistency with `GetCodename()`
+- Removed the need for manual `CustomTypeProvider` - use the source-generated `GeneratedTypeProvider` instead (reference the sourcegen package and it will be generated automatically from models registered in your project)
+- `RequiredIfAttribute` is now `sealed` (custom inheritance from this attribute is no longer supported)
+- `IRichTextElementValue` metadata collections are now read-only (`IReadOnlyDictionary` / `IReadOnlyList` instead of mutable `IDictionary` / `List`)
+- `DeliveryOptionsBuilder.WithCustomEndpoint(...)` now applies the endpoint to both `ProductionEndpoint` and `PreviewEndpoint` (previously it only affected the API mode active at call time)
+- Removed `Options.DefaultName`; use `IDeliveryClientFactory.Get()` for the default client (or `"Default"` when explicitly resolving keyed services)
+- Removed `DeliveryOptions.IncludeTotalCount` - this global option was superseded by the per-query `.WithTotalCount()` method on `IItemsQuery<T>` / `IDynamicItemsQuery`, which is now the only way to include total count
+- `IDeliveryCacheManager.GetAsync<T>` and `SetAsync<T>` replaced with a single factory-based `GetOrSetAsync<T>(cacheKey, factory, expiration?, cancellationToken)` method. Custom implementations must update to the new interface. The factory receives a `CancellationToken` and returns `CacheEntry<T>?` (null signals "don't cache").
+- **Caching extracted to standalone package** - FusionCache-backed caching implementations (`MemoryCacheManager`, `DistributedCacheManager`) moved from `Kontent.Ai.Delivery` to a new `Kontent.Ai.Delivery.Caching` package. The core `Kontent.Ai.Delivery` package no longer depends on `ZiggyCreatures.FusionCache`. Users who enable caching must add `Kontent.Ai.Delivery.Caching` as a package reference.
+- `DeliveryClientBuilder.WithMemoryCache()` and `.WithDistributedCache()` moved to extension methods in `Kontent.Ai.Delivery.Caching`. Add a reference to the caching package to restore these APIs.
+- `AddDeliveryMemoryCache()`, `AddDeliveryDistributedCache()`, and `AddDeliveryCacheManager()` DI extension methods moved to `ServiceCollectionExtensions` in `Kontent.Ai.Delivery.Caching`.
+- `DeliveryClientBuilder` gains a general-purpose `ConfigureServices(Action<IServiceCollection>)` method for extensibility.
+- `IHtmlResolver` now extends `IRichTextResolver<string>`. Existing implementations are source-compatible — no code changes needed.
+
+#### New features
+- **Attribute-based type registration** - Model classes generated by the [Kontent.ai Model Generator](https://github.com/kontent-ai/model-generator-net) include the `[ContentTypeCodename("codename")]` attribute:
+  ```csharp
+  // Generated by Kontent.ai Model Generator
+  using Kontent.Ai.Delivery.Attributes;
+
+  [ContentTypeCodename("article")]
+  public class Article
+  {
+      public string? Title { get; set; }
+      // ...
+  }
+  ```
+
+- **Source-generated type provider** - The new `Kontent.Ai.Delivery.SourceGeneration` package automatically generates a `GeneratedTypeProvider : ITypeProvider` at compile time. The SDK auto-discovers it at runtime - no manual registration needed.
+
+- **Build-time type metadata generation** - During compilation, `Kontent.Ai.Delivery.SourceGeneration` emits `ContentTypeCodenameAttribute` and generates `GeneratedTypeProvider` from your attributed model types.
+
+- **Compile-time diagnostics** for content type attributes:
+  - `KDSG001`: Duplicate codename (error)
+  - `KDSG002`: Invalid codename - null, empty, or whitespace (error)
+  - `KDSG003`: Unsupported target type - interfaces and abstract classes (error)
+
+- **Automatic `system.type` filter** - Generic queries like `GetItems<Article>()` automatically add `system.type=article` filter when the type is registered in the type provider.
+
+- **FusionCache-native stampede protection** - The atomic `GetOrSetAsync` factory pattern provides built-in stampede protection: concurrent cache misses for the same key coalesce into a single factory invocation with no custom locking code.
+
+- **Eager refresh** - New `EagerRefreshThreshold` option in `DeliveryCacheOptions` triggers proactive background refresh before cache entries expire (e.g., set to `0.8f` to refresh at 80% of TTL).
+
+- **Simplified BYO cache** - `IDeliveryCacheManager` now has a single `GetOrSetAsync` method, making custom cache implementations trivial (~20 lines).
+
+- **Synthetic item-list cache scope invalidation** - Cached typed item-list queries (`GetItems<T>()`) now include `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) as a dependency key. This enables webhook handlers to invalidate all cached typed item-list queries in one call, fixing stale list membership scenarios when new/updated items start matching existing filters.
+
+- **Safer webhook invalidation pattern for lists** - For item events, invalidate both item-specific keys (`item_{codename}`) and `DeliveryCacheDependencies.ItemsListScope` to refresh both detail and listing caches without a full purge.
+
+- **Type/taxonomy cache dependencies and list scopes** - Cached type queries now include direct dependencies (`type_{codename}` for `GetType()`, `taxonomy_{codename}` for `GetTaxonomy()`), and cached listing queries include synthetic scope dependencies (`DeliveryCacheDependencies.TypesListScope` / `DeliveryCacheDependencies.TaxonomiesListScope`).
+
+- **Expanded webhook invalidation pattern for schema/taxonomy changes** - Type and taxonomy events can now invalidate both direct entity keys and list scopes (`type_{codename}` + `scope_types_list`, `taxonomy_{codename}` + `scope_taxonomies_list`) for consistent refresh behavior without full cache purge.
+
+- **Per-query cache expiration override** - Cacheable query builders now support `.WithCacheExpiration(...)` to override TTL for a specific request while keeping manager-level defaults unchanged.
+
+- **Safer typed memory-cache key isolation** - Hydrated-object item and item-list cache keys now include a model discriminator, preventing different generic model types from evicting each other on the same query key.
+
+- **Improved cancellation behavior in distributed invalidation** - `InvalidateAsync` now propagates cancellation reliably through dependency invalidation work.
+
+- **Cancellation propagation** - All Delivery API calls now accept and propagate `CancellationToken` through query builders to the underlying HTTP requests.
+
+- **Simplified processing pipeline** - Converters now create minimal content item shells and the `ContentItemMapper` performs all element mapping (simple + complex) during post-processing.
+
+- **Allocation reductions in processing**:
+  - Avoids redundant JSON round-trips by deserializing from `JsonElement` where possible (`IContentDeserializer` supports a `JsonElement` overload).
+  - Avoids re-parsing JSON when cloning item/envelope elements by using `JsonElement.Clone()`.
+
+- **Faster property assignment during mapping** - Replaces reflection-based `PropertyInfo.SetValue(...)` with cached compiled setters for improved throughput when mapping large item listings.
+
+- **Rich text hardening** - Adds a max parsing depth guard to prevent stack overflow on deeply nested HTML and improves null-safety for inline images.
+
+- **Dynamic mode rich text parsing** - New `ParseRichTextAsync` extension method on `JsonElement` enables rich text resolution when using dynamic content access. See [Dynamic Mode Resolution](docs/rich-text-customization.md#dynamic-mode-resolution) in the Rich Text Customization Guide.
+
+- **Generic rich text resolver interface** — New `IRichTextResolver<TOutput>` base interface enables custom rich text resolution to any output format (Markdown, portable text, view models, etc.). `IHtmlResolver` extends `IRichTextResolver<string>` for HTML output.
+
+- **Diagnostic logging for silent failures** - Adds Debug-level logging when API error parsing or cache deserialization fail silently, improving production incident diagnosis without impacting normal operation.
+
+#### Fixed
+- **Filter values with special characters now work correctly** - Values containing spaces, ampersands (`&`), and other URL-sensitive characters were being double-encoded, causing filters to silently return no results. Filters with only alphanumeric characters, hyphens, and underscores were unaffected.
+- **Named-client rendition preset consistency** - `DefaultRenditionPreset` is now applied per client configuration across item/list/feed mapping paths (including dynamic runtime typing and cache rehydration), preventing cross-client preset leakage in multi-client setups.
+- **Corrupted modular cache payloads now fail fast instead of partially hydrating linked items** - If modular content JSON in a cached raw payload is malformed, rehydration is treated as cache corruption and falls back to a fresh API fetch path rather than returning a partially completed result.
+- **Consistent query lifecycle logging for item queries** - `ItemQuery` and `ItemsQuery` now emit `QueryCompleted` on failure paths in addition to `QueryFailed`, keeping telemetry lifecycle events consistent across success/failure outcomes.
+
+#### RC1 consistency note (distributed cache)
+- **Distributed invalidation is now deterministic** - FusionCache tag-based invalidation replaces the former reverse-index approach, eliminating race conditions under concurrent writes. All entries sharing a dependency tag are invalidated atomically.
+- **Stale-window guidance** - keep distributed cache TTLs reasonably short (for example, less than one hour) to bound stale exposure in scenarios where backplane propagation is delayed.
+
+#### Internal refactors (no public API changes)
+- Aligned remaining query builders (`TypeQuery`, `TypesQuery`, `TypeElementQuery`, `TaxonomyQuery`, `TaxonomiesQuery`, `LanguagesQuery`) to the same internal execution structure used by item/list/feed queries for easier maintenance and more consistent pagination wiring.
+- Introduced shared internal helpers for delivery result mapping and offset pagination skip calculation to reduce duplication across query builders.
+- Consolidated `ItemUsedInQuery` and `AssetUsedInQuery` pagination loops into a shared internal core while preserving runtime behavior (including graceful stop on failed intermediate pages).
+
+#### New packages
+- `Kontent.Ai.Delivery.SourceGeneration` - Roslyn incremental source generator that creates `GeneratedTypeProvider` and emits `ContentTypeCodenameAttribute` for marking model classes.
+- `Kontent.Ai.Delivery.Caching` - FusionCache-backed caching implementations (`MemoryCacheManager`, `DistributedCacheManager`) extracted from the core SDK package. Add this package if you use caching.
+
+#### Migration from beta-5
+
+1. If you use `AddDeliveryMemoryCache`, `AddDeliveryDistributedCache`, `AddDeliveryCacheManager`, or `DeliveryClientBuilder.WithMemoryCache()`/`.WithDistributedCache()`, add a reference to the caching package:
+   ```xml
+   <PackageReference Include="Kontent.Ai.Delivery.Caching" Version="19.0.0-rc1" />
+   ```
+
+2. Add package reference for source generation:
+   ```xml
+   <PackageReference Include="Kontent.Ai.Delivery.SourceGeneration" Version="19.0.0-rc1" />
+   ```
+
+3. Regenerate your models using the [Kontent.ai Model Generator](https://github.com/kontent-ai/model-generator-net) - the generated models now include `[ContentTypeCodename]` attributes automatically.
+
+4. Ensure `Kontent.Ai.Delivery.SourceGeneration` is referenced by the project that compiles the generated model `.cs` files (for example your `Models` class library). The attribute definition and provider are generated during that build.
+
+5. If you implemented custom `ITypeProvider`, rename `TryGetModelType` to `GetType`.
+
+6. If you implemented a custom `IContentDeserializer`, consider overriding `DeserializeContentItem(JsonElement, Type)` to avoid `GetRawText()` allocations (a default implementation is provided for compatibility).
+
+7. If you implemented a custom `IDeliveryCacheManager`, replace `GetAsync<T>` + `SetAsync<T>` with the new `GetOrSetAsync<T>(cacheKey, factory, expiration?, cancellationToken)` method. The factory returns `CacheEntry<T>?` — return `null` to signal "don't cache" (e.g., API failure). Example:
+   ```csharp
+   public async Task<T?> GetOrSetAsync<T>(
+       string cacheKey,
+       Func<CancellationToken, Task<CacheEntry<T>?>> factory,
+       TimeSpan? expiration = null,
+       CancellationToken cancellationToken = default) where T : class
+   {
+       if (_cache.TryGetValue(cacheKey, out T cached)) return cached;
+       var entry = await factory(cancellationToken);
+       if (entry is null) return null;
+       _cache.Set(cacheKey, entry.Value, expiration);
+       return entry.Value;
+   }
+   ```
+
+That's it! The SDK auto-discovers the generated type provider at runtime.
+
+See [beta-5 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/v19.0.0-beta-5) for previous changelog.
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.0.0-beta-4...19.0.0-rc1
+
+## 19.0.0-beta-5 (2026-01-29)  _(prerelease)_
+
+Runtime type resolution and API cleanup.
+
+#### Breaking changes
+- Removed `DeliveryClientBuilder.WithEnvironmentId` - use `WithOptions(opts => opts.WithEnvironmentId("...").UseProductionApi().Build())` instead
+- Moved extension methods to `Kontent.Ai.Delivery` namespace - remove `using Kontent.Ai.Delivery.Extensions;` if present
+- Changed dynamic query return types from `IContentItem<IDynamicElements>` to `IContentItem` to support runtime type resolution. Use pattern matching to access elements:
+  ```csharp
+  var result = await client.GetItem("codename").ExecuteAsync();
+  if (result.Value is IContentItem<Article> article)
+  {
+      var title = article.Elements.Title;
+  }
+  ```
+
+#### New features
+- Runtime type resolution - typeless queries automatically resolve to strongly-typed models when `ITypeProvider` is registered
+- Circular reference hydration - circular references now return the same object instance, creating proper object graph cycles
+- New `AddDeliveryClient(IConfigurationSection)` overload for registering directly from a configuration section
+
+See [beta-4 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/v19.0.0-beta-4) for previous changelog.
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.0.0-beta-4...19.0.0-beta-5
+
+## 19.0.0-beta-4 (2026-01-11)  _(prerelease)_
+
+Fixes NuGet package health issues from beta-3. No functional changes.
+
+#### Package fixes
+- Fixed Source Link configuration (symbols now properly embedded)
+- Enabled deterministic builds for reproducibility
+- Updated Microsoft.SourceLink.GitHub to 8.0.0
+- Fixed license metadata not displaying in NuGet Package Explorer
+- Updated logo
+
+See [beta-3 release notes](https://github.com/kontent-ai/delivery-sdk-net/releases/tag/v4.0.0-beta-3) for feature changelog.
+
+## 19.0.0-beta-3 (2026-01-11)  _(prerelease)_
+
+### New Features
+
+#### DeliveryClientBuilder
+
+Create `IDeliveryClient` instances without dependency injection:
+
+```csharp
+using var container = DeliveryClientBuilder
+    .WithEnvironmentId("your-environment-id")
+    .WithTypeProvider(new GeneratedTypeProvider())
+    .WithMemoryCache(TimeSpan.FromMinutes(30))
+    .Build();
+
+var client = container.Client;
+```
+
+#### Logging Infrastructure
+
+Source-generated `LoggerMessage` for high-performance logging throughout query execution, caching, HTTP operations, and content mapping.
+
+#### Retry-After Header Support
+
+The SDK now respects `Retry-After` headers for 429 responses.
+
+#### DeliveryResult Metadata
+
+- `IsCacheHit` - Indicates if response came from cache
+- `ResponseHeaders` - Access to raw HTTP headers
+- `HasStaleContent` - Indicates if newer content may be available
+
+#### Cache Purge Support
+
+New `IDeliveryCachePurger` interface for purging all memory cache entries.
+
+#### Language Fallback Control
+
+New `LanguageFallbackMode` parameter for `WithLanguage()`:
+
+```csharp
+// Disable language fallbacks
+.WithLanguage("es-ES", LanguageFallbackMode.Disabled)
+```
+
+---
+
+### Breaking Changes
+
+#### Filtering API Redesign
+
+The entire filtering system was replaced with a new type-safe DSL.
+
+**Method renaming:**
+
+| Beta-2 | Beta-3 |
+|--------|--------|
+| `.Filter(f => ...)` | `.Where(f => ...)` |
+
+**Path construction:**
+
+| Beta-2 | Beta-3 |
+|--------|--------|
+| `ItemSystemPath.Type` | `f.System("type")` |
+| `ItemSystemPath.Codename` | `f.System("codename")` |
+| `ItemSystemPath.LastModified` | `f.System("last_modified")` |
+| `Elements.GetPath("title")` | `f.Element("title")` |
+
+**Operator method renaming:**
+
+| Beta-2 | Beta-3 |
+|--------|--------|
+| `f.Equals(path, value)` | `f.System("...").IsEqualTo(value)` |
+| `f.NotEquals(path, value)` | `f.System("...").IsNotEqualTo(value)` |
+| `f.GreaterThan(path, value)` | `f.Element("...").IsGreaterThan(value)` |
+| `f.LessThan(path, value)` | `f.Element("...").IsLessThan(value)` |
+| `f.LessThanOrEqual(path, value)` | `f.Element("...").IsLessThanOrEqualTo(value)` |
+| `f.GreaterThanOrEqual(path, value)` | `f.Element("...").IsGreaterThanOrEqualTo(value)` |
+| `f.Range(path, (low, high))` | `f.Element("...").IsWithinRange(low, high)` |
+| `f.In(path, array)` | `f.System("...").IsIn("a", "b")` |
+| `f.Any(path, values...)` | `f.Element("...").ContainsAny("a", "b")` |
+| `f.All(path, values...)` | `f.Element("...").ContainsAll("a", "b")` |
+| `f.Contains(path, value)` | `f.Element("...").Contains(value)` |
+| `f.NotEmpty(path)` | `f.Element("...").IsNotEmpty()` |
+
+**Full example:**
+
+```csharp
+// Beta-2
+var result = await client.GetItems()
+    .Filter(f => f.Equals(ItemSystemPath.Type, "article"))
+    .Filter(f => f.Contains(Elements.GetPath("category"), "coffee"))
+    .OrderBy(ItemSystemPath.LastModified, descending: true)
+    .ExecuteAsync();
+
+// Beta-3
+var result = await client.GetItems()
+    .Where(f => f
+        .System("type").IsEqualTo("article")
+        .Element("category").Contains("coffee"))
+    .OrderBy("system.last_modified", OrderingMode.Descending)
+    .ExecuteAsync();
+```
+
+**Removed filtering types:**
+- `Filter` class (now internal)
+- `FilterOperator` enum
+- `ItemSystemPath` class
+- `Elements.GetPath()` method
+- `StringValue`, `IFilterValue` interfaces
+
+#### Ordering API
+
+```csharp
+// Beta-2
+.OrderBy(ItemSystemPath.LastModified, descending: true)
+
+// Beta-3
+.OrderBy("system.last_modified", OrderingMode.Descending)
+```
+
+#### Pagination / Feed API
+
+```csharp
+// Beta-2
+var query = client.GetItemsFeed()
+    .OrderBy(ItemSystemPath.LastModified, true);
+await foreach (var item in query.ExecuteAsync())
+
+// Beta-3
+await foreach (var item in client.GetItemsFeed().EnumerateItemsAsync())
+```
+
+#### Caching Registration
+
+Fluent chaining removed in favor of separate extension methods:
+
+```csharp
+// Beta-2
+services.AddDeliveryClient(options => { ... })
+    .WithMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
+
+// Beta-3
+services.AddDeliveryClient(options => { ... });
+services.AddDeliveryMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
+```
+
+#### IEmbeddedContent Metadata Access
+
+Metadata properties moved under `.System`:
+
+```csharp
+// Beta-2
+linkedItem.ContentTypeCodename
+linkedItem.Codename
+linkedItem.Name
+linkedItem.Id
+
+// Beta-3
+linkedItem.System.Type
+linkedItem.System.Codename
+linkedItem.System.Name
+linkedItem.System.Id
+```
+
+#### Removed Types
+
+| Type | Replacement |
+|------|-------------|
+| `IElementsPostProcessor` | Internal `ContentItemMapper` |
+| `EmbeddedContentFactory` | Consolidated into content mapping |
+| `IPropertyValueConverter` | Consolidated into mapper |
+| `IElementsModel` | `IDynamicElements` |
+| `ElementValue` | Removed |
+| `DisableHtmlEncodeAttribute` | Removed |
+| `UseDisplayTemplateAttribute` | Removed |
+| `ItemSystemPath` | String paths with `f.System()` |
+| `Elements.GetPath()` | `f.Element()` |
+
+#### Query Builder Changes
+
+- Removed `ExecuteAll()` helper methods from listing endpoints
+
+---
+
+### Improvements
+
+#### Performance
+- Cached `JsonSerializerOptions` across serialization
+- Reduced reflection in hydration
+- Lock striping (64 stripes) in `MemoryCacheManager`
+- `FrozenDictionary` for immutable lookups
+
+#### Caching
+- Fixed unbounded cache lock growth
+- Improved eviction logic
+- Generation-safe entry overwrites
+
+#### Security
+- Max deserialization depth limit
+- API keys never logged
+
+#### Nullability
+- Enabled throughout abstractions
+- Fixed pagination `NextPage` nullability
+
+---
+
+### New Documentation Sections
+
+- Content Types and Elements
+- Taxonomies
+- Reference Lookups (Used In)
+- Dynamic Content Access
+- Asset Renditions
+- Image Transformation
+- Error Handling
+- Response Metadata
+
+New guides:
+- `extensibility-guide.md`
+- `caching-guide.md`
+- `rich-text-customization.md`
+
+---
+
+### Test Results
+
+```
+Passed: 563 | Failed: 0 | Skipped: 1
+```
+
+---
+
+### Migration from beta-2
+
+1. **Replace `.Filter()` with `.Where()`**
+
+2. **Update filter path construction:**
+   ```csharp
+   // Old
+   ItemSystemPath.Type → f.System("type")
+   Elements.GetPath("title") → f.Element("title")
+   ```
+
+3. **Update filter operators:**
+   ```csharp
+   // Old
+   f.Equals(path, value) → f.System("...").IsEqualTo(value)
+   f.GreaterThan(path, value) → f.Element("...").IsGreaterThan(value)
+   ```
+
+4. **Update ordering:**
+   ```csharp
+   .OrderBy("system.last_modified", OrderingMode.Descending)
+   ```
+
+5. **Update pagination:**
+   ```csharp
+   await foreach (var item in client.GetItemsFeed().EnumerateItemsAsync())
+   ```
+
+6. **Update caching registration:**
+   ```csharp
+   services.AddDeliveryClient(options => { ... });
+   services.AddDeliveryMemoryCache();
+   ```
+
+7. **Update IEmbeddedContent metadata access:**
+   ```csharp
+   linkedItem.System.Type  // was: linkedItem.ContentTypeCodename
+   ```
+
+8. **Remove references to deleted types** (`IElementsPostProcessor`, `FilterOperator`, `ItemSystemPath`, etc.)
+
+---
+
+Full Changelog: https://github.com/kontent-ai/delivery-sdk-net/compare/af74e1935355fc489c9e426950659a147a5f8437...vnext
+
+## 19.0.0-beta-2 (2025-10-26)  _(prerelease)_
+
+### Fixed: Strongly-Typed Linked Items Resolution
+
+Linked items elements (modular content) are now automatically hydrated to strongly-typed embedded content, bringing the same developer experience as rich text embedded content to linked items elements.
+
+  ### Fixed: Loosened accessors
+
+`Filter` class was marked internal, preventing users from instantiating filters to be used in `.Where` filtering methods. Filter serialization moved to an internal extension method.
+
+#### Fixed: Incorrect naming for types filtering method, missing examples in the docs
+
+  ### What's New
+
+  Previously, linked items were returned as simple string arrays (`IEnumerable<string>`) containing only codenames. Now they're fully hydrated to
+  `IEnumerable<IEmbeddedContent>` with runtime type resolution, providing:
+
+  - ✅ **Compile-time type safety** via pattern matching with `IEmbeddedContent<TModel>`
+  - ✅ **Runtime type resolution** - each item gets its own type based on content type from the API
+  - ✅ **Full metadata access** - codename, ID, content type, name for all items
+  - ✅ **Mixed content types** - collections can contain different content types
+  - ✅ **LINQ support** - filter by type using `.OfType<IEmbeddedContent<Article>>()`
+  - ✅ **Consistent API** - same patterns as rich text embedded content
+
+  ### Example Usage
+
+  **Before:**
+  ```csharp
+  public record Article
+  {
+      [JsonPropertyName("related_articles")]
+      public IEnumerable<string>? RelatedArticles { get; init; } // Just codenames
+  }
+
+  // Could only see codenames
+  var codenames = article.RelatedArticles; // ["article_1", "article_2"]
+
+  After:
+  public record Article
+  {
+      [JsonPropertyName("related_articles")]
+      public IEnumerable<IEmbeddedContent>? RelatedArticles { get; init; } // Fully hydrated
+  }
+
+  // Pattern matching for type-safe access
+  foreach (var linkedItem in article.RelatedArticles!)
+  {
+      switch (linkedItem)
+      {
+          case IEmbeddedContent<Article> relatedArticle:
+              Console.WriteLine($"Article: {relatedArticle.Elements.Title}");
+              Console.WriteLine($"Summary: {relatedArticle.Elements.Summary}");
+              break;
+
+          case IEmbeddedContent<Product> product:
+              Console.WriteLine($"Product: {product.Elements.Name}");
+              Console.WriteLine($"Price: ${product.Elements.Price}");
+              break;
+      }
+  }
+
+  // LINQ filtering
+  var articles = article.RelatedArticles!
+      .OfType<IEmbeddedContent<Article>>()
+      .ToList();
+
+  // Extract models without wrapper
+  var articleElements = article.RelatedArticles!
+      .OfType<IEmbeddedContent<Article>>()
+      .Select(a => a.Elements)
+      .ToList();
+```
+#### Breaking Changes
+
+  ⚠️ Model Updates Required: Linked items properties must be updated from IEnumerable<string> to IEnumerable<IEmbeddedContent>
+
+#####  Migration:
+
+```csharp
+  // Old model
+  public record Article
+  {
+      [JsonPropertyName("related_articles")]
+      public IEnumerable<string>? RelatedArticles { get; init; }
+  }
+
+  // New model
+  public record Article
+  {
+      [JsonPropertyName("related_articles")]
+      public IEnumerable<IEmbeddedContent>? RelatedArticles { get; init; }
+  }
+```
+  If you were previously accessing linked items as strings, update your code to use the new strongly-typed API shown in the examples above.
+
+####  Technical Details
+
+#####  Implementation:
+  - Added EmbeddedContentFactory for shared reflection-based type construction
+  - Extended ElementsPostProcessor to process modular_content elements
+  - Updated IsComplexElementType to recognize modular_content as complex element
+  - Refactored RichTextParser to use EmbeddedContentFactory (reduced code duplication)
+  - Added comprehensive test coverage (9 new tests in StronglyTypedLinkedItemsTests)
+
+#####  Files Changed:
+  - Kontent.Ai.Delivery/Extensions/JsonElementExtensions.cs - Added modular_content support
+  - Kontent.Ai.Delivery/ContentItems/Processing/EmbeddedContentFactory.cs - NEW - Shared factory
+  - Kontent.Ai.Delivery/ContentItems/Processing/ElementsPostProcessor.cs - Linked items processing
+  - Kontent.Ai.Delivery/ContentItems/Processing/RichTextParser.cs - Refactored to use factory
+  - Test models updated (Article.cs, Home.cs, AboutUs.cs)
+  - Documentation updated (README.md, ReadmeExamples.cs)
+
+#####  Performance:
+  - Parallel hydration using Task.WhenAll for efficient processing
+  - Cached reflection constructors for optimal type construction
+  - Integrated with existing dependency tracking for cache invalidation
+
+#####  Documentation
+
+  Updated documentation includes:
+  - New section "Working with Linked Items" in README.md
+  - Pattern matching examples
+  - LINQ filtering examples
+  - Mixed content type handling
+  - Metadata access patterns
+  - 5 new compiled examples in ReadmeExamples.cs
+
+  ---
+  Full Changelog: https://github.com/kontent-ai/delivery-sdk-net/compare/7afd7577cb475e33db6cf73eca18fbc188db4101...vnext
+
+## 19.0.0-beta (2025-10-22)  _(prerelease)_
+
+- this is a first beta release following the modernization effort
+- a complete revamp of the architecture, aimed at improving the developer experience, reduce boilerplate and adopt modern .NET practices
+- addresses majority of issues submitted over the years
+- migration guide: TBD (the complexity of the overhaul inevitably led to a number of breaking changes. until a migration guide is finalized, see the readme for usage examples)
+- model generator: TBD (generated models were simplified for testing purposes but the model generator hasn't been updated yet. inspect models such as Article.cs in the repository for an example model implementation)
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.3.0...19.0.0-beta
+
+## 18.3.0 (2025-07-14)
+
+### Features
+* adds support for sync API v2 (more info in the [changelog](https://kontent.ai/learn/product-updates#a-introducing-sync-api-v2))
+
+### Related PRs
+* 404 sync api v2 by @sevcik-martin in https://github.com/kontent-ai/delivery-sdk-net/pull/405
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.2.0...18.3.0
+
+## 18.2.0 (2025-04-09)
+
+### Features
+* adds support for newly introduced used in endpoints in form of `GetItemUsedIn` and `GetAssetUsedIn` methods, more info in the [product changelog](https://kontent.ai/learn/product-updates#a-discover-content-dependencies-with-new-delivery-api-endpoints)
+
+### Related PRs
+* Add support for used in endpoints by @winklertomas in https://github.com/kontent-ai/delivery-sdk-net/pull/403
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.1.1...18.2.0
+
+## 18.1.1 (2025-01-20)
+
+### What's Changed
+* Patched vulnerable dependencies
+
+### New Contributors
+* @xantari made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/400
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.1.0...18.1.1
+
+## 18.1.0 (2024-03-06)
+
+### What's Changed
+* Add support for exclude parameter by @zdenekjurka in https://github.com/kontent-ai/delivery-sdk-net/pull/391
+
+### New Contributors
+* @zdenekjurka made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/391
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/18.0.0...18.1.0
+
+## 18.0.0 (2024-02-27)
+
+### Breaking changes
+* targets .NET 8.0 only
+* all references to `project`, `projectId` and all related methods were renamed to `environment`, to match the current in-app state
+  * `WithProjectId` → `WithEnvironmentId`
+  * `DeliveryOptions.ProjectId` → `DeliveryOptions.EnvironmentId`
+  * ...
+
+### What's Changed
+* Release v18 by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/390
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.9.0...18.0.0
+
+## 17.9.0 (2023-12-12)
+
+### What's Changed
+* Vulnerabilities 11 23 by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/388
+* 386 introduce workflow property to response by @Sevitas in https://github.com/kontent-ai/delivery-sdk-net/pull/387
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.8.0...17.9.0
+
+## 17.8.0 (2023-10-30)
+
+### What's Changed
+* Issue/383 by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/385
+  * updated model to match sync API response
+  * added support for runtime type resolution to sync API methods
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.7.0...17.8.0
+
+## 17.7.0 (2023-08-04)
+
+### What's Changed
+* 378 Fix the problem with IDateTimeContent BSON serialization/deserialization by @dzmitryk-kontent-ai in https://github.com/kontent-ai/delivery-sdk-net/pull/379
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.6.0...17.7.0
+
+## 17.7.0-beta.0 (2023-05-09)  _(prerelease)_
+
+* Release a beta with Dynamic/Universal items fetching feature implemented in #367
+
+## 17.6.0 (2023-04-21)
+
+### What's Changed
+* Add SyncAPI support by @arguit in https://github.com/kontent-ai/delivery-sdk-net/pull/372
+* Add sync api extension method by @arguit in https://github.com/kontent-ai/delivery-sdk-net/pull/374
+* Update docs for extended delivery models by @Sevitas in https://github.com/kontent-ai/delivery-sdk-net/pull/375
+
+### New Contributors
+* @arguit made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/372
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.5.0...17.6.0
+
+## 17.5.0 (2023-03-16)
+
+### What's Changed
+* Fix DeliveryCLientBuilder link by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/366
+* Make DistributedCacheManager more robust by @dzmitryk-kontent-ai in https://github.com/kontent-ai/delivery-sdk-net/pull/358
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.4.0...17.5.0
+
+## 17.4.0 (2023-03-09)
+
+### What's Changed
+* 368 introduce IContentItem by @Sevitas in https://github.com/kontent-ai/delivery-sdk-net/pull/369
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.3.0...17.4.0
+
+## 17.3.0 (2023-02-23)
+
+### What's Changed
+* 172 documentation by @Sevitas in https://github.com/kontent-ai/delivery-sdk-net/pull/361
+* 362 Use FullName of class instead of HachCode in CacheKey by @dzmitryk-kontent-ai in https://github.com/kontent-ai/delivery-sdk-net/pull/364
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.2.0...17.3.0
+
+## 17.2.0 (2023-01-26)
+
+### What's Changed
+* 356 Add structured DateTimeElement model by @dzmitryk-kontent-ai in https://github.com/kontent-ai/delivery-sdk-net/pull/357
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.1.0...17.2.0
+
+## 17.2.0-beta.1 (2023-01-19)  _(prerelease)_
+
+### What's Changed
+* 356 Add structured DateTimeElement model by @dzmitryk-kontent-ai in https://github.com/kontent-ai/delivery-sdk-net/pull/357
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.1.0...17.2.0-beta.1
+
+## 17.1.0 (2023-01-09)
+
+### What's Changed
+* upgrade github actions by @Sevitas in https://github.com/kontent-ai/delivery-sdk-net/pull/350
+* Multiple delivery client factory by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/347
+    * **Deprecated** `AutofacServiceProviderFactory` with replacement  in form of [`MultipleDeliveryClientFactory` without dependency to Autofac](https://github.com/kontent-ai/delivery-sdk-net/blob/master/docs/configuration/multiple-delivery-clients.md)
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.0.1...17.1.0
+
+## 17.0.1 (2022-11-10)
+
+### What's Changed
+* fix: update validation regex and related test API key by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/349
+
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/17.0.0...17.0.1
+
+## 17.0.0 (2022-08-03)
+
+### What's Changed
+* Upgraded Newtonsoft Json dependency to fix severe vulnerability issue by @MiroKentico in https://github.com/kontent-ai/delivery-sdk-net/pull/340
+* **💥 Breaking change!** Migration to Kontent.ai by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+    * Changing package name from `Kentico.Kontent.Delivery` to `Kontent.Ai.Delivery`
+    * Changing `Kentico.Kontent.*` namespaces to `Kontent.Ai.*`
+* **💥 Breaking change!** Target only .NET 6 
+* Documentation migration 
+    * Grab commit from orphan branch by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/345
+    * Prepare for next beta by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/344
+
+### New Contributors
+* @pokornyd made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/16.0.1...17.0.0
+
+## 17.0.0-beta.2 (2022-07-29)  _(prerelease)_
+
+### What's Changed
+* Upgraded Newtonsoft Json dependency to fix severe vulnerability issue by @MiroKentico in https://github.com/kontent-ai/delivery-sdk-net/pull/340
+* Migration by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+* Grab commit from orphan branch by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/345
+* Prepare for next beta by @Simply007 in https://github.com/kontent-ai/delivery-sdk-net/pull/344
+
+### New Contributors
+* @pokornyd made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/16.0.1...17.0.0-beta.2
+
+## 17.0.0-beta.1 (2022-07-28)  _(prerelease)_
+
+### What's Changed
+* Upgraded Newtonsoft Json dependency to fix severe vulnerability issue by @MiroKentico in https://github.com/kontent-ai/delivery-sdk-net/pull/340
+* Migration by @pokornyd in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+
+### New Contributors
+* @pokornyd made their first contribution in https://github.com/kontent-ai/delivery-sdk-net/pull/343
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/16.0.1...17.0.0-beta.1
+
+## 16.0.1 (2022-06-16)
+
+* `DeliveryClient` now correctly forwards Delivery API error response model instead of failing with `NullReferenceException` (#326)
+* fixed potential `NullReferenceException` failure in `DeliveryEndpointUrlBuilder` + constructor `public DeliveryEndpointUrlBuilder(DeliveryOptions deliveryOptions)` was marked as obsolete (#327)
+
+## Upgrade tips:
+
+If you have some explicit use of constructor `public DeliveryEndpointUrlBuilder(DeliveryOptions deliveryOptions)` in your code, you should replace it with use of constructor `DeliveryEndpointUrlBuilder(IOptionsMonitor<DeliveryOptions> deliveryOptions)` instead. To adapt `DeliveryOptions` to `IOptionsMonitor<DeliveryOptions>` you can for instance use `DeliveryOptionsMonitor`.
+
+## 16.0.0 (2022-03-17)
+
+* Namespace unifications and project structure adjustments (#300, #303, #310)
+* added [support for .NET 6 target](https://github.com/Kentico/kontent-delivery-sdk-net#kontent-delivery-net-sdk) (#301,#306)
+* added support for asset renditions with configurable default preset (#308, #318)
+* items enumeration can now be started from custom continuation token point (#316)
+* new attribute `PropertyNameAttribute` specifies source content item element for annotated model property (might help solve #279) 
+
+**Full Changelog**: https://github.com/Kentico/kontent-delivery-sdk-net/compare/15.0.1...16.0.0
+
+### Upgrade tips:
+
+Upgrade should be pretty straightforward, although you might need to update your existing `using` directives. This might be required in case of usage of any of following packages
+* Kentico.Kontent.Delivery.Abstractions
+* Kentico.Kontent.Delivery.Caching
+* Kentico.Kontent.Delivery.Extensions.DependencyInjection
+* Kentico.Kontent.Urls
+
+## 16.0.0-beta5 (2021-12-10)  _(prerelease)_
+
+### What's Changed
+* Namespace unifications by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/300
+* Test out targetting .NET 6. by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/301
+* Unify namespaces in Kentico.Kontent.Delivery.Abstractions by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/303
+* Added support for add asset renditions (issue 302) by @MiroKentico in https://github.com/Kentico/kontent-delivery-sdk-net/pull/308
+* Set multitarget solution by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/306
+* Adjust Kentico.Kontent.Urls project by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/310
+
+
+**Full Changelog**: https://github.com/Kentico/kontent-delivery-sdk-net/compare/15.0.1...16.0.0-beta5
+
+## 16.0.0-beta4 (2021-11-24)  _(prerelease)_
+
+### What's Changed
+* Namespace unifications by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/300
+  * Unify namespaces in Kentico.Kontent.Delivery.Abstractions by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/303
+* Targetting .NET 6. by @Simply007 in https://github.com/Kentico/kontent-delivery-sdk-net/pull/301
+
+
+**Full Changelog**: https://github.com/Kentico/kontent-delivery-sdk-net/compare/15.0.1...16.0.0-beta4
+
+## 16.0.0-beta3 (2021-11-12)  _(prerelease)_
+
+* Targetting .NET 6 #301
+
+## 16.0.0-beta2 (2021-11-12)  _(prerelease)_
+
+Namespace unification - #300
+
+## 15.0.1 (2021-11-04)
+
+* Pagination is serializable #285 
+* Release process partial fix #292
+
+## 15.0.1-beta10 (2021-11-04)  _(prerelease)_
+
+Test release fix #294
+
+## 15.0.1-beta5 (2021-10-29)  _(prerelease)_
+
+Use -p in dotnet comand instead of /p
+
+## 15.0.1-beta4 (2021-10-29)  _(prerelease)_
+
+Test out new version settings for dotnet pack
+
+## 15.0.1-beta3 (2021-10-29)  _(prerelease)_
+
+15.0.1-beta3
+
+## 15.0.1-beta.2 (2021-10-29)  _(prerelease)_
+
+## 15.0.1-beta1 (2021-10-21)  _(prerelease)_
+
+#### Fixed bugs:
+Fixes pagination model serialization #285
+
+## 16.0.0-beta1 (2021-10-21)  _(prerelease)_
+
+#### Fixed bugs:
+Fixes _ImageTransformation - dependency issues_ #284
+
+#### Breaking changes:
+ImageTransformations are now in different namespace
+
+## 15.0.0 (2021-07-22)
+
+**New features:**
+- Support for the `/languages` endpoint (#256)
+- Better support for more `IDeliveryClient`s in a single project see the [docs](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Accessing-Data-From-Multiple-Projects) (#240, #254)
+- Added workflow step codenames to content items (#266)
+- URL generation for the Delivery endpoint was made public in `Kentico.Kontent.Urls` package
+
+**Fixed bugs:**
+- Issue in GetOriginatingAssembly function inside HttpRequestHeadersExtensions (#264)
+- Error deserializing rich text content when using distributed caching (#265)
+ 
+**Other changes:**
+- SDK tracking header moved to `HttpClient.DefaultRequestHeaders` (#248)
+- Bumped versions of `Microsoft.Extensions.*` dependencies to 3.1.2
+- Update Benchmark.Net #276 
+
+**Breaking changes:**
+- When an item, type, or taxonomy is not found we do not throw an exception anymore, instead, `IApiResponse` has properties `IsSuccess` and `Error` that contain information about what went wrong. (#255, #251)
+- Implicit operator removed from class `DeliveryItemResponse` - this syntax sugar can't be used anymore, please use the `.Item` property of the `DeliveryItemResponse`
+- removed `Blocks` property from `IRichTextContent` - use the `IEnumerable` aspect of `IRichTextContent` itself (in other words, just remove `.Blocks` from your code)
+- Project ID is no longer part of *EndpointUrl properties - this is an internal change that should have no impact on code used by customers (#246)
+- The package `Kentico.Kontent.ImageTransformation` was renamed to `Kentico.Kontent.Urls` - there shouldn't be any breaking changes within the package
+- Remove autoloading of linkeíd items #275 
+  - Provide the [alternative approach](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Retrieve-modular-content-from-API-response) in case this property is necessary
+
+## 15.0.0-rc3 (2021-06-17)  _(prerelease)_
+
+<https://www.nuget.org/packages/Kentico.Kontent.Delivery/15.0.0-rc3>
+
+* Remove autoloading of linked items #275 
+  * Provide the [alternative approach](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Retrieve-modular-content-from-API-response) in case this property is necessary
+* Update Benchmark.Net #276
+
+## 15.0.0-rc2 (2021-02-17)  _(prerelease)_
+
+## 14.3.0-beta1 (2021-02-17)  _(prerelease)_
+
+## 15.0.0-rc1 (2021-02-10)  _(prerelease)_
+
+**New features:**
+- Support for the `/languages` endpoint (#256)
+- Better support for more `IDeliveryClient`s in a single project see the [docs](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Accessing-Data-From-Multiple-Projects) (#240, #254)
+- Added workflow step codenames to content items (#266)
+- URL generation for the Delivery endpoint was made public in `Kentico.Kontent.Urls` package
+
+**Fixed bugs:**
+- Issue in GetOriginatingAssembly function inside HttpRequestHeadersExtensions (#264)
+- Error deserializing rich text content when using distributed caching (#265)
+ 
+**Other changes:**
+- SDK tracking header moved to `HttpClient.DefaultRequestHeaders` (#248)
+- Bumped versions of `Microsoft.Extensions.*` dependencies to 3.1.2
+
+**Breaking changes:**
+- When an item, type, or taxonomy is not found we do not throw an exception anymore, instead, `IApiResponse` has properties `IsSuccess` and `Error` that contain information about what went wrong. (#255, #251)
+- Implicit operator removed from class `DeliveryItemResponse` - this syntax sugar can't be used anymore, please use the `.Item` property of the `DeliveryItemResponse`
+- removed `Blocks` property from `IRichTextContent` - use the `IEnumerable` aspect of `IRichTextContent` itself (in other words, just remove `.Blocks` from your code)
+- Project ID is no longer part of *EndpointUrl properties - this is an internal change that should have no impact on code used by customers (#246)
+- The package `Kentico.Kontent.ImageTransformation` was renamed to `Kentico.Kontent.Urls` - there shouldn't be any breaking changes within the package
+
+## 14.2.1 (2021-01-05)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/14.2.1
+
+## 14.2.0 (2021-01-05)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/14.2.0
+
+**New features:**
+- #252 - Added support for the cache expiration type
+
+## 14.1.0 (2020-12-02)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/14.1.0
+
+**New features:**
+- added support for [Collections](https://docs.kontent.ai/tutorials/manage-kontent/projects/set-up-collections) - #244
+
+## 14.0.1 (2020-11-13)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/14.0.1
+
+- Contains a minor fix related to [Single File Deployment on .NET 5](https://docs.microsoft.com/en-us/dotnet/core/deploying/single-file) (`Assembly.Location` can be null)
+
+## 14.0.0 (2020-10-06)
+
+### [New features](https://github.com/Kentico/kontent-delivery-sdk-net/milestone/16?closed=1)
+- Support for distributed caching via the `IDistributedCache` interface - #196
+  - there is a new implementation of `IDeliveryCacheManager` called `DistributedCacheManager` which implements the `IDistributedCache` interface using [BSON serialization](http://bsonspec.org/)
+  - it's possible to register the cache using `Kentico.Kontent.Delivery.Caching.Extensions.ServiceCollectionExtensions.AddDeliveryClientCache()` by changing `DeliveryCacheOptions.CacheType` from `Memory` to `Distributed`. by default, it registers the `MemoryDistributedCache`. if you want to use a different implementation (e.g. redis, you need to register its instance before calling `AddDeliveryClientCache()`
+  - **[Documentation](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Caching-responses#distributed-caching---example-from-v1400-rc1)**
+- `IContentLinkUrlResolver` is now `async` (as well as several other interfaces - see the breaking changes below) - #213
+- `DebuggerDisplay` attributes for models - #211
+- Enabled low level access to the `ApiResponse` - #217
+- Faking responses made simpler by only returning interfaces - #216 & #61
+- Added support for new types of filters #229 #232
+
+### Bugfixes
+- Automatic formatting of the image transformation API - #224
+- Memory leak when registering named clients - #223
+- Hashcode of a cached type is now part of the cache key - #236 
+
+### Breaking changes & upgrade advice
+- all models have their interfaces extracted to `Kentico.Kontent.Delivery.Abstractions` and the SDK returns only the respective interfaces
+  - for `Asset` we have `IAsset`, for `ContentType` there is an `IContentType`, etc.
+- `DeliveryCacheManager` was renamed to `MemoryCacheManager`
+- `IPropertyValueConverter.GetPropertyValue` was made `async` and strongly-typed. Instead of `JToken`, you receive `ContentElementValue<T>` with `Name`, `Codename`, `Type`, and `Value` properties where `Value` is of type `T` and `T` is the type of your property (`DateTime`, `string`, `int`, `Asset`....).
+- methods in `IContentLinkUrlResolver`, `IModelProvider`, `IInlineContentItemsProcessor` are now `async`. their input parameters remain the same but their return type changed to `Task<T>` instead of the original `T` and they all have `Async` suffix
+- some models are now more specific (contain e.g. `Guid` instead of `string` where it was appropriate) - apply `Guid.Parse()` or `Guid.ToString()` to keep your code compatible or adopt `Guid`s in your code as well
+- places which returned `ContentElement` now return `IContentElement`. plus, based on the type of the element, they can return a type castable to `IMultipleChoiceElement` or `ITaxonomyElement` to allow strongly typed access to members specific to these types
+- the `IDeliveryClient` now contains only `async` methods that operate upon strongly-typed models. all JSON-based methods were removed. if someone wishes to access the raw JSON, all `Delivery*Response` objects contain an object called `ApiResponse` of the `IApiResponse` type. this property contains low-level data like `string Content`, `string RequestUrl`, or `string ContinuationToken`.
+  - some overloads were preserved as [extension methods](https://github.com/Kentico/kontent-delivery-sdk-net/blob/master/Kentico.Kontent.Delivery.Abstractions/DeliveryClientExtensions.cs) but are not required when implementing the `IDeliveryClient` interface
+- `IInlineImage`'s properties were renamed from `AltText` and `Src` to `Description` and `Url` respectively
+- All code from the `Kentico.Kontent.Delivery.ImageTransformation` namespace was extracted to a separate NuGet package `Kentico.Kontent.ImageTransformation`
+- removed the - `AddDeliveryClient(this IServiceCollection services, string name, Func<IDeliveryClientBuilder, IDeliveryClient> buildDeliveryClient)` extension method - please use any other overload (they should provide enough flexibility for all scenarios)
+- AngleSharp reference was upgraded to the latest stable version - 0.14.0. If you explicitly reference an older version in your projects, please follow the [migration guide](https://github.com/AngleSharp/AngleSharp/blob/master/doc/Migration.md) and upgrade to 0.14.0 too.
+
+### Model generator
+Use model generator [v6.0.0](https://github.com/Kentico/kontent-generators-net/releases/tag/6.0.0)
+
+### NuGets
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/14.0.0
+https://www.nuget.org/packages/Kentico.Kontent.Delivery.Rx/14.0.0
+https://www.nuget.org/packages/Kentico.Kontent.Delivery.Caching/14.0.0
+https://www.nuget.org/packages/Kentico.Kontent.Delivery.Abstractions/14.0.0
+https://www.nuget.org/packages/Kentico.Kontent.ImageTransformation/14.0.0
+
+## 13.0.2 (2020-08-11)
+
+**Fixes:**
+- #223 - predictable memory usage (related to `IOptionsMonitor`)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/13.0.2
+
+## 13.0.1 (2020-03-31)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/13.0.1
+
+**New features:**
+- [support for `HttpClientFactory`](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Registering-the-DeliveryClient-to-the-IServiceCollection-in-ASP.NET-Core#httpclientfactory)
+- [support for memory caching](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Caching-responses)
+- [support for registering multiple clients](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Registering-the-DeliveryClient-to-the-IServiceCollection-in-ASP.NET-Core#registering-multiple-clients)
+- [support for hot-reloading of configuration via `IOptionsSnapshot` and `IOptionsMonitor`](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1#reload-configuration-data-with-ioptionssnapshot)
+- [new best practices for working with the SDK](https://github.com/Kentico/kontent-delivery-sdk-net/wiki)
+- [better support for structured rich-text rendering of assets](https://github.com/Kentico/kontent-delivery-sdk-net/issues/204)
+
+**Breaking changes:**
+- `WithHttpClient(new HttpClient())` became `WithDeliveryHttpClient(new DeliveryHttpClient(new HttpClient()))` (see the [docs](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Faking-responses))
+- interfaces and models have been moved to the abstraction library `Kentico.Kontent.Delivery.Abstractions` -> add this namespace to your codefiles (or use the Code Generator v5, link below)
+
+**Related releases:**
+- [Kontent Model Generator v5](https://github.com/Kentico/kontent-generators-net/releases/tag/5.0.0)
+
+## 12.3.0 (2019-11-14)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/12.3.0
+
+* `GetItemsAsync` response can include the total item count matching the search criteria. Use `IncludeTotalCountParameter` to use this feature. This can be used to build paging navigation.
+
+## 12.2.0 (2019-11-06)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/12.2.0
+
+- Fixed some issue when used from Client-side Blazor
+- Added Width and Height properties to Asset model
+
+## 12.1.0 (2019-10-10)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/12.1.0
+
+- Items feed exposes the current continuation token. Use the `ContinuationToken` property of the `DeliveryItemsFeedResponse`.
+- Items feed is easier to mock and test. Use the `IDeliveryItemsFeed` interface to create your own.
+
+## 12.0.0 (2019-10-08)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/12.0.0
+
+**New features**
+
+- Response models provide information whether content is stale. Use the `HasStaleContent` property to determine content status.
+- Items can be enumerated in a streaming fashion. Use the `GetItemsFeed` method to create a feed. Use the `HasMoreResults` property and the `FetchNextBatchAsync` method to enumerate the feed.
+
+**Breaking changes**
+
+- `GetTaxonomyAsync`, `GetTypeAsync` and `GetContentElementAsync` methods return response models instead of taxonomy group, content type or content type element models. Use `Taxonomy`, `Type` or `Element` properties to get response content. There is also an implicit conversion from response models to their content.
+- Improved retry policy. Apart from error responses it also handles connection issues and it no longer depends on `Polly`. Use the `WithDefaultRetryPolicyOptions` method to customize settings of the default retry policy. Create a custom retry policy by implementing `IRetryPolicy` and `IRetryPolicyProvider` interfaces.
+- Updated client options.
+  - Use the `UseProductionApi` method instead of the `UseProductionApi` property.
+  - Use the `WaitForLoadingNewContent` method instead of the `WaitForLoadingNewContent` property.
+  - Use the `UseProductionApi` method with a secure access key parameter instead of the `UseSecuredProductionApi` method when secure access to the Delivery API is enabled.
+  - Use `UseSecureAccess` and `SecureAccessApiKey` properties instead of `UseSecuredProductionApi` and `SecuredProductionApiKey` properties to configure client when secure access is enabled.
+
+## 11.0.3 (2019-09-24)
+
+https://www.nuget.org/packages/Kentico.Kontent.Delivery/11.0.3
+
+## 11.0.2 (2019-09-24)
+
+Update Nuget icon.
+
+## 11.0.1 (2019-09-24)
+
+**Breaking changes**
+
+- Kentico Cloud is now **Kentico Kontent**.
+As we finalize our move to Content as a Service, we decided to reflect that in our brand so we renamed repository, Nuget feed, namespaces, and all related code.
+
+## 11.0.0 (2019-09-24)
+
+**Breaking changes**
+
+- Kentico Cloud is now Kentico Kontent.
+As we finalize our move to Content as a Service, we decided to reflect that in our brand so we renamed repository, Nuget feed, namespaces, and all related code.
+
+## 11.0.0-beta1 (2019-09-11)  _(prerelease)_
+
+**New features**
+
+- Response models provide information whether content is stale.
+
+**Breaking changes**
+
+- `GetTaxonomyAsync`, `GetTypeAsync` and `GetContentElementAsync` methods return response models instead of taxonomy group, content type or content type element models. Use `Taxonomy`, `Type` or `Element` properties to get response content. There is also an implicit conversion from response models to their content.
+
+## 10.0.1 (2019-04-23)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/10.0.1
+
+**Fixes:**
+- https://github.com/Kentico/delivery-sdk-net/issues/160 - GetExecutingAssembly() is not accesible in Xamarin.
+
+## 10.0.0 (2019-03-11)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/10.0.0
+
+**Fixes:**
+- #152 - Code First approach
+- #153 - Inline content resolver in v9 has unnecessary wrapping
+
+**Breaking changes:**
+- `ResolvedContentItemData` class was removed as it served just as an unnecessary wrapper class
+* Every "code first" occurence in the code was removed i.e.:
+   * `ICodeFirstModelProvider`, `ICodeFirstTypeProvider` and `ICodeFirstPropertyMapper` interfaces where  renamed to `IModelProvider`, `ITypeProvider` and `IPropertyMapper`
+   * Methods for registration in `DeliveryClientBuilder` - `WithCodeFirstModelProvider`, `WithCodeFirstTypeProvider` and `WithCodeFirstPropertyMapper` were renamed to `WithModelProvider`, `WithTypeProvider` and  `WithPropertyMapper`
+   * `CodeFirstResolvingContext` class was renamed to `ResolvingContext`
+
+## 9.0.1 (2018-12-17)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/9.0.1
+
+**Fixes:**
+- #145 - Missing content model causes DeliveryClient to silently fail
+- #146 - Resolving inline items with IInlineContentItemsResolver is broken
+- #149 - Custom default inline content items resolver registered through builder is not used
+
+**New features:**
+- some interfaces were removed or made simpler
+
+**Breaking changes:**
+* Non-generic `IInlineContentItemsResolver` was removed as it was an unusable interface that might eventually cause confusion in combination with `ITypelessInlineContentItemsResolver`. 
+* removed members from `IInlineContentItemsProcessor`
+
+**Non-breaking changes:**
+* An independent `ITypelessInlineContentItemsResolver` interface was introduced to wrap and hide `IInlineContentItemsResolver<TContentItem>` resolvers and provide them in a non-generic way to the `InlineContentItemsProcessor` that later puts inline content items through the resolver in order to obtain their string representation.
+* New extension methods for IServiceCollection were introduced to allow registration of custom inline content items resolvers
+
+## 8.0.0 (2018-11-12)
+
+**New features:**
+- Better [dependency injection support](https://github.com/Kentico/delivery-sdk-net/wiki/Using-the-ASP.NET-Core-Configuration-API-and-DI-to-Instantiate-the-DeliveryClient)
+
+**Breaking changes:** 
+
+- Removed .NET Framework 4.5 as a target - now the SDK targets .NET Standard 2.0 which is supported on .NET Framework 4.6.1 and higher + .NET Core 2.0 and higher
+- class `DeliveryClient` is no longer public - requests are now made through instance implementing `IDeliveryClient` which can be created using new `DeliveryClientBuilder` class
+- Added a builder class for `DeliveryOptions`
+- Added an extension method on `IServiceCollection` that registers `IDeliveryClient` implementation
+- Custom implementation of resolvers, processors, mappers can no longer be set to public properties - now they can be set through `DeliveryClientBuilder` class or by registering them to the `ServiceCollection`
+- `ConfigurationManagerProvider` class has been removed so the `GetDeliveryOptions` method for retrieving `DeliveryOptions` from web.config is no longer available.
+- Exception is [not thrown](https://github.com/Kentico/delivery-sdk-net/issues/126) when strong type doesn't exist during deserialization. Instead, null is returned for that object.
+
+**NuGet:**
+- [8.0.0](https://www.nuget.org/packages/KenticoCloud.Delivery/8.0.0)
+
+## 7.0.0 (2018-10-18)
+
+**Breaking changes:**
+- Modular content renamed to linked items #130 
+
+**NuGet:**
+ - https://www.nuget.org/packages/KenticoCloud.Delivery/7.0.0
+
+## 6.0.0 (2018-09-13)
+
+- #93 - Implemented SDK tracking header for measurement popularity
+- #101 - Breaking change - A `GetCodename` method signature is introduced to the `ICodeFirstTypeProvider` interface.
+  - Use [Kentico Cloud Model Generator 1.5.198](https://github.com/Kentico/cloud-generators-net/releases/tag/v1.5.198) or newer to regenerate your models
+- #108 - Enable [source link](https://github.com/dotnet/sourcelink) for debugging
+
+## 5.0.0 (2018-08-06)
+
+- #100 - Implemented a retry policy 
+- #110 - Added netstandard2.0 as a target 
+  **Breaking change**: Upgraded from netstandard1.3 to netstandard2.0
+
+## 4.14.0 (2018-06-20)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.14.0
+
+## New features and improvements
+- Added support for Image transformation
+
+## 4.13.0 (2018-02-08)
+
+**Changes:**
+- Added type filters #86 
+- Support for secured production Delivery API #96
+
+## 4.12 (2017-11-01)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.12.0
+
+## Fixed bugs
+- Long queries were producing bad requests
+
+## 4.11 (2017-10-25)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.11.0
+
+## New features and improvements
+- Added type filters
+- Long query string handling
+- Fixed support of null values in "modular_content" within ritch text.
+
+## 4.9 (2017-09-07)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.9.0
+
+## New features and improvements
+- Added support for getting Taxonomy groups
+
+## 4.8 (2017-08-29)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.8.0
+
+## New features and improvements
+- Added WaitForLoadingNewContent option - Allows to wait for updated content. It should be used when you are acting upon a webhook call.
+
+## 4.7 (2017-08-13)
+
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.7.0
+
+## New features and improvements
+
+- [Support for custom types in models via "Value Converters"](https://github.com/Kentico/delivery-sdk-net/wiki/Support-for-custom-types-in-models-via-%22Value-Converters%22)
+- fully refactored configuration management
+  - added [.NET Core configuration support](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration) ([IOptions<DeliveryOptions>](https://github.com/Kentico/delivery-sdk-net/wiki/Using-the-ASP.NET-Core-Configuration-API-and-DI-to-Instantiate-the-DeliveryClient))
+  - added a configuration [provider](https://github.com/Kentico/delivery-sdk-net/wiki/Loading-DeliveryClient-settings-from-web.config) for legacy web.config appSettings approach
+  - added full [support](https://github.com/Kentico/delivery-sdk-net/wiki/Using-the-ASP.NET-Core-Configuration-API-and-DI-to-Instantiate-the-DeliveryClient) for instantiation via constructor [DI](https://en.wikipedia.org/wiki/Dependency_injection)
+- all response objects now contain [`ApiUrl` for easier debugging](https://github.com/Kentico/delivery-sdk-net/blob/04b6b6694e4ae43c359e797cf570d88c87e167d5/KenticoCloud.Delivery/Responses/AbstractResponse.cs#L14)
+- better [support for unit testing](https://github.com/Kentico/delivery-sdk-net/wiki/Faking-responses) (you can now fake HttpClient responses)
+- added more unit tests!
+
+## Fixed bugs
+- [Asset description was not always initialized](https://github.com/Kentico/delivery-sdk-net/issues/68)
+
+## Closed pull reuqests
+See all closed pull reuqests in the latest [milestone](https://github.com/Kentico/delivery-sdk-net/milestone/3?closed=1).
+
+## Special thanks
+- [Jarosław Jarnot](https://github.com/jjarnot-vimanet) ([Vimanet](https://vimanet.com/)) for refactoring of the Configuration management
+- [Lee Conlin](https://github.com/hades200082) for [plenty](https://forums.kenticocloud.com/discussion/comment/159#Comment_159) of valuable [feedback](https://forums.kenticocloud.com/discussion/comment/157#Comment_157)
+- [Jacob Mojiwat](https://forums.kenticocloud.com/profile/JacobMojiwat) for [valuable feedback](https://forums.kenticocloud.com/discussion/49/support-nodatime-in-property-types#latest)
+
+## 4.5 (2017-06-01)
+
+### NuGet
+https://www.nuget.org/packages/KenticoCloud.Delivery/4.5.0
+
+### New features and improvements
+- Support of Modular Content in Rich Text Elements
+- Project migrated to Visual Studio 2017
+- Several little tweaks to make the SDK more robust and the code less verbose
+- Improved XML documentation
