@@ -8,6 +8,35 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 19.4.0 (2026-08-03)
+
+Maintenance release: restores buildability against NuGet signature verification and refreshes the dependency estate. **No public API, behavior, or target framework changes** — no production source file changed since 19.3.1.
+
+#### Fixed
+
+- `Refit` and `Refit.HttpClientFactory` **10.1.6** → **10.2.0**, resolving restore failures ([#417](https://github.com/kontent-ai/delivery-sdk-net/issues/417)). The certificate that author-signed 10.1.6 was revoked, so NuGet signature verification failed with `NU3012` during `dotnet restore` on any pipeline with verification enabled ([reactiveui/refit#2114](https://github.com/reactiveui/refit/issues/2114)). 10.2.0 is the same code re-signed with a valid certificate — no API or behavior difference.
+- CI no longer disables NuGet signature verification. The `DOTNET_NUGET_SIGNATURE_VERIFICATION` bypass added as a stopgap has been removed now that a validly signed Refit is available.
+
+#### Dependencies
+
+Shipped dependency floors on `Kontent.Ai.Delivery` and `Kontent.Ai.Urls` moved up:
+
+- `Microsoft.Extensions.Options.DataAnnotations` **8.0.0** → **9.0.15**. This is a major-version floor raise and the reason this is a minor rather than a patch release — if you pin the `Microsoft.Extensions.*` graph at 8.x, restore may report `NU1605` until you align on 9.x. There is no compile or runtime impact: the 9.x packages still target `net8.0`.
+- `Microsoft.Extensions.Configuration`, `.Configuration.Binder`, `.Options`, `.Options.ConfigurationExtensions`, `.Primitives`, `.Logging.Abstractions` **9.0.3** → **9.0.15** (servicing band).
+
+`Kontent.Ai.Delivery.Abstractions` and `Kontent.Ai.Delivery.Caching` are dependency-identical to 19.3.1.
+
+#### Internal
+
+Build and test-only changes. None of these packages ship in the SDK:
+
+- The build engine is pinned to the .NET 10 SDK (`global.json`, `10.0.300` with `latestPatch` roll-forward), aligning with the rest of the .NET monorepo estate ([#416](https://github.com/kontent-ai/delivery-sdk-net/pull/416)). **This has no effect on consumers** — all packages still target `net8.0` (`netstandard2.0` for the source generator). It does affect contributors: building the repo now requires the .NET 10 SDK.
+- Test assertions migrated from `FluentAssertions` `[7.2.2,8.0.0)` to `AwesomeAssertions` **9.4.0**, the community Apache-2.0 successor. v9 uses its own `AwesomeAssertions` namespace, so test files import that instead.
+- Workflow checkouts hardened and action versions modernized ([#415](https://github.com/kontent-ai/delivery-sdk-net/pull/415)).
+- Tooling refresh: `Microsoft.SourceLink.GitHub` 8.0.0 → 10.0.202, `Microsoft.NET.Test.Sdk` 17.14.1 → 18.4.0, `xunit.runner.visualstudio` 2.8.2 → 3.0.2, `RichardSzalay.MockHttp` 6.0.0 → 7.0.0, `coverlet.collector`/`coverlet.msbuild` 3.2.0 → 6.0.4, `SonarAnalyzer.CSharp` 10.19.0.132793 → 10.23.0.137933.
+
+**Full Changelog**: https://github.com/kontent-ai/delivery-sdk-net/compare/19.3.1...19.4.0
+
 ## 19.3.1 (2026-07-30)
 
 ### Kontent.ai .NET Delivery SDK 19.3.1
