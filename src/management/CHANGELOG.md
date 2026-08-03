@@ -6,6 +6,23 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0-beta-5 (2026-08-03)  _(prerelease)_
+
+A packaging-only fix on top of 9.0.0-beta-4. No API or behavior change — if you are already restoring beta-4 successfully, there is nothing new here.
+
+> [!WARNING]
+> This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
+
+### Fixes
+
+- **Restore no longer fails with NU3012.** The package now depends on `Refit` / `Refit.HttpClientFactory` **10.2.0** instead of 10.1.6. The 10.1.6 packages are author-signed with a certificate that has since been revoked, so restoring them fails signature verification — on by default on Windows, and enabled via `DOTNET_NUGET_SIGNATURE_VERIFICATION=true` on Linux CI. 10.2.0 is the same code re-signed with a valid certificate.
+
+  This was not avoidable downstream. Even when another dependency required 10.2.0 and version resolution settled there, NuGet still downloaded and verified 10.1.6 while walking the graph, and failed before resolution completed. Consumers who worked around it by pinning Refit directly can drop that pin.
+
+### Other
+
+- Built from the [kontent-ai/dotnet](https://github.com/kontent-ai/dotnet) monorepo. Package ID and API surface are unchanged.
+
 ## 9.0.0-beta-4 (2026-07-20)  _(prerelease)_
 
 Fourth beta of the modernized Management SDK, and primarily a **security** release: it closes a path-traversal issue in how caller-supplied identifiers become request paths. It also fixes several correctness and reliability bugs and adds a small ergonomic improvement. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 release notes](release-notes-9.0.0-beta-1.md).

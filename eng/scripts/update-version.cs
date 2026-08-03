@@ -64,12 +64,15 @@ if (body.Length == 0)
     Console.Error.WriteLine("warning: '## Unreleased' is empty - releasing with no changelog entries");
 
 var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
-changelog = changelog.Replace("## Unreleased", $"## Unreleased\n\n## {next} ({today})", StringComparison.Ordinal);
+// Every prerelease entry in these changelogs carries this marker, so a reader scanning the file
+// can tell at a glance which versions are not GA. Keep generated headings consistent with that.
+var heading = $"## {next} ({today})" + (next.Contains('-') ? "  _(prerelease)_" : "");
+changelog = changelog.Replace("## Unreleased", $"## Unreleased\n\n{heading}", StringComparison.Ordinal);
 File.WriteAllText(changelogPath, changelog);
 
 Console.WriteLine($"{product}: {current} -> {next}");
 Console.WriteLine($"  eng/Versions.props   {versionProperty} updated");
-Console.WriteLine($"  {entry.GetProperty("changelog").GetString()}  '## Unreleased' promoted to '## {next} ({today})'");
+Console.WriteLine($"  {entry.GetProperty("changelog").GetString()}  '## Unreleased' promoted to '{heading}'");
 Console.WriteLine();
 Console.WriteLine($"Review, commit, then tag: {product}-v{next}");
 return 0;
