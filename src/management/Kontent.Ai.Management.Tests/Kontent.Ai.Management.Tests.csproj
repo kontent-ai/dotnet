@@ -4,6 +4,11 @@
 		<TargetFramework>net8.0</TargetFramework>
 
 		<IsPackable>false</IsPackable>
+		<!-- Per-product coverage gate, set just under current coverage so it blocks
+		     regression rather than aspiring. Measured 91.36% line on 2026-08-03. -->
+		<Threshold>90</Threshold>
+		<ThresholdType>line</ThresholdType>
+		<ThresholdStat>total</ThresholdStat>
 		<!-- KAIM001: the tests exercise the SDK's own experimental content-model snapshot API -->
 		<NoWarn>CS1591;KAIM001</NoWarn>
 	</PropertyGroup>

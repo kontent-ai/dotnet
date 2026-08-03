@@ -55,6 +55,14 @@ jobs:
           files: src/aspnetcore/Kontent.Ai.AspNetCore.Tests/coverage.opencover.xml
           flags: aspnetcore
           fail_ci_if_error: true
+      - name: Codecov (management)
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/management/Kontent.Ai.Management.Tests/coverage.opencover.xml
+          flags: management
+          fail_ci_if_error: true
       - name: Restore local tools
         if: runner.os == 'Linux'
         run: dotnet tool restore

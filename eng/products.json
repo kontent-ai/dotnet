@@ -8,5 +8,15 @@
     "expectedPackages": [
       "Kontent.Ai.AspNetCore"
     ]
+  },
+  "management": {
+    "versionProperty": "ManagementVersion",
+    "changelog": "src/management/CHANGELOG.md",
+    "projects": [
+      "src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj"
+    ],
+    "expectedPackages": [
+      "Kontent.Ai.Management"
+    ]
   }
 }

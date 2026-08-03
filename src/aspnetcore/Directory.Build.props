@@ -8,13 +8,11 @@
     <Version>$(AspNetCoreVersion)</Version>
     <PackageProjectUrl>https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>kontent-ai-k-icon-color.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- $(MSBuildThisFileDirectory) resolves to src/aspnetcore/ regardless of how deep
          the consuming project sits, so these survive any future nesting changes. -->
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
-    <None Include="$(MSBuildThisFileDirectory)kontent-ai-k-icon-color.png" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>

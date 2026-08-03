@@ -38,9 +38,13 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/kontent-ai/dotnet.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageIcon>kontent-ai-k-icon-color.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <!-- One icon for every package. The products previously shipped two byte-different
+         but visually identical copies under different names. -->
+    <None Include="$(MSBuildThisFileDirectory)kontent-ai-k-icon-color.png" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>

@@ -1,44 +1,22 @@
 <Project>
+  <!-- Import the repo-wide settings first. Without this, MSBuild would stop here
+       when walking up from a project and the root file would never apply. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <PropertyGroup>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- Deterministic builds for reproducibility -->
-    <Deterministic>true</Deterministic>
-    <!-- Enable CI-specific source-linked builds when running in CI -->
-    <ContinuousIntegrationBuild Condition="'$(CI)'=='true'">true</ContinuousIntegrationBuild>
-  </PropertyGroup>
-
-  <!-- Shared packaging and SourceLink configuration -->
-  <!-- Note: test projects set IsPackable=false to exclude themselves -->
-  <PropertyGroup>
-    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-    <Authors>Kontent s.r.o.</Authors>
-    <Product>Kontent.ai</Product>
-    <Copyright>© 2026 Kontent s.r.o. All rights reserved.</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/kontent-ai/management-sdk-net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/kontent-ai/management-sdk-net.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-
+    <!-- Declared in eng/Versions.props, which the root Directory.Build.props imports. -->
+    <Version>$(ManagementVersion)</Version>
+    <PackageProjectUrl>https://github.com/kontent-ai/dotnet/tree/main/src/management</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>kai-logo-symbol-color-rgb.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <!-- Kept per-product rather than repo-wide: aspnetcore and model-generator do not
+         currently run Sonar, and switching it on for them would introduce warnings that
+         belong in their own change, not this one. -->
     <PackageReference Include="SonarAnalyzer.CSharp"
                       PrivateAssets="all"
                       IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
-    <None Include="../README.md" Pack="true" PackagePath="" Condition="Exists('../README.md')" />
-    <None Include="../kai-logo-symbol-color-rgb.png" Pack="true" PackagePath="" Condition="Exists('../kai-logo-symbol-color-rgb.png')" />
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>

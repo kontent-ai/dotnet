@@ -4,4 +4,8 @@
     <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore.Tests/Kontent.Ai.AspNetCore.Tests.csproj" />
     <Project Path="src/aspnetcore/Kontent.Ai.AspNetCore/Kontent.Ai.AspNetCore.csproj" />
   </Folder>
+  <Folder Name="/src/management/">
+    <Project Path="src/management/Kontent.Ai.Management.Tests/Kontent.Ai.Management.Tests.csproj" />
+    <Project Path="src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj" />
+  </Folder>
 </Solution>

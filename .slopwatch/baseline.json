@@ -1,7 +1,26 @@
 {
   "version": 1,
-  "createdAt": "2026-08-03T13:27:49.961788+00:00",
-  "updatedAt": "2026-08-03T13:27:49.961788+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-08-03 13:27:49 UTC",
-  "entries": []
+  "createdAt": "2026-08-03T15:27:11.38975+00:00",
+  "updatedAt": "2026-08-03T15:27:11.392879+00:00",
+  "description": "Initial baseline created by 'slopwatch init' on 2026-08-03 15:27:11 UTC",
+  "entries": [
+    {
+      "hash": "073b9b8c3bf254fb",
+      "ruleId": "SW002",
+      "filePath": "src/management/Kontent.Ai.Management/Models/TypeSnippets/Patch/ContentTypeSnippetPatch.cs",
+      "lineNumber": 12,
+      "codeSnippet": "SuppressMessage(\"Design\", \"S3453:Classes should not have only \\\"private\\\" constructors\", Justification = \"Static facade over the inherited static factories; must never be instantiated.\")",
+      "message": "SuppressMessage attribute suppressing Design:S3453:Classes should not have only \\\"private\\\" constructors",
+      "baselinedAt": "2026-08-03T15:27:11.392837+00:00"
+    },
+    {
+      "hash": "8bf28c88c5092cc4",
+      "ruleId": "SW002",
+      "filePath": "src/management/Kontent.Ai.Management.Tests/CodeSamples/Readme.cs",
+      "lineNumber": 26,
+      "codeSnippet": "#pragma warning disable xUnit1013 // Public test method should be marked as test",
+      "message": "#pragma warning disable for warnings xUnit1013 without matching restore in same scope",
+      "baselinedAt": "2026-08-03T15:27:11.392879+00:00"
+    }
+  ]
 }
