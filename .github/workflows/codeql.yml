@@ -7,6 +7,8 @@ on:
   pull_request:
     branches:
       - main
+  schedule:
+    - cron: '0 18 * * 1'
 
 env:
   # Refit 10.x is author-signed with a certificate that currently reports as revoked,
@@ -16,13 +18,6 @@ env:
 
 jobs:
   CodeQL-Build:
-
-    # Code scanning is free on public repositories but requires GitHub Advanced
-    # Security (a paid add-on) on private ones. This repo is private until the
-    # public flip, so the job skips itself rather than failing every run. It starts
-    # working automatically the moment the repository becomes public - at which
-    # point restore the weekly `schedule:` trigger that was removed above.
-    if: github.event.repository.private == false
 
     runs-on: ubuntu-latest
     

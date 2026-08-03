@@ -41,12 +41,20 @@ jobs:
       # Threshold/ThresholdType and coverlet fails the run if coverage drops below it.
       # A repo-wide number is not possible - coverage legitimately differs by an order
       # of magnitude between a thin CLI entry point and a library.
-      #
-      # Nothing is uploaded anywhere. Codecov was dropped deliberately; re-adding it is
-      # a reporting concern only, and would need a CODECOV_TOKEN repo secret plus
-      # per-product `flags` so five products do not merge into one meaningless number.
       - name: Test
         run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+      # Uploaded per product with its own flag. Without flags every product's coverage
+      # would merge into one repo-wide percentage, which is meaningless across a client
+      # library and a CLI. Each product added to the repo needs its own step here.
+      - name: Codecov (aspnetcore)
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/aspnetcore/Kontent.Ai.AspNetCore.Tests/coverage.opencover.xml
+          flags: aspnetcore
+          fail_ci_if_error: true
       - name: Restore local tools
         if: runner.os == 'Linux'
         run: dotnet tool restore
