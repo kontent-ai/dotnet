@@ -1,19 +1,14 @@
 # Kontent.ai Management SDK for .NET
 
-![Last commit][last-commit-shield]
-[![Issues][issues-shield]][issues-url]
-[![Contributors][contributors-shield]][contributors-url]
-[![MIT License][license-shield]][license-url]
-[![codecov][codecov-shield]][codecov-url]
-[![NuGet][nuget-shield]][nuget-url]
-[![Stack Overflow][stack-shield]](https://stackoverflow.com/tags/kontent-ai)
+[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
+[![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
 
 > [!WARNING]
 > **This is a beta release.** The SDK is undergoing a ground-up modernization, and this README documents the new, **modernized API** — result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. While in beta it is published as a **prerelease**, and **breaking changes may land between prereleases** until the first stable major version ships. Pin an exact version if you need stability during the beta.
 >
 > **For production, use the latest stable release** — the `8.x` line, which exposes the previous API and is installed without the `--prerelease` flag. See the [package on NuGet][nuget-url] for the current stable version.
 >
-> Migrating from `8.x`? Start with the [upgrade guide](./docs/upgrade-guide.md).
+> Migrating from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md).
 
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.
 
@@ -58,7 +53,7 @@ The SDK targets `net8.0`.
 
 ## Upgrade Guide
 
-If you are moving from the stable `8.x` SDK to the modernized prerelease, read the [upgrade guide](./docs/upgrade-guide.md). It covers the result pattern, listing changes, strongly-typed model changes, `System.Text.Json`, and removed legacy surfaces.
+If you are moving from the stable `8.x` SDK to the modernized prerelease, read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md). It covers the result pattern, listing changes, strongly-typed model changes, `System.Text.Json`, and removed legacy surfaces.
 
 ## Quick Start
 
@@ -842,7 +837,7 @@ await client.CreateLanguageAsync(new LanguageCreateModel
 
 ## Further Information
 
-For migration details, see the [upgrade guide](./docs/upgrade-guide.md). For more developer resources, see the [Management API reference](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) and the [.NET development overview](https://kontent.ai/learn/develop/develop-with-kontent-ai/net) on Kontent.ai Learn.
+For migration details, see the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md). For more developer resources, see the [Management API reference](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) and the [.NET development overview](https://kontent.ai/learn/develop/develop-with-kontent-ai/net) on Kontent.ai Learn.
 
 ## Contributing
 
@@ -852,15 +847,4 @@ See the [contributing](https://github.com/kontent-ai/dotnet/blob/main/CONTRIBUTI
 
 Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.
 
-[last-commit-shield]: https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge
-[issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/dotnet/issues
-[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
-[license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet?style=for-the-badge
-[license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
-[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge&flag=management
-[codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
-[nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge
 [nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
-[stack-shield]: https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16?style=for-the-badge&logo=stackoverflow&logoColor=white

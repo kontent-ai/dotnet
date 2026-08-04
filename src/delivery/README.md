@@ -1,12 +1,7 @@
 # Kontent.ai Delivery SDK for .NET
 
-![Last modified][last-commit]
-[![Issues][issues-shield]][issues-url]
-[![Contributors][contributors-shield]][contributors-url]
-[![MIT License][license-shield]][license-url]
-[![codecov][codecov-shield]][codecov-url]
-[![NuGet][nuget-shield]][nuget-url]
-[![Stack Overflow][stack-shield]](https://stackoverflow.com/tags/kontent-ai)
+[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Delivery?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Delivery)
+[![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Delivery?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Delivery)
 
 The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn/docs/apis/openapi/delivery-api/), enabling you to retrieve content from your Kontent.ai projects with a modern, type-safe, and highly extensible client library.
 
@@ -622,7 +617,7 @@ var result = await client.GetItems<Article>()
 > [!TIP]
 > For listing pages that only show titles and summaries, use `.WithElements()` to reduce payload size by 50-80%.
 
-For more advanced filtering scenarios, see the [Advanced Filtering Guide](docs/advanced-filtering.md).
+For more advanced filtering scenarios, see the [Advanced Filtering Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/advanced-filtering.md).
 
 ### Working with Strongly-Typed Models
 
@@ -1139,7 +1134,7 @@ var tweets = article.BodyCopy.GetEmbeddedContent<Tweet>();
 var tweetElements = article.BodyCopy.GetEmbeddedElements<Tweet>();
 ```
 
-For advanced rich text scenarios including custom HTML nodes and complex resolution strategies, see the [Rich Text Customization Guide](docs/rich-text-customization.md).
+For advanced rich text scenarios including custom HTML nodes and complex resolution strategies, see the [Rich Text Customization Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md).
 
 ### Multi-Language Support
 
@@ -1255,7 +1250,7 @@ services.AddDeliveryMemoryCache("production", (sp, options) =>
 });
 ```
 
-For callback timing and lifetime guidance, see [Configuring Cache Options from DI Services](docs/caching-guide.md#configuring-cache-options-from-di-services).
+For callback timing and lifetime guidance, see [Configuring Cache Options from DI Services](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#configuring-cache-options-from-di-services).
 
 Caching is transparent for cacheable query builders - once configured, cached query types are cached automatically and cache keys are built from query parameters for proper cache hits.
 
@@ -1409,9 +1404,9 @@ if (cacheManager is IDeliveryCachePurger purger)
 > [!IMPORTANT]
 > Runtime option changes on an already-cached client do not invalidate existing cache entries. If you change `EnvironmentId` or `DefaultRenditionPreset`, purge the client cache (or recreate the client) before relying on the new setting.
 
-For advanced caching strategies including cache invalidation, webhook integration, and multi-tenant scenarios, see the [Caching Guide](docs/caching-guide.md), especially:
-- [Invalidation Matrix (RC-ready)](docs/caching-guide.md#invalidation-matrix-rc-ready)
-- [Optional Redis Validation Suite](docs/caching-guide.md#optional-redis-validation-suite)
+For advanced caching strategies including cache invalidation, webhook integration, and multi-tenant scenarios, see the [Caching Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md), especially:
+- [Invalidation Matrix (RC-ready)](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#invalidation-matrix-rc-ready)
+- [Optional Redis Validation Suite](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#optional-redis-validation-suite)
 
 Optional Redis validation run:
 
@@ -1462,7 +1457,7 @@ var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
 var client = isPreviewMode ? factory.Get("preview") : factory.Get("production");
 ```
 
-For more on named clients and multi-environment scenarios, see the [Multi-Client Scenarios Guide](docs/multi-client-scenarios.md).
+For more on named clients and multi-environment scenarios, see the [Multi-Client Scenarios Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md).
 
 ### Asset Renditions
 
@@ -1884,12 +1879,12 @@ if (result.IsSuccess)
 
 For more advanced scenarios and in-depth guides, explore the following documentation:
 
-- **[Advanced Filtering](docs/advanced-filtering.md)** - Complex queries, combining filters, performance optimization
-- **[Rich Text Customization](docs/rich-text-customization.md)** - Custom resolvers, URL patterns, async resolution
-- **[Caching Guide](docs/caching-guide.md)** - Cache strategies, invalidation, webhook integration
-- **[Multi-Client Scenarios](docs/multi-client-scenarios.md)** - Named clients, multi-tenant architectures
-- **[Performance Optimization](docs/performance-optimization.md)** - Query optimization, monitoring, best practices
-- **[Extensibility Guide](docs/extensibility-guide.md)** - Custom type providers, property mappers, SDK extension points
+- **[Advanced Filtering](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/advanced-filtering.md)** - Complex queries, combining filters, performance optimization
+- **[Rich Text Customization](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md)** - Custom resolvers, URL patterns, async resolution
+- **[Caching Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md)** - Cache strategies, invalidation, webhook integration
+- **[Multi-Client Scenarios](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** - Named clients, multi-tenant architectures
+- **[Performance Optimization](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** - Query optimization, monitoring, best practices
+- **[Extensibility Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** - Custom type providers, property mappers, SDK extension points
 
 ## Contributing
 
@@ -1902,17 +1897,3 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 ---
 
 **Questions or feedback?** Visit our [GitHub Issues](https://github.com/kontent-ai/dotnet/issues) or check the [Kontent.ai Developer Hub](https://kontent.ai/learn/docs).
-
-
-[last-commit]: https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge
-[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
-[issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet.svg?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/dotnet/issues
-[license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet?label=license&style=for-the-badge
-[license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
-[stack-shield]: https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?logo=stackoverflow&logoColor=white&style=for-the-badge
-[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge&flag=delivery
-[codecov-url]: https://app.codecov.io/github/kontent-ai/delivery-sdk-net
-[nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Delivery
-[nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Delivery.svg?style=for-the-badge

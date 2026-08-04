@@ -1,32 +1,29 @@
+[![.NET][dotnet-shield]][dotnet-url]
+[![Build & Test][build-shield]][build-url]
+[![codecov][codecov-shield]][codecov-url]
 [![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 
-[![Discord][discussion-shield]][discussion-url]
-
 # Kontent.ai .NET
 
-> [!WARNING]
-> **Work in progress — not yet the home of the shipped SDKs.**
+> [!IMPORTANT]
+> **This is the home of the Kontent.ai .NET SDKs.** All five products have moved here with
+> their full history, and packages are published from this repository.
 >
-> This repository is being assembled by consolidating the Kontent.ai .NET repositories
-> into a single monorepo. Products are moving here one at a time, and nothing has been
-> published to NuGet from this repository yet.
+> The former per-product repositories are **frozen** — they are kept for reference and for
+> the release history of versions published before the move. Open issues and pull requests
+> here instead:
 >
-> **Until the migration completes, use the existing repositories and packages:**
->
-> | Package | Repository |
+> | Former repository | Now at |
 > |---|---|
-> | `Kontent.Ai.Delivery` and friends | [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net) |
-> | `Kontent.Ai.Management` | [management-sdk-net](https://github.com/kontent-ai/management-sdk-net) |
-> | `Kontent.Ai.Sync` | [sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net) |
-> | `Kontent.Ai.AspNetCore` | [aspnetcore-extensions](https://github.com/kontent-ai/aspnetcore-extensions) |
-> | `Kontent.Ai.ModelGenerator` | [model-generator-net](https://github.com/kontent-ai/model-generator-net) |
+> | [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net) | [`src/delivery`](./src/delivery) |
+> | [management-sdk-net](https://github.com/kontent-ai/management-sdk-net) | [`src/management`](./src/management) |
+> | [sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net) | [`src/sync`](./src/sync) |
+> | [aspnetcore-extensions](https://github.com/kontent-ai/aspnetcore-extensions) | [`src/aspnetcore`](./src/aspnetcore) |
+> | [model-generator-net](https://github.com/kontent-ai/model-generator-net) | [`src/model-generator`](./src/model-generator) |
 >
-> Packages published from here will be announced when the move is complete. Issues and
-> pull requests are welcome, but expect the layout to keep changing until then.
+> Package IDs and public APIs are unchanged by the move.
 
 ## About
 
@@ -88,15 +85,16 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://github.com/kontent-ai/Home/wiki/Checklist-for-publishing-a-new-OS-project#badges-->
+
+[dotnet-shield]: https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
+[dotnet-url]: https://dotnet.microsoft.com/download/dotnet/8.0
+[build-shield]: https://img.shields.io/github/actions/workflow/status/kontent-ai/dotnet/ci.yml?style=for-the-badge&label=Build%20%26%20Test
+[build-url]: https://github.com/kontent-ai/dotnet/actions/workflows/ci.yml
+[codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge
+[codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
 [contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet.svg?style=for-the-badge
 [contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/kontent-ai/dotnet.svg?style=for-the-badge
-[forks-url]: https://github.com/kontent-ai/dotnet/network/members
-[stars-shield]: https://img.shields.io/github/stars/kontent-ai/dotnet.svg?style=for-the-badge
-[stars-url]: https://github.com/kontent-ai/dotnet/stargazers
 [issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet.svg?style=for-the-badge
 [issues-url]: https://github.com/kontent-ai/dotnet/issues
 [license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet.svg?style=for-the-badge
 [license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
-[discussion-shield]: https://img.shields.io/discord/821885171984891914?color=%237289DA&label=Kontent%2Eai%20Discord&logo=discord&style=for-the-badge
-[discussion-url]: https://discord.com/invite/SKCxwPtevJ

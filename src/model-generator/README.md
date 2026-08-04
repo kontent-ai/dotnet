@@ -1,14 +1,7 @@
 # Kontent.ai model generator utility for .NET
 
-[![NuGet][nuget-badge]][nuget-url]
-[![License][license-badge]][license-url]
-[![Build & Test][build-badge]][build-url]
-[![codecov][codecov-badge]][codecov-url]
-[![Contributors][contributors-badge]][contributors-url]
-[![Last commit][last-commit-badge]][last-commit-url]
-[![GitHub Issues][issues-badge]][issues-url]
-[![Stack Overflow][stack-overflow-badge]][stack-overflow-url]
-[![Discord][discord-badge]][discord-url]
+[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
+[![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
 
 This utility generates strongly-typed **record-based models** for:
 
@@ -126,7 +119,7 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    --DeliveryOptions:UseSecureAccess true --DeliveryOptions:SecureAccessApiKey <SecuredApiKey>
    ```
 
-2. [`appSettings.json`](./src/Kontent.Ai.ModelGenerator/appSettings.json) - suitable for the standalone app release
+2. [`appSettings.json`](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/src/Kontent.Ai.ModelGenerator/appSettings.json) - suitable for the standalone app release
 
 ## Generated Model Example (Delivery)
 
@@ -390,21 +383,3 @@ We would like to express our thanks to the following people who contributed and 
 [MIT](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
 
 <!-- Badge references -->
-[nuget-badge]: https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge
-[nuget-url]: https://www.nuget.org/packages/Kontent.Ai.ModelGenerator
-[license-badge]: https://img.shields.io/github/license/kontent-ai/dotnet?style=for-the-badge
-[license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
-[build-badge]: https://img.shields.io/github/actions/workflow/status/kontent-ai/dotnet/ci.yml?style=for-the-badge&label=Build%20%26%20Test
-[build-url]: https://github.com/kontent-ai/dotnet/actions/workflows/ci.yml
-[codecov-badge]: https://img.shields.io/codecov/c/gh/kontent-ai/dotnet?style=for-the-badge&flag=model-generator
-[codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
-[contributors-badge]: https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
-[last-commit-badge]: https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge
-[last-commit-url]: https://github.com/kontent-ai/dotnet/commits/main
-[issues-badge]: https://img.shields.io/github/issues/kontent-ai/dotnet?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/dotnet/issues
-[stack-overflow-badge]: https://img.shields.io/badge/Stack%20Overflow-ASK%20NOW-FE7A16.svg?style=for-the-badge&logo=stackoverflow&logoColor=white
-[stack-overflow-url]: https://stackoverflow.com/tags/kontent-ai
-[discord-badge]: https://img.shields.io/discord/821885171984891914?style=for-the-badge&color=%237289DA&label=Kontent%20Discord&logo=discord
-[discord-url]: https://discord.gg/SKCxwPtevJ

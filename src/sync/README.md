@@ -1,10 +1,7 @@
 # Kontent.ai Sync SDK for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
-[![License](https://img.shields.io/github/license/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
-[![Contributors](https://img.shields.io/github/contributors/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/commits/main)
-[![Issues](https://img.shields.io/github/issues/kontent-ai/dotnet?style=for-the-badge)](https://github.com/kontent-ai/dotnet/issues)
+[![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
 
 Official .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
 

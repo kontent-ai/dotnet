@@ -3,6 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Set well under current coverage so it blocks regression rather than aspiring, with room
+         for platform variance between the ubuntu and windows CI legs. 100% line measured on macOS
+         2026-08-04. -->
+    <Threshold>95</Threshold>
+    <ThresholdType>line</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
     <NoWarn>CS1591</NoWarn>
   </PropertyGroup>
 
