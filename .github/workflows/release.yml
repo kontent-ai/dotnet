@@ -69,10 +69,45 @@ jobs:
 
       # Backstop for a mis-declared internal dependency: a package that depends on a
       # Kontent.Ai.* version not yet on nuget.org would install for nobody.
+      #
+      # Packages within one product reference each other as ProjectReferences, so they pack as
+      # same-version dependencies (Kontent.Ai.Delivery 19.5.0 -> Kontent.Ai.Delivery.Abstractions
+      # 19.5.0). Those siblings are pushed by THIS run a step later, so asking nuget.org about
+      # them here would always fail. They are exempted; everything else must already be live.
+      # (nuget.org accepts a package whose dependencies are not yet indexed - dependencies are
+      # resolved at restore time - so publishing the batch together is safe.)
       - name: Verify internal dependencies are published
         shell: bash
+        env:
+          RELEASE_PACKAGES: ${{ steps.plan.outputs.packages }}
+          RELEASE_VERSION: ${{ steps.plan.outputs.version }}
         run: |
           set -euo pipefail
+
+          # Is this dependency one of the packages this very run is about to publish?
+          ships_in_this_release() {
+            local id="$1" ver="$2" p
+            [ "$ver" = "$RELEASE_VERSION" ] || return 1
+            for p in $RELEASE_PACKAGES; do
+              [ "$p" = "$id" ] && return 0
+            done
+            return 1
+          }
+
+          # nuget.org indexing lags a little behind a push, so a correctly ordered
+          # dependency-first release can still look unpublished for a minute or two.
+          is_published() {
+            local id="$1" ver="$2" url attempt
+            url="https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr 'A-Z' 'a-z')/index.json"
+            for attempt in 1 2 3 4 5; do
+              if curl -fsS "$url" | jq -e --arg v "$ver" '.versions | index($v)' >/dev/null 2>&1; then
+                return 0
+              fi
+              [ "$attempt" -lt 5 ] && sleep $((attempt * 15))
+            done
+            return 1
+          }
+
           missing=0
           for nupkg in "$PACK_OUTPUT"/*.nupkg; do
             echo "::group::$(basename "$nupkg")"
@@ -94,8 +129,9 @@ jobs:
             # Fed by here-string rather than a pipe: a piped `while` runs in a subshell, so
             # assignments to $missing inside it would be discarded.
             while read -r id ver; do
-              url="https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr 'A-Z' 'a-z')/index.json"
-              if curl -fsS "$url" | jq -e --arg v "$ver" '.versions | index($v)' >/dev/null; then
+              if ships_in_this_release "$id" "$ver"; then
+                echo "ships in this release: $id $ver"
+              elif is_published "$id" "$ver"; then
                 echo "ok: $id $ver"
               else
                 echo "NOT PUBLISHED: $id $ver is not on nuget.org"
