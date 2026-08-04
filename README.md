@@ -108,6 +108,16 @@ behind the newest sibling. Raise it only when the consuming code actually needs 
 API. [`CONTRIBUTING.md`](./CONTRIBUTING.md#changing-an-api-that-another-product-consumes) has
 the full sequence.
 
+To see where the floors stand:
+
+```sh
+dotnet run eng/scripts/dependency-floors.cs
+```
+
+Every *Prepare release* PR carries the same report in its body, and **Actions → Dependency
+floors** runs it monthly. It only fails if a floor names a version that is not on NuGet at
+all — being behind is reported, never enforced.
+
 ### Prepared but not released
 
 Preparing and publishing are separate steps, so a batch can bump several products and then

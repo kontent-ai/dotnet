@@ -141,6 +141,19 @@ jobs:
           echo "Prepared:"
           cat /tmp/summary.txt
 
+      # Folded into the PR body below. Preparing a release is the moment someone is already
+      # deciding what version each product should be on, so it is the one place a stale
+      # cross-product floor is actually actionable. Never fatal here: a floor is meant to lag,
+      # and the scheduled Dependency floors workflow is what fails loudly if one names a
+      # version that is not on NuGet at all.
+      - name: Report cross-product dependency floors
+        run: |
+          set -uo pipefail
+          dotnet build eng/scripts/dependency-floors.cs >/dev/null 2>&1 || true
+          dotnet run eng/scripts/dependency-floors.cs > /tmp/floors.txt 2>/dev/null \
+            || echo "(could not read dependency floors - see the Dependency floors workflow)" > /tmp/floors.txt
+          cat /tmp/floors.txt
+
       - name: Open pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -178,6 +191,19 @@ jobs:
             echo "and re-running skips whatever is already published."
             echo
             echo "Releases are independent - publish or abandon one without affecting the others."
+            echo
+            echo "<details><summary>Cross-product dependency floors</summary>"
+            echo
+            echo '```'
+            cat /tmp/floors.txt
+            echo '```'
+            echo
+            echo "Releasing a product does not change what its siblings depend on. These floors"
+            echo "live in \`Directory.Packages.props\` and are raised in their own PR, after the"
+            echo "dependency is on NuGet. Being behind is normal - raise a floor only when the"
+            echo "consuming code needs the newer API."
+            echo
+            echo "</details>"
             echo
             echo "> [!NOTE]"
             echo "> Creating these releases by hand instead? Then order matters: if this batch"

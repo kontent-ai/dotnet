@@ -1,0 +1,64 @@
+name: Dependency floors
+
+# Reports how far each cross-product dependency floor in Directory.Packages.props has fallen
+# behind nuget.org.
+#
+# Not a CI step, deliberately. Drift is a function of TIME - of a sibling being released
+# elsewhere - not of anything in a pull request's diff, so running it per PR would put the same
+# unchanging notice on every unrelated review and query nuget.org on every push. And it must
+# not gate a merge: a floor is meant to lag, and raising one forces every downstream consumer
+# to upgrade. Reporting is the whole job.
+#
+# The report also rides along in every "Prepare release" PR, which is where the information is
+# actually actionable. This scheduled run is the ambient one, so a floor cannot go stale
+# indefinitely just because nobody prepared a release.
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-floors
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report dependency floors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # Built first so that `dotnet run` below emits only the report. A cold build writes its
+      # diagnostics to stdout, which would otherwise land in the middle of the job summary.
+      - name: Build the script
+        run: dotnet build eng/scripts/dependency-floors.cs
+
+      # The script exits non-zero only when a floor names a version that is not on nuget.org -
+      # that breaks every restore in the repo, so it should fail loudly. Merely being behind
+      # exits 0.
+      - name: Report
+        run: |
+          set -euo pipefail
+          {
+            echo '## Cross-product dependency floors'
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          rc=0
+          dotnet run eng/scripts/dependency-floors.cs | tee -a "$GITHUB_STEP_SUMMARY" || rc=$?
+
+          {
+            echo '```'
+            echo
+            echo 'Floors live in `Directory.Packages.props`. Raising one is its own PR, after the'
+            echo 'dependency is on NuGet - see CONTRIBUTING.md.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$rc"
