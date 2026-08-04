@@ -1,0 +1,18 @@
+<Project>
+  <!-- Deliberately does NOT import the repo-root Directory.Build.props.
+       These are build scripts, not shipped code: package metadata, SourceLink and the Sonar
+       analyzers all apply to products, not to tooling. Keeping them out matters practically,
+       not just tidily - `dotnet run` writes build diagnostics to STDOUT, so an analyzer warning
+       here lands in the middle of a script's output and breaks anything parsing it. That is
+       exactly how a warning about a record declaration once fed itself to jq.
+
+       The language settings below are repeated rather than inherited, because the scripts do
+       use nullable annotations and implicit usings. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>

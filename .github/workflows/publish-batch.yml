@@ -39,7 +39,12 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          dotnet run eng/scripts/release-status.cs -- --json > /tmp/status.json
+
+          # `dotnet run` writes build diagnostics to stdout, so take only the JSON document
+          # rather than assuming the whole stream is one. eng/scripts/Directory.Build.props
+          # keeps the scripts warning-free, but a workflow that publishes packages should not
+          # depend on that staying true.
+          dotnet run eng/scripts/release-status.cs -- --json | sed -n '/^\[/,$p' > /tmp/status.json
           cat /tmp/status.json
 
           # Dependency-first order, so a consumer is never released before the sibling version
@@ -84,7 +89,7 @@ jobs:
           wait_for_publish() {
             product="$1"
             for _ in $(seq 1 60); do
-              if dotnet run eng/scripts/release-status.cs -- --json \
+              if dotnet run eng/scripts/release-status.cs -- --json | sed -n '/^\[/,$p' \
                    | jq -e --arg p "$product" '.[] | select(.product == $p and .status == "published")' >/dev/null; then
                 echo "  $product is on NuGet"
                 return 0
@@ -94,6 +99,13 @@ jobs:
             echo "::error::$product did not appear on NuGet within 30 minutes"
             return 1
           }
+
+          # Build release-notes.cs once, discarding the output. `dotnet run` prints build
+          # diagnostics to stdout only on a cold build, and unlike the JSON above these notes
+          # have no marker to filter on - contamination would be published into the release
+          # body rather than failing loudly. The warm-up run absorbs it; the real runs below
+          # reuse the cached build and emit nothing but the notes.
+          dotnet run eng/scripts/release-notes.cs -- --warmup >/dev/null 2>&1 || true
 
           for product in $(jq -r '.[]' /tmp/order.json); do
             version=$(jq -r --arg p "$product" '.[] | select(.product == $p) | .version' /tmp/status.json)
