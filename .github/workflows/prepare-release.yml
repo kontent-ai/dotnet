@@ -1,39 +1,68 @@
 name: Prepare release
 
-# Bumps a product's version and promotes its changelog, then opens a PR.
+# Bumps one or more products' versions and promotes their changelogs, then opens a single PR.
 # Run it from Actions -> Prepare release -> Run workflow.
 #
-# This does NOT publish anything. Merging the PR it opens, then creating a GitHub
-# Release tagged <product>-v<version>, is what triggers release.yml.
+# Every product has its own dropdown, defaulting to `none`. Pick a bump for each product you
+# want in this batch and leave the rest alone; one PR covers all of them.
+#
+# This does NOT publish anything. Merging the PR, then creating one GitHub Release per product
+# tagged <product>-v<version>, is what triggers release.yml. Releases stay separate so a
+# product can be published or abandoned without affecting the others.
 on:
   workflow_dispatch:
     inputs:
-      product:
-        description: 'Product to release'
-        required: true
+      aspnetcore:
+        description: 'ASP.NET Core extensions'
         type: choice
-        options:
-          - aspnetcore
-          - delivery
-          - management
-          - model-generator
-          - sync
-      bump:
-        description: 'How to move the version'
-        required: true
-        default: patch
-        type: choice
-        options:
-          - prerelease   # 9.0.0-beta-4 -> 9.0.0-beta-5
-          - release      # 9.0.0-beta-4 -> 9.0.0
-          - patch        # 0.16.1 -> 0.16.2
-          - minor        # 0.16.1 -> 0.17.0
-          - major        # 0.16.1 -> 1.0.0
-          - explicit     # whatever you type below
-      version:
-        description: 'Explicit version, e.g. 1.0.0-rc1 (only used when bump = explicit)'
-        required: false
+        default: none
+        options: [none, prerelease, release, patch, minor, major, explicit]
+      aspnetcore_version:
+        description: 'ASP.NET Core - explicit version (only when bump = explicit)'
         type: string
+        required: false
+      delivery:
+        description: 'Delivery SDK'
+        type: choice
+        default: none
+        options: [none, prerelease, release, patch, minor, major, explicit]
+      delivery_version:
+        description: 'Delivery - explicit version (only when bump = explicit)'
+        type: string
+        required: false
+      management:
+        description: 'Management SDK'
+        type: choice
+        default: none
+        options: [none, prerelease, release, patch, minor, major, explicit]
+      management_version:
+        description: 'Management - explicit version (only when bump = explicit)'
+        type: string
+        required: false
+      modelgenerator:
+        description: 'Model generator'
+        type: choice
+        default: none
+        options: [none, prerelease, release, patch, minor, major, explicit]
+      modelgenerator_version:
+        description: 'Model generator - explicit version (only when bump = explicit)'
+        type: string
+        required: false
+      sync:
+        description: 'Sync SDK'
+        type: choice
+        default: none
+        options: [none, prerelease, release, patch, minor, major, explicit]
+      sync_version:
+        description: 'Sync - explicit version (only when bump = explicit)'
+        type: string
+        required: false
+
+# Two concurrent runs would open competing version PRs from the same base. Queue rather than
+# cancel: a cancelled run can leave a pushed branch behind with no PR.
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
 
 permissions:
   contents: write        # push the branch
@@ -41,7 +70,7 @@ permissions:
 
 jobs:
   prepare:
-    name: Bump version and open PR
+    name: Bump versions and open PR
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -50,46 +79,111 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Inputs are user-supplied strings, so they are passed as environment variables
-      # and quoted - never interpolated into the shell command itself.
-      - name: Bump version and promote changelog
+      # Inputs are user-supplied strings, so they are passed as environment variables and
+      # quoted - never interpolated into the shell command itself.
+      - name: Bump versions and promote changelogs
         id: bump
         env:
-          PRODUCT: ${{ inputs.product }}
-          BUMP: ${{ inputs.bump }}
-          EXPLICIT: ${{ inputs.version }}
+          ASPNETCORE: ${{ inputs.aspnetcore }}
+          ASPNETCORE_VERSION: ${{ inputs.aspnetcore_version }}
+          DELIVERY: ${{ inputs.delivery }}
+          DELIVERY_VERSION: ${{ inputs.delivery_version }}
+          MANAGEMENT: ${{ inputs.management }}
+          MANAGEMENT_VERSION: ${{ inputs.management_version }}
+          MODELGENERATOR: ${{ inputs.modelgenerator }}
+          MODELGENERATOR_VERSION: ${{ inputs.modelgenerator_version }}
+          SYNC: ${{ inputs.sync }}
+          SYNC_VERSION: ${{ inputs.sync_version }}
         run: |
           set -euo pipefail
-          if [ "$BUMP" = "explicit" ]; then
-            if [ -z "$EXPLICIT" ]; then
-              echo "bump=explicit requires the 'version' input"; exit 1
+
+          : > /tmp/summary.txt
+          : > /tmp/tags.txt
+
+          bump_one() {
+            product="$1"; bump="$2"; explicit="$3"
+
+            if [ "$bump" = "none" ]; then
+              return 0
             fi
-            ARG="$EXPLICIT"
-          else
-            ARG="$BUMP"
+
+            arg="$bump"
+            if [ "$bump" = "explicit" ]; then
+              if [ -z "$explicit" ]; then
+                echo "::error::$product: bump is 'explicit' but no version was given"
+                exit 1
+              fi
+              arg="$explicit"
+            fi
+
+            echo "::group::$product ($arg)"
+            dotnet run eng/scripts/update-version.cs -- "$product" "$arg"
+            echo "::endgroup::"
+
+            prop=$(jq -r --arg p "$product" '.[$p].versionProperty' eng/products.json)
+            new=$(dotnet msbuild eng/Versions.props -getProperty:"$prop" | tr -d '[:space:]')
+            printf -- '- %s %s\n' "$product" "$new" >> /tmp/summary.txt
+            printf -- '%s-v%s\n' "$product" "$new" >> /tmp/tags.txt
+          }
+
+          # Product name here must match the key in eng/products.json.
+          bump_one aspnetcore      "$ASPNETCORE"     "$ASPNETCORE_VERSION"
+          bump_one delivery        "$DELIVERY"       "$DELIVERY_VERSION"
+          bump_one management      "$MANAGEMENT"     "$MANAGEMENT_VERSION"
+          bump_one model-generator "$MODELGENERATOR" "$MODELGENERATOR_VERSION"
+          bump_one sync            "$SYNC"           "$SYNC_VERSION"
+
+          if [ ! -s /tmp/summary.txt ]; then
+            echo "::error::Every product is set to 'none' - nothing to prepare."
+            exit 1
           fi
-          dotnet run eng/scripts/update-version.cs -- "$PRODUCT" "$ARG"
-          NEW=$(dotnet msbuild eng/Versions.props -getProperty:"$(jq -r --arg p "$PRODUCT" '.[$p].versionProperty' eng/products.json)" | tr -d '[:space:]')
-          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+
+          echo "Prepared:"
+          cat /tmp/summary.txt
 
       - name: Open pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PRODUCT: ${{ inputs.product }}
-          NEW_VERSION: ${{ steps.bump.outputs.version }}
         run: |
           set -euo pipefail
-          BRANCH="release/${PRODUCT}-v${NEW_VERSION}"
+
+          # One branch per batch. Dated rather than versioned: a batch has no single version,
+          # and the run number keeps same-day batches distinct.
+          BRANCH="release/batch-$(date -u +%Y-%m-%d)-${GITHUB_RUN_NUMBER}"
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git commit -am "bump ${PRODUCT} to ${NEW_VERSION}"
-          git push -u origin "$BRANCH"
-          gh pr create \
-            --title "bump ${PRODUCT} to ${NEW_VERSION}" \
-            --body "Prepared by the *Prepare release* workflow.
 
-          Review the version property and the promoted changelog entry, then merge.
-          Publishing happens when a GitHub Release tagged \`${PRODUCT}-v${NEW_VERSION}\` is created." \
+          { echo "prepare releases"; echo; cat /tmp/summary.txt; } > /tmp/commit.txt
+          git commit -a -F /tmp/commit.txt
+          git push -u origin "$BRANCH"
+
+          {
+            echo "Prepared by the *Prepare release* workflow."
+            echo
+            cat /tmp/summary.txt
+            echo
+            echo "Review each version property and its promoted changelog entry, then merge."
+            echo
+            echo "Publishing happens per product, when a GitHub Release is created for each tag:"
+            echo
+            echo '```'
+            cat /tmp/tags.txt
+            echo '```'
+            echo
+            echo "Releases are independent - publish or abandon one without affecting the others."
+            echo
+            echo "> [!NOTE]"
+            echo "> If this batch also re-points a product at a sibling's **new** version in"
+            echo "> \`Directory.Packages.props\`, release that dependency first. The release"
+            echo "> workflow refuses to publish a package whose cross-product \`Kontent.Ai.*\`"
+            echo "> dependency is not yet on NuGet. Packages within one product are exempt -"
+            echo "> they are published together."
+          } > /tmp/body.md
+
+          gh pr create \
+            --title "prepare releases" \
+            --body-file /tmp/body.md \
             --base main \
             --head "$BRANCH"
