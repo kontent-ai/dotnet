@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 10.3.0-beta-2 (2026-08-04)  _(prerelease)_
+
 ### Improvements
 
 - Moved into the [kontent-ai/dotnet](https://github.com/kontent-ai/dotnet) monorepo. Package IDs and the `dotnet tool` install command are unchanged.
