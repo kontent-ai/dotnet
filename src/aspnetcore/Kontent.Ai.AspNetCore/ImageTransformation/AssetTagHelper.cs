@@ -16,8 +16,6 @@ public class AssetTagHelper : TagHelper
 {
     internal const string SizesCollection = "sizes";
 
-    private int[]? _responsiveWidths;
-
     /// <summary>
     /// Application settings.
     /// </summary>
@@ -47,8 +45,8 @@ public class AssetTagHelper : TagHelper
     [HtmlAttributeName("responsive-widths")]
     public int[]? ResponsiveWidths
     {
-        get => _responsiveWidths ?? ImageTransformationOptions?.Value.ResponsiveWidths;
-        set => _responsiveWidths = value;
+        get => field ?? ImageTransformationOptions?.Value.ResponsiveWidths;
+        set;
     }
 
     /// <summary>

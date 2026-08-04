@@ -30,7 +30,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 internal sealed class DependencyTrackingContext
 {
     private readonly HashSet<string> _dependencies = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Gets a snapshot of the collected dependency keys.
