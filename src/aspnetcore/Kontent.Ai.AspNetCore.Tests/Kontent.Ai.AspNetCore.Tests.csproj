@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- Per-product coverage gate, set just under current coverage so it blocks
          regression rather than aspiring. Measured 98.58% line on 2026-08-03. -->

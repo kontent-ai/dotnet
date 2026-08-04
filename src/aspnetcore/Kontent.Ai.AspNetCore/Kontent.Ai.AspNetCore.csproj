@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Description>Kontent.ai ASP.NET Core SDK</Description>
     <PackageTags>kontent-ai;mvc;aspnet;aspnetmvc</PackageTags>
   </PropertyGroup>
@@ -10,7 +10,6 @@
     <PackageReference Include="Kontent.Ai.Delivery" />
     <PackageReference Include="Kontent.Ai.Delivery.Abstractions" />
     <PackageReference Include="Kontent.Ai.Urls" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
   </ItemGroup>
 
   <ItemGroup>
