@@ -172,10 +172,16 @@ jobs:
             cat /tmp/tags.txt
             echo '```'
             echo
+            echo "Once this is merged, run **Actions -> Publish batch** to create those releases."
+            echo "It releases dependency-first and waits for each product to reach NuGet before"
+            echo "starting the next, so ordering is handled for you. It defaults to a dry run,"
+            echo "and re-running skips whatever is already published."
+            echo
             echo "Releases are independent - publish or abandon one without affecting the others."
             echo
             echo "> [!NOTE]"
-            echo "> If this batch also re-points a product at a sibling's **new** version in"
+            echo "> Creating these releases by hand instead? Then order matters: if this batch"
+            echo "> also re-points a product at a sibling's **new** version in"
             echo "> \`Directory.Packages.props\`, release that dependency first. The release"
             echo "> workflow refuses to publish a package whose cross-product \`Kontent.Ai.*\`"
             echo "> dependency is not yet on NuGet. Packages within one product are exempt -"
