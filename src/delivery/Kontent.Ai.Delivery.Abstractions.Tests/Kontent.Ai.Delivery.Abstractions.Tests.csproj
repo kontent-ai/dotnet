@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- Set well under current coverage so it blocks regression rather than aspiring, with room
          for platform variance between the ubuntu and windows CI legs. 50.3% line (this project alone; Delivery.Tests covers the same assembly at ~90%) measured on macOS
