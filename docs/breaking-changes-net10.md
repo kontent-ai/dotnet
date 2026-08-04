@@ -202,8 +202,24 @@ trimming for Delivery. Nothing in the repo currently claims AOT or trim support 
 `IsAotCompatible`, `IsTrimmable` or `PublishAot` anywhere — so nothing regresses by waiting.
 Against that, the risk is silently changing the URLs sent to the Delivery API.
 
-Revisit when AOT becomes a real requirement, and do it with a broader encoding test matrix
-than the four cases above.
+**This does not pin us to a Refit version.** `Refit.Reflection` is not a legacy package left
+behind by an old release — it is first-party (`reactiveui/refit`, same commit as Refit itself)
+and was introduced *with* Refit 14, whose generator-first change created the need for it. Its
+published versions track Refit's exactly:
+
+```
+Refit             14.0.0-beta.1 … 14.0.0, 14.0.1, 15.0.0-beta.1
+Refit.Reflection  14.0.0-beta.1 … 14.0.0, 14.0.1, 15.0.0-beta.1
+```
+
+No version carries deprecation metadata, and the 15 beta still ships it. Refit ≤13 had the
+reflection builder built in; 14 extracted it as an opt-in.
+
+The residual risk is a future retirement — the package exists only to serve shapes the
+generator cannot build, and its own description points users toward generated clients. The
+signal to watch is concrete: **a Refit release that ships without a matching
+`Refit.Reflection`.** That is the point to do this work, along with AOT becoming a real
+requirement. Either way, do it with a broader encoding test matrix than the four cases above.
 
 ---
 
