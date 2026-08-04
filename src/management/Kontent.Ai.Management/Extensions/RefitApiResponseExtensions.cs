@@ -42,13 +42,13 @@ internal static class RefitApiResponseExtensions
                             Message = "The Management API returned a success status but no readable response body.",
                             Exception = response.Error,
                         },
-                        response.StatusCode,
+                        StatusOf(response),
                         RequestUrl(response));
                 }
 
                 return ManagementResult<TValue>.Success(
                     selector(response.Content),
-                    response.StatusCode,
+                    StatusOf(response),
                     RequestUrl(response));
             }
 
@@ -63,7 +63,7 @@ internal static class RefitApiResponseExtensions
             if (response.IsSuccessStatusCode)
             {
                 return ManagementResult.Success(
-                    response.StatusCode,
+                    StatusOf(response),
                     RequestUrl(response));
             }
 
@@ -74,21 +74,27 @@ internal static class RefitApiResponseExtensions
     private static async Task<IManagementResult<TValue>> MapFailureAsync<TValue>(IApiResponse response)
     {
         var error = await BuildErrorAsync(response).ConfigureAwait(false);
-        return ManagementResult<TValue>.Failure(error, response.StatusCode, RequestUrl(response));
+        return ManagementResult<TValue>.Failure(error, StatusOf(response), RequestUrl(response));
     }
 
     private static async Task<IManagementResult> MapFailureAsync(IApiResponse response)
     {
         var error = await BuildErrorAsync(response).ConfigureAwait(false);
-        return ManagementResult.Failure(error, response.StatusCode, RequestUrl(response));
+        return ManagementResult.Failure(error, StatusOf(response), RequestUrl(response));
     }
 
     private static async Task<IError> BuildErrorAsync(IApiResponse response)
     {
-        var apiException = response.Error;
-        if (apiException is null)
+        if (response.Error is null)
         {
             return new Error();
+        }
+
+        // Only ApiException buffers the response body; the other ApiExceptionBase kinds describe a
+        // failure that produced no body to parse.
+        if (response.Error is not ApiException apiException)
+        {
+            return new Error { Message = response.Error.Message, Exception = response.Error };
         }
 
         try
@@ -109,6 +115,12 @@ internal static class RefitApiResponseExtensions
             return new Error { Message = message, Exception = apiException };
         }
     }
+
+    // Null when no response was received at all (a transport-level failure). The ApiException
+    // carries the status when there was one; the final fallback is default rather than an
+    // invented code, because no HTTP exchange completed.
+    private static System.Net.HttpStatusCode StatusOf(IApiResponse response) =>
+        response.StatusCode ?? (response.Error as ApiException)?.StatusCode ?? default;
 
     private static string? RequestUrl(IApiResponse response) =>
         response.RequestMessage?.RequestUri?.ToString();

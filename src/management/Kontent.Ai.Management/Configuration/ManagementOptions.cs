@@ -17,7 +17,9 @@ public sealed class ManagementOptions : IValidatableObject
     /// Gets or sets the base address of the Management API. Optional; defaults to <c>https://manage.kontent.ai</c>.
     /// The SDK appends the versioned, scoped path (<c>/v2/projects/{id}</c> or <c>/v2/subscriptions/{id}</c>).
     /// </summary>
-    [Url]
+    // Fully qualified: Refit is in scope via GlobalUsings.cs and also defines a UrlAttribute,
+    // so a bare [Url] is ambiguous.
+    [System.ComponentModel.DataAnnotations.Url]
     public string Endpoint { get; set; } = "https://manage.kontent.ai";
 
     /// <summary>

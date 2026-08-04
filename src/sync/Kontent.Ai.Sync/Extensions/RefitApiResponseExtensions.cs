@@ -23,7 +23,7 @@ internal static class RefitApiResponseExtensions
             return Task.FromResult<ISyncResult<T>>(SyncResult.Success(
                 apiResponse.Content,
                 apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty,
-                apiResponse.StatusCode,
+                StatusOf(apiResponse),
                 ExtractSyncToken(apiResponse),
                 apiResponse.Headers));
         }
@@ -31,10 +31,22 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
+    /// <summary>
+    /// Resolves the HTTP status of a Refit response.
+    /// </summary>
+    /// <remarks>
+    /// Null when no response was received at all (<c>IsReceived == false</c>) — a transport-level
+    /// failure. The <see cref="ApiException"/> carries the status when there was one; the final
+    /// fallback is <c>default</c> rather than an invented code, because no HTTP exchange
+    /// completed and any real status here would misreport what happened.
+    /// </remarks>
+    private static HttpStatusCode StatusOf<T>(IApiResponse<T> apiResponse) =>
+        apiResponse.StatusCode ?? (apiResponse.Error as ApiException)?.StatusCode ?? default;
+
     private static Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
     {
         var requestUrl = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
-        var statusCode = apiResponse.StatusCode;
+        var statusCode = StatusOf(apiResponse);
         var headers = apiResponse.Headers;
 
         if (apiResponse.Error is not ApiException apiException)

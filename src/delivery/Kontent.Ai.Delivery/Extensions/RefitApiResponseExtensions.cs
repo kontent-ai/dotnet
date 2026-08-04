@@ -28,7 +28,7 @@ internal static class RefitApiResponseExtensions
             return Task.FromResult(DeliveryResult.Success(
                 apiResponse.Content,
                 apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty,
-                apiResponse.StatusCode,
+                StatusOf(apiResponse),
                 ExtractHasStaleContent(apiResponse),
                 apiResponse.Headers,
                 ExtractResponseSource(apiResponse)
@@ -49,7 +49,7 @@ internal static class RefitApiResponseExtensions
     private static Task<IDeliveryResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse, ILogger? logger)
     {
         var url = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
-        var status = apiResponse.StatusCode;
+        var status = StatusOf(apiResponse);
         var headers = apiResponse.Headers;
         var responseSource = ExtractResponseSource(apiResponse);
 
@@ -149,6 +149,18 @@ internal static class RefitApiResponseExtensions
 
         return ResponseSource.Origin;
     }
+
+    /// <summary>
+    /// Resolves the HTTP status of a Refit response.
+    /// </summary>
+    /// <remarks>
+    /// Null when no response was received at all (<c>IsReceived == false</c>) — a transport-level
+    /// failure. The <see cref="ApiException"/> carries the status when there was one; the final
+    /// fallback is <c>default</c> rather than an invented code, because no HTTP exchange
+    /// completed and any real status here would misreport what happened.
+    /// </remarks>
+    private static HttpStatusCode StatusOf<T>(IApiResponse<T> apiResponse) =>
+        apiResponse.StatusCode ?? (apiResponse.Error as ApiException)?.StatusCode ?? default;
 
     private static bool IsFatalException(Exception exception) =>
         exception is OutOfMemoryException
