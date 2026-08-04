@@ -139,7 +139,7 @@ public class CustomAppTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<CustomAppModel>(ModifyAddInto, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<CustomAppAddIntoPatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<CustomAppAddIntoPatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<CustomAppAddIntoPatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 
@@ -170,7 +170,7 @@ public class CustomAppTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<CustomAppModel>(ModifyRemove, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<CustomAppRemovePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<CustomAppRemovePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<CustomAppRemovePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 
@@ -206,7 +206,7 @@ public class CustomAppTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<CustomAppModel>(ModifyReplace, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<CustomAppReplacePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<CustomAppReplacePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<CustomAppReplacePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 

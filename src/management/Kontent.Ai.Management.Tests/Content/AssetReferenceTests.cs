@@ -31,7 +31,7 @@ public class AssetReferenceTests
         var asset = JsonSerializer.Deserialize<AssetReference>(json, Options);
 
         asset.Should().NotBeNull();
-        asset!.Id.Should().Be(SampleId);
+        asset.Id.Should().Be(SampleId);
         asset.Codename.Should().Be("logo");
         asset.ExternalId.Should().Be("my-logo");
         asset.Renditions.Should().ContainSingle().Which.Id.Should().Be(SampleRenditionId);

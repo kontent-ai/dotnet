@@ -307,7 +307,7 @@ public class ContentItemTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value, SharedTestJsonOptions.Default)
             .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
     }
 
@@ -342,7 +342,7 @@ public class ContentItemTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value, SharedTestJsonOptions.Default)
             .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
     }
 
@@ -377,7 +377,7 @@ public class ContentItemTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemModel>(ContentItem, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value!, SharedTestJsonOptions.Default)
+        JsonSerializer.Deserialize<ContentItemUpsertModel>(capturedBody.Value, SharedTestJsonOptions.Default)
             .Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentItemUpsertModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default));
     }
 

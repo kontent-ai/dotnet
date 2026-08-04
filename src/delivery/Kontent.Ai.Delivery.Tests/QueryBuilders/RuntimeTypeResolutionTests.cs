@@ -370,7 +370,7 @@ public class RuntimeTypeResolutionTests
             .Single();
 
         Assert.NotNull(article1.Elements.RelatedArticles);
-        var relatedArticles = article1.Elements.RelatedArticles!.ToList();
+        var relatedArticles = article1.Elements.RelatedArticles.ToList();
         Assert.Single(relatedArticles);
 
         // The linked item should be strongly typed, not DynamicElements
@@ -404,7 +404,7 @@ public class RuntimeTypeResolutionTests
             .Single(i => i.System.Codename == "article_1");
 
         Assert.NotNull(article1.Elements.RelatedArticles);
-        var relatedArticles = article1.Elements.RelatedArticles!.ToList();
+        var relatedArticles = article1.Elements.RelatedArticles.ToList();
         Assert.Single(relatedArticles);
 
         // The linked item should be strongly typed via the type provider
@@ -460,7 +460,7 @@ public class RuntimeTypeResolutionTests
         var article = (IContentItem<Article>)result.Value;
         Assert.NotNull(article.Elements.RelatedArticles);
 
-        var relatedArticles = article.Elements.RelatedArticles!.ToList();
+        var relatedArticles = article.Elements.RelatedArticles.ToList();
         Assert.Equal(2, relatedArticles.Count);
 
         // Each linked item should be strongly typed, not DynamicElements
@@ -506,7 +506,7 @@ public class RuntimeTypeResolutionTests
         var article = (IContentItem<Article>)items[0];
         Assert.NotNull(article.Elements.RelatedArticles);
 
-        var relatedArticles = article.Elements.RelatedArticles!.ToList();
+        var relatedArticles = article.Elements.RelatedArticles.ToList();
         Assert.Single(relatedArticles);
 
         // Linked item should be strongly typed

@@ -54,8 +54,8 @@ public sealed class ContentItemMapperTests
         await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
 
         Assert.NotNull(item.Elements.TeaserImage);
-        Assert.NotEmpty(item.Elements.TeaserImage!);
-        Assert.All(item.Elements.TeaserImage!, asset => Assert.NotNull(asset.Url));
+        Assert.NotEmpty(item.Elements.TeaserImage);
+        Assert.All(item.Elements.TeaserImage, asset => Assert.NotNull(asset.Url));
     }
 
     [Fact]
@@ -75,8 +75,8 @@ public sealed class ContentItemMapperTests
         await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
 
         Assert.NotNull(item.Elements.Personas);
-        Assert.NotEmpty(item.Elements.Personas!);
-        Assert.All(item.Elements.Personas!, term =>
+        Assert.NotEmpty(item.Elements.Personas);
+        Assert.All(item.Elements.Personas, term =>
         {
             Assert.NotNull(term.Codename);
             Assert.NotNull(term.Name);
@@ -121,8 +121,8 @@ public sealed class ContentItemMapperTests
         await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
 
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.NotEmpty(item.Elements.RelatedArticles!);
-        Assert.All(item.Elements.RelatedArticles!, linked =>
+        Assert.NotEmpty(item.Elements.RelatedArticles);
+        Assert.All(item.Elements.RelatedArticles, linked =>
         {
             Assert.NotNull(linked.System.Codename);
         });
@@ -146,7 +146,7 @@ public sealed class ContentItemMapperTests
         await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
 
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.NotEmpty(item.Elements.RelatedArticles!);
+        Assert.NotEmpty(item.Elements.RelatedArticles);
     }
 
     [Fact]
@@ -171,18 +171,18 @@ public sealed class ContentItemMapperTests
         await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
 
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.NotEmpty(item.Elements.RelatedArticles!);
+        Assert.NotEmpty(item.Elements.RelatedArticles);
 
         // Find coffee_processing_techniques in related articles
-        var coffeeProcessing = item.Elements.RelatedArticles!
+        var coffeeProcessing = item.Elements.RelatedArticles
             .OfType<IContentItem<Article>>()
             .FirstOrDefault(a => a.System.Codename == "coffee_processing_techniques");
 
         Assert.NotNull(coffeeProcessing);
-        Assert.NotNull(coffeeProcessing!.Elements.RelatedArticles);
+        Assert.NotNull(coffeeProcessing.Elements.RelatedArticles);
 
         // Find on_roasts in coffee_processing_techniques' related articles
-        var circularOnRoasts = coffeeProcessing.Elements.RelatedArticles!
+        var circularOnRoasts = coffeeProcessing.Elements.RelatedArticles
             .OfType<IContentItem<Article>>()
             .FirstOrDefault(a => a.System.Codename == "on_roasts");
 
@@ -205,18 +205,18 @@ public sealed class ContentItemMapperTests
         await _mapper.CompleteItemAsync(item, response.ModularContent);
 
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.NotEmpty(item.Elements.RelatedArticles!);
+        Assert.NotEmpty(item.Elements.RelatedArticles);
 
         // Find coffee_processing_techniques in related articles
-        var coffeeProcessing = item.Elements.RelatedArticles!
+        var coffeeProcessing = item.Elements.RelatedArticles
             .OfType<IContentItem<Article>>()
             .FirstOrDefault(a => a.System.Codename == "coffee_processing_techniques");
 
         Assert.NotNull(coffeeProcessing);
-        Assert.NotNull(coffeeProcessing!.Elements.RelatedArticles);
+        Assert.NotNull(coffeeProcessing.Elements.RelatedArticles);
 
         // Find on_roasts in coffee_processing_techniques' related articles
-        var circularOnRoasts = coffeeProcessing.Elements.RelatedArticles!
+        var circularOnRoasts = coffeeProcessing.Elements.RelatedArticles
             .OfType<IContentItem<Article>>()
             .FirstOrDefault(a => a.System.Codename == "on_roasts");
 
@@ -341,7 +341,7 @@ public sealed class ContentItemMapperTests
 
         // Assert - linked items list should be empty (not null, not throwing)
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.Empty(item.Elements.RelatedArticles!);
+        Assert.Empty(item.Elements.RelatedArticles);
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public sealed class ContentItemMapperTests
 
         // Assert - linked items list should be empty (not null, not throwing)
         Assert.NotNull(item.Elements.RelatedArticles);
-        Assert.Empty(item.Elements.RelatedArticles!);
+        Assert.Empty(item.Elements.RelatedArticles);
     }
 
     [Fact]

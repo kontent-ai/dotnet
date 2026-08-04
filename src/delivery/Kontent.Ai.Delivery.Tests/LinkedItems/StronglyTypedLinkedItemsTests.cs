@@ -23,7 +23,7 @@ public class StronglyTypedLinkedItemsTests
         Assert.NotNull(response.Value);
         Assert.NotNull(response.Value.Elements.RelatedArticles);
 
-        var relatedArticles = response.Value.Elements.RelatedArticles!.ToList();
+        var relatedArticles = response.Value.Elements.RelatedArticles.ToList();
         Assert.Equal(2, relatedArticles.Count);
 
         // Verify runtime typing - each item should be IEmbeddedContent
@@ -184,7 +184,7 @@ public class StronglyTypedLinkedItemsTests
         Assert.NotNull(response.Value);
 
         // Rich text embedded content - coffee_beverages_explained has embedded items in body_copy
-        var embeddedInRichText = response.Value.Elements.BodyCopy!
+        var embeddedInRichText = response.Value.Elements.BodyCopy
             .OfType<IEmbeddedContent>()
             .ToList();
 

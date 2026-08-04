@@ -266,9 +266,9 @@ public class ContentDependencyExtractorTests
         public Dictionary<Guid, IInlineImage> ImagesBacking { get; set; } = new();
         public Dictionary<Guid, IContentLink> LinksBacking { get; set; } = new();
         public List<string> ModularContentBacking { get; set; } = [];
-        public IReadOnlyDictionary<Guid, IInlineImage> Images { get => ImagesBacking; set => ImagesBacking = (Dictionary<Guid, IInlineImage>)value!; }
-        public IReadOnlyDictionary<Guid, IContentLink> Links { get => LinksBacking; set => LinksBacking = (Dictionary<Guid, IContentLink>)value!; }
-        public IReadOnlyList<string> ModularContent { get => ModularContentBacking; set => ModularContentBacking = (List<string>)value!; }
+        public IReadOnlyDictionary<Guid, IInlineImage> Images { get => ImagesBacking; set => ImagesBacking = (Dictionary<Guid, IInlineImage>)value; }
+        public IReadOnlyDictionary<Guid, IContentLink> Links { get => LinksBacking; set => LinksBacking = (Dictionary<Guid, IContentLink>)value; }
+        public IReadOnlyList<string> ModularContent { get => ModularContentBacking; set => ModularContentBacking = (List<string>)value; }
     }
 
     private class MockInlineImage : IInlineImage

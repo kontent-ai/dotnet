@@ -47,7 +47,7 @@ public class IManagementApiSmokeTests
         var (api, handler) = CreateApi("[]");
         await api.ListSpacesInternalAsync();
         handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces");
+        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces");
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class IManagementApiSmokeTests
         await api.ListSpacesInternalAsync();
 
         handler.LastRequest!.Headers.Authorization.Should().BeEquivalentTo(new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", ApiKey));
-        handler.LastRequest!.Headers.GetValues("X-KC-SDKID").Should().ContainSingle().Which.Should().Contain("Kontent.Ai.Management");
+        handler.LastRequest.Headers.GetValues("X-KC-SDKID").Should().ContainSingle().Which.Should().Contain("Kontent.Ai.Management");
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class IManagementApiSmokeTests
         var id = Guid.Parse("9a86a4c0-0e6a-4b3d-8b6a-000000000002");
         await api.GetSpaceInternalAsync(Reference.ById(id).ToUrlSegment());
         handler.LastRequest!.Method.Should().Be(HttpMethod.Get);
-        handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/{id}");
+        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/{id}");
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class IManagementApiSmokeTests
         var (api, handler) = CreateApi();
         await api.CreateSpaceInternalAsync(new SpaceCreateModel { Name = "Marketing", Codename = "marketing" });
         handler.LastRequest!.Method.Should().Be(HttpMethod.Post);
-        handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces");
+        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces");
         handler.LastRequestBody.Should().Contain("\"name\":\"Marketing\"").And.Contain("\"codename\":\"marketing\"");
     }
 
@@ -108,7 +108,7 @@ public class IManagementApiSmokeTests
             Reference.ByCodename("marketing").ToUrlSegment(),
             new[] { new SpaceReplacePatchModel { PropertyName = SpacePropertyName.Name, Value = "Marketing 2" } });
         handler.LastRequest!.Method.Should().Be(HttpMethod.Patch);
-        handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/codename/marketing");
+        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/codename/marketing");
         // string enums via [EnumMember]
         handler.LastRequestBody.Should().Contain("\"op\":\"replace\"").And.Contain("\"property_name\":\"name\"");
     }
@@ -119,6 +119,6 @@ public class IManagementApiSmokeTests
         var (api, handler) = CreateApi();
         await api.DeleteSpaceInternalAsync(Reference.ById(Guid.Parse("9a86a4c0-0e6a-4b3d-8b6a-000000000002")).ToUrlSegment());
         handler.LastRequest!.Method.Should().Be(HttpMethod.Delete);
-        handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/9a86a4c0-0e6a-4b3d-8b6a-000000000002");
+        handler.LastRequest.RequestUri!.AbsolutePath.Should().Be($"{EnvPrefix}/spaces/9a86a4c0-0e6a-4b3d-8b6a-000000000002");
     }
 }

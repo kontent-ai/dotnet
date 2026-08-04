@@ -36,7 +36,7 @@ internal static class JsonEquivalency
     public static void ShouldMatchSerialized<TModel>(this CapturedBody captured, TModel model, bool strictOrdering = false)
     {
         captured.Value.Should().NotBeNull();
-        var actual = JsonSerializer.Deserialize<TModel>(captured.Value!, SharedTestJsonOptions.Default);
+        var actual = JsonSerializer.Deserialize<TModel>(captured.Value, SharedTestJsonOptions.Default);
         var expected = JsonSerializer.Deserialize<TModel>(JsonSerializer.Serialize(model, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default);
         actual.Should().BeEquivalentTo(expected, opt => strictOrdering ? opt.WithStrictOrdering() : opt);
     }

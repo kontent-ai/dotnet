@@ -98,7 +98,7 @@ public class SyncClientBuilderTests
             Type.EmptyTypes);
         ctor.Should().NotBeNull("SyncClientBuilder should have a private parameterless constructor");
 
-        var builder = (SyncClientBuilder)ctor!.Invoke(null);
+        var builder = (SyncClientBuilder)ctor.Invoke(null);
 
         var act = () => builder.Build();
 

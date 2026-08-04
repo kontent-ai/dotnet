@@ -105,7 +105,7 @@ public class TrackingHandlerTests
         var originating = TrackingHandler.GetOriginatingAssembly();
 
         originating.Should().NotBeNull();
-        originating!.GetName().Name.Should().Be(typeof(TrackingHandlerTests).Assembly.GetName().Name);
+        originating.GetName().Name.Should().Be(typeof(TrackingHandlerTests).Assembly.GetName().Name);
     }
 
     [Fact]

@@ -120,7 +120,7 @@ public class SyncResultTests
         var result = SyncResult.Failure<string>("https://test.com", HttpStatusCode.InternalServerError, error);
 
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("Operation failed");
+        result.Error.Message.Should().Be("Operation failed");
         result.Error.ErrorCode.Should().Be(500);
         result.Error.SpecificCode.Should().Be(1001);
         result.Error.RequestId.Should().Be("req-abc-123");

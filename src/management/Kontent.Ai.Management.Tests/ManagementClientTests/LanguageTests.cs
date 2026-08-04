@@ -159,7 +159,7 @@ public class LanguageTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<LanguageModel>(ModifyLanguages, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<LanguagePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 
@@ -180,7 +180,7 @@ public class LanguageTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<LanguageModel>(ModifyLanguages, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<LanguagePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 
@@ -201,7 +201,7 @@ public class LanguageTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<LanguageModel>(ModifyLanguages, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<LanguagePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<LanguagePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 

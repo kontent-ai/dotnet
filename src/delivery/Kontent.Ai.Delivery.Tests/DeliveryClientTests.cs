@@ -557,8 +557,8 @@ public class DeliveryClientTests
         var withoutPresetAssets = withoutPresetResult.Value.Elements.TeaserImage;
         Assert.NotNull(withPresetAssets);
         Assert.NotNull(withoutPresetAssets);
-        Assert.NotEmpty(withPresetAssets!);
-        Assert.NotEmpty(withoutPresetAssets!);
+        Assert.NotEmpty(withPresetAssets);
+        Assert.NotEmpty(withoutPresetAssets);
 
         var withPresetUrl = withPresetAssets.First().Url;
         var withoutPresetUrl = withoutPresetAssets.First().Url;

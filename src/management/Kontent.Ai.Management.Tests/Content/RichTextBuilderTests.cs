@@ -21,7 +21,7 @@ public class RichTextBuilderTests
         var element = rt.Build($"<p>{placeholder}</p>");
 
         element.Components.Should().ContainSingle();
-        var component = element.Components![0];
+        var component = element.Components[0];
         component.Content.Should().BeSameAs(callout);
 
         var idInMarkup = ExtractAttribute(placeholder, "data-id");
@@ -39,7 +39,7 @@ public class RichTextBuilderTests
         ExtractAttribute(first, "data-id").Should().NotBe(ExtractAttribute(second, "data-id"));
         var element = rt.Build($"{first}{second}");
         element.Components.Should().HaveCount(2);
-        element.Components![0].Id.Should().NotBe(element.Components[1].Id);
+        element.Components[0].Id.Should().NotBe(element.Components[1].Id);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class RichTextBuilderTests
         var element = rt.Build($"<p>{rt.Component(first)}{rt.Component(second)}</p>");
 
         element.Components.Should().HaveCount(2);
-        element.Components![0].Content.Should().BeSameAs(first);
+        element.Components[0].Content.Should().BeSameAs(first);
         element.Components[1].Content.Should().BeSameAs(second);
     }
 
@@ -234,11 +234,11 @@ public class RichTextBuilderTests
         var element = outer.Build($"<p>{outer.Component(nested)}</p>");
 
         element.Components.Should().ContainSingle();
-        var outerComponent = element.Components![0];
+        var outerComponent = element.Components[0];
         outerComponent.Content.Should().BeSameAs(nested);
         // The outer's recorded component does NOT include the inner builder's component as a sibling —
         // the warning callout lives one level down, inside the outer component's own rich-text content.
-        nested.Content!.Components.Should().ContainSingle()
+        nested.Content.Components.Should().ContainSingle()
             .Which.Content.Should().BeOfType<Callout>()
             .Which.Type.Should().Equal(CalloutType.Warning);
     }

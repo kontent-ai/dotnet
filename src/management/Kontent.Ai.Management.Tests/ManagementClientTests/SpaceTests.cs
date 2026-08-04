@@ -129,7 +129,7 @@ public class SpaceTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<SpaceModel>(ModifySpaceReplace, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
-        JsonSerializer.Deserialize<SpaceReplacePatchModel[]>(capturedBody.Value!, SharedTestJsonOptions.Default)!
+        JsonSerializer.Deserialize<SpaceReplacePatchModel[]>(capturedBody.Value, SharedTestJsonOptions.Default)!
             .ShouldEqualAsJson(JsonSerializer.Deserialize<SpaceReplacePatchModel[]>(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default), SharedTestJsonOptions.Default)!);
     }
 

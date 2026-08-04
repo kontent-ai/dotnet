@@ -30,13 +30,13 @@ public class PolymorphicConvertersTests
             options);
 
         text.Should().BeOfType<TextElementMetadataModel>();
-        ((TextElementMetadataModel)text!).Name.Should().Be("Title");
-        ((TextElementMetadataModel)text!).IsRequired.Should().BeFalse();
-        text!.Codename.Should().Be("title");
+        ((TextElementMetadataModel)text).Name.Should().Be("Title");
+        ((TextElementMetadataModel)text).IsRequired.Should().BeFalse();
+        text.Codename.Should().Be("title");
         text.ExternalId.Should().Be("ext");
 
         guidelines.Should().BeOfType<GuidelinesElementMetadataModel>();
-        guidelines!.Codename.Should().Be("gl");
+        guidelines.Codename.Should().Be("gl");
     }
 
     [Fact]

@@ -49,7 +49,7 @@ public class RefitApiResponseExtensionsTests
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("The sync token is invalid.");
+        result.Error.Message.Should().Be("The sync token is invalid.");
         result.Error.RequestId.Should().Be("req-123");
         result.Error.ErrorCode.Should().Be(400);
         result.Error.SpecificCode.Should().Be(1010);
@@ -69,10 +69,10 @@ public class RefitApiResponseExtensionsTests
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Contain("Raw response:");
+        result.Error.Message.Should().Contain("Raw response:");
         result.Error.Message.Should().Contain("gateway down");
         result.Error.Exception.Should().BeOfType<AggregateException>();
-        var aggregate = (AggregateException)result.Error.Exception!;
+        var aggregate = (AggregateException)result.Error.Exception;
         aggregate.InnerExceptions.Should().HaveCount(2);
         aggregate.InnerExceptions[0].Should().BeOfType<ApiException>();
     }
@@ -88,7 +88,7 @@ public class RefitApiResponseExtensionsTests
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("Unknown error");
+        result.Error.Message.Should().Be("Unknown error");
         result.Error.Exception.Should().BeNull();
     }
 

@@ -25,7 +25,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        request.Headers.Authorization.Scheme.Should().Be("Bearer");
         request.Headers.Authorization.Parameter.Should().Be("preview-key");
     }
 
@@ -83,7 +83,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.RequestUri.Should().NotBeNull();
-        request.RequestUri!.Host.Should().Be("preview.example.com");
+        request.RequestUri.Host.Should().Be("preview.example.com");
         request.RequestUri.AbsolutePath.Should().Be($"/v2/{EnvironmentId}/sync");
         request.RequestUri.Query.Should().Be("?limit=5");
         request.Headers.Authorization.Should().NotBeNull();
@@ -106,7 +106,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.RequestUri.Should().NotBeNull();
-        request.RequestUri!.Host.Should().Be("external-service.example");
+        request.RequestUri.Host.Should().Be("external-service.example");
         request.RequestUri.AbsolutePath.Should().Be("/webhook");
         request.RequestUri.AbsolutePath.Should().NotContain(EnvironmentId);
         request.Headers.Authorization.Should().BeNull();
@@ -169,7 +169,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        request.Headers.Authorization.Scheme.Should().Be("Bearer");
         request.Headers.Authorization.Parameter.Should().Be("secure-key");
     }
 
@@ -189,7 +189,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization!.Scheme.Should().Be("Bearer");
+        request.Headers.Authorization.Scheme.Should().Be("Bearer");
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class SyncAuthenticationHandlerTests
         _ = await InvokeSendAsync(handler, request);
 
         request.RequestUri.Should().NotBeNull();
-        request.RequestUri!.AbsolutePath.Should().Be($"/v2/{EnvironmentId}/sync");
+        request.RequestUri.AbsolutePath.Should().Be($"/v2/{EnvironmentId}/sync");
     }
 
     private static SyncAuthenticationHandler CreateHandler(SyncOptions options)

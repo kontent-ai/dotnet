@@ -80,7 +80,7 @@ public class WebhookTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
         result.Value.Should().BeNull();
         result.Error.Should().NotBeNull();
-        result.Error!.Message.Should().Be("The requested webhook was not found.");
+        result.Error.Message.Should().Be("The requested webhook was not found.");
         result.Error.RequestId.Should().Be("req-42");
         result.Error.ErrorCode.Should().Be(124);
     }
@@ -207,6 +207,6 @@ public class WebhookTests
         webhook.Headers.Should().ContainSingle()
             .Which.Should().BeEquivalentTo(new CustomHeaderModel { Key = "key1", Value = "value1" });
         webhook.DeliveryTriggers.Should().NotBeNull();
-        webhook.DeliveryTriggers!.ContentType!.Enabled.Should().BeTrue();
+        webhook.DeliveryTriggers.ContentType!.Enabled.Should().BeTrue();
     }
 }
