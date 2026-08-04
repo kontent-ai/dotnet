@@ -45,7 +45,12 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true /p:Version="${{ steps.plan.outputs.version }}"
+        # No /p:Version here. It is a GLOBAL property, so it would stamp the releasing
+        # product's version onto every project in the repo - and, once in-repo dependencies
+        # are ProjectReferences, onto sibling dependency versions in the generated nuspec.
+        # eng/Versions.props already carries the right version per product, and the
+        # "Resolve release plan" step above refuses to continue if it disagrees with the tag.
+        run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true
 
       - name: Pack
         shell: bash
@@ -58,8 +63,7 @@ jobs:
               --configuration Release \
               --include-symbols \
               --output "$PACK_OUTPUT" \
-              /p:ContinuousIntegrationBuild=true \
-              /p:PackageVersion="${{ steps.plan.outputs.version }}"
+              /p:ContinuousIntegrationBuild=true
           done
 
       - name: Validate package artifacts
