@@ -1,0 +1,129 @@
+name: Publish batch
+
+# Creates a GitHub Release for every product whose version is prepared but not yet on NuGet,
+# in dependency order, waiting for each to actually publish before starting the next.
+#
+# Run it after merging a "Prepare release" PR. It is the counterpart to that workflow: one
+# opens a single PR for many products, this one turns the merged result into many releases.
+#
+# It does not decide anything - the state of eng/Versions.props does. A product is released
+# here only if its declared version is missing from nuget.org, so re-running is safe: already
+# published products are skipped.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List what would be released without creating anything'
+        type: boolean
+        default: true
+
+concurrency:
+  group: publish-batch
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # create releases and tags
+
+jobs:
+  publish:
+    name: Create releases in dependency order
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Work out what needs releasing
+        id: plan
+        run: |
+          set -euo pipefail
+          dotnet run eng/scripts/release-status.cs -- --json > /tmp/status.json
+          cat /tmp/status.json
+
+          # Dependency-first order, so a consumer is never released before the sibling version
+          # it depends on. Products with no pending release drop out.
+          jq -r '
+            [.[] | select(.status != "published") | .product] as $pending
+            | $pending
+          ' /tmp/status.json > /tmp/pending.json
+
+          if [ "$(jq 'length' /tmp/pending.json)" -eq 0 ]; then
+            echo "Nothing to release - every declared version is already on NuGet."
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Topological sort over eng/products.json dependsOn, restricted to pending products.
+          jq -n --slurpfile pending /tmp/pending.json --slurpfile products eng/products.json '
+            ($pending[0]) as $p
+            | ($products[0]) as $prod
+            | reduce range(0; ($p | length)) as $_ ([];
+                . as $done
+                | $done + [ $p[] | select(. as $x | ($done | index($x)) | not)
+                          | select([ $prod[.].dependsOn[] | select(. as $d | $p | index($d)) ]
+                                   - $done | length == 0) ][0:1]
+              )
+          ' > /tmp/order.json
+
+          echo "Release order:"; jq -r '.[]' /tmp/order.json
+          echo "count=$(jq 'length' /tmp/order.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Create releases
+        if: steps.plan.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          # Wait for a product's packages to appear on nuget.org. The next release in the batch
+          # may depend on them, and release.yml refuses to publish against an unpublished
+          # cross-product dependency.
+          wait_for_publish() {
+            product="$1"
+            for _ in $(seq 1 60); do
+              if dotnet run eng/scripts/release-status.cs -- --json \
+                   | jq -e --arg p "$product" '.[] | select(.product == $p and .status == "published")' >/dev/null; then
+                echo "  $product is on NuGet"
+                return 0
+              fi
+              sleep 30
+            done
+            echo "::error::$product did not appear on NuGet within 30 minutes"
+            return 1
+          }
+
+          for product in $(jq -r '.[]' /tmp/order.json); do
+            version=$(jq -r --arg p "$product" '.[] | select(.product == $p) | .version' /tmp/status.json)
+            tag="${product}-v${version}"
+
+            prerelease=""
+            case "$version" in *-*) prerelease="--prerelease" ;; esac
+
+            echo "::group::$tag"
+            dotnet run eng/scripts/release-notes.cs -- "$tag" > /tmp/notes.md
+            title="$(jq -r --arg p "$product" '.[$p].expectedPackages[0]' eng/products.json) $version"
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "[dry run] would create release '$title' at tag $tag $prerelease"
+              echo "--- notes ---"; cat /tmp/notes.md
+              echo "::endgroup::"
+              continue
+            fi
+
+            gh release create "$tag" \
+              --target "$GITHUB_SHA" \
+              --title "$title" \
+              --notes-file /tmp/notes.md \
+              $prerelease
+
+            echo "  created $tag - waiting for it to publish"
+            wait_for_publish "$product"
+            echo "::endgroup::"
+          done
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run only. Re-run with 'dry_run' unchecked to create these releases."
+          fi

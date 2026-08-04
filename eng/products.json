@@ -1,6 +1,9 @@
 {
   "aspnetcore": {
     "versionProperty": "AspNetCoreVersion",
+    "dependsOn": [
+      "delivery"
+    ],
     "changelog": "src/aspnetcore/CHANGELOG.md",
     "projects": [
       "src/aspnetcore/Kontent.Ai.AspNetCore/Kontent.Ai.AspNetCore.csproj"
@@ -11,6 +14,7 @@
   },
   "delivery": {
     "versionProperty": "DeliveryVersion",
+    "dependsOn": [],
     "changelog": "src/delivery/CHANGELOG.md",
     "projects": [
       "src/delivery/Kontent.Ai.Delivery/Kontent.Ai.Delivery.csproj",
@@ -29,6 +33,7 @@
   },
   "management": {
     "versionProperty": "ManagementVersion",
+    "dependsOn": [],
     "changelog": "src/management/CHANGELOG.md",
     "projects": [
       "src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj"
@@ -39,6 +44,10 @@
   },
   "model-generator": {
     "versionProperty": "ModelGeneratorVersion",
+    "dependsOn": [
+      "delivery",
+      "management"
+    ],
     "changelog": "src/model-generator/CHANGELOG.md",
     "projects": [
       "src/model-generator/src/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj",
@@ -51,6 +60,7 @@
   },
   "sync": {
     "versionProperty": "SyncVersion",
+    "dependsOn": [],
     "changelog": "src/sync/CHANGELOG.md",
     "projects": [
       "src/sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj",

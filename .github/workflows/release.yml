@@ -7,6 +7,16 @@ on:
   release:
     types: [published]
 
+# Scoped to the tag, NOT shared across releases. A repo-wide group would serialize releases,
+# which sounds desirable for a batch - but GitHub keeps only one PENDING run per group and
+# cancels older pending ones, so creating five releases at once would silently drop the middle
+# three. Sequencing a batch is the dispatcher's job (publish-batch.yml), which waits for each
+# release to finish before creating the next. Here the group only prevents the same tag from
+# publishing twice concurrently, e.g. if a release is edited and re-published.
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
 env:
   PACK_OUTPUT: ./artifacts/release-pack
 

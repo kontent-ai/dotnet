@@ -67,8 +67,16 @@ A release is a version bump plus a changelog entry, then a tag.
 
 **Actions → Prepare release** is the normal route. Each product has its own dropdown
 defaulting to `none`, so one run can bump several products at once and opens a single PR
-covering the batch. Merge it, then create one GitHub Release per product — releases stay
-independent, so any one of them can be published or dropped without affecting the rest.
+covering the batch.
+
+After merging that PR, **Actions → Publish batch** creates a GitHub Release for every product
+whose declared version is not yet on NuGet — in dependency order, waiting for each to publish
+before starting the next. Release notes come from each product's changelog. It defaults to a
+dry run, so you can see the plan and the notes before anything is created.
+
+Nothing about that is required: a release is just a GitHub Release tagged
+`<product>-v<version>`, so creating them by hand works exactly the same. Releases stay
+independent either way — any one can be published or dropped without affecting the rest.
 
 The same bump can be done locally if you prefer:
 
