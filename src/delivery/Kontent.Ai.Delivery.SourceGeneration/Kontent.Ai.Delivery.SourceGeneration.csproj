@@ -30,6 +30,7 @@
 
          Raise this only if the generator needs a newer Roslyn API, and treat doing so as a
          consumer-visible change. -->
+    <!-- slopwatch-ignore: SW006 The central version is what every other project should use; this one project must NOT follow it. The compiled generator hard-references whatever Roslyn it was built against, and a host older than that skips it with CS9057 and emits nothing. Bypassing CPM here is the point, not an oversight. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="4.9.2" PrivateAssets="all" />
   </ItemGroup>
 
