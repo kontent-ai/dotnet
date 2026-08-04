@@ -28,16 +28,19 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+      # UseProjectReferences is passed explicitly on every leg rather than inherited from the
+      # default in Directory.Build.targets, so that changing that default can never silently
+      # change what any job builds.
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore /p:UseProjectReferences=false
       - name: Build
-        run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+        run: dotnet build --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
       # Coverage is collected and ENFORCED here: each test project sets its own
       # Threshold/ThresholdType and coverlet fails the run if coverage drops below it.
       # A repo-wide number is not possible - coverage legitimately differs by an order
       # of magnitude between a thin CLI entry point and a library.
       - name: Test
-        run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+        run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=false /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
       # Uploaded per product with its own flag. Without flags every product's coverage
       # would merge into one repo-wide percentage, which is meaningless across a client
@@ -131,10 +134,13 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
+      # Explicitly package mode: this job packs, and packing is only ever valid against the
+      # dependency floors in Directory.Packages.props. Directory.Build.targets refuses to pack
+      # in source mode outright; this keeps the job from depending on that refusal.
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore /p:UseProjectReferences=false
       - name: Build
-        run: dotnet build --configuration Release --no-restore /p:ContinuousIntegrationBuild=true
+        run: dotnet build --configuration Release --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
       # Packs every product listed in eng/products.json and asserts each one produced
       # the packages it claims to. Adding a product to products.json is enough; this
       # step needs no edit.
@@ -153,6 +159,7 @@ jobs:
                 --configuration Release \
                 --include-symbols \
                 --output "$PACK_OUTPUT" \
+                /p:UseProjectReferences=false \
                 /p:ContinuousIntegrationBuild=true \
                 /p:PackageVersion="$PACKAGE_VERSION"
             done
@@ -202,13 +209,13 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore /p:UseProjectReferences=false
       - name: Build
-        run: dotnet build --no-restore /p:ContinuousIntegrationBuild=true
+        run: dotnet build --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
       # These tests are skipped in the normal run unless KONTENT_SDK_RUN_REDIS_TESTS is set,
       # so this job is the only thing that exercises them.
       - name: Redis integration tests
-        run: dotnet test src/delivery/Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj --no-build --filter "FullyQualifiedName~RedisCacheIntegrationTests"
+        run: dotnet test src/delivery/Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj --no-build --filter "FullyQualifiedName~RedisCacheIntegrationTests" /p:UseProjectReferences=false
         env:
           KONTENT_SDK_RUN_REDIS_TESTS: "true"
           KONTENT_SDK_REDIS_CONNECTION: "localhost:6379"

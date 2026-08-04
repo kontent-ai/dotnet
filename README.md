@@ -54,11 +54,16 @@ Currently migrated:
 Requires the .NET SDK pinned in [`global.json`](./global.json).
 
 ```sh
-dotnet build          # everything
+dotnet build          # everything, against published sibling packages
 dotnet test           # everything, with per-product coverage gates
 ```
 
 Each product also has its own solution under `src/<product>/` if you only want to open one.
+
+Products consume each other as `PackageReference`, so the default build is what ships.
+`-p:UseProjectReferences=true` swaps those for the source in this tree and answers the other
+question — whether the five products at this commit work together. CI runs both and both
+block the merge. See [`CONTRIBUTING.md`](./CONTRIBUTING.md#two-build-modes).
 
 ## Releasing
 
@@ -90,6 +95,18 @@ ASP.NET Core product. The pipeline refuses to publish if the tag disagrees with
 `eng/Versions.props`, if the changelog has no entry for that version, or if a package
 would depend on a `Kontent.Ai.*` version that is not yet on NuGet. Packages belonging to
 the same product are exempt from that last check — they are published together.
+
+### Cross-product dependency floors
+
+Releasing a product does **not** update the version its siblings depend on. Those floors live
+in [`Directory.Packages.props`](./Directory.Packages.props), and raising one is a third step,
+in its own PR, after the dependency is on NuGet — doing it sooner makes the repo
+unrestorable, including the release that would have published that version.
+
+A floor is the minimum a published package promises to work with, so it is meant to lag
+behind the newest sibling. Raise it only when the consuming code actually needs the newer
+API. [`CONTRIBUTING.md`](./CONTRIBUTING.md#changing-an-api-that-another-product-consumes) has
+the full sequence.
 
 ### Prepared but not released
 

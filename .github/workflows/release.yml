@@ -42,15 +42,21 @@ jobs:
         id: plan
         run: dotnet run eng/scripts/release-plan.cs -- "$GITHUB_REF_NAME"
 
+      # UseProjectReferences=false is passed explicitly, not inherited from the default in
+      # Directory.Build.targets. This is the job that decides what the world installs: in
+      # source mode the generated nuspec would take sibling versions from eng/Versions.props
+      # instead of the declared floors in Directory.Packages.props, publishing a dependency
+      # range nobody asked for. Directory.Build.targets refuses to pack in source mode at
+      # all; this makes the intent explicit here rather than relying on that refusal.
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore /p:UseProjectReferences=false
       - name: Build
         # No /p:Version here. It is a GLOBAL property, so it would stamp the releasing
         # product's version onto every project in the repo - and, once in-repo dependencies
         # are ProjectReferences, onto sibling dependency versions in the generated nuspec.
         # eng/Versions.props already carries the right version per product, and the
         # "Resolve release plan" step above refuses to continue if it disagrees with the tag.
-        run: dotnet build --no-restore --configuration Release /p:ContinuousIntegrationBuild=true
+        run: dotnet build --no-restore --configuration Release /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
 
       - name: Pack
         shell: bash
@@ -63,6 +69,7 @@ jobs:
               --configuration Release \
               --include-symbols \
               --output "$PACK_OUTPUT" \
+              /p:UseProjectReferences=false \
               /p:ContinuousIntegrationBuild=true
           done
 

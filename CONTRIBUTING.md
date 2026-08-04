@@ -29,6 +29,58 @@ Security issues and bugs should be reported privately, via email, to Kontent.ai 
 Everybody loves new features! You can submit a new [feature request](../../issues) or you can code it on your own and [send us a pull request](#submitting-pull-requests). In either case, don't forget to mention what's the use case and what's the expected output.
 
 
+## Working in this repository
+
+This repository holds five independently versioned products. Each ships its own packages on
+its own schedule, so a product consumes its siblings the way an external consumer does —
+through `PackageReference`, at the version declared in
+[`Directory.Packages.props`](./Directory.Packages.props).
+
+### Two build modes
+
+```sh
+dotnet build                                # default: siblings come from nuget.org
+dotnet build -p:UseProjectReferences=true   # siblings come from this working tree
+```
+
+The default is the mode everything ships from. It compiles each product against the exact
+versions its published package declares as its minimum, so an unqualified `dotnet build` or
+`dotnet pack` produces the dependency relationship we intend to ship. Packing in source mode
+is refused outright, because the generated `.nuspec` would take sibling versions from
+`eng/Versions.props` rather than from the declared floors.
+
+Source mode answers the other question — *do the five products at this commit work together?*
+CI runs both legs and both block the merge, so you do not need to remember the flag to be
+safe. Reach for it when you change a public API another product consumes and want to see the
+effect before pushing.
+
+Within a single product every reference is already a `ProjectReference`. Only cross-product
+edges are affected by the flag, and there are two: `Kontent.Ai.AspNetCore` → Delivery, and
+`Kontent.Ai.ModelGenerator` → Delivery and Management.
+
+### Changing an API that another product consumes
+
+An **additive** change needs nothing special. Both legs stay green: the consumer still
+compiles against the old published version *and* against your new source.
+
+A **removal or rename** cannot have both legs green in one PR — the consumer cannot
+simultaneously compile against a published version that still has the old API and a source
+tree that no longer does. Deprecate first, remove a cycle later:
+
+1. **Add the replacement.** Keep the old member with `[Obsolete]`, bump the dependency
+   product. Both legs green. Release it (*Actions → Prepare release*, then *Publish batch*).
+2. **Move the consumer.** Raise its floor in `Directory.Packages.props` to the version you
+   just published, switch to the new API, bump the consumer. Both legs green. Release it.
+3. **Remove the obsolete member** in a later cycle. Both legs green.
+
+Step 2 has to wait for step 1 to actually reach NuGet: a floor pointing at an unreleased
+version makes the whole repo unrestorable, including the release that would have published
+it. That is why it is a separate PR rather than part of the same release batch.
+
+Raise a floor only when the consuming code genuinely needs the newer API. Floors are meant
+to lag — raising one forces every downstream consumer to upgrade too.
+
+
 ## Submitting pull requests
 <img align="right" width="100" height="100" src="https://i.imgur.com/aSeiliy.png">
 

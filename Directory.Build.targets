@@ -5,13 +5,18 @@
          dotnet build                                # default: against published packages
          dotnet build /p:UseProjectReferences=true   # against repo source
 
-       The DEFAULT is deliberately PackageReference. It reproduces what a consumer
-       actually gets, and keeps each product independently releasable - a product here
-       consumes its siblings from nuget.org exactly as an external consumer does.
+       The DEFAULT is deliberately PackageReference, and it is the mode everything ships
+       from. It compiles each product against the exact versions its published package
+       will declare as its minimum, so an unqualified `dotnet build` or `dotnet pack`
+       produces the dependency relationship we intend to ship. Forgetting the flag is
+       therefore harmless in the default direction and dangerous in the other - see the
+       pack guard below.
 
        The switched build is the early-warning system: a breaking change in Delivery
        shows up as a red build in the PR that makes it, rather than months later when
-       a consumer next updates. CI runs both legs.
+       a consumer next updates. CI runs both legs and both are blocking, which is what
+       makes the safer mode affordable as the default - the coherence check does not
+       depend on anyone remembering to pass the flag.
 
        Done at evaluation time rather than in a target: Directory.Build.targets is
        imported after the project body, so PackageReference items already exist here,
@@ -44,4 +49,32 @@
                       Condition="@(PackageReference->AnyHaveMetadataValue('Identity', 'Kontent.Ai.Management'))" />
     <PackageReference Remove="Kontent.Ai.Management" />
   </ItemGroup>
+
+  <!-- Packing must never happen in source-reference mode.
+
+       A ProjectReference packs as a package dependency whose version comes from the
+       REFERENCED PROJECT's $(Version) - eng/Versions.props - not from the floor declared
+       in Directory.Packages.props. Those two agree today, so the damage stays invisible
+       until they diverge:
+
+         Management source = 9.0.0-beta-6   (prepared, not yet published)
+         Management floor  = 9.0.0-beta-5   (what Model Generator promises to work with)
+
+       Packed in source mode, Kontent.Ai.ModelGenerator.Core would declare a dependency on
+       Management 9.0.0-beta-6 - either unpublished, failing at the internal-dependency
+       check in release.yml, or published but never asked for, silently forcing every
+       consumer of the generator onto a newer Management.
+
+       This is a structural guard rather than discipline: the release and pack workflows
+       also pass /p:UseProjectReferences=false explicitly, but nothing stops a future
+       workflow, script or local `dotnet pack` from omitting it.
+
+       Hooked on GenerateNuspec rather than Pack - that is the target that runs on the
+       no-build pack path release.yml uses. Building and testing in source mode are
+       unaffected. -->
+  <Target Name="RefuseSourceModePack" BeforeTargets="GenerateNuspec"
+          Condition="'$(UseProjectReferences)' == 'true'">
+    <Error Code="KONTENT001"
+           Text="Refusing to pack with UseProjectReferences=true: sibling versions would come from eng/Versions.props instead of the dependency floors declared in Directory.Packages.props. Pack in the default package-reference mode." />
+  </Target>
 </Project>
