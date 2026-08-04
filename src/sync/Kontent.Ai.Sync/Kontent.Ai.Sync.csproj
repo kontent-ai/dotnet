@@ -14,11 +14,10 @@
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="Refit" />
     <PackageReference Include="Refit.HttpClientFactory" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Company>Kontent s.r.o.</Company>
     <PackageId>Kontent.Ai.Sync</PackageId>
     <Description>Official .NET SDK for Kontent.ai Sync API v2 - Efficiently synchronize content changes from your Kontent.ai projects</Description>

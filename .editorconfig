@@ -210,6 +210,15 @@ dotnet_naming_style.pascal_case.required_suffix =
 dotnet_naming_style.pascal_case.word_separator = 
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 dotnet_style_operator_placement_when_wrapping = beginning_of_line
+
+# Namespaces deliberately do NOT track folders. Each package exposes one flat public namespace
+# (Kontent.Ai.Sync.Abstractions, Kontent.Ai.Delivery, ...) so a consumer needs a single `using`,
+# while folders organise the source. Roughly 950 files across the five products follow this, and
+# "fixing" them would rename every public type's namespace - a breaking change for every consumer.
+# The .NET 10 SDK raised IDE0130 to an error under EnforceCodeStyleInBuild, which is what made
+# this surface; the convention itself has not changed.
+dotnet_style_namespace_match_folder = false
+dotnet_diagnostic.IDE0130.severity = none
 tab_width = 4
 indent_size = 4
 # Deliberately no `end_of_line` here. This block is Visual Studio-generated and used to

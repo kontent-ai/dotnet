@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Company>Kontent s.r.o.</Company>
     <PackageId>Kontent.Ai.Sync.Abstractions</PackageId>
     <Description>Kontent.ai Sync SDK Abstractions - Public API contracts for synchronizing content changes</Description>
