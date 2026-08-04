@@ -6,7 +6,12 @@ namespace Kontent.Ai.ModelGenerator.Core.Helpers;
 
 public static class TextHelpers
 {
-    private static readonly Regex LineEndings = new(@"\r\n|\n\r|\n|\r");
+    // Codenames come from the environment's content model, so they are external input to the
+    // generator. The patterns below are simple, but "^(\s|[0-9])+" nests an alternation inside a
+    // quantifier - the shape that backtracks badly - and a generator that hangs on one bad
+    // codename is worse than one that throws.
+    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(1);
+    private static readonly Regex LineEndings = new(@"\r\n|\n\r|\n|\r", RegexOptions.None, RegexTimeout);
     private const string WordSeparator = " ";
 
     /// <summary>
@@ -56,10 +61,10 @@ public static class TextHelpers
 
     private static string[] SplitName(string name)
     {
-        var sanitizedName = Regex.Replace(name, "[^a-zA-Z0-9]", WordSeparator, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        var sanitizedName = Regex.Replace(name, "[^a-zA-Z0-9]", WordSeparator, RegexOptions.IgnoreCase | RegexOptions.Multiline, RegexTimeout);
 
         // Remove leading numbers and leading whitespace (e.g.: '  123Name123' -> 'Name123'
-        sanitizedName = Regex.Replace(sanitizedName, "^(\\s|[0-9])+", "");
+        sanitizedName = Regex.Replace(sanitizedName, "^(\\s|[0-9])+", "", RegexOptions.None, RegexTimeout);
 
         if (sanitizedName == string.Empty)
         {

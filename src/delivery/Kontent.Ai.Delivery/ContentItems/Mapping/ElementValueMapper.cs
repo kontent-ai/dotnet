@@ -123,7 +123,7 @@ internal sealed class ElementValueMapper(
             richTextData = richTextData with { Images = rewritten };
         }
 
-        return await _richTextParser.ConvertAsync(richTextData, getLinkedItem, context.DependencyContext).ConfigureAwait(false);
+        return await _richTextParser.ConvertAsync(richTextData, getLinkedItem, context.DependencyContext, context.CancellationToken).ConfigureAwait(false);
     }
 
     private List<Asset>? MapAssets(JsonElement envelope, string? defaultRenditionPreset, Uri? customAssetDomain, DependencyTrackingContext? dependencyContext)

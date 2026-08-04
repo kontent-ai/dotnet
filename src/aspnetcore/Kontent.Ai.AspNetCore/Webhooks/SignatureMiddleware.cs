@@ -41,7 +41,7 @@ public class SignatureMiddleware
         request.EnableBuffering();
 
         using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-        var content = await reader.ReadToEndAsync();
+        var content = await reader.ReadToEndAsync(httpContext.RequestAborted);
         request.Body.Seek(0, SeekOrigin.Begin);
 
         var generatedSignature = GenerateHash(content, WebhookOptions.Value.Secret);
