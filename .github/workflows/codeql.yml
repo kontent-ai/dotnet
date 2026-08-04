@@ -24,20 +24,20 @@ jobs:
         fetch-depth: 0
       
     # Initializes the CodeQL tools for scanning.
+    #
+    # build-mode: none extracts C# straight from source, so this workflow no longer compiles
+    # the repo - ci.yml already builds it on two legs, and a third full build bought nothing.
+    # It is also what makes the run eligible for an overlay-base database, which is CodeQL's
+    # incremental cache for pull-request scans; without it every run built a full database.
+    #
+    # Trade-off: buildless extraction does not see generated code, so the output of
+    # Kontent.Ai.Delivery.SourceGeneration is not analyzed. That output is generated model
+    # records - no I/O, no user input, nothing the security queries would flag.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
-      # Override language selection by uncommenting this and choosing your languages
       with:
         languages: csharp
-
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v6
-      with:
-        global-json-file: global.json
-    - name: Install dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+        build-mode: none
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
