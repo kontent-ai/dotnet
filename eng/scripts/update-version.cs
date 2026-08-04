@@ -47,6 +47,10 @@ var current = match.Groups[2].Value;
 var next = NextVersion(current, bump);
 if (next is null) { Console.Error.WriteLine($"cannot apply '{bump}' to '{current}'"); return 1; }
 
+// `prerelease` continues a label that already exists; every other bump either drops the
+// prerelease or picks a new label outright. See the warning helper for why that matters.
+WarnIfPrereleaseWillMisSort(next, bump == "prerelease" ? 9 : 1);
+
 // --- rewrite eng/Versions.props ----------------------------------------------
 // Braces are required: a bare "$1" followed by a digit would be read as group $10.
 File.WriteAllText(versionsPath, propRegex.Replace(versionsXml, $"${{1}}{next}${{3}}", 1));
@@ -133,8 +137,64 @@ static string? NextVersion(string current, string bump)
             };
 
         default:
-            return bump;   // explicit version
+            // Explicit version. Nothing downstream checks its shape: release-plan.cs verifies
+            // only that the tag matches this property and that the changelog has a matching
+            // heading, so a typo survives as far as a tag and a failed pack - with a merged PR
+            // carrying a bad version property and a bad changelog entry. Reject it here, where
+            // it is still one field in a form.
+            if (!Regex.IsMatch(bump, @"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$"))
+            {
+                Console.Error.WriteLine($"'{bump}' is not a valid version. Expected major.minor.patch with an " +
+                                        "optional prerelease label - 9.0.0, 9.0.0-rc.1, 0.17.0-preview.2.");
+                // Legal SemVer, but NuGet ignores build metadata when identifying a package, so it
+                // would silently vanish somewhere between here and the pushed .nupkg.
+                if (bump.Contains('+'))
+                    Console.Error.WriteLine("Build metadata (+...) is not part of a NuGet package identity - drop it.");
+                return null;
+            }
+            if (bump == current)
+            {
+                Console.Error.WriteLine($"'{bump}' is already the current version - nothing to bump.");
+                return null;
+            }
+            return bump;
     }
+}
+
+// SemVer compares a prerelease label as dot-separated identifiers: numeric ones numerically,
+// everything else as text. `beta-5` is ONE alphanumeric identifier, so it is compared as text -
+// 9.0.0-beta-10 sorts BEFORE 9.0.0-beta-5, and nuget.org stops offering the newer prerelease as
+// the latest. `preview.1` splits into `preview` + `1` and compares numerically, so it is safe.
+//
+// `warnFrom` is 1 when the label is being chosen fresh and 9 when an existing sequence is being
+// continued. Continuing is the case where the advice is nearly useless - a product already on
+// `-N` labels cannot switch mid-line, because 9.0.0-rc.1 would sort BEFORE 9.0.0-beta-5 - so
+// there is no point saying anything at beta-2 and every point in saying it at beta-9. Choosing a
+// label is the opposite: that is the one moment the shape is still free, so say it immediately.
+//
+// A warning rather than an error throughout: the labels already shipped are valid, and the
+// escape (a new label, or GA) is a judgement call about the release, not about this command.
+static void WarnIfPrereleaseWillMisSort(string version, int warnFrom)
+{
+    var dash = version.IndexOf('-');
+    if (dash < 0) return;
+
+    var last = version[(dash + 1)..].Split('.')[^1];
+    var m = Regex.Match(last, @"^(?<prefix>.*[^\d])(?<num>\d+)$");
+    if (!m.Success) return;
+
+    var (prefix, n) = (m.Groups["prefix"].Value, int.Parse(m.Groups["num"].Value));
+    if (n < warnFrom) return;
+
+    Console.Error.WriteLine(n switch
+    {
+        >= 10 => $"warning: '{last}' sorts BEFORE lower-numbered labels of the same version - NuGet compares it as text, not as a number.",
+        9 when warnFrom == 9 => $"warning: '{last}' is the last label of this form that sorts correctly - the next one would sort before it.",
+        _ => $"warning: '{last}' glues its number into one label, so '{prefix}10' would sort before '{prefix}2'.",
+    });
+    Console.Error.WriteLine(warnFrom == 1
+        ? $"         Prefer a dotted label - '{prefix.TrimEnd('-', '.')}.{n}' compares the number numerically."
+        : "         Move to a dotted label (rc.1) or to GA rather than continuing this sequence.");
 }
 
 static string? FindRepoRoot()

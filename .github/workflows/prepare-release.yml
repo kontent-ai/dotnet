@@ -18,7 +18,7 @@ on:
         default: none
         options: [none, prerelease, release, patch, minor, major, explicit]
       aspnetcore_version:
-        description: 'ASP.NET Core - explicit version (only when bump = explicit)'
+        description: 'ASP.NET Core - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
         type: string
         required: false
       delivery:
@@ -27,7 +27,7 @@ on:
         default: none
         options: [none, prerelease, release, patch, minor, major, explicit]
       delivery_version:
-        description: 'Delivery - explicit version (only when bump = explicit)'
+        description: 'Delivery - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
         type: string
         required: false
       management:
@@ -36,7 +36,7 @@ on:
         default: none
         options: [none, prerelease, release, patch, minor, major, explicit]
       management_version:
-        description: 'Management - explicit version (only when bump = explicit)'
+        description: 'Management - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
         type: string
         required: false
       modelgenerator:
@@ -45,7 +45,7 @@ on:
         default: none
         options: [none, prerelease, release, patch, minor, major, explicit]
       modelgenerator_version:
-        description: 'Model generator - explicit version (only when bump = explicit)'
+        description: 'Model generator - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
         type: string
         required: false
       sync:
@@ -54,7 +54,7 @@ on:
         default: none
         options: [none, prerelease, release, patch, minor, major, explicit]
       sync_version:
-        description: 'Sync - explicit version (only when bump = explicit)'
+        description: 'Sync - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
         type: string
         required: false
 
