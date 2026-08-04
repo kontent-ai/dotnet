@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Company>Kontent s.r.o.</Company>
     <Description>Core library for the Kontent.ai model generator. Provides the code-generation primitives that emit modern record-based C# models for use with the Kontent.ai Delivery SDK for .NET (v19+). Typically consumed indirectly via the Kontent.Ai.ModelGenerator CLI tool.</Description>
   </PropertyGroup>
