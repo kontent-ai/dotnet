@@ -23,14 +23,12 @@ public static partial class ServiceCollectionExtensions
     /// <param name="deliveryOptions">The delivery options instance.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
         DeliveryOptions deliveryOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(deliveryOptions);
 
@@ -38,8 +36,7 @@ public static partial class ServiceCollectionExtensions
             DeliveryClientNames.Default,
             deliveryOptions.CopyTo,
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -49,14 +46,12 @@ public static partial class ServiceCollectionExtensions
     /// <param name="buildDeliveryOptions">A function to build the delivery options.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
         Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(buildDeliveryOptions);
 
@@ -67,8 +62,7 @@ public static partial class ServiceCollectionExtensions
             DeliveryClientNames.Default,
             options.CopyTo,
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -164,21 +158,18 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the delivery options.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
         Action<DeliveryOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddDeliveryClient(
             DeliveryClientNames.Default,
             configureOptions,
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -188,21 +179,18 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the delivery options with access to the <see cref="IServiceProvider"/>.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
         Action<IServiceProvider, DeliveryOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddDeliveryClient(
             DeliveryClientNames.Default,
             configureOptions,
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -232,7 +220,6 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the delivery options.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
     public static IServiceCollection AddDeliveryClient(
@@ -240,8 +227,7 @@ public static partial class ServiceCollectionExtensions
         string name,
         Action<DeliveryOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(configureOptions);
 
@@ -249,8 +235,7 @@ public static partial class ServiceCollectionExtensions
             name,
             (_, opts) => configureOptions(opts),
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -263,7 +248,7 @@ public static partial class ServiceCollectionExtensions
     /// allowing composition with sibling options such as <c>IOptions&lt;SiteOptions&gt;</c>.
     /// </para>
     /// <para>
-    /// See the <see cref="AddDeliveryClient(IServiceCollection, string, Action{DeliveryOptions}, Action{IHttpClientBuilder}?, Action{Polly.ResiliencePipelineBuilder{HttpResponseMessage}}?, Action{RefitSettings}?)"/>
+    /// See the <see cref="AddDeliveryClient(IServiceCollection, string, Action{DeliveryOptions}, Action{IHttpClientBuilder}?, Action{Polly.ResiliencePipelineBuilder{HttpResponseMessage}}?)"/>
     /// overload for registration semantics (keyed services, factory access, options monitoring).
     /// </para>
     /// <para>
@@ -276,7 +261,6 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the delivery options with access to the <see cref="IServiceProvider"/>.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
     public static IServiceCollection AddDeliveryClient(
@@ -284,8 +268,7 @@ public static partial class ServiceCollectionExtensions
         string name,
         Action<IServiceProvider, DeliveryOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -307,7 +290,7 @@ public static partial class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection AddDeliveryClientFromConfiguration(
@@ -315,8 +298,7 @@ public static partial class ServiceCollectionExtensions
         string name,
         IConfiguration configuration,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -339,15 +321,14 @@ public static partial class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection CompleteClientRegistration(
         IServiceCollection services,
         string name,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         // Create shared JSON options once and use for both DI and Refit (avoids two divergent instances)
         var sharedJsonOptions = GetOrCreateSharedJsonOptions(services);
@@ -360,7 +341,7 @@ public static partial class ServiceCollectionExtensions
             new MonitorOptionsAccessor(sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>(), name));
 
         // Register named HTTP client and Refit API
-        RegisterNamedHttpClient(services, name, sharedJsonOptions, configureHttpClient, configureResilience, configureRefit);
+        RegisterNamedHttpClient(services, name, sharedJsonOptions, configureHttpClient, configureResilience);
 
         // Register keyed IDeliveryClient
         services.AddKeyedSingleton<IDeliveryClient>(name, CreateDeliveryClient);

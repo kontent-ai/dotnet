@@ -40,10 +40,9 @@ public static partial class ServiceCollectionExtensions
         });
     }
 
-    private static RefitSettings CreateRefitSettings(Action<RefitSettings>? configureRefit)
+    private static RefitSettings CreateRefitSettings()
     {
         var settings = RefitSettingsProvider.CreateDefaultSettings();
-        configureRefit?.Invoke(settings);
         return settings;
     }
 

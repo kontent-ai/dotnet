@@ -43,16 +43,16 @@ public sealed class RichTextExtensions
 
 // Kontent.Ai.Delivery
 public sealed class ServiceCollectionExtensions
-    IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Func`2 buildDeliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, Func`2 buildDeliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience)
     IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName)
     IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection)
     IServiceCollection AddDeliveryClient(IServiceCollection services, Action`1 configureOptions)
     IServiceCollection AddDeliveryClient(IServiceCollection services, Action`2 configureOptions)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience, Action`1 configureRefit)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
+    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryClientBuilder
@@ -77,11 +77,6 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
     IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
     IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
-
-// Kontent.Ai.Delivery.Configuration
-public sealed class RefitSettingsProvider
-    JsonSerializerOptions CreateDefaultJsonSerializerOptions()
-    RefitSettings CreateDefaultSettings()
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class Asset : IAsset, IEquatable`1

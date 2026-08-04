@@ -100,7 +100,7 @@ public partial interface IDeliveryApi
 **Location**: `Kontent.Ai.Delivery/Configuration/RefitSettingsProvider.cs`
 
 ```csharp
-public static RefitSettings CreateDefaultSettings()
+internal static RefitSettings CreateDefaultSettings()
 {
     var jsonSerializerOptions = CreateDefaultJsonSerializerOptions();
 

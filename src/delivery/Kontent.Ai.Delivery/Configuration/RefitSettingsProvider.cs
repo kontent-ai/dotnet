@@ -6,7 +6,7 @@ namespace Kontent.Ai.Delivery.Configuration;
 /// <summary>
 /// Provides default Refit settings for the Kontent.ai Delivery SDK.
 /// </summary>
-public static class RefitSettingsProvider
+internal static class RefitSettingsProvider
 {
     /// <summary>
     /// Creates default Refit settings configured for Kontent.ai Delivery API.

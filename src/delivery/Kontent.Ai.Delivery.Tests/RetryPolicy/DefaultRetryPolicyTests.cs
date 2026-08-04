@@ -184,7 +184,6 @@ public class DefaultRetryPolicyTests
         var services = new ServiceCollection();
         services.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true },
-            configureRefit: null,
             configureHttpClient: builder =>
             {
                 builder.ConfigurePrimaryHttpMessageHandler(() => primary);
@@ -307,7 +306,6 @@ public class DefaultRetryPolicyTests
         var services = new ServiceCollection();
         services.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true },
-            configureRefit: null,
             configureHttpClient: builder =>
             {
                 builder.ConfigurePrimaryHttpMessageHandler(() => primary);

@@ -43,12 +43,11 @@ public class ManagementClientBuilderTests
     }
 
     [Fact]
-    public void WithResilience_And_ConfigureRefit_AreChainable()
+    public void WithResilience_IsChainable()
     {
         using var client = ManagementClientBuilder
             .WithOptions(ValidOptions)
             .WithResilience(_ => { })
-            .ConfigureRefit(_ => { })
             .Build();
 
         client.Should().NotBeNull();
@@ -78,13 +77,6 @@ public class ManagementClientBuilderTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
-    public void ConfigureRefit_Null_Throws()
-    {
-        Action act = () => ManagementClientBuilder.WithOptions(ValidOptions).ConfigureRefit(null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
 
     [Theory]
     [InlineData(null, "key")]

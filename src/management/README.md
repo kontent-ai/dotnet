@@ -156,7 +156,7 @@ services.AddManagementClient(configuration);
 services.AddManagementClient(configuration, "MyManagementSection");
 ```
 
-The configuration-based overloads accept the same optional `configureHttpClient` / `configureResilience` / `configureRefit` hooks as the action-based ones.
+The configuration-based overloads accept the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones.
 
 ### Multiple Named Clients
 

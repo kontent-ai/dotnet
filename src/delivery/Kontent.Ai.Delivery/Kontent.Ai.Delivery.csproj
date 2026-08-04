@@ -23,7 +23,13 @@
 
          Dropping it means giving IDeliveryApi a generator-friendly shape for filters, which
          changes how query strings are built - a wire-level change, not a mechanical one. That
-         also unblocks NativeAOT and trimming for Delivery. -->
+         also unblocks NativeAOT and trimming for Delivery.
+
+         This does NOT pin us to a Refit version: Refit.Reflection is first-party and its
+         releases track Refit's exactly (it was introduced with 14, when the generator became
+         the default; Refit 13 and earlier had the reflection builder built in). The signal
+         that the rework has become urgent is a Refit release shipping WITHOUT a matching
+         Refit.Reflection. See docs/breaking-changes-net10.md. -->
     <PackageReference Include="Refit.Reflection" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />

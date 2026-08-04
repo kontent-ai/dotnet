@@ -86,46 +86,39 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryClient_Advanced_InvokesConfigureRefit()
+    public void AddDeliveryClient_Advanced_RegistersClient()
     {
-        var invoked = false;
         _serviceCollection.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = EnvironmentId },
             configureHttpClient: null,
-            configureResilience: null,
-            configureRefit: s => invoked = true);
+            configureResilience: null);
 
-        // Build triggers ValidateOnStart but not needed for this assertion
-        _serviceCollection.BuildServiceProvider();
-        Assert.True(invoked);
+        var provider = _serviceCollection.BuildServiceProvider();
+        Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
     }
 
     [Fact]
-    public void AddDeliveryClient_AdvancedConfigureAction_InvokesConfigureRefit()
+    public void AddDeliveryClient_AdvancedConfigureAction_RegistersClient()
     {
-        var invoked = false;
         _serviceCollection.AddDeliveryClient(
             options => options.EnvironmentId = EnvironmentId,
             configureHttpClient: null,
-            configureResilience: null,
-            configureRefit: _ => invoked = true);
+            configureResilience: null);
 
-        _serviceCollection.BuildServiceProvider();
-        Assert.True(invoked);
+        var provider = _serviceCollection.BuildServiceProvider();
+        Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
     }
 
     [Fact]
-    public void AddDeliveryClient_AdvancedServiceProviderConfigureAction_InvokesConfigureRefit()
+    public void AddDeliveryClient_AdvancedServiceProviderConfigureAction_RegistersClient()
     {
-        var invoked = false;
         _serviceCollection.AddDeliveryClient(
             (_, options) => options.EnvironmentId = EnvironmentId,
             configureHttpClient: null,
-            configureResilience: null,
-            configureRefit: _ => invoked = true);
+            configureResilience: null);
 
-        _serviceCollection.BuildServiceProvider();
-        Assert.True(invoked);
+        var provider = _serviceCollection.BuildServiceProvider();
+        Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
     }
 
     [Fact]
@@ -135,8 +128,7 @@ public class ServiceCollectionsExtensionsTests
         _serviceCollection.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = true },
             configureHttpClient: null,
-            configureResilience: _ => invoked = true,
-            configureRefit: null);
+            configureResilience: _ => invoked = true);
 
         var provider = _serviceCollection.BuildServiceProvider();
         // Resolve the typed client to force HttpClient pipeline building
@@ -151,8 +143,7 @@ public class ServiceCollectionsExtensionsTests
         _serviceCollection.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false },
             configureHttpClient: null,
-            configureResilience: _ => invoked = true,
-            configureRefit: null);
+            configureResilience: _ => invoked = true);
 
         var provider = _serviceCollection.BuildServiceProvider();
         var _ = provider.GetRequiredService<IDeliveryApi>();

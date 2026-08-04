@@ -95,21 +95,41 @@ Refit gained a `UrlAttribute`, which collides with
 has a `global using Refit;`. Resolved by fully qualifying the one usage in
 `ManagementOptions.Endpoint`.
 
-### 2.5 Remove Refit from the public API _(planned)_
+### 2.5 Refit removed from the public API
 
-**Breaking, all three products.** The Refit interfaces are already `internal`, and so are the
-`RefitApiResponseExtensions` classes. What actually leaks is:
+**Breaking, all three products.** Refit no longer appears anywhere in the approved public
+surface. Removed:
 
-| Product | Public surface exposing Refit |
+| Product | Removed |
 |---|---|
-| Delivery | `AddDeliveryClient(..., Action<RefitSettings> configureRefit)` — 6 overloads |
-| Delivery | `public sealed class RefitSettingsProvider` with `RefitSettings CreateDefaultSettings()` |
-| Sync | `AddSyncClient(..., Action<RefitSettings> configureRefit)` — 2 overloads |
+| Delivery | `configureRefit` parameter from 6 × `AddDeliveryClient` |
+| Delivery | `public sealed class RefitSettingsProvider` — now `internal` (both members) |
+| Management | `configureRefit` parameter from 5 × `AddManagementClient` |
+| Management | `ManagementClientBuilder.ConfigureRefit(Action<RefitSettings>)` |
+| Sync | `configureRefit` parameter from 3 × `AddSyncClient` |
 
-Management's mapping extensions are internal, so it has no `RefitSettings` in its approved
-surface — confirm against the approval snapshot when the work lands.
+**Expected impact: near zero.** Everything reachable through the hook was load-bearing, so
+there was nothing a caller could safely change through it:
 
-Requires an approval-snapshot update in Delivery and Sync, reviewed line by line.
+- `CollectionFormat.Multi` is what keeps duplicate filters as separate query parameters.
+  `Csv` would collapse `[eq]=a&[eq]=b` into a single `a,b` the API reads as one string —
+  wrong results, no error.
+- `CamelCaseUrlParameterKeyFormatter` is what turns POCO property names into the casing the
+  API expects.
+- The `JsonSerializerOptions` carry `MaxDepth = 124` (the API's nesting limit), the naming
+  policy, and the three converters for the wire format.
+
+Corroborating that: no guide documented the hook (`extensibility-guide.md` offers Type
+Providers, property-mapping conventions and rich-text resolvers, none of which route through
+it), and the SDK's own tests only ever passed `null` or an empty lambda asserting the hook
+fired — not one changed a setting.
+
+It is still a public-signature removal, so it belongs in the changelog and the upgrade guide.
+If a genuine use case surfaces, it should come back as a targeted API named after what it
+does rather than after the transport library.
+
+Approval snapshots updated in all three products; diffs reviewed line by line and contain
+only these removals.
 
 ---
 

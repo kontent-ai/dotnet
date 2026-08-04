@@ -20,10 +20,9 @@ public static partial class ServiceCollectionExtensions
         string name,
         JsonSerializerOptions sharedJsonOptions,
         Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience,
-        Action<RefitSettings>? configureRefit)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var refitSettings = CreateRefitSettings(sharedJsonOptions, configureRefit);
+        var refitSettings = CreateRefitSettings(sharedJsonOptions);
 
         var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
@@ -54,19 +53,22 @@ public static partial class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Creates and configures Refit settings with optional customization.
+    /// Creates the Refit settings the Delivery API contract requires.
     /// </summary>
-    private static RefitSettings CreateRefitSettings(JsonSerializerOptions sharedJsonOptions, Action<RefitSettings>? configureRefit)
-    {
-        var refitSettings = new RefitSettings
+    /// <remarks>
+    /// Not consumer-configurable: every value here is load-bearing. <see cref="CollectionFormat.Multi"/>
+    /// is what keeps duplicate filters as separate query parameters — <c>Csv</c> would collapse
+    /// <c>[eq]=a&amp;[eq]=b</c> into a single <c>a,b</c> value that the API reads as one string.
+    /// The key formatter is what turns POCO property names into the casing the API expects, and the
+    /// serializer options carry the converters for the wire format.
+    /// </remarks>
+    private static RefitSettings CreateRefitSettings(JsonSerializerOptions sharedJsonOptions) =>
+        new()
         {
             ContentSerializer = new SystemTextJsonContentSerializer(sharedJsonOptions),
             CollectionFormat = CollectionFormat.Multi,
             UrlParameterKeyFormatter = new CamelCaseUrlParameterKeyFormatter()
         };
-        configureRefit?.Invoke(refitSettings);
-        return refitSettings;
-    }
 
     /// <summary>
     /// Configures the resilience handler for an HTTP client.

@@ -27,14 +27,12 @@ public static class ServiceCollectionExtensions
     /// <param name="syncOptions">The sync options instance.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         SyncOptions syncOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(syncOptions);
 
@@ -42,8 +40,7 @@ public static class ServiceCollectionExtensions
             SyncClientNames.Default,
             options => SyncOptionsCopyHelper.Copy(syncOptions, options),
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -53,14 +50,12 @@ public static class ServiceCollectionExtensions
     /// <param name="buildSyncOptions">A function to build the sync options.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(buildSyncOptions);
 
@@ -71,8 +66,7 @@ public static class ServiceCollectionExtensions
             SyncClientNames.Default,
             opts => SyncOptionsCopyHelper.Copy(options, opts),
             configureHttpClient,
-            configureResilience,
-            configureRefit);
+            configureResilience);
     }
 
     /// <summary>
@@ -199,7 +193,6 @@ public static class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the sync options.</param>
     /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
     /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <param name="configureRefit">Optional action to configure Refit settings.</param>
     /// <returns>The service collection for chaining.</returns>
     /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
     public static IServiceCollection AddSyncClient(
@@ -207,8 +200,7 @@ public static class ServiceCollectionExtensions
         string name,
         Action<SyncOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -231,7 +223,7 @@ public static class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection AddSyncClientFromConfiguration(
@@ -239,8 +231,7 @@ public static class ServiceCollectionExtensions
         string name,
         IConfiguration configuration,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -261,17 +252,16 @@ public static class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection CompleteClientRegistration(
         IServiceCollection services,
         string name,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
-        RegisterNamedHttpClient(services, name, configureHttpClient, configureResilience, configureRefit);
+        RegisterNamedHttpClient(services, name, configureHttpClient, configureResilience);
 
         services.AddKeyedSingleton<ISyncClient>(name, CreateSyncClient);
         services.TryAddSingleton<ISyncClientFactory, SyncClientFactory>();
@@ -330,10 +320,9 @@ public static class ServiceCollectionExtensions
         IServiceCollection services,
         string name,
         Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience,
-        Action<RefitSettings>? configureRefit)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var refitSettings = CreateRefitSettings(configureRefit);
+        var refitSettings = CreateRefitSettings();
 
         var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
@@ -360,10 +349,9 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Creates and configures Refit settings with optional customization.
     /// </summary>
-    private static RefitSettings CreateRefitSettings(Action<RefitSettings>? configureRefit)
+    private static RefitSettings CreateRefitSettings()
     {
         var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
-        configureRefit?.Invoke(refitSettings);
         return refitSettings;
     }
 

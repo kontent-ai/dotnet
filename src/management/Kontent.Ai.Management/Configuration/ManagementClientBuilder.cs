@@ -22,7 +22,6 @@ public sealed class ManagementClientBuilder
 {
     private readonly ManagementOptions _options;
     private Action<ResiliencePipelineBuilder<HttpResponseMessage>>? _configureResilience;
-    private Action<RefitSettings>? _configureRefit;
 
     private ManagementClientBuilder(ManagementOptions options) => _options = options;
 
@@ -69,19 +68,6 @@ public sealed class ManagementClientBuilder
         return this;
     }
 
-    /// <summary>
-    /// Tweaks the Refit settings used by the client (e.g. to adjust the underlying serializer options).
-    /// </summary>
-    /// <param name="configureRefit">Delegate that mutates the <see cref="RefitSettings"/>.</param>
-    /// <returns>The builder, for chaining.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="configureRefit"/> is null.</exception>
-    public ManagementClientBuilder ConfigureRefit(Action<RefitSettings> configureRefit)
-    {
-        ArgumentNullException.ThrowIfNull(configureRefit);
-
-        _configureRefit = configureRefit;
-        return this;
-    }
 
     /// <summary>
     /// Builds a configured <see cref="IManagementClient"/> that owns its underlying <see cref="HttpClient"/>s.
@@ -89,5 +75,5 @@ public sealed class ManagementClientBuilder
     /// <returns>A new client. Dispose it (or <c>await using</c> it) to release the HTTP resources.</returns>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">The options fail validation (e.g. missing or malformed environment ID or API key).</exception>
     public IManagementClient Build()
-        => new ManagementClient(_options, _configureResilience, _configureRefit);
+        => new ManagementClient(_options, _configureResilience);
 }

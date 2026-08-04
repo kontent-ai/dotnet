@@ -32,18 +32,17 @@ public sealed partial class ManagementClient : IManagementClient
     /// <c>services.AddManagementClient(...)</c>, which hands lifetime management to the container.
     /// </summary>
     public ManagementClient(ManagementOptions managementOptions)
-        : this(managementOptions, configureResilience: null, configureRefit: null)
+        : this(managementOptions, configureResilience: null)
     {
     }
 
-    // Standalone construction with the optional hooks the ManagementClientBuilder exposes. The public ctor above
-    // delegates here with nulls, so its behaviour is unchanged.
+    // Standalone construction with the optional hook the ManagementClientBuilder exposes. The public ctor above
+    // delegates here with null, so its behaviour is unchanged.
     internal ManagementClient(
         ManagementOptions managementOptions,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience,
-        Action<RefitSettings>? configureRefit)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var (api, subscriptionApi, ownedResources) = BuildDependencies(managementOptions, configureResilience, configureRefit);
+        var (api, subscriptionApi, ownedResources) = BuildDependencies(managementOptions, configureResilience);
 
         _managementApi = api;
         _subscriptionApi = subscriptionApi;
@@ -99,8 +98,7 @@ public sealed partial class ManagementClient : IManagementClient
     // path uses ValidateOnStart, a separate mechanism with its own exception type — that's not something we control).
     private static (IManagementApi Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) BuildDependencies(
         ManagementOptions options,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience,
-        Action<RefitSettings>? configureRefit)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
         ArgumentNullException.ThrowIfNull(options);
         Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
@@ -108,7 +106,6 @@ public sealed partial class ManagementClient : IManagementClient
         var optionsAccessor = new SnapshotManagementOptionsAccessor(options);
         var pipeline = BuildResiliencePipeline(options, configureResilience);
         var refitSettings = Configuration.RefitSettingsProvider.CreateDefaultSettings();
-        configureRefit?.Invoke(refitSettings);
 
         var managementHttp = ManagementApiFactory.CreateHttpClient(options, $"projects/{options.EnvironmentId}", optionsAccessor, pipeline);
         var api = RestService.For<IManagementApi>(managementHttp, refitSettings);

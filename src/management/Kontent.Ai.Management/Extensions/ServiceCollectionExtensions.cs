@@ -25,14 +25,12 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configurationSectionName">The section to bind; the whole configuration when empty.</param>
     /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
     /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <param name="configureRefit">Optional hook to tweak Refit settings.</param>
     public static IServiceCollection AddManagementClient(
         this IServiceCollection services,
         IConfiguration configuration,
         string configurationSectionName = ManagementOptions.DefaultConfigurationSectionName,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -41,7 +39,7 @@ public static partial class ServiceCollectionExtensions
             ? configuration
             : configuration.GetSection(configurationSectionName);
 
-        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, section, configureHttpClient, configureResilience, configureRefit);
+        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, section, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -53,15 +51,13 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configurationSectionName">The section to bind; the whole configuration when empty.</param>
     /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
     /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <param name="configureRefit">Optional hook to tweak Refit settings.</param>
     public static IServiceCollection AddManagementClient(
         this IServiceCollection services,
         string name,
         IConfiguration configuration,
         string configurationSectionName = ManagementOptions.DefaultConfigurationSectionName,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -70,7 +66,7 @@ public static partial class ServiceCollectionExtensions
             ? configuration
             : configuration.GetSection(configurationSectionName);
 
-        return services.AddManagementClientFromConfiguration(name, section, configureHttpClient, configureResilience, configureRefit);
+        return services.AddManagementClientFromConfiguration(name, section, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -80,18 +76,16 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configurationSection">The configuration section to bind <see cref="ManagementOptions"/> from.</param>
     /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
     /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <param name="configureRefit">Optional hook to tweak Refit settings.</param>
     public static IServiceCollection AddManagementClient(
         this IServiceCollection services,
         IConfigurationSection configurationSection,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configurationSection);
 
-        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, configurationSection, configureHttpClient, configureResilience, configureRefit);
+        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, configurationSection, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -102,19 +96,17 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configurationSection">The configuration section to bind <see cref="ManagementOptions"/> from.</param>
     /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
     /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <param name="configureRefit">Optional hook to tweak Refit settings.</param>
     public static IServiceCollection AddManagementClient(
         this IServiceCollection services,
         string name,
         IConfigurationSection configurationSection,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configurationSection);
 
-        return services.AddManagementClientFromConfiguration(name, configurationSection, configureHttpClient, configureResilience, configureRefit);
+        return services.AddManagementClientFromConfiguration(name, configurationSection, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -153,15 +145,13 @@ public static partial class ServiceCollectionExtensions
     /// <param name="configureOptions">Action to configure the management options.</param>
     /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
     /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <param name="configureRefit">Optional hook to tweak Refit settings.</param>
     /// <exception cref="InvalidOperationException">A client with the same name is already registered.</exception>
     public static IServiceCollection AddManagementClient(
         this IServiceCollection services,
         string name,
         Action<ManagementOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -182,7 +172,7 @@ public static partial class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection AddManagementClientFromConfiguration(
@@ -190,8 +180,7 @@ public static partial class ServiceCollectionExtensions
         string name,
         IConfiguration configuration,
         Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null,
-        Action<RefitSettings>? configureRefit = null)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ValidateClientName(name);
@@ -212,17 +201,16 @@ public static partial class ServiceCollectionExtensions
                 .ValidateOnStart();
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience, configureRefit);
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
     private static IServiceCollection CompleteClientRegistration(
         IServiceCollection services,
         string name,
         Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience,
-        Action<RefitSettings>? configureRefit)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var refitSettings = CreateRefitSettings(configureRefit);
+        var refitSettings = CreateRefitSettings();
 
         RegisterRefitClient<IManagementApi>(
             services,

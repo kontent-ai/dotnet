@@ -325,7 +325,6 @@ public sealed class SourceTrackingHeaderAttribute : Attribute
 // Kontent.Ai.Management.Configuration
 public sealed class ManagementClientBuilder
     IManagementClient Build()
-    ManagementClientBuilder ConfigureRefit(Action<RefitSettings> configureRefit)
     static ManagementClientBuilder WithOptions(Action<ManagementOptions> configureOptions)
     static ManagementClientBuilder WithOptions(ManagementOptions options)
     ManagementClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
@@ -384,12 +383,12 @@ public sealed class ModelReferenceExtensions
 // Kontent.Ai.Management.Extensions
 public sealed class ServiceCollectionExtensions
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions)
+    static IServiceCollection AddManagementClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
+    static IServiceCollection AddManagementClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
 // Kontent.Ai.Management.Extensions
 public sealed class VariantIdentifierExtensions

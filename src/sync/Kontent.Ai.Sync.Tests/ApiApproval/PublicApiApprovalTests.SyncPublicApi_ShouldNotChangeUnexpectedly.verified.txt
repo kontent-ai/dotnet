@@ -4,11 +4,11 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions)
     static IServiceCollection AddSyncClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName)
     static IServiceCollection AddSyncClient(IServiceCollection services, String name, IConfigurationSection configurationSection)
+    static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions syncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddSyncClient(IServiceCollection services, Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddSyncClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName)
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions syncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddSyncClient(IServiceCollection services, Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
-    static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience, Action<RefitSettings> configureRefit)
+    static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
 // Kontent.Ai.Sync.Configuration
 public sealed class SyncClientBuilder
