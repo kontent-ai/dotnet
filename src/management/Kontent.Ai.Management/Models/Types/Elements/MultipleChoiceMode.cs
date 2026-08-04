@@ -9,12 +9,12 @@ public enum MultipleChoiceMode
     /// <summary>
     /// multiple-choice (shown as checkboxes in the UI).
     /// </summary>
-    [EnumMember(Value = "multiple")]
+    [JsonStringEnumMemberName("multiple")]
     Multiple,
 
     /// <summary>
     /// Single choice (shown as radio buttons in the UI) 
     /// </summary>
-    [EnumMember(Value = "single")]
+    [JsonStringEnumMemberName("single")]
     Single
 }

@@ -5,7 +5,7 @@ namespace Kontent.Ai.Management.Serialization.Converters;
 /// <summary>
 /// Deserializes an abstract model to the concrete subtype selected by a <typeparamref name="TDiscriminator"/>
 /// enum discriminator property, and serializes the runtime concrete type. The wire token is resolved against the
-/// enum's <see cref="EnumMemberAttribute"/> values, so each converter only maps enum members to subtypes.
+/// enum's <see cref="JsonStringEnumMemberNameAttribute"/> values, so each converter only maps enum members to subtypes.
 /// </summary>
 /// <remarks>
 /// <see cref="CanConvert"/> matches the abstract base type only. That is load-bearing: the nested

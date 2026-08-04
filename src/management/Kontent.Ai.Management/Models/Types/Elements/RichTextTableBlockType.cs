@@ -9,12 +9,12 @@ public enum RichTextTableBlockType
     /// <summary>
     /// Text
     /// </summary>
-    [EnumMember(Value = "text")]
+    [JsonStringEnumMemberName("text")]
     Text,
 
     /// <summary>
     /// Images
     /// </summary>
-    [EnumMember(Value = "images")]
+    [JsonStringEnumMemberName("images")]
     Images,
 }

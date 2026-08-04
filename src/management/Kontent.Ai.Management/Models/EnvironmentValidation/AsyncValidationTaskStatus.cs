@@ -9,18 +9,18 @@ public enum AsyncValidationTaskStatus
     /// <summary>
     /// Task is queued.
     /// </summary>
-    [EnumMember(Value = "queued")]
+    [JsonStringEnumMemberName("queued")]
     Queued,
 
     /// <summary>
     /// Task is finished.
     /// </summary>
-    [EnumMember(Value = "finished")]
+    [JsonStringEnumMemberName("finished")]
     Finished,
 
     /// <summary>
     /// Task has failed.
     /// </summary>
-    [EnumMember(Value = "failed")]
+    [JsonStringEnumMemberName("failed")]
     Failed,
 }

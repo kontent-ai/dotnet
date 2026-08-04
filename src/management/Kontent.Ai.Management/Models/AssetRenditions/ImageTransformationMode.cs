@@ -9,6 +9,6 @@ public enum ImageTransformationMode
     /// <summary>
     /// Selects a sub-region of the original image to use for processing.
     /// </summary>
-    [EnumMember(Value = "rect")]
+    [JsonStringEnumMemberName("rect")]
     Rect,
 }

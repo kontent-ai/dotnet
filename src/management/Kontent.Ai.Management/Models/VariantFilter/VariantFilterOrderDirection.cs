@@ -9,12 +9,12 @@ public enum VariantFilterOrderDirection
     /// <summary>
     /// Ascending order.
     /// </summary>
-    [EnumMember(Value = "asc")]
+    [JsonStringEnumMemberName("asc")]
     Ascending,
 
     /// <summary>
     /// Descending order.
     /// </summary>
-    [EnumMember(Value = "desc")]
+    [JsonStringEnumMemberName("desc")]
     Descending
 }

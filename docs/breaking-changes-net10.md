@@ -243,11 +243,47 @@ requirement. Either way, do it with a broader encoding test matrix than the four
 
 ---
 
-## 6. Still to decide or implement
+## 6. Enum serialization — Management
+
+The custom `EnumMemberJsonConverter` is gone. Enums now carry
+`[JsonStringEnumMemberName("...")]` instead of `[EnumMember(Value = "...")]` and serialize through the
+built-in `JsonStringEnumConverter`, which honours that attribute from .NET 9 onward. The converter only
+existed because it did not on net8.
+
+**No wire change.** All 140 members across 36 enums keep their exact tokens, verified by round-trip. The
+attribute is a verbatim literal, so the mixed shapes the API actually uses survive untouched — snake_case
+(`modular_content`), kebab-case (`light-purple`, `heading-one`), camelCase (`fullScreen`), abbreviations
+(`asc`), and outright renames (`LinkedItems` → `modular_content`). Naming policies were considered and
+rejected: `SnakeCaseLower` reproduces only 117 of 140, and per-member literals match the convention already
+used for properties.
+
+**Behaviour change: reads are now case-sensitive.** _(breaking, near-zero impact)_
+
+| input | before | after |
+|---|---|---|
+| `"modular_content"` | `LinkedItems` | `LinkedItems` |
+| `"MODULAR_CONTENT"` | `LinkedItems` | throws `JsonException` |
+| `"LinkedItems"` (C# member name) | `LinkedItems` | throws `JsonException` |
+
+The old converter matched tokens case-insensitively and fell back to member-name parsing. Nothing depended
+on it: making the old converter strict failed exactly one test — `Read_FromEnumMemberValue_CaseInsensitive`,
+which asserted the leniency directly — and left the other 916 passing. The API emits canonical tokens,
+`ContentModelSnapshot.FromJson` is contractually only fed `ToJson` output, and writes never parse. Now pinned
+in the other direction by `EnumSerializationTests.Read_IsCaseSensitive`.
+
+Unchanged: numeric tokens are still rejected (`allowIntegerValues: false`), undefined values still throw on
+write, and dictionary keys still round-trip.
+
+`EnumWire` survives — PATCH path segments and polymorphic discriminators need a wire token with no serializer
+in play. It now reads the new attribute and is a separate implementation rather than a shared map, so
+`EnumWire_AgreesWithTheSerializer_ForEveryMember` pins that the two cannot drift.
+
+---
+
+## 7. Still to decide or implement
 
 - **§2.5 Refit abstraction** — decided, not implemented.
 - **S2365** — `ClassCodeGenerator.Properties` and
   `DeliveryClassCodeGeneratorBase.PropertyCodenameConstants` are `protected` properties that
   copy collections on each access; converting them to methods is source-breaking for
   subclassers. Currently suppressed in `src/model-generator/.editorconfig` with that reasoning.
-- **Enum deserialization** — flag here if the .NET 10 refactor changes observable behaviour.

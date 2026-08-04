@@ -8,18 +8,18 @@ public enum VariantFilterOrderColumn
     /// <summary>
     /// Order by item name.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name,
 
     /// <summary>
     /// Order by the variant's due date.
     /// </summary>
-    [EnumMember(Value = "due_date")]
+    [JsonStringEnumMemberName("due_date")]
     DueDate,
 
     /// <summary>
     /// Order by the variant's last-modified timestamp.
     /// </summary>
-    [EnumMember(Value = "last_modified")]
+    [JsonStringEnumMemberName("last_modified")]
     LastModified
 }

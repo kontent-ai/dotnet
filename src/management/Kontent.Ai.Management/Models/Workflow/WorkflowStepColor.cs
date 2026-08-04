@@ -9,96 +9,96 @@ public enum WorkflowStepColor
     /// <summary>
     /// Gray color
     /// </summary>
-    [EnumMember(Value = "gray")]
+    [JsonStringEnumMemberName("gray")]
     Gray,
 
     /// <summary>
     /// Red color
     /// </summary>
-    [EnumMember(Value = "red")]
+    [JsonStringEnumMemberName("red")]
     Red,
 
     /// <summary>
     /// Rose color
     /// </summary>
-    [EnumMember(Value = "rose")]
+    [JsonStringEnumMemberName("rose")]
     Rose,
 
     /// <summary>
     /// Light purple color
     /// </summary>
-    [EnumMember(Value = "light-purple")]
+    [JsonStringEnumMemberName("light-purple")]
     LightPurple,
 
     /// <summary>
     /// Dark purple color
     /// </summary>
-    [EnumMember(Value = "dark-purple")]
+    [JsonStringEnumMemberName("dark-purple")]
     DarkPurple,
 
     /// <summary>
     /// Dark blue color
     /// </summary>
-    [EnumMember(Value = "dark-blue")]
+    [JsonStringEnumMemberName("dark-blue")]
     DarkBlue,
 
     /// <summary>
     /// Light blue color
     /// </summary>
-    [EnumMember(Value = "light-blue")]
+    [JsonStringEnumMemberName("light-blue")]
     LightBlue,
 
     /// <summary>
     /// Sky blue color
     /// </summary>
-    [EnumMember(Value = "sky-blue")]
+    [JsonStringEnumMemberName("sky-blue")]
     SkyBlue,
 
     /// <summary>
     /// Mint green color
     /// </summary>
-    [EnumMember(Value = "mint-green")]
+    [JsonStringEnumMemberName("mint-green")]
     MintGreen,
 
     /// <summary>
     /// Persian green color
     /// </summary>
-    [EnumMember(Value = "persian-green")]
+    [JsonStringEnumMemberName("persian-green")]
     PersianGreen,
 
     /// <summary>
     /// Dark green color
     /// </summary>
-    [EnumMember(Value = "dark-green")]
+    [JsonStringEnumMemberName("dark-green")]
     DarkGreen,
 
     /// <summary>
     /// Light green color
     /// </summary>
-    [EnumMember(Value = "light-green")]
+    [JsonStringEnumMemberName("light-green")]
     LightGreen,
 
     /// <summary>
     /// Yellow color
     /// </summary>
-    [EnumMember(Value = "yellow")]
+    [JsonStringEnumMemberName("yellow")]
     Yellow,
 
     /// <summary>
     /// Pink color
     /// </summary>
-    [EnumMember(Value = "pink")]
+    [JsonStringEnumMemberName("pink")]
     Pink,
 
     /// <summary>
     /// Orange color
     /// </summary>
-    [EnumMember(Value = "orange")]
+    [JsonStringEnumMemberName("orange")]
     Orange,
 
     /// <summary>
     /// Brown color
     /// </summary>
-    [EnumMember(Value = "brown")]
+    [JsonStringEnumMemberName("brown")]
     Brown
 }

@@ -39,7 +39,10 @@ internal static class RefitSettingsProvider
         options.Converters.Add(new UserIdentifierJsonConverter());
         options.Converters.Add(new PatchOperationJsonConverterFactory());
         options.Converters.Add(new DecimalJsonConverter());
-        options.Converters.Add(new EnumMemberJsonConverterFactory());
+        // Enums carry their wire token in [JsonStringEnumMemberName], so the built-in converter covers them.
+        // allowIntegerValues: false keeps a numeric token off the wire in both directions - this is a write API,
+        // and an undefined value serialized as its number would be silently accepted by nothing.
+        options.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false));
 
         return options;
     }

@@ -9,24 +9,24 @@ public enum VariantFilterCompletionStatus
     /// <summary>
     /// The variant is unfinished.
     /// </summary>
-    [EnumMember(Value = "unfinished")]
+    [JsonStringEnumMemberName("unfinished")]
     Unfinished,
 
     /// <summary>
     /// The variant is ready.
     /// </summary>
-    [EnumMember(Value = "ready")]
+    [JsonStringEnumMemberName("ready")]
     Ready,
 
     /// <summary>
     /// The variant is not translated.
     /// </summary>
-    [EnumMember(Value = "not_translated")]
+    [JsonStringEnumMemberName("not_translated")]
     NotTranslated,
 
     /// <summary>
     /// The variant is all done (completed and translated).
     /// </summary>
-    [EnumMember(Value = "all_done")]
+    [JsonStringEnumMemberName("all_done")]
     AllDone
 }

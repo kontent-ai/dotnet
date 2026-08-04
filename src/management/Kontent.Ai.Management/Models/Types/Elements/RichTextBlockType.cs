@@ -10,24 +10,24 @@ public enum RichTextBlockType
     /// <summary>
     /// Text block.
     /// </summary>
-    [EnumMember(Value = "text")]
+    [JsonStringEnumMemberName("text")]
     Text,
 
     /// <summary>
     /// Tables block.
     /// </summary>
-    [EnumMember(Value = "tables")]
+    [JsonStringEnumMemberName("tables")]
     Tables,
 
     /// <summary>
     /// Images block.
     /// </summary>
-    [EnumMember(Value = "images")]
+    [JsonStringEnumMemberName("images")]
     Images,
 
     /// <summary>
     /// Components and items block.
     /// </summary>
-    [EnumMember(Value = "components-and-items")]
+    [JsonStringEnumMemberName("components-and-items")]
     ComponentsAndItems
 }

@@ -9,36 +9,36 @@ public enum CustomAppPropertyName
     /// <summary>
     /// The custom app's name.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name,
 
     /// <summary>
     /// The custom app's codename.
     /// </summary>
-    [EnumMember(Value = "codename")]
+    [JsonStringEnumMemberName("codename")]
     Codename,
 
     /// <summary>
     /// The custom app's source url.
     /// </summary>
-    [EnumMember(Value = "source_url")]
+    [JsonStringEnumMemberName("source_url")]
     SourceUrl,
 
     /// <summary>
     /// The custom app's config.
     /// </summary>
-    [EnumMember(Value = "config")]
+    [JsonStringEnumMemberName("config")]
     Config,
 
     /// <summary>
     /// The custom app's allowed_roles.
     /// </summary>
-    [EnumMember(Value = "allowed_roles")]
+    [JsonStringEnumMemberName("allowed_roles")]
     AllowedRoles,
 
     /// <summary>
     /// The custom app's display mode.
     /// </summary>
-    [EnumMember(Value = "display_mode")]
+    [JsonStringEnumMemberName("display_mode")]
     DisplayMode
 }

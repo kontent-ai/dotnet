@@ -9,18 +9,18 @@ public enum TaxonomyGroupPropertyName
     /// <summary>
     /// The taxonomy group's codename.
     /// </summary>
-    [EnumMember(Value = "codename")]
+    [JsonStringEnumMemberName("codename")]
     Codename,
 
     /// <summary>
     /// The taxonomy group's display name.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name,
 
     /// <summary>
     /// All terms in the taxonomy group.
     /// </summary>
-    [EnumMember(Value = "terms")]
+    [JsonStringEnumMemberName("terms")]
     Terms,
 }

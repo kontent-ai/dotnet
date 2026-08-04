@@ -9,13 +9,13 @@ public enum FileType
     /// <summary>
     /// Any file type.
     /// </summary>
-    [EnumMember(Value = "any")]
+    [JsonStringEnumMemberName("any")]
     Any,
 
     /// <summary>
     /// Images that support image transformation.
     /// More info: https://kontent.ai/learn/reference/image-transformation
     /// </summary>
-    [EnumMember(Value = "adjustable")]
+    [JsonStringEnumMemberName("adjustable")]
     Adjustable
 }

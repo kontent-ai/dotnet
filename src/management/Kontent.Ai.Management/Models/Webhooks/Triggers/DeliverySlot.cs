@@ -9,12 +9,12 @@ public enum DeliverySlot
     /// <summary>
     /// Published data.
     /// </summary>
-    [EnumMember(Value = "published")]
+    [JsonStringEnumMemberName("published")]
     Published,
 
     /// <summary>
     /// Preview data.
     /// </summary>
-    [EnumMember(Value = "preview")]
+    [JsonStringEnumMemberName("preview")]
     Preview
 }

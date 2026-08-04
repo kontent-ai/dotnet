@@ -9,18 +9,18 @@ public enum CloningState
     /// <summary>
     /// Environment cloning is in progress.
     /// </summary>
-    [EnumMember(Value = "in_progress")]
+    [JsonStringEnumMemberName("in_progress")]
     InProgress,
 
     /// <summary>
     /// Environment cloning failed.
     /// </summary>
-    [EnumMember(Value = "failed")]
+    [JsonStringEnumMemberName("failed")]
     Failed,
 
     /// <summary>
     /// Environment cloning is succesfully done.
     /// </summary>
-    [EnumMember(Value = "done")]
+    [JsonStringEnumMemberName("done")]
     Done
 }

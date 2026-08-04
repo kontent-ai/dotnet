@@ -9,42 +9,42 @@ public enum RichTextFormattingType
     /// <summary>
     /// Bold
     /// </summary>
-    [EnumMember(Value = "bold")]
+    [JsonStringEnumMemberName("bold")]
     Bold,
 
     /// <summary>
     /// Code
     /// </summary>
-    [EnumMember(Value = "code")]
+    [JsonStringEnumMemberName("code")]
     Code,
 
     /// <summary>
     /// Italic
     /// </summary>
-    [EnumMember(Value = "italic")]
+    [JsonStringEnumMemberName("italic")]
     Italic,
 
     /// <summary>
     /// Link
     /// </summary>
-    [EnumMember(Value = "link")]
+    [JsonStringEnumMemberName("link")]
     Link,
 
     /// <summary>
     /// Subscript
     /// </summary>
-    [EnumMember(Value = "subscript")]
+    [JsonStringEnumMemberName("subscript")]
     Subscript,
 
     /// <summary>
     /// Superscript
     /// </summary>
-    [EnumMember(Value = "superscript")]
+    [JsonStringEnumMemberName("superscript")]
     Superscript,
 
     /// <summary>
     /// Unstyled formatting allows only plain text
     /// </summary>
-    [EnumMember(Value = "unstyled")]
+    [JsonStringEnumMemberName("unstyled")]
     Unstyled,
 }

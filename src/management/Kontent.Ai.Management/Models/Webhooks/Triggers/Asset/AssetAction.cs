@@ -9,24 +9,24 @@ public enum AssetAction
     /// <summary>
     /// Asset created action.
     /// </summary>
-    [EnumMember(Value = "created")]
+    [JsonStringEnumMemberName("created")]
     Created,
 
     /// <summary>
     /// Asset changed action.
     /// </summary>
-    [EnumMember(Value = "changed")]
+    [JsonStringEnumMemberName("changed")]
     Changed,
 
     /// <summary>
     /// Asset deleted action.
     /// </summary>
-    [EnumMember(Value = "deleted")]
+    [JsonStringEnumMemberName("deleted")]
     Deleted,
 
     /// <summary>
     /// Asset metadata changed action.
     /// </summary>
-    [EnumMember(Value = "metadata_changed")]
+    [JsonStringEnumMemberName("metadata_changed")]
     MetadataChanged
 }

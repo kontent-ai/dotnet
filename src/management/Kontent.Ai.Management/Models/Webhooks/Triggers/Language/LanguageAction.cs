@@ -9,18 +9,18 @@ public enum LanguageAction
     /// <summary>
     /// Language created action.
     /// </summary>
-    [EnumMember(Value = "created")]
+    [JsonStringEnumMemberName("created")]
     Created,
 
     /// <summary>
     /// Language changed action.
     /// </summary>
-    [EnumMember(Value = "changed")]
+    [JsonStringEnumMemberName("changed")]
     Changed,
 
     /// <summary>
     /// Language deleted action.
     /// </summary>
-    [EnumMember(Value = "deleted")]
+    [JsonStringEnumMemberName("deleted")]
     Deleted
 }

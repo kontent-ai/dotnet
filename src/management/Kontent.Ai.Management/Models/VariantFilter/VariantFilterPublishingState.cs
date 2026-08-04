@@ -9,18 +9,18 @@ public enum VariantFilterPublishingState
     /// <summary>
     /// The variant is published.
     /// </summary>
-    [EnumMember(Value = "published")]
+    [JsonStringEnumMemberName("published")]
     Published,
 
     /// <summary>
     /// The variant is unpublished.
     /// </summary>
-    [EnumMember(Value = "unpublished")]
+    [JsonStringEnumMemberName("unpublished")]
     Unpublished,
 
     /// <summary>
     /// The variant has not been published yet.
     /// </summary>
-    [EnumMember(Value = "not_published_yet")]
+    [JsonStringEnumMemberName("not_published_yet")]
     NotPublishedYet
 }

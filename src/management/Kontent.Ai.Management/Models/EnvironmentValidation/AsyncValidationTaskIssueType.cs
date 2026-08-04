@@ -9,12 +9,12 @@ public enum AsyncValidationTaskIssueType
     /// <summary>
     /// Language variant issue.
     /// </summary>
-    [EnumMember(Value = "variant_issue")]
+    [JsonStringEnumMemberName("variant_issue")]
     VariantIssue,
 
     /// <summary>
     /// Content type issue.
     /// </summary>
-    [EnumMember(Value = "type_issue")]
+    [JsonStringEnumMemberName("type_issue")]
     TypeIssue,
 }

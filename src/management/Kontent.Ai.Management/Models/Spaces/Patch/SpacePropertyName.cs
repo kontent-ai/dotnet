@@ -9,24 +9,24 @@ public enum SpacePropertyName
     /// <summary>
     /// The space's codename.
     /// </summary>
-    [EnumMember(Value = "codename")]
+    [JsonStringEnumMemberName("codename")]
     Codename,
 
     /// <summary>
     /// The space's name.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name,
 
     /// <summary>
     /// The root item of the space.
     /// </summary>
-    [EnumMember(Value = "root_item")]
+    [JsonStringEnumMemberName("root_item")]
     RootItem,
 
     /// <summary>
     /// The collections belonging to the space.
     /// </summary>
-    [EnumMember(Value = "collections")]
+    [JsonStringEnumMemberName("collections")]
     Collections,
 }

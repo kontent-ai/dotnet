@@ -9,12 +9,12 @@ public enum WebhookEvents
     /// <summary>
     /// All available events trigger the webhook. 
     /// </summary>
-    [EnumMember(Value = "all")]
+    [JsonStringEnumMemberName("all")]
     All,
 
     /// <summary>
     /// Only a specific subset of events triggers the webhook.
     /// </summary>
-    [EnumMember(Value = "specific")]
+    [JsonStringEnumMemberName("specific")]
     Specific
 }

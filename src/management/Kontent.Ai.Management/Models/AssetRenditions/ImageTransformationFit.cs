@@ -9,6 +9,6 @@ public enum ImageTransformationFit
     /// <summary>
     /// Default mode. Resizes the image to fit within the width and height boundaries without cropping or distorting the image.
     /// </summary>
-    [EnumMember(Value = "clip")]
+    [JsonStringEnumMemberName("clip")]
     Clip,
 }

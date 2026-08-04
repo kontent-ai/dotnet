@@ -9,6 +9,6 @@ public enum FileReferenceType
     /// <summary>
     /// Internal reference type.
     /// </summary>
-    [EnumMember(Value = "internal")]
+    [JsonStringEnumMemberName("internal")]
     Internal
 }

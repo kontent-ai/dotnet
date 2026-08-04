@@ -9,25 +9,25 @@ public enum LanguagePropertyName
     /// <summary>
     /// The language's codename
     /// </summary>
-    [EnumMember(Value = "codename")]
+    [JsonStringEnumMemberName("codename")]
     Codename,
 
     /// <summary>
     /// The language's display name.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name,
 
     /// <summary>
     /// Fall back language.
     /// Language to use when the current language contains no content.
     /// </summary>
-    [EnumMember(Value = "fallback_language")]
+    [JsonStringEnumMemberName("fallback_language")]
     FallbackLanguage,
 
     /// <summary>
     /// A flag determining whether the language is active.
     /// </summary>
-    [EnumMember(Value = "is_active")]
+    [JsonStringEnumMemberName("is_active")]
     IsActive,
 }

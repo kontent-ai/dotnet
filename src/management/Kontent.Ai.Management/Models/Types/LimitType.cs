@@ -9,18 +9,18 @@ public enum LimitType
     /// <summary>
     /// At least.
     /// </summary>
-    [EnumMember(Value = "at_least")]
+    [JsonStringEnumMemberName("at_least")]
     AtLeast,
 
     /// <summary>
     /// Exactly.
     /// </summary>
-    [EnumMember(Value = "exactly")]
+    [JsonStringEnumMemberName("exactly")]
     Exactly,
 
     /// <summary>
     /// At most.
     /// </summary>
-    [EnumMember(Value = "at_most")]
+    [JsonStringEnumMemberName("at_most")]
     AtMost
 }

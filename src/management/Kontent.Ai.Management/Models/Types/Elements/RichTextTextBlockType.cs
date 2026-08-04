@@ -9,54 +9,54 @@ public enum RichTextTextBlockType
     /// <summary>
     /// OrderList
     /// </summary>
-    [EnumMember(Value = "ordered-list")]
+    [JsonStringEnumMemberName("ordered-list")]
     OrderedList,
 
     /// <summary>
     /// UnorderedList
     /// </summary>
-    [EnumMember(Value = "unordered-list")]
+    [JsonStringEnumMemberName("unordered-list")]
     UnorderedList,
 
     /// <summary>
     /// Paragraph
     /// </summary>
-    [EnumMember(Value = "paragraph")]
+    [JsonStringEnumMemberName("paragraph")]
     Paragraph,
 
     /// <summary>
     /// HeadingOne
     /// </summary>
-    [EnumMember(Value = "heading-one")]
+    [JsonStringEnumMemberName("heading-one")]
     HeadingOne,
 
     /// <summary>
     /// HeadingTwo
     /// </summary>
-    [EnumMember(Value = "heading-two")]
+    [JsonStringEnumMemberName("heading-two")]
     HeadingTwo,
 
     /// <summary>
     /// HeadingThree
     /// </summary>
-    [EnumMember(Value = "heading-three")]
+    [JsonStringEnumMemberName("heading-three")]
     HeadingThree,
 
     /// <summary>
     /// HeadingFour
     /// </summary>
-    [EnumMember(Value = "heading-four")]
+    [JsonStringEnumMemberName("heading-four")]
     HeadingFour,
 
     /// <summary>
     /// HeadingFive
     /// </summary>
-    [EnumMember(Value = "heading-five")]
+    [JsonStringEnumMemberName("heading-five")]
     HeadingFive,
 
     /// <summary>
     /// HeadingSix
     /// </summary>
-    [EnumMember(Value = "heading-six")]
+    [JsonStringEnumMemberName("heading-six")]
     HeadingSix
 }

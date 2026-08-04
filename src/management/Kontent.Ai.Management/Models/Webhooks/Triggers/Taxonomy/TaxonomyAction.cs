@@ -9,42 +9,42 @@ public enum TaxonomyAction
     /// <summary>
     /// Taxonomy created action.
     /// </summary>
-    [EnumMember(Value = "created")]
+    [JsonStringEnumMemberName("created")]
     Created,
 
     /// <summary>
     /// Taxonomy metadata changed action.
     /// </summary>
-    [EnumMember(Value = "metadata_changed")]
+    [JsonStringEnumMemberName("metadata_changed")]
     MetadataChanged,
 
     /// <summary>
     /// Taxonomy deleted action.
     /// </summary>
-    [EnumMember(Value = "deleted")]
+    [JsonStringEnumMemberName("deleted")]
     Deleted,
 
     /// <summary>
     /// Taxonomy term created action.
     /// </summary>
-    [EnumMember(Value = "term_created")]
+    [JsonStringEnumMemberName("term_created")]
     TermCreated,
 
     /// <summary>
     /// Taxonomy term changed action.
     /// </summary>
-    [EnumMember(Value = "term_changed")]
+    [JsonStringEnumMemberName("term_changed")]
     TermChanged,
 
     /// <summary>
     /// Taxonomy term deleted action.
     /// </summary>
-    [EnumMember(Value = "term_deleted")]
+    [JsonStringEnumMemberName("term_deleted")]
     TermDeleted,
 
     /// <summary>
     /// Taxonomy terms moved action.
     /// </summary>
-    [EnumMember(Value = "terms_moved")]
+    [JsonStringEnumMemberName("terms_moved")]
     TermsMoved
 }

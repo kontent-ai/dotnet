@@ -9,12 +9,12 @@ public enum TextLengthLimitType
     /// <summary>
     /// Words.
     /// </summary>
-    [EnumMember(Value = "words")]
+    [JsonStringEnumMemberName("words")]
     Words,
 
     /// <summary>
     /// Characters.
     /// </summary>
-    [EnumMember(Value = "characters")]
+    [JsonStringEnumMemberName("characters")]
     Characters
 }

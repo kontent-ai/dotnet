@@ -9,6 +9,6 @@ public enum CollectionPropertyName
     /// <summary>
     /// Represents the name of the collection.
     /// </summary>
-    [EnumMember(Value = "name")]
+    [JsonStringEnumMemberName("name")]
     Name
 }
