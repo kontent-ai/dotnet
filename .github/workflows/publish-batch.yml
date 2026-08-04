@@ -35,6 +35,25 @@ jobs:
         with:
           global-json-file: global.json
 
+      # A release created with the default GITHUB_TOKEN does NOT start release.yml: GitHub
+      # deliberately does not trigger workflows from events raised by that token, to stop
+      # workflows recursing. The release appears, nothing publishes, and this job would sit
+      # waiting for a package that is never pushed.
+      #
+      # An installation token from a GitHub App does trigger workflows, and unlike a personal
+      # access token it is short-lived and not tied to anyone's account. Requires a GitHub App
+      # with `contents: write` on this repository, installed on it, with its id and private key
+      # stored as the secrets below.
+      #
+      # Skipped on a dry run, so exploring the plan needs no credentials at all.
+      - name: Mint a token that can trigger the release workflow
+        id: app-token
+        if: ${{ !inputs.dry_run }}
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Work out what needs releasing
         id: plan
         run: |
@@ -72,13 +91,21 @@ jobs:
               )
           ' > /tmp/order.json
 
+          # A cycle in dependsOn leaves products that never become orderable, and the sort
+          # would just return a shorter list - releasing a subset and reporting success.
+          if [ "$(jq 'length' /tmp/order.json)" -ne "$(jq 'length' /tmp/pending.json)" ]; then
+            echo "::error::dependsOn in eng/products.json has a cycle - these products could not be ordered:"
+            jq -r --slurpfile ordered /tmp/order.json '.[] | select(. as $x | $ordered[0] | index($x) | not)' /tmp/pending.json
+            exit 1
+          fi
+
           echo "Release order:"; jq -r '.[]' /tmp/order.json
           echo "count=$(jq 'length' /tmp/order.json)" >> "$GITHUB_OUTPUT"
 
       - name: Create releases
         if: steps.plan.outputs.count != '0'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
