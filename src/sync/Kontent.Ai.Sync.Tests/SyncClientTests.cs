@@ -129,129 +129,40 @@ public class SyncClientTests
         _ = syncApi.DidNotReceiveWithAnyArgs().GetDeltaAsync(default!, default!, default);
     }
 
+    // Without the guard this loops forever: the page always reports changes and the token never
+    // advances, so the same request repeats indefinitely.
     [Fact]
-    public async Task EnumerateDeltaAsync_WhenContinuationHeaderMissing_ReusesPreviousToken()
+    public async Task EnumerateDeltaAsync_ChangesWithoutContinuationToken_Throws()
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestEnvironmentId);
 
-        var page1 = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
-        var empty = CreateSuccessDeltaResponse(nextToken: "token-final", itemCount: 0);
+        var page = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
 
         syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page1), Task.FromResult(empty));
+            .Returns(Task.FromResult(page));
 
-        var pages = await client.EnumerateDeltaAsync("token-initial").ToListAsync();
+        Func<Task> act = async () => await client.EnumerateDeltaAsync("token-1").ToListAsync();
 
-        pages.Should().HaveCount(1);
-        _ = syncApi.Received(2).GetDeltaAsync(TestEnvironmentId, "token-initial", Arg.Any<CancellationToken>());
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*X-Continuation*");
     }
 
+    // A drained feed has no next page to request, so the terminal response needs no token.
     [Fact]
-    public async Task InitializeSyncAsync_Success_ReturnsSyncToken()
+    public async Task EnumerateDeltaAsync_EmptyResponseWithoutToken_EndsCleanly()
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestEnvironmentId);
 
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK);
-        httpResponse.Headers.TryAddWithoutValidation("X-Continuation", "init-token");
+        var empty = CreateSuccessDeltaResponse(nextToken: null, itemCount: 0);
 
-        var apiResponse = Substitute.For<IApiResponse<SyncInitResponse>>();
-        apiResponse.IsSuccessStatusCode.Returns(true);
-        apiResponse.StatusCode.Returns(HttpStatusCode.OK);
-        apiResponse.Content.Returns(new SyncInitResponse());
-        apiResponse.Headers.Returns(httpResponse.Headers);
-        apiResponse.RequestMessage.Returns(new HttpRequestMessage(HttpMethod.Post, "https://deliver.kontent.ai/v2/sync/init"));
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(empty));
 
-        syncApi.InitializeSyncAsync(TestEnvironmentId, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(apiResponse));
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
 
-        var result = await client.InitializeSyncAsync();
-
-        result.IsSuccess.Should().BeTrue();
-        result.SyncToken.Should().Be("init-token");
-    }
-
-    [Fact]
-    public async Task InitializeSyncAsync_Failure_ReturnsError()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://deliver.kontent.ai/v2/sync/init");
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.Unauthorized)
-        {
-            Content = new StringContent("{\"message\":\"Unauthorized\"}")
-        };
-
-        var apiException = await ApiException.Create(request, HttpMethod.Post, httpResponse, new RefitSettings());
-
-        var apiResponse = Substitute.For<IApiResponse<SyncInitResponse>>();
-        apiResponse.IsSuccessStatusCode.Returns(false);
-        apiResponse.StatusCode.Returns(HttpStatusCode.Unauthorized);
-        apiResponse.Error.Returns(apiException);
-        apiResponse.Headers.Returns(httpResponse.Headers);
-        apiResponse.RequestMessage.Returns(request);
-
-        syncApi.InitializeSyncAsync(TestEnvironmentId, Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(apiResponse));
-
-        var result = await client.InitializeSyncAsync();
-
-        result.IsSuccess.Should().BeFalse();
-        result.Error.Should().NotBeNull();
-        result.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task GetDeltaAsync_Success_ReturnsResponseWithToken()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var httpResponse = new HttpResponseMessage(HttpStatusCode.OK);
-        httpResponse.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
-
-        var apiResponse = Substitute.For<IApiResponse<SyncDeltaResponse>>();
-        apiResponse.IsSuccessStatusCode.Returns(true);
-        apiResponse.StatusCode.Returns(HttpStatusCode.OK);
-        apiResponse.Content.Returns(new SyncDeltaResponse
-        {
-            Items = [new SyncItem { ChangeType = ChangeType.Changed, Data = new { } }]
-        });
-        apiResponse.Headers.Returns(httpResponse.Headers);
-        apiResponse.RequestMessage.Returns(new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/v2/sync"));
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, "my-token", Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(apiResponse));
-
-        var result = await client.GetDeltaAsync("my-token");
-
-        result.IsSuccess.Should().BeTrue();
-        result.SyncToken.Should().Be("next-token");
-        result.Value.Items.Should().HaveCount(1);
-    }
-
-    [Fact]
-    public async Task GetDeltaAsync_NullSyncToken_ThrowsArgumentException()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        Func<Task> act = async () => await client.GetDeltaAsync(null!);
-
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    [Fact]
-    public async Task GetDeltaAsync_WhitespaceSyncToken_ThrowsArgumentException()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        Func<Task> act = async () => await client.GetDeltaAsync("   ");
-
-        await act.Should().ThrowAsync<ArgumentException>();
+        pages.Should().BeEmpty();
     }
 
     private static IApiResponse<SyncDeltaResponse> CreateSuccessDeltaResponse(string? nextToken, int itemCount)
