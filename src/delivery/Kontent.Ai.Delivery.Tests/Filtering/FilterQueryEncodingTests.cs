@@ -88,6 +88,32 @@ public class FilterQueryEncodingTests
     public async Task BoolAndNumber_UseInvariantFormatting()
         => Assert.Equal("?elements.flag%5Beq%5D=true&elements.price%5Beq%5D=1.5", await CaptureAsync(f => f.Element("flag").IsEqualTo(true).Element("price").IsEqualTo(1.5)));
 
+    [Fact]
+    public async Task FilterQuery_IsIdenticalOnEveryRetryAttempt()
+    {
+        // Guards the design in docs/delivery-filter-dsl-plan.md §5.2. The planned implementation moves
+        // filters out of the Refit parameter list and onto the request via a DelegatingHandler. The
+        // resilience pipeline sits OUTSIDE the handler chain, so every inner handler re-runs per retry
+        // attempt — a handler that appends to RequestUri instead of rebuilding it would send
+        // "?a=1&a=1" on the second attempt. Wrong results, no exception, and only under retry.
+        //
+        // Passes trivially today (nothing mutates the URI). It exists to fail the moment that stops
+        // being true.
+        var handler = new RetryCaptureHandler();
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(
+            new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString(), EnableResilience = true },
+            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => handler));
+
+        var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
+        await client.GetItems<IDynamicElements>()
+            .Where(f => f.Element("a").IsEqualTo("1").Element("b").IsEqualTo("2").Element("a").IsEqualTo("3"))
+            .ExecuteAsync();
+
+        Assert.True(handler.Queries.Count > 1, $"Expected a retry, saw {handler.Queries.Count} attempt(s).");
+        Assert.Equal(handler.Queries[0], Assert.Single(handler.Queries.Distinct()));
+    }
+
     private static async Task<string> CaptureAsync(Func<IItemsFilterBuilder, IItemsFilterBuilder> filter)
     {
         var handler = new CaptureHandler();
@@ -102,6 +128,17 @@ public class FilterQueryEncodingTests
         return handler.Query ?? throw new InvalidOperationException("No request was captured.");
     }
 
+    private const string EmptyItemsJson = """
+                                          {
+                                            "items": [],
+                                            "pagination": { "skip": 0, "limit": 1, "count": 0, "next_page": "" },
+                                            "modular_content": {}
+                                          }
+                                          """;
+
+    private static HttpResponseMessage Ok() =>
+        new(HttpStatusCode.OK) { Content = new StringContent(EmptyItemsJson, Encoding.UTF8, "application/json") };
+
     private sealed class CaptureHandler : HttpMessageHandler
     {
         public string? Query { get; private set; }
@@ -109,19 +146,24 @@ public class FilterQueryEncodingTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Query = request.RequestUri!.Query;
+            return Task.FromResult(Ok());
+        }
+    }
 
-            const string json = """
-                                {
-                                  "items": [],
-                                  "pagination": { "skip": 0, "limit": 1, "count": 0, "next_page": "" },
-                                  "modular_content": {}
-                                }
-                                """;
+    /// <summary>Records the query of every attempt, failing the first so the resilience pipeline retries.</summary>
+    private sealed class RetryCaptureHandler : HttpMessageHandler
+    {
+        private int _attempts;
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            });
+        public List<string> Queries { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Queries.Add(request.RequestUri!.Query);
+
+            return Task.FromResult(++_attempts == 1
+                ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                : Ok());
         }
     }
 }

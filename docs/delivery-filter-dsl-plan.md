@@ -156,9 +156,38 @@ characterisation test asserting declaration order failed against the current imp
 was corrected to record the grouped output. The collection is documented as preserving
 "duplicates and insertion order", and it does; the *dictionary conversion* is what loses it.
 
-Rendering straight from the ordered list emits `a=1&b=2&a=3`, which is faithful. No known
-API-visible impact, but the new design fixes it for free and it should be stated in the changelog
-rather than discovered later.
+Rendering straight from the ordered list emits `a=1&b=2&a=3`, which is faithful.
+
+**Results cannot differ.** Traced end to end:
+
+1. Filters are AND-ed by the API and AND is commutative — the *set* of predicates is identical,
+   only the sequence moves.
+2. Order *within* a repeated key is preserved either way (`GroupBy` keeps group members in
+   order, so `a=1` still precedes `a=3`). So even under hypothetical last-wins semantics for a
+   duplicated key, the outcome is unchanged.
+3. Cache keys never see the reordered form. `BuildCacheKey` passes the **ordered**
+   `SerializedFilterCollection`, not the dictionary, and `CacheKeyBuilder.AppendFilters` then
+   sorts before hashing (`OrderBy(Key).ThenBy(Value)`) — so cache keys are deliberately
+   order-independent and unaffected.
+
+Observable effects are limited to the URL string in logs and traces, plus a one-time CDN cache
+miss after upgrade for queries that interleave repeated keys.
+
+**A robustness argument in favour, found while checking the above:** today's ordering depends on
+`Dictionary<string, string[]>` **enumeration order**, which .NET documents as unspecified. It is
+insertion order in practice absent removals, so it is stable today — but that is luck, not a
+contract. If it ever varied, identical queries would emit different URLs and fragment CDN
+caching. Rendering from an ordered `List` is deterministic by contract.
+
+### Changelog line for this
+
+Delivery is already taking a major, so this needs no special handling beyond being stated. Draft:
+
+> **Changed** — Query parameters for repeated filters are now emitted in declaration order.
+> Previously, filters sharing an element were grouped together regardless of where they were
+> declared (`a`, `b`, `a` was sent as `a`, `a`, `b`). Results are unaffected — filters are AND-ed
+> and cache keys were already order-independent — but the request URL differs, which is visible
+> in logs and traces.
 
 ### 6.2 `FilterValueSerializer.Serialize(string)` becomes misleading
 
@@ -239,7 +268,6 @@ Sequence when picked up:
 2. Add `FilterQueryString.Render` and unit-test it against the same matrix.
 3. Switch `IDeliveryApi` to `[Property]`, add the handler, delete `FilterQueryParams` and
    `ToQueryDictionary`.
-4. Add the retry-idempotency test (§5.2).
 5. Drop `Refit.Reflection` and the `RF006` suppression; confirm the build reports zero warnings
    with `RF006` live.
 6. Changelog the ordering fix (§6.1).
