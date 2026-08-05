@@ -1,7 +1,5 @@
 using System.Net;
 using AwesomeAssertions;
-using Kontent.Ai.Sync.Abstractions;
-using Kontent.Ai.Sync.Models;
 using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync.Tests.Models;
@@ -31,36 +29,6 @@ public class SyncResultTests
     }
 
     [Fact]
-    public void Success_DeltaResponseAtLimit_SetsHasMoreChangesTrue()
-    {
-        var delta = new SyncDeltaResponse
-        {
-            Items = Enumerable.Range(0, SyncConstants.MaxItemsPerEntityType)
-                .Select(_ => new SyncItem { ChangeType = ChangeType.Changed, Data = new { value = 1 } })
-                .ToList()
-        };
-
-        var result = SyncResult.Success<ISyncDeltaResponse>(delta, "https://test.com/sync");
-
-        result.HasMoreChanges.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Success_DeltaResponseBelowLimit_SetsHasMoreChangesFalse()
-    {
-        var delta = new SyncDeltaResponse
-        {
-            Items = Enumerable.Range(0, SyncConstants.MaxItemsPerEntityType - 1)
-                .Select(_ => new SyncItem { ChangeType = ChangeType.Changed, Data = new { value = 1 } })
-                .ToList()
-        };
-
-        var result = SyncResult.Success<ISyncDeltaResponse>(delta, "https://test.com/sync");
-
-        result.HasMoreChanges.Should().BeFalse();
-    }
-
-    [Fact]
     public void Failure_CreatesFailedResult_WithHeaders()
     {
         var headers = new HttpResponseMessage(HttpStatusCode.NotFound).Headers;
@@ -85,7 +53,6 @@ public class SyncResultTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
         result.SyncToken.Should().BeNull();
         result.ResponseHeaders.Should().BeSameAs(headers);
-        result.HasMoreChanges.Should().BeFalse();
     }
 
     [Theory]

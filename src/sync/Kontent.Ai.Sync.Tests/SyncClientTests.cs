@@ -13,75 +13,109 @@ public class SyncClientTests
     private const string TestEnvironmentId = "00000000-0000-0000-0000-000000000001";
 
     [Fact]
-    public async Task GetAllDeltaAsync_SuccessPagination_ReturnsAllPagesAndFinalToken()
+    public async Task EnumerateDeltaAsync_YieldsEveryPage_AndStopsOnTheEmptyResponse()
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestEnvironmentId);
 
-        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: SyncConstants.MaxItemsPerEntityType);
+        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 3);
+        var page2 = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 2);
+        var empty = CreateSuccessDeltaResponse(nextToken: "token-4", itemCount: 0);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(page1), Task.FromResult(page2), Task.FromResult(empty));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Should().HaveCount(2);
+        pages.Should().OnlyContain(p => p.IsSuccess);
+        pages[^1].SyncToken.Should().Be("token-3");
+
+        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-1", Arg.Any<CancellationToken>());
+        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-2", Arg.Any<CancellationToken>());
+        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-3", Arg.Any<CancellationToken>());
+    }
+
+    // The previous implementation stopped as soon as a page came back with fewer than 100 entries,
+    // which would have ended the walk here after one page and silently skipped the rest.
+    [Fact]
+    public async Task EnumerateDeltaAsync_PartialPage_KeepsGoing()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestEnvironmentId);
+
+        var partial = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 1);
+        var more = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 1);
+        var empty = CreateSuccessDeltaResponse(nextToken: "token-4", itemCount: 0);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(partial), Task.FromResult(more), Task.FromResult(empty));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task EnumerateDeltaAsync_AlreadyUpToDate_YieldsNothing()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestEnvironmentId);
+
+        var empty = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 0);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(empty));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task EnumerateDeltaAsync_WhenAPageFails_YieldsTheFailureAndStops()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestEnvironmentId);
+
+        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 3);
+        var failure = await CreateFailedDeltaResponse(HttpStatusCode.Unauthorized, "Unauthorized");
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(page1), Task.FromResult(failure));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Should().HaveCount(2);
+        pages[0].IsSuccess.Should().BeTrue();
+        pages[1].IsSuccess.Should().BeFalse();
+        pages[1].Error.Should().NotBeNull();
+    }
+
+    // Bounding the walk is the caller's job now; nothing beyond the requested page is fetched.
+    [Fact]
+    public async Task EnumerateDeltaAsync_IsLazy_SoTakeStopsTheRequests()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestEnvironmentId);
+
+        // Every page reports changes, so nothing but Take bounds the walk. Built up front: creating a
+        // substitute inside a Returns() argument re-enters NSubstitute's call context and deadlocks.
+        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 1);
         var page2 = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 1);
+        var page3 = CreateSuccessDeltaResponse(nextToken: "token-4", itemCount: 1);
 
         syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page1), Task.FromResult(page2));
+            .Returns(Task.FromResult(page1), Task.FromResult(page2), Task.FromResult(page3));
 
-        var result = await client.GetAllDeltaAsync("token-1");
+        var pages = await client.EnumerateDeltaAsync("token-1").Take(2).ToListAsync();
 
-        result.IsSuccess.Should().BeTrue();
-        result.PagesFetched.Should().Be(2);
-        result.Responses.Should().HaveCount(2);
-        result.FinalSyncToken.Should().Be("token-3");
-        result.WasLimitedByMaxPages.Should().BeFalse();
-
-        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-1", Arg.Any<CancellationToken>());
-        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-2", Arg.Any<CancellationToken>());
+        pages.Should().HaveCount(2);
+        _ = syncApi.Received(2).GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task GetAllDeltaAsync_MaxPagesCap_StopsAndMarksResultAsLimited()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: SyncConstants.MaxItemsPerEntityType);
-        var page2 = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: SyncConstants.MaxItemsPerEntityType);
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page1), Task.FromResult(page2));
-
-        var result = await client.GetAllDeltaAsync("token-1", maxPages: 2);
-
-        result.IsSuccess.Should().BeTrue();
-        result.PagesFetched.Should().Be(2);
-        result.WasLimitedByMaxPages.Should().BeTrue();
-        result.FinalSyncToken.Should().Be("token-3");
-
-        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-1", Arg.Any<CancellationToken>());
-        _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-2", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task GetAllDeltaAsync_WhenSecondPageFails_ReturnsFailureWithPartialResponses()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: SyncConstants.MaxItemsPerEntityType);
-        var page2 = await CreateFailedDeltaResponse(HttpStatusCode.Unauthorized, "Unauthorized");
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page1), Task.FromResult(page2));
-
-        var result = await client.GetAllDeltaAsync("token-1");
-
-        result.IsSuccess.Should().BeFalse();
-        result.PagesFetched.Should().Be(1);
-        result.Responses.Should().HaveCount(1);
-        result.FinalSyncToken.Should().Be("token-2");
-        result.Error.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task GetAllDeltaAsync_WithCancelledToken_ThrowsAndDoesNotCallApi()
+    public async Task EnumerateDeltaAsync_WithCancelledToken_ThrowsAndDoesNotCallApi()
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestEnvironmentId);
@@ -89,10 +123,28 @@ public class SyncClientTests
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 
-        Func<Task> act = async () => await client.GetAllDeltaAsync("token-1", cancellationToken: cancellation.Token);
+        Func<Task> act = async () => await client.EnumerateDeltaAsync("token-1", cancellation.Token).ToListAsync();
 
         await act.Should().ThrowAsync<OperationCanceledException>();
         _ = syncApi.DidNotReceiveWithAnyArgs().GetDeltaAsync(default!, default!, default);
+    }
+
+    [Fact]
+    public async Task EnumerateDeltaAsync_WhenContinuationHeaderMissing_ReusesPreviousToken()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestEnvironmentId);
+
+        var page1 = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
+        var empty = CreateSuccessDeltaResponse(nextToken: "token-final", itemCount: 0);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(page1), Task.FromResult(empty));
+
+        var pages = await client.EnumerateDeltaAsync("token-initial").ToListAsync();
+
+        pages.Should().HaveCount(1);
+        _ = syncApi.Received(2).GetDeltaAsync(TestEnvironmentId, "token-initial", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -200,26 +252,6 @@ public class SyncClientTests
         Func<Task> act = async () => await client.GetDeltaAsync("   ");
 
         await act.Should().ThrowAsync<ArgumentException>();
-    }
-
-    [Fact]
-    public async Task GetAllDeltaAsync_WhenContinuationHeaderMissing_ReusesPreviousToken()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var page1 = CreateSuccessDeltaResponse(nextToken: null, itemCount: SyncConstants.MaxItemsPerEntityType);
-        var page2 = CreateSuccessDeltaResponse(nextToken: "token-final", itemCount: 1);
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(page1), Task.FromResult(page2));
-
-        var result = await client.GetAllDeltaAsync("token-initial");
-
-        result.IsSuccess.Should().BeTrue();
-        result.FinalSyncToken.Should().Be("token-final");
-
-        _ = syncApi.Received(2).GetDeltaAsync(TestEnvironmentId, "token-initial", Arg.Any<CancellationToken>());
     }
 
     private static IApiResponse<SyncDeltaResponse> CreateSuccessDeltaResponse(string? nextToken, int itemCount)

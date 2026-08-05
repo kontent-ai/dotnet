@@ -50,8 +50,8 @@ var delta = await deliveryClient.GetSyncV2Async(continuationToken);
 var initResult = await syncClient.InitializeSyncAsync();
 var deltaResult = await syncClient.GetDeltaAsync(syncToken);
 
-// Or fetch all pages in one call:
-var allResult = await syncClient.GetAllDeltaAsync(syncToken, maxPages: 10);
+// Or walk every page until the API reports you have caught up:
+await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken)) { /* ... */ }
 ```
 
 ## 4. Update response access
@@ -79,7 +79,7 @@ var next = result.SyncToken;
 
 The collection property prefix is also dropped: `SyncItems`/`SyncTypes`/`SyncTaxonomies`/`SyncLanguages` become `Items`/`Types`/`Taxonomies`/`Languages` on `ISyncDeltaResponse`.
 
-The SDK does not persist sync tokens. Store `result.SyncToken` after every successful call and pass it into the next `GetDeltaAsync` / `GetAllDeltaAsync`.
+The SDK does not persist sync tokens. Store `result.SyncToken` after every successful call and pass it into the next `GetDeltaAsync` / `EnumerateDeltaAsync`.
 
 ### `StatusCode` type changed
 

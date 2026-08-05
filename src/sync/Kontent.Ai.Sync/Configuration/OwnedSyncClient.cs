@@ -17,8 +17,8 @@ internal sealed class OwnedSyncClient(ServiceProvider serviceProvider, ISyncClie
     public Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(string syncToken, CancellationToken cancellationToken = default)
         => inner.GetDeltaAsync(syncToken, cancellationToken);
 
-    public Task<ISyncAllDeltaResult> GetAllDeltaAsync(string syncToken, int? maxPages = null, CancellationToken cancellationToken = default)
-        => inner.GetAllDeltaAsync(syncToken, maxPages, cancellationToken);
+    public IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(string syncToken, CancellationToken cancellationToken = default)
+        => inner.EnumerateDeltaAsync(syncToken, cancellationToken);
 
     public void Dispose()
     {

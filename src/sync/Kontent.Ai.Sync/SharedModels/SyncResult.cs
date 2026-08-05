@@ -30,9 +30,6 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// <inheritdoc/>
     public HttpResponseHeaders? ResponseHeaders { get; }
 
-    /// <inheritdoc/>
-    public bool HasMoreChanges { get; }
-
     /// <summary>
     /// Creates a successful result.
     /// </summary>
@@ -54,7 +51,6 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         SyncToken = syncToken;
         RequestUrl = requestUrl;
         ResponseHeaders = responseHeaders;
-        HasMoreChanges = CalculateHasMoreChanges(value);
     }
 
     /// <summary>
@@ -77,23 +73,6 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         SyncToken = null;
         RequestUrl = requestUrl;
         ResponseHeaders = responseHeaders;
-        HasMoreChanges = false;
-    }
-
-    /// <summary>
-    /// Calculates whether more changes are available based on the response data.
-    /// </summary>
-    private static bool CalculateHasMoreChanges(T value)
-    {
-        if (value is not ISyncDeltaResponse deltaResponse)
-        {
-            return false;
-        }
-
-        return deltaResponse.Items.Count >= SyncConstants.MaxItemsPerEntityType
-            || deltaResponse.Types.Count >= SyncConstants.MaxItemsPerEntityType
-            || deltaResponse.Languages.Count >= SyncConstants.MaxItemsPerEntityType
-            || deltaResponse.Taxonomies.Count >= SyncConstants.MaxItemsPerEntityType;
     }
 }
 

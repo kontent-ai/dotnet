@@ -13,6 +13,22 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
+- **`GetAllDeltaAsync` is replaced by `EnumerateDeltaAsync`, which returns `IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>>`.** The old helper decided it had caught up when no collection in a response had reached 100 entries, a threshold published as `SyncConstants.MaxItemsPerEntityType`. The Sync API does not define completion that way — [it defines it as an empty response](https://kontent.ai/learn/docs/apis/sync-api-v2/synchronization#synchronize-changes) — so a response that was merely not full ended the walk, and any changes still queued were skipped until the next synchronization. Nothing was lost, because the returned token stayed valid, but a call that reported success had not necessarily fetched everything. The replacement stops on the empty response the API actually sends, and streams pages instead of buffering every one in memory. Bounding the walk moves to the caller, where `Take` or a `break` replaces `maxPages`.
+
+  ```csharp
+  // Before
+  var all = await syncClient.GetAllDeltaAsync(syncToken, maxPages: 10);
+  foreach (var page in all.Responses) { /* ... */ }
+
+  // After
+  await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken).Take(10))
+  {
+      if (!page.IsSuccess) break;
+      /* page.Value */
+  }
+  ```
+
+- **`ISyncResult<T>.HasMoreChanges`, `SyncConstants` and `ISyncAllDeltaResult` are removed.** All three existed only to support the threshold above. With completion defined by the API's empty response, the sequence simply ends: there is no "are there more" flag to read, and no client-side page-size constant to keep in step with the server. Carry `SyncToken` from the last yielded result; when nothing is yielded, the token you passed in is still current.
 - **The `configureRefit` parameter is gone from all three `AddSyncClient` overloads.** The hook exposed the transport library's settings object, but everything reachable through it was load-bearing rather than configurable — the parameter-key formatter matches the API's casing, and the serializer options carry the converters the wire format requires. Overriding them broke requests silently. Delete the argument; the SDK's own tests only ever used it to assert the callback fired.
 
 ### Changed

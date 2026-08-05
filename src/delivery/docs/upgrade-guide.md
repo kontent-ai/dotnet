@@ -2006,17 +2006,17 @@ services.AddSyncClient(options =>
 // Usage
 var syncClient = serviceProvider.GetRequiredService<ISyncClient>();
 
-// Initialize and get the starting sync token
+// Initialize and get the starting sync token, which travels in the result rather than its value
 var init = await syncClient.InitializeSyncAsync();
-var syncToken = init.Value;
+var syncToken = init.SyncToken;
 
 // Pull a single delta page
 var page = await syncClient.GetDeltaAsync(syncToken);
 
-// Or stream all available delta pages (capped by maxPages to bound work per call)
-await foreach (var delta in syncClient.GetAllDeltaAsync(syncToken, maxPages: 10))
+// Or walk every page until the API reports you have caught up
+await foreach (var delta in syncClient.EnumerateDeltaAsync(syncToken))
 {
-    foreach (var change in delta.Items)
+    foreach (var change in delta.Value.Items)
     {
         ProcessChange(change);
     }

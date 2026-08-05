@@ -1,6 +1,6 @@
+using System.Runtime.CompilerServices;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Extensions;
-using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync;
 
@@ -41,19 +41,13 @@ internal sealed class SyncClient(
     }
 
     /// <inheritdoc/>
-    public async Task<ISyncAllDeltaResult> GetAllDeltaAsync(string syncToken, int? maxPages = null, CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(
+        string syncToken,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(syncToken);
 
-        if (maxPages.HasValue && maxPages.Value <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxPages), "Maximum pages must be greater than zero.");
-        }
-
-        var responses = new List<ISyncDeltaResponse>();
         var currentToken = syncToken;
-        var pagesFetched = 0;
-        var wasLimitedByMaxPages = false;
 
         while (true)
         {
@@ -63,35 +57,29 @@ internal sealed class SyncClient(
 
             if (!result.IsSuccess)
             {
-                return new SyncAllDeltaResult(
-                    responses.AsReadOnly(),
-                    currentToken,
-                    pagesFetched,
-                    result.Error!);
+                yield return result;
+                yield break;
             }
 
-            responses.Add(result.Value);
-            pagesFetched++;
+            // An empty response is how the API reports that the client has caught up. It carries no
+            // changes, so it is not yielded - which means a caller who was already up to date sees an
+            // empty sequence and keeps using the token it passed in.
+            if (IsEmpty(result.Value))
+            {
+                yield break;
+            }
+
+            yield return result;
+
             currentToken = result.SyncToken ?? currentToken;
-
-            if (!result.HasMoreChanges)
-            {
-                break;
-            }
-
-            if (maxPages.HasValue && pagesFetched >= maxPages.Value)
-            {
-                wasLimitedByMaxPages = true;
-                break;
-            }
         }
-
-        return new SyncAllDeltaResult(
-            responses.AsReadOnly(),
-            currentToken,
-            pagesFetched,
-            wasLimitedByMaxPages);
     }
+
+    private static bool IsEmpty(ISyncDeltaResponse delta)
+        => delta.Items.Count == 0
+        && delta.Types.Count == 0
+        && delta.Languages.Count == 0
+        && delta.Taxonomies.Count == 0;
 
     public void Dispose()
     {

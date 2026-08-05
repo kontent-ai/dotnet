@@ -10,8 +10,8 @@ Test infrastructure that more than one test project needs an identical copy of.
 
 The public-API approval printer had been copy-pasted into five test projects and then drifted, which
 defeated the point of having it: Management's copy emitted fields and consts while the other four did
-not, so `SyncConstants.MaxItemsPerEntityType` could change without tripping Sync's gate. A guard rail
-that differs per product is not a guard rail.
+not, so a public constant could change in those packages without tripping their gate. A guard rail that
+differs per product is not a guard rail.
 
 ## Rules
 

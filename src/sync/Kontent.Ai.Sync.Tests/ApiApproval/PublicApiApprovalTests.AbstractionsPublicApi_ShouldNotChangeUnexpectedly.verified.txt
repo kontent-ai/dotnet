@@ -18,17 +18,8 @@ public interface IError
     String RequestId { get; }
 
 // Kontent.Ai.Sync.Abstractions
-public interface ISyncAllDeltaResult
-    Boolean IsSuccess { get; }
-    Boolean WasLimitedByMaxPages { get; }
-    IError Error { get; }
-    IReadOnlyList<ISyncDeltaResponse> Responses { get; }
-    Int32 PagesFetched { get; }
-    String FinalSyncToken { get; }
-
-// Kontent.Ai.Sync.Abstractions
 public interface ISyncClient : IAsyncDisposable, IDisposable
-    Task<ISyncAllDeltaResult> GetAllDeltaAsync(String syncToken, Nullable<Int32> maxPages, CancellationToken cancellationToken)
+    IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
 
@@ -71,7 +62,6 @@ public interface ISyncOptionsBuilder
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncResult`1<T>
-    Boolean HasMoreChanges { get; }
     Boolean IsSuccess { get; }
     HttpResponseHeaders ResponseHeaders { get; }
     HttpStatusCode StatusCode { get; }
@@ -89,10 +79,6 @@ public interface ISyncTaxonomy
 public interface ISyncType
     ChangeType ChangeType { get; }
     Object Data { get; }
-
-// Kontent.Ai.Sync.Abstractions
-public sealed class SyncConstants
-    const Int32 MaxItemsPerEntityType = 100
 
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncOptions : IValidatableObject

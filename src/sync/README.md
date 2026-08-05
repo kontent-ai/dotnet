@@ -70,25 +70,35 @@ foreach (var item in delta.Items)
 }
 
 await SaveSyncTokenAsync(deltaResult.SyncToken);
-
-// If more pages are pending, keep calling GetDeltaAsync with the new token,
-// or switch to GetAllDeltaAsync to auto-paginate.
-if (deltaResult.HasMoreChanges)
-{
-    // ...
-}
 ```
 
-### 4. Fetch all pages automatically
+### 4. Walk every page
+
+`EnumerateDeltaAsync` keeps requesting until the API reports an empty response, which is how it says
+you have caught up. Requests are made as you iterate, so bound the walk with `Take` or by breaking out
+of the loop — nothing is fetched ahead of you.
 
 ```csharp
-var allResult = await syncClient.GetAllDeltaAsync(syncToken, maxPages: 10, cancellationToken);
+var token = syncToken;
 
-if (allResult.IsSuccess)
+await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken, cancellationToken))
 {
-    Console.WriteLine($"Fetched {allResult.PagesFetched} pages.");
-    Console.WriteLine($"Final token: {allResult.FinalSyncToken}");
+    if (!page.IsSuccess)
+    {
+        Console.WriteLine($"Sync failed: {page.Error?.Message}");
+        break;
+    }
+
+    foreach (var item in page.Value.Items)
+    {
+        Console.WriteLine($"Item change: {item.ChangeType}");
+    }
+
+    token = page.SyncToken ?? token;
 }
+
+// An empty sequence means there was nothing new, and the token you passed in is still current.
+await SaveSyncTokenAsync(token);
 ```
 
 ## Configuration
@@ -228,7 +238,6 @@ Important fields:
 - `ISyncResult<T>.StatusCode` (`HttpStatusCode`)
 - `ISyncResult<T>.ResponseHeaders`
 - `ISyncResult<T>.RequestUrl`
-- `ISyncResult<T>.HasMoreChanges`
 - `IError.Message`
 - `IError.RequestId`
 - `IError.ErrorCode` / `IError.SpecificCode`
@@ -236,7 +245,7 @@ Important fields:
 
 ## Token Persistence
 
-The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into the next `GetDeltaAsync` or `GetAllDeltaAsync` call.
+The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into the next `GetDeltaAsync` or `EnumerateDeltaAsync` call.
 
 ## Source Tracking (for Tool Authors)
 

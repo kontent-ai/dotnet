@@ -6,6 +6,7 @@ namespace Kontent.Ai.Sync.Abstractions;
 /// </summary>
 public interface ISyncInitResponse
 {
-    // This interface is intentionally empty as the sync/init endpoint returns
-    // an empty response body. The X-Continuation token is extracted from the headers.
+    // Intentionally empty. The endpoint returns the same shape as a delta response, but the API
+    // guarantees every collection in it is empty on initialization, so there is nothing to surface.
+    // The token arrives in the X-Continuation header.
 }
