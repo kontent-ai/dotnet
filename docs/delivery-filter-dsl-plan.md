@@ -151,7 +151,9 @@ The production change is perhaps 60 lines net negative. The test work is larger:
 
 `SerializedFilterCollection.ToQueryDictionary` does `GroupBy(key).ToDictionary(...)`. Given
 `a=1`, `b=2`, `a=3` in that order, the wire receives `a=1&a=3&b=2` — same-key values are pulled
-together and the original interleaving is lost. The collection is documented as preserving
+together and the original interleaving is lost. **Confirmed empirically**, not inferred: the
+characterisation test asserting declaration order failed against the current implementation and
+was corrected to record the grouped output. The collection is documented as preserving
 "duplicates and insertion order", and it does; the *dictionary conversion* is what loses it.
 
 Rendering straight from the ordered list emits `a=1&b=2&a=3`, which is faithful. No known
@@ -230,8 +232,10 @@ API removal.
 
 Sequence when picked up:
 
-1. Write the characterisation tests **first**, against the current reflection implementation, using
-   the §2.2 matrix. They must pass unchanged afterwards — that is the whole safety argument.
+1. ~~Write the characterisation tests **first**, against the current reflection implementation.~~
+   **Done** — `FilterQueryEncodingTests`, 13 cases at the public DSL level. Twelve must pass
+   unchanged; the thirteenth (`InterleavedKeys_AreGrouped_LosingDeclarationOrder`) is the single
+   expectation the refactor deliberately changes, and says so in the test itself.
 2. Add `FilterQueryString.Render` and unit-test it against the same matrix.
 3. Switch `IDeliveryApi` to `[Property]`, add the handler, delete `FilterQueryParams` and
    `ToQueryDictionary`.
