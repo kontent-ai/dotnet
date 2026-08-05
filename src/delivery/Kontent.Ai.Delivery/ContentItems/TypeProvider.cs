@@ -92,19 +92,18 @@ internal sealed class TypeProvider : ITypeProvider
                 return (ITypeProvider?)Activator.CreateInstance(providerType);
             }
         }
-        // Scanning every loaded assembly means meeting ones that cannot be reflected over — a native
-        // or reference-only image, a missing transitive dependency, a type that fails to load. Those
-        // are expected here and mean "no provider in this assembly".
+        // Deliberately broad. "No generated provider" is a supported state, not a failure - the
+        // caller falls back to dynamic types - so every way this can fail means the same thing:
+        // nothing usable in this assembly. Scanning arbitrary loaded assemblies can fail in many
+        // ways (unreflectable images, missing transitive dependencies, a provider constructor that
+        // throws), and enumerating them would only decide which failures degrade gracefully and
+        // which do not.
         //
-        // Listed individually rather than catching everything: a bare catch would also swallow a
-        // genuine fault in the generated provider's constructor and report it as a missing provider,
-        // which then surfaces much later as an unexplained "no type provider registered".
-        catch (Exception ex) when (ex is FileNotFoundException
-                                      or FileLoadException
-                                      or BadImageFormatException
-                                      or TypeLoadException
-                                      or ReflectionTypeLoadException
-                                      or MemberAccessException)
+        // Narrowing it would be actively harmful here: this runs inside a Lazy<T> factory, which
+        // CACHES a thrown exception and rethrows it on every later access. An unlisted exception
+        // would therefore not surface once - it would break every subsequent item mapping for the
+        // lifetime of the process, instead of falling back to dynamic types.
+        catch
         {
             return null;
         }
@@ -126,12 +125,9 @@ internal sealed class TypeProvider : ITypeProvider
         {
             return Assembly.Load(reference);
         }
-        // Same reasoning as TryCreateProviderFromAssembly: a referenced assembly that cannot be
-        // loaded means "nothing to scan here", but anything else should surface rather than be
-        // mistaken for one.
-        catch (Exception ex) when (ex is FileNotFoundException
-                                      or FileLoadException
-                                      or BadImageFormatException)
+        // Broad for the same reason as TryCreateProviderFromAssembly: an assembly that will not
+        // load means "nothing to scan here", and this feeds the same Lazy<T> factory.
+        catch
         {
             return null;
         }
