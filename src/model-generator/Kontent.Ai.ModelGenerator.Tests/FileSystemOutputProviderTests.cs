@@ -1,4 +1,5 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.ModelGenerator.Tests;
 
@@ -12,7 +13,7 @@ public class FileSystemOutputProviderTests
             OutputDir = ""
         };
 
-        var outputProvider = new FileSystemOutputProvider(Microsoft.Extensions.Options.Options.Create(options));
+        var outputProvider = new FileSystemOutputProvider(Options.Create(options));
 
         options.OutputDir.Should().BeEmpty();
         outputProvider.OutputDir.Should().NotBeNullOrEmpty();
@@ -27,7 +28,7 @@ public class FileSystemOutputProviderTests
             OutputDir = ""
         };
 
-        var outputProvider = new FileSystemOutputProvider(Microsoft.Extensions.Options.Options.Create(options));
+        var outputProvider = new FileSystemOutputProvider(Options.Create(options));
 
         var result = outputProvider.OutputDir.TrimEnd(Path.DirectorySeparatorChar);
 
@@ -98,7 +99,7 @@ public class FileSystemOutputProviderTests
     private static FileSystemOutputProvider CreateOutputProvider(string outputDir)
     {
         return new FileSystemOutputProvider(
-            Microsoft.Extensions.Options.Options.Create(new CodeGeneratorOptions { OutputDir = outputDir }));
+            Options.Create(new CodeGeneratorOptions { OutputDir = outputDir }));
     }
 
     private static string CreateTempDir()

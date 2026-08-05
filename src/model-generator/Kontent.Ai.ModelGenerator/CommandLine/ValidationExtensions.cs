@@ -2,7 +2,7 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 
-namespace Kontent.Ai.ModelGenerator.Options;
+namespace Kontent.Ai.ModelGenerator.CommandLine;
 
 /// <summary>
 /// Extension methods meant for validation.

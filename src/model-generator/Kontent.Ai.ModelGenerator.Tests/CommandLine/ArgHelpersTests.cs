@@ -1,8 +1,8 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Configuration;
-using Kontent.Ai.ModelGenerator.Options;
+using Kontent.Ai.ModelGenerator.CommandLine;
 using Microsoft.Extensions.Configuration;
 
-namespace Kontent.Ai.ModelGenerator.Tests.Options;
+namespace Kontent.Ai.ModelGenerator.Tests.CommandLine;
 
 public class ArgHelpersTests
 {

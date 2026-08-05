@@ -1,6 +1,6 @@
-﻿using Kontent.Ai.ModelGenerator.Options;
+﻿using Kontent.Ai.ModelGenerator.CommandLine;
 
-namespace Kontent.Ai.ModelGenerator.Tests.Options;
+namespace Kontent.Ai.ModelGenerator.Tests.CommandLine;
 
 public class UsedSdkInfoTests
 {

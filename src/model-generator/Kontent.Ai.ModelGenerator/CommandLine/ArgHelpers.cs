@@ -4,7 +4,7 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 
-namespace Kontent.Ai.ModelGenerator.Options;
+namespace Kontent.Ai.ModelGenerator.CommandLine;
 
 /// <summary>
 /// Argument helpers for the CLI tool. Supports both Delivery and Management modes; the latter

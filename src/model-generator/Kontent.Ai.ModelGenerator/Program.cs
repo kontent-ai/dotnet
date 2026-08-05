@@ -5,7 +5,7 @@ using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Services;
-using Kontent.Ai.ModelGenerator.Options;
+using Kontent.Ai.ModelGenerator.CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;

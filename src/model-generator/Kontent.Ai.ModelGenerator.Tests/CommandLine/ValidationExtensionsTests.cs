@@ -1,9 +1,9 @@
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
-using Kontent.Ai.ModelGenerator.Options;
+using Kontent.Ai.ModelGenerator.CommandLine;
 
-namespace Kontent.Ai.ModelGenerator.Tests.Options;
+namespace Kontent.Ai.ModelGenerator.Tests.CommandLine;
 
 public class ValidationExtensionsTests
 {

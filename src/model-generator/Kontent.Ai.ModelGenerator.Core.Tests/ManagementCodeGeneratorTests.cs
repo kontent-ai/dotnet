@@ -6,6 +6,7 @@ using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.Management.Models.TypeSnippets;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
+using Microsoft.Extensions.Options;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Services;
 using NSubstitute;
@@ -460,7 +461,7 @@ public class ManagementCodeGeneratorTests
 
     private ManagementCodeGenerator CreateGenerator(string? @namespace = null)
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new CodeGeneratorOptions
+        var options = Options.Create(new CodeGeneratorOptions
         {
             Namespace = @namespace,
         });

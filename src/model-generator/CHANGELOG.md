@@ -33,6 +33,7 @@ Shipped floors moved up:
 No consumer-visible effect:
 
 - Identifier-sanitizing regular expressions are compiled at build time and carry an execution timeout. Codenames arrive from the environment's content model, so they are external input, and a generator that hangs on one malformed codename is worse than one that fails.
+- **`Kontent.Ai.ModelGenerator.Options` is now `Kontent.Ai.ModelGenerator.CommandLine`.** The namespace holds command-line argument handling — `ArgHelpers`, `ArgMappingsRegister`, `UsedSdkInfo`, `ValidationExtensions` — and nothing to do with `IOptions`. Sitting directly under `Kontent.Ai.ModelGenerator`, it shadowed `Microsoft.Extensions.Options` throughout the assembly and both test projects, so `Options.Create(...)` bound to the namespace and had to be written fully qualified to compile. Only the CLI tool assembly is affected: `Kontent.Ai.ModelGenerator.Core` has no such namespace, and the tool is installed rather than referenced.
 
 
 ## 10.3.0-beta-2 (2026-08-04)  _(prerelease)_

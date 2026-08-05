@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace Kontent.Ai.ModelGenerator.Options;
+namespace Kontent.Ai.ModelGenerator.CommandLine;
 
 internal class UsedSdkInfo(Type type, string name)
 {
