@@ -1,3 +1,4 @@
+using Kontent.Ai.Common;
 using System.Text.Json;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
@@ -271,7 +272,7 @@ public static partial class ServiceCollectionExtensions
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(name);
+        NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         EnsureClientNameNotAlreadyRegistered(services, name);
@@ -301,7 +302,7 @@ public static partial class ServiceCollectionExtensions
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(name);
+        NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configuration);
 
         EnsureClientNameNotAlreadyRegistered(services, name);
@@ -409,18 +410,6 @@ public static partial class ServiceCollectionExtensions
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
-
-    private static void ValidateClientName(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        if (name.Trim() != name || name.Contains(' '))
-        {
-            throw new ArgumentException(
-                "Client name cannot contain leading/trailing whitespace, or contain spaces. Use underscores or hyphens instead.",
-                nameof(name));
-        }
-    }
 
     private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)
     {

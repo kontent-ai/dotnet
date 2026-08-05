@@ -1,5 +1,6 @@
 using System.Net;
-using System.Runtime.ExceptionServices;
+using Kontent.Ai.Common;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -28,8 +29,8 @@ internal static class RefitApiResponseExtensions
         {
             return Task.FromResult(DeliveryResult.Success(
                 apiResponse.Content,
-                apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty,
-                StatusOf(apiResponse),
+                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                RefitResponses.StatusOf(apiResponse),
                 ExtractHasStaleContent(apiResponse),
                 apiResponse.Headers,
                 ExtractResponseSource(apiResponse)
@@ -49,10 +50,10 @@ internal static class RefitApiResponseExtensions
     /// <returns>A delivery result containing the response data or errors.</returns>
     private static Task<IDeliveryResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse, ILogger? logger)
     {
-        RethrowIfCanceled(apiResponse.Error);
+        RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
-        var url = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
-        var status = StatusOf(apiResponse);
+        var url = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
+        var status = RefitResponses.StatusOf(apiResponse);
         var headers = apiResponse.Headers;
         var responseSource = ExtractResponseSource(apiResponse);
 
@@ -91,7 +92,7 @@ internal static class RefitApiResponseExtensions
                     error = new Error { Message = ex.Message, Exception = ex };
                 }
             }
-            catch (Exception parseEx) when (!IsFatalException(parseEx))
+            catch (Exception parseEx) when (!FatalExceptions.IsFatal(parseEx))
             {
                 // Log the deserialization failure for diagnostics
                 if (logger is not null)
@@ -99,50 +100,17 @@ internal static class RefitApiResponseExtensions
                     LoggerMessages.ApiErrorParsingFailed(logger, url, status, ex.Content?.Length ?? 0, parseEx);
                 }
 
-                // Body isn't JSON or deserialization failed.
-                // Use Refit's formatted message as the base (includes HTTP context),
-                // and append the raw response body for debugging if available.
+                // Body isn't JSON or deserialization failed. Use Refit's formatted message as the base
+                // (it includes HTTP context) and append the raw body for debugging if available.
                 var rawBody = ex.Content;
-                string message;
-
-                if (!string.IsNullOrWhiteSpace(rawBody))
-                {
-                    // Truncate very long responses (e.g., HTML error pages) to keep the message readable
-                    const int maxBodyLength = 500;
-                    var truncatedBody = rawBody.Length > maxBodyLength
-                        ? rawBody[..maxBodyLength] + "... (truncated)"
-                        : rawBody;
-
-                    message = $"{ex.Message} | Raw response: {truncatedBody}";
-                }
-                else
-                {
-                    message = ex.Message;
-                }
+                var message = string.IsNullOrWhiteSpace(rawBody)
+                    ? ex.Message
+                    : $"{ex.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
 
                 error = new Error { Message = message, Exception = ex };
             }
 
             return DeliveryResult.Failure<T>(url, status, error, headers, responseSource);
-        }
-    }
-
-    /// <summary>
-    /// Rethrows caller cancellation instead of reporting it as a failed result.
-    /// </summary>
-    /// <remarks>
-    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
-    /// transport failures — they are an outcome of the call. Cancellation is not: it is the caller
-    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
-    /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
-    /// and <c>catch (OperationCanceledException)</c> would never fire.
-    /// </remarks>
-    /// <param name="error">The captured transport error, if any.</param>
-    private static void RethrowIfCanceled(ApiExceptionBase? error)
-    {
-        if (error?.InnerException is OperationCanceledException canceled)
-        {
-            ExceptionDispatchInfo.Capture(canceled).Throw();
         }
     }
 
@@ -171,25 +139,6 @@ internal static class RefitApiResponseExtensions
 
         return ResponseSource.Origin;
     }
-
-    /// <summary>
-    /// Resolves the HTTP status of a Refit response.
-    /// </summary>
-    /// <remarks>
-    /// Null when no response was received at all — a transport-level failure. <c>default</c> rather than
-    /// an invented code, because no HTTP exchange completed.
-    /// </remarks>
-    private static HttpStatusCode StatusOf<T>(IApiResponse<T> apiResponse) =>
-        apiResponse.StatusCode ?? default;
-
-    private static bool IsFatalException(Exception exception) =>
-        exception is OutOfMemoryException
-            or StackOverflowException
-            or AccessViolationException
-            or AppDomainUnloadedException
-            or BadImageFormatException
-            or CannotUnloadAppDomainException
-            or InvalidProgramException;
 
     /// <summary>
     /// Extracts stale content indicator from response headers.

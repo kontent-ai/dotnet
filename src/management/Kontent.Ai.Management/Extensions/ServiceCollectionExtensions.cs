@@ -1,3 +1,4 @@
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -154,7 +155,7 @@ public static partial class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(name);
+        NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         EnsureClientNameNotAlreadyRegistered(services, name);
@@ -183,7 +184,7 @@ public static partial class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(name);
+        NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configuration);
 
         EnsureClientNameNotAlreadyRegistered(services, name);
@@ -252,18 +253,6 @@ public static partial class ServiceCollectionExtensions
             ? serviceProvider.GetRequiredKeyedService<ISubscriptionApi>(name)
             : null;
         return new ManagementClient(managementApi, subscriptionApi);
-    }
-
-    private static void ValidateClientName(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        if (name.Trim() != name || name.Contains(' '))
-        {
-            throw new ArgumentException(
-                "Client name cannot contain leading/trailing whitespace, or contain spaces. Use underscores or hyphens instead.",
-                nameof(name));
-        }
     }
 
     private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)

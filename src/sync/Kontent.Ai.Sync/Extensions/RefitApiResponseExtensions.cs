@@ -1,5 +1,6 @@
 using System.Net;
-using System.Runtime.ExceptionServices;
+using Kontent.Ai.Common;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync.Extensions;
@@ -23,8 +24,8 @@ internal static class RefitApiResponseExtensions
         {
             return Task.FromResult<ISyncResult<T>>(SyncResult.Success(
                 apiResponse.Content,
-                apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty,
-                StatusOf(apiResponse),
+                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                RefitResponses.StatusOf(apiResponse),
                 ExtractSyncToken(apiResponse),
                 apiResponse.Headers));
         }
@@ -32,41 +33,12 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
-    /// <summary>
-    /// Resolves the HTTP status of a Refit response.
-    /// </summary>
-    /// <remarks>
-    /// Null when no response was received at all — a transport-level failure. <c>default</c> rather than
-    /// an invented code, because no HTTP exchange completed.
-    /// </remarks>
-    private static HttpStatusCode StatusOf<T>(IApiResponse<T> apiResponse) =>
-        apiResponse.StatusCode ?? default;
-
-    /// <summary>
-    /// Rethrows caller cancellation instead of reporting it as a failed result.
-    /// </summary>
-    /// <remarks>
-    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
-    /// transport failures — they are an outcome of the call. Cancellation is not: it is the caller
-    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
-    /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
-    /// and <c>catch (OperationCanceledException)</c> would never fire.
-    /// </remarks>
-    /// <param name="error">The captured transport error, if any.</param>
-    private static void RethrowIfCanceled(ApiExceptionBase? error)
-    {
-        if (error?.InnerException is OperationCanceledException canceled)
-        {
-            ExceptionDispatchInfo.Capture(canceled).Throw();
-        }
-    }
-
     private static Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
     {
-        RethrowIfCanceled(apiResponse.Error);
+        RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
-        var requestUrl = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
-        var statusCode = StatusOf(apiResponse);
+        var requestUrl = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
+        var statusCode = RefitResponses.StatusOf(apiResponse);
         var headers = apiResponse.Headers;
 
         if (apiResponse.Error is not ApiException apiException)
@@ -112,24 +84,12 @@ internal static class RefitApiResponseExtensions
                 };
             }
         }
-        catch (Exception parseException) when (!IsFatalException(parseException))
+        catch (Exception parseException) when (!FatalExceptions.IsFatal(parseException))
         {
             var rawBody = exception.Content;
-            string message;
-
-            if (!string.IsNullOrWhiteSpace(rawBody))
-            {
-                const int maxBodyLength = 500;
-                var truncatedBody = rawBody.Length > maxBodyLength
-                    ? rawBody[..maxBodyLength] + "... (truncated)"
-                    : rawBody;
-
-                message = $"{exception.Message} | Raw response: {truncatedBody}";
-            }
-            else
-            {
-                message = exception.Message;
-            }
+            var message = string.IsNullOrWhiteSpace(rawBody)
+                ? exception.Message
+                : $"{exception.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
 
             error = new Error
             {
@@ -148,13 +108,4 @@ internal static class RefitApiResponseExtensions
             ? values.FirstOrDefault()
             : null;
     }
-
-    private static bool IsFatalException(Exception exception) =>
-        exception is OutOfMemoryException
-            or StackOverflowException
-            or AccessViolationException
-            or AppDomainUnloadedException
-            or BadImageFormatException
-            or CannotUnloadAppDomainException
-            or InvalidProgramException;
 }

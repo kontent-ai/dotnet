@@ -1,5 +1,5 @@
-using System.Runtime.ExceptionServices;
 using System.Text.Json;
+using Kontent.Ai.Common.Http;
 
 namespace Kontent.Ai.Management.Extensions;
 
@@ -8,8 +8,6 @@ namespace Kontent.Ai.Management.Extensions;
 /// </summary>
 internal static class RefitApiResponseExtensions
 {
-    private const int MaxRawBodyLength = 500;
-
     public static Task<IManagementResult<T>> ToManagementResultAsync<T>(this IApiResponse<T> response) =>
         response.ToManagementResultAsync(static value => value);
 
@@ -33,7 +31,7 @@ internal static class RefitApiResponseExtensions
     {
         using (response)
         {
-            RethrowIfCanceled(response.Error);
+            RefitResponses.RethrowIfCanceled(response.Error);
 
             if (response.IsSuccessStatusCode)
             {
@@ -45,14 +43,14 @@ internal static class RefitApiResponseExtensions
                             Message = "The Management API returned a success status but no readable response body.",
                             Exception = response.Error,
                         },
-                        StatusOf(response),
-                        RequestUrl(response));
+                        RefitResponses.StatusOf(response),
+                        RefitResponses.RequestUrl(response));
                 }
 
                 return ManagementResult<TValue>.Success(
                     selector(response.Content),
-                    StatusOf(response),
-                    RequestUrl(response));
+                    RefitResponses.StatusOf(response),
+                    RefitResponses.RequestUrl(response));
             }
 
             return await MapFailureAsync<TValue>(response).ConfigureAwait(false);
@@ -63,13 +61,13 @@ internal static class RefitApiResponseExtensions
     {
         using (response)
         {
-            RethrowIfCanceled(response.Error);
+            RefitResponses.RethrowIfCanceled(response.Error);
 
             if (response.IsSuccessStatusCode)
             {
                 return ManagementResult.Success(
-                    StatusOf(response),
-                    RequestUrl(response));
+                    RefitResponses.StatusOf(response),
+                    RefitResponses.RequestUrl(response));
             }
 
             return await MapFailureAsync(response).ConfigureAwait(false);
@@ -79,32 +77,13 @@ internal static class RefitApiResponseExtensions
     private static async Task<IManagementResult<TValue>> MapFailureAsync<TValue>(IApiResponse response)
     {
         var error = await BuildErrorAsync(response).ConfigureAwait(false);
-        return ManagementResult<TValue>.Failure(error, StatusOf(response), RequestUrl(response));
+        return ManagementResult<TValue>.Failure(error, RefitResponses.StatusOf(response), RefitResponses.RequestUrl(response));
     }
 
     private static async Task<IManagementResult> MapFailureAsync(IApiResponse response)
     {
         var error = await BuildErrorAsync(response).ConfigureAwait(false);
-        return ManagementResult.Failure(error, StatusOf(response), RequestUrl(response));
-    }
-
-    /// <summary>
-    /// Rethrows caller cancellation instead of reporting it as a failed result.
-    /// </summary>
-    /// <remarks>
-    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
-    /// transport failures — they are an outcome of the call. Cancellation is not: it is the caller
-    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
-    /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
-    /// and <c>catch (OperationCanceledException)</c> would never fire.
-    /// </remarks>
-    /// <param name="error">The captured transport error, if any.</param>
-    private static void RethrowIfCanceled(ApiExceptionBase? error)
-    {
-        if (error?.InnerException is OperationCanceledException canceled)
-        {
-            ExceptionDispatchInfo.Capture(canceled).Throw();
-        }
+        return ManagementResult.Failure(error, RefitResponses.StatusOf(response), RefitResponses.RequestUrl(response));
     }
 
     private static async Task<IError> BuildErrorAsync(IApiResponse response)
@@ -134,20 +113,9 @@ internal static class RefitApiResponseExtensions
             var rawBody = apiException.Content;
             var message = string.IsNullOrWhiteSpace(rawBody)
                 ? apiException.Message
-                : $"{apiException.Message} | Raw response: {Truncate(rawBody)}";
+                : $"{apiException.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
 
             return new Error { Message = message, Exception = apiException };
         }
     }
-
-    // StatusCode is null when no response was received at all (a transport-level failure); the fallback is
-    // default (0) rather than an invented code, because no HTTP exchange completed.
-    private static System.Net.HttpStatusCode StatusOf(IApiResponse response) =>
-        response.StatusCode ?? default;
-
-    private static string? RequestUrl(IApiResponse response) =>
-        response.RequestMessage?.RequestUri?.ToString();
-
-    private static string Truncate(string body) =>
-        body.Length > MaxRawBodyLength ? body[..MaxRawBodyLength] + "... (truncated)" : body;
 }

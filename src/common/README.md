@@ -47,3 +47,8 @@ trade — three tags from one pull request is exactly what the monorepo bought.
 ```
 
 The `Link` keeps the file visible under a `Common` folder in the IDE instead of at the project root.
+
+`RefitResponses.cs` takes `Refit` from the consuming project's `GlobalUsings.cs` rather than declaring
+its own `using`, because all three SDKs already declare it globally and a duplicate would warn as
+IDE0005 in every one of them. A project that includes the file without that global using gets a compile
+error naming the missing type.
