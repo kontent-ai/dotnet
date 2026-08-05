@@ -92,10 +92,23 @@ internal sealed class TypeProvider : ITypeProvider
                 return (ITypeProvider?)Activator.CreateInstance(providerType);
             }
         }
-        catch
+        // Scanning every loaded assembly means meeting ones that cannot be reflected over — a native
+        // or reference-only image, a missing transitive dependency, a type that fails to load. Those
+        // are expected here and mean "no provider in this assembly".
+        //
+        // Listed individually rather than catching everything: a bare catch would also swallow a
+        // genuine fault in the generated provider's constructor and report it as a missing provider,
+        // which then surfaces much later as an unexplained "no type provider registered".
+        catch (Exception ex) when (ex is FileNotFoundException
+                                      or FileLoadException
+                                      or BadImageFormatException
+                                      or TypeLoadException
+                                      or ReflectionTypeLoadException
+                                      or MemberAccessException)
         {
-            // Ignore exceptions - assembly might not be loadable
+            return null;
         }
+
         return null;
     }
 
@@ -113,9 +126,13 @@ internal sealed class TypeProvider : ITypeProvider
         {
             return Assembly.Load(reference);
         }
-        catch
+        // Same reasoning as TryCreateProviderFromAssembly: a referenced assembly that cannot be
+        // loaded means "nothing to scan here", but anything else should surface rather than be
+        // mistaken for one.
+        catch (Exception ex) when (ex is FileNotFoundException
+                                      or FileLoadException
+                                      or BadImageFormatException)
         {
-            // Ignore - assembly might not be loadable
             return null;
         }
     }

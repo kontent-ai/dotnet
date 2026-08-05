@@ -1,8 +1,8 @@
 {
   "version": 1,
   "createdAt": "2026-08-03T16:09:14.634609+00:00",
-  "updatedAt": "2026-08-03T16:09:14.638134+00:00",
-  "description": "Initial baseline created by 'slopwatch init' on 2026-08-03 16:09:14 UTC",
+  "updatedAt": "2026-08-03T16:09:14.634609+00:00",
+  "description": "Baseline of findings that predate slopwatch. Entries are removed as the underlying code is fixed - it is a burn-down list, not a permanent allowlist.",
   "entries": [
     {
       "hash": "073b9b8c3bf254fb",
@@ -120,15 +120,6 @@
       "codeSnippet": "<NoWarn>CS1591</NoWarn>",
       "message": "Setting NoWarn to suppress warnings: CS1591",
       "baselinedAt": "2026-08-03T16:09:14.638132+00:00"
-    },
-    {
-      "hash": "473facf6588b9e9d",
-      "ruleId": "SW003",
-      "filePath": "src/delivery/Kontent.Ai.Delivery/ContentItems/TypeProvider.cs",
-      "lineNumber": 95,
-      "codeSnippet": "catch\n        {\n            // Ignore exceptions - assembly might not be loadable\n        }",
-      "message": "Empty catch block swallows exceptions without handling",
-      "baselinedAt": "2026-08-03T16:09:14.638134+00:00"
     }
   ]
 }
