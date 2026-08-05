@@ -4,9 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <NoWarn>CS1591</NoWarn>
     <!-- Set just under current coverage so it blocks regression rather than aspiring.
-         Measured 92.02% line on 2026-08-05, with the DI/HTTP registration file no longer
-         excluded - SyncTransportTests drives it end to end. -->
-    <Threshold>90</Threshold>
+         Measured 94.13% line on 2026-08-05, with the DI/HTTP registration file no longer
+         excluded - SyncTransportTests and StandaloneClientTests drive both paths end to end. -->
+    <Threshold>92</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
     <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>

@@ -282,9 +282,11 @@ public static class ServiceCollectionExtensions
     {
         var clientName = (string)key!;
         var syncApi = serviceProvider.GetRequiredKeyedService<ISyncApi>(clientName);
-        var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
-        var options = optionsMonitor.Get(clientName);
-        return new SyncClient(syncApi, options.EnvironmentId);
+        var optionsAccessor = new MonitorBackedSyncOptionsAccessor(
+            serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
+            clientName);
+
+        return new SyncClient(syncApi, optionsAccessor);
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
@@ -382,8 +384,7 @@ public static class ServiceCollectionExtensions
             sp.GetService<ILogger<TrackingHandler>>()));
 
         httpClientBuilder.AddHttpMessageHandler(sp => new SyncAuthenticationHandler(
-            sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
-            clientName,
+            new MonitorBackedSyncOptionsAccessor(sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(), clientName),
             sp.GetService<ILogger<SyncAuthenticationHandler>>()));
     }
 

@@ -185,14 +185,14 @@ Optional configuration:
 await using var client = SyncClientBuilder
     .WithOptions(opts => opts.WithEnvironmentId("env-id").UseProductionApi().Build())
     .WithLoggerFactory(loggerFactory)
-    .ConfigureServices(services =>
-    {
-        // Register or replace any service on the internal container.
-    })
+    .WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
     .Build();
 ```
 
-The returned client is thread-safe and should be used as a singleton for the lifetime of your application. Each `Build()` call creates an independent client with its own HTTP client.
+The returned client is thread-safe and should be used as a singleton for the lifetime of your
+application. Each `Build()` call creates an independent client that owns its own `HttpClient`, which is
+why it is disposable — dispose it and that transport is released. A client resolved from a container is
+owned by the container instead, so there is nothing for you to dispose there.
 
 ## Named Clients
 

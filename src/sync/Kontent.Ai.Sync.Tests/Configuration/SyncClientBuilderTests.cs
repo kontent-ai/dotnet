@@ -1,9 +1,7 @@
 using AwesomeAssertions;
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
 
@@ -30,19 +28,6 @@ public class SyncClientBuilderTests
             .Build());
 
         var act = () => builder.WithLoggerFactory(null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void ConfigureServices_Null_Throws()
-    {
-        var builder = SyncClientBuilder.WithOptions(o => o
-            .WithEnvironmentId(EnvironmentId)
-            .UseProductionApi()
-            .Build());
-
-        var act = () => builder.ConfigureServices(null!);
 
         act.Should().Throw<ArgumentNullException>();
     }
@@ -107,45 +92,6 @@ public class SyncClientBuilderTests
     }
 
     [Fact]
-    public void Build_DisposingClient_DisposesServiceProvider()
-    {
-        var sentinel = new DisposableSentinel();
-
-        var client = SyncClientBuilder
-            .WithOptions(o => o
-                .WithEnvironmentId(EnvironmentId)
-                .UseProductionApi()
-                .Build())
-            .ConfigureServices(services => RegisterSentinelForDisposal(services, sentinel))
-            .Build();
-
-        sentinel.Disposed.Should().BeFalse();
-
-        client.Dispose();
-
-        sentinel.Disposed.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Build_AwaitUsing_DisposesProvider()
-    {
-        var sentinel = new DisposableSentinel();
-
-        await using (var client = SyncClientBuilder
-            .WithOptions(o => o
-                .WithEnvironmentId(EnvironmentId)
-                .UseProductionApi()
-                .Build())
-            .ConfigureServices(services => RegisterSentinelForDisposal(services, sentinel))
-            .Build())
-        {
-            sentinel.Disposed.Should().BeFalse();
-        }
-
-        sentinel.Disposed.Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Build_DisposeAsync_IsIdempotent()
     {
         var client = SyncClientBuilder
@@ -180,34 +126,21 @@ public class SyncClientBuilderTests
     [Fact]
     public void Build_MultipleCalls_ProduceIndependentClients()
     {
-        var sentinel1 = new DisposableSentinel();
-        var sentinel2 = new DisposableSentinel();
+        var builder = SyncClientBuilder.WithOptions(o => o
+            .WithEnvironmentId(EnvironmentId)
+            .UseProductionApi()
+            .Build());
 
-        var builder1 = SyncClientBuilder
-            .WithOptions(o => o
-                .WithEnvironmentId(EnvironmentId)
-                .UseProductionApi()
-                .Build())
-            .ConfigureServices(services => RegisterSentinelForDisposal(services, sentinel1));
+        using var client1 = builder.Build();
+        using var client2 = builder.Build();
 
-        var builder2 = SyncClientBuilder
-            .WithOptions(o => o
-                .WithEnvironmentId(EnvironmentId)
-                .UseProductionApi()
-                .Build())
-            .ConfigureServices(services => RegisterSentinelForDisposal(services, sentinel2));
-
-        var client1 = builder1.Build();
-        var client2 = builder2.Build();
-
+        // Each client owns its own HttpClient, so disposing one must leave the other usable.
         client1.Should().NotBeSameAs(client2);
 
         client1.Dispose();
-        sentinel1.Disposed.Should().BeTrue();
-        sentinel2.Disposed.Should().BeFalse("disposing one client must not affect another");
 
-        client2.Dispose();
-        sentinel2.Disposed.Should().BeTrue();
+        var act = () => client2.Dispose();
+        act.Should().NotThrow();
     }
 
     [Fact]
@@ -227,24 +160,6 @@ public class SyncClientBuilderTests
     }
 
     [Fact]
-    public void ConfigureServices_MultipleCalls_ExecuteInRegistrationOrder()
-    {
-        var calls = new List<int>();
-
-        using var client = SyncClientBuilder
-            .WithOptions(o => o
-                .WithEnvironmentId(EnvironmentId)
-                .UseProductionApi()
-                .Build())
-            .ConfigureServices(_ => calls.Add(1))
-            .ConfigureServices(_ => calls.Add(2))
-            .ConfigureServices(_ => calls.Add(3))
-            .Build();
-
-        calls.Should().Equal(1, 2, 3);
-    }
-
-    [Fact]
     public void FluentChain_ReturnsSameInstance()
     {
         var builder = SyncClientBuilder.WithOptions(o => o
@@ -255,30 +170,9 @@ public class SyncClientBuilderTests
         using var loggerFactory = LoggerFactory.Create(_ => { });
 
         var afterLogger = builder.WithLoggerFactory(loggerFactory);
-        var afterConfigure = builder.ConfigureServices(_ => { });
+        var afterResilience = builder.WithResilience(_ => { });
 
         afterLogger.Should().BeSameAs(builder);
-        afterConfigure.Should().BeSameAs(builder);
-    }
-
-    /// <summary>
-    /// Registers a sentinel so that the DI container owns it (factory delegate) AND so it is
-    /// eagerly resolved (via <see cref="IConfigureOptions{TOptions}"/>, which the options pipeline
-    /// invokes the first time <see cref="SyncOptions"/> is materialized — which happens when
-    /// <see cref="ISyncClient"/> is resolved by the builder's <c>Build()</c>).
-    /// Pre-built singletons passed via <c>AddSingleton(instance)</c> are NOT disposed by the
-    /// container, and lazy singletons that are never resolved are never created (and therefore
-    /// never disposed). This helper avoids both pitfalls.
-    /// </summary>
-    private static void RegisterSentinelForDisposal(IServiceCollection services, DisposableSentinel sentinel)
-    {
-        services.AddSingleton<IConfigureOptions<SyncOptions>>(_ => sentinel);
-    }
-
-    private sealed class DisposableSentinel : IConfigureOptions<SyncOptions>, IDisposable
-    {
-        public bool Disposed { get; private set; }
-        public void Configure(SyncOptions options) { }
-        public void Dispose() => Disposed = true;
+        afterResilience.Should().BeSameAs(builder);
     }
 }

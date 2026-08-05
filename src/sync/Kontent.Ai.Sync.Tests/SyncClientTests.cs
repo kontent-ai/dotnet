@@ -2,6 +2,7 @@ using System.Net;
 using AwesomeAssertions;
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Api;
+using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Models;
 using NSubstitute;
 using Refit;
@@ -12,11 +13,14 @@ public class SyncClientTests
 {
     private const string TestEnvironmentId = "00000000-0000-0000-0000-000000000001";
 
+    private static ISyncOptionsAccessor TestOptions() =>
+        new SnapshotSyncOptionsAccessor(new SyncOptions { EnvironmentId = TestEnvironmentId });
+
     [Fact]
     public async Task EnumerateDeltaAsync_YieldsEveryPage_AndStopsOnTheEmptyResponse()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 3);
         var page2 = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 2);
@@ -42,7 +46,7 @@ public class SyncClientTests
     public async Task EnumerateDeltaAsync_PartialPage_KeepsGoing()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         var partial = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 1);
         var more = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 1);
@@ -60,7 +64,7 @@ public class SyncClientTests
     public async Task EnumerateDeltaAsync_AlreadyUpToDate_YieldsNothing()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         var empty = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 0);
 
@@ -76,7 +80,7 @@ public class SyncClientTests
     public async Task EnumerateDeltaAsync_WhenAPageFails_YieldsTheFailureAndStops()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 3);
         var failure = await CreateFailedDeltaResponse(HttpStatusCode.Unauthorized, "Unauthorized");
@@ -97,7 +101,7 @@ public class SyncClientTests
     public async Task EnumerateDeltaAsync_IsLazy_SoTakeStopsTheRequests()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         // Every page reports changes, so nothing but Take bounds the walk. Built up front: creating a
         // substitute inside a Returns() argument re-enters NSubstitute's call context and deadlocks.
@@ -118,7 +122,7 @@ public class SyncClientTests
     public async Task EnumerateDeltaAsync_WithCancelledToken_ThrowsAndDoesNotCallApi()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
@@ -135,7 +139,7 @@ public class SyncClientTests
     public async Task GetDeltaAsync_ResponseWithoutContinuationToken_Throws()
     {
         var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
+        var client = new SyncClient(syncApi, TestOptions());
 
         var page = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
 

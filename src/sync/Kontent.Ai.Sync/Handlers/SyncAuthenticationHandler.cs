@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
+using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Logging;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Sync.Handlers;
 
@@ -9,21 +9,19 @@ namespace Kontent.Ai.Sync.Handlers;
 /// Delegating handler that injects authentication header and rewrites hosts for Sync requests.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance using default or named options.
+/// Initializes a new instance.
 /// </remarks>
-/// <param name="monitor">Options monitor.</param>
-/// <param name="optionsName">Name of options to resolve, or <c>null</c> for default.</param>
+/// <param name="optionsAccessor">Supplies the effective options for each request.</param>
 /// <param name="logger">Optional logger.</param>
 internal sealed class SyncAuthenticationHandler(
-    IOptionsMonitor<SyncOptions> monitor,
-    string? optionsName = null,
+    ISyncOptionsAccessor optionsAccessor,
     ILogger<SyncAuthenticationHandler>? logger = null) : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var options = optionsName is null ? monitor.CurrentValue : monitor.Get(optionsName);
+        var options = optionsAccessor.Current;
         var baseUri = new Uri(options.GetBaseUrl().TrimEnd('/'), UriKind.Absolute);
 
         if (!IsTrustedHost(request.RequestUri, baseUri))

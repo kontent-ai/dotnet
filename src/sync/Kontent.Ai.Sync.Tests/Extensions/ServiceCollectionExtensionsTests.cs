@@ -8,6 +8,8 @@ namespace Kontent.Ai.Sync.Tests.Extensions;
 
 public class ServiceCollectionExtensionsTests
 {
+    private static readonly string EnvironmentId = Guid.NewGuid().ToString();
+
     [Fact]
     public void AddSyncClient_DuplicateName_ThrowsInvalidOperationException()
     {
@@ -68,6 +70,46 @@ public class ServiceCollectionExtensionsTests
 
         namedFromFactory.Should().BeSameAs(keyedNamed);
         namedFromFactory.Should().NotBeSameAs(unkeyedDefault);
+    }
+
+    // The instance and builder-func overloads copy values onto the options the container materializes,
+    // rather than registering the caller's object.
+    [Fact]
+    public void AddSyncClient_WithOptionsInstance_CopiesTheValues()
+    {
+        var options = new SyncOptions
+        {
+            EnvironmentId = EnvironmentId,
+            ApiMode = ApiMode.Secure,
+            ApiKey = "secure-key",
+        };
+
+        var services = new ServiceCollection();
+        services.AddSyncClient(options);
+        using var provider = services.BuildServiceProvider();
+
+        var registered = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("Default");
+
+        registered.EnvironmentId.Should().Be(EnvironmentId);
+        registered.ApiMode.Should().Be(ApiMode.Secure);
+        registered.ApiKey.Should().Be("secure-key");
+    }
+
+    [Fact]
+    public void AddSyncClient_WithOptionsBuilder_CopiesTheValues()
+    {
+        var services = new ServiceCollection();
+        services.AddSyncClient(builder => builder
+            .WithEnvironmentId(EnvironmentId)
+            .UsePreviewApi("preview-key")
+            .Build());
+
+        using var provider = services.BuildServiceProvider();
+        var registered = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("Default");
+
+        registered.EnvironmentId.Should().Be(EnvironmentId);
+        registered.ApiMode.Should().Be(ApiMode.Preview);
+        registered.ApiKey.Should().Be("preview-key");
     }
 
     [Fact]

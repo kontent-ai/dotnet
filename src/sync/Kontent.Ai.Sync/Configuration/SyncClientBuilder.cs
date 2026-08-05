@@ -1,5 +1,5 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Kontent.Ai.Sync.Configuration;
 
@@ -8,9 +8,12 @@ namespace Kontent.Ai.Sync.Configuration;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This builder provides a fluent API for configuring and instantiating <see cref="ISyncClient"/>
-/// outside of a DI container. Internally, it uses a private <see cref="IServiceCollection"/>
-/// to resolve all dependencies, ensuring the same functionality as DI-registered clients.
+/// The built client owns its underlying <see cref="HttpClient"/> and is returned as a plain
+/// <see cref="ISyncClient"/> - there is no container to reach into. Dispose it when you are done.
+/// </para>
+/// <para>
+/// For applications using dependency injection, prefer <c>services.AddSyncClient(...)</c>, which hands
+/// lifetime to the container and brings <c>IHttpClientFactory</c>, options reloading and named clients.
 /// </para>
 /// <para>
 /// <b>Lifecycle:</b> The returned <see cref="ISyncClient"/> is thread-safe and should be used
@@ -43,7 +46,7 @@ namespace Kontent.Ai.Sync.Configuration;
 public sealed class SyncClientBuilder
 {
     private SyncOptions? _syncOptions;
-    private Action<IServiceCollection>? _configureAdditionalServices;
+    private Action<ResiliencePipelineBuilder<HttpResponseMessage>>? _configureResilience;
     private ILoggerFactory? _loggerFactory;
 
     private SyncClientBuilder() { }
@@ -84,25 +87,16 @@ public sealed class SyncClientBuilder
     }
 
     /// <summary>
-    /// Configures additional services on the internal <see cref="IServiceCollection"/> used to build the client.
+    /// Replaces the default resilience pipeline with a custom one. Has no effect when
+    /// <see cref="SyncOptions.EnableResilience"/> is <c>false</c> (matching the DI behaviour).
     /// </summary>
-    /// <param name="configure">A delegate to configure additional services (e.g., custom handlers, replacements).</param>
+    /// <param name="configureResilience">A delegate that configures the resilience pipeline.</param>
     /// <returns>The builder instance for method chaining.</returns>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="configure"/> is null.</exception>
-    /// <remarks>
-    /// <para>
-    /// This is a general-purpose extensibility point. Multiple calls are cumulative — each delegate
-    /// is invoked in the order it was registered, AFTER the core sync client services have been registered.
-    /// This allows callers to override or replace registrations.
-    /// </para>
-    /// </remarks>
-    public SyncClientBuilder ConfigureServices(Action<IServiceCollection> configure)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="configureResilience"/> is null.</exception>
+    public SyncClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     {
-        ArgumentNullException.ThrowIfNull(configure);
-        var previous = _configureAdditionalServices;
-        _configureAdditionalServices = previous is null
-            ? configure
-            : services => { previous(services); configure(services); };
+        ArgumentNullException.ThrowIfNull(configureResilience);
+        _configureResilience = configureResilience;
         return this;
     }
 
@@ -131,22 +125,6 @@ public sealed class SyncClientBuilder
                 "SyncOptions must be configured. Call WithOptions() before Build().");
         }
 
-        var services = new ServiceCollection();
-
-        if (_loggerFactory is not null)
-        {
-            services.AddSingleton(_loggerFactory);
-            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-        }
-
-        services.AddSyncClient(_syncOptions);
-        _configureAdditionalServices?.Invoke(services);
-
-        var serviceProvider = services.BuildServiceProvider(
-            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
-
-        var client = serviceProvider.GetRequiredService<ISyncClient>();
-
-        return new OwnedSyncClient(serviceProvider, client);
+        return new SyncClient(_syncOptions, _configureResilience, _loggerFactory);
     }
 }
