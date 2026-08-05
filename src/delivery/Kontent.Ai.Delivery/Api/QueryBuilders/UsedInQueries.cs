@@ -82,7 +82,7 @@ internal interface IUsedInQueryStatusProvider
 internal sealed class UsedInQueryCore(
     string queryType,
     string codename,
-    Func<string, Dictionary<string, string[]>?, bool?, string?, CancellationToken, Task<IApiResponse<DeliveryUsedInResponse>>> fetchPage,
+    Func<string, string?, bool?, string?, CancellationToken, Task<IApiResponse<DeliveryUsedInResponse>>> fetchPage,
     ILogger? logger)
 {
     private bool _waitForLoadingNewContent;
@@ -112,14 +112,14 @@ internal sealed class UsedInQueryCore(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
-        var queryDictionary = filters.ToQueryDictionary();
+        var filterQuery = FilterQueryString.Render(filters);
         string? token = null;
 
         while (true)
         {
             var response = await fetchPage(
                 codename,
-                queryDictionary,
+                filterQuery,
                 waitForLoadingNewContent,
                 token,
                 cancellationToken).ConfigureAwait(false);

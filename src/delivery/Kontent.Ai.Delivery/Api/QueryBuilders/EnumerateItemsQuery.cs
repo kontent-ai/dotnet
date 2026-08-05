@@ -150,7 +150,7 @@ internal sealed class EnumerateItemsQuery<TModel>(
         var resp = await api
             .GetItemsFeedInternalAsync<TModel>(
                 _params,
-                _serializedFilters.ToQueryDictionary(),
+                FilterQueryString.Render(_serializedFilters),
                 continuationToken,
                 waitForLoadingNewContent,
                 cancellationToken)

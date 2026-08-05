@@ -266,7 +266,7 @@ internal sealed class ItemsQuery<TModel>(
     {
         var rawResponse = await api.GetItemsInternalAsync<TModel>(
             _params,
-            _serializedFilters.ToQueryDictionary(),
+            FilterQueryString.Render(_serializedFilters),
             waitForLoadingNewContent,
             cancellationToken).ConfigureAwait(false);
         return await rawResponse.ToDeliveryResultAsync(logger).ConfigureAwait(false);

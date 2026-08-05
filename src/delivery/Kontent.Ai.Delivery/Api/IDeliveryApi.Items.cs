@@ -1,3 +1,4 @@
+using Kontent.Ai.Delivery.Handlers;
 using Kontent.Ai.Delivery.ContentItems;
 
 namespace Kontent.Ai.Delivery.Api;
@@ -21,7 +22,7 @@ internal partial interface IDeliveryApi
     internal Task<IApiResponse<DeliveryItemResponse<TModel>>> GetItemInternalAsync<TModel>(
         string codename,
         [Query] SingleItemParams? queryParameters = null,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         CancellationToken cancellationToken = default);
 
@@ -37,7 +38,7 @@ internal partial interface IDeliveryApi
     [Get("/items")]
     internal Task<IApiResponse<DeliveryItemListingResponse<TModel>>> GetItemsInternalAsync<TModel>(
         [Query] ListItemsParams? queryParameters = null,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         CancellationToken cancellationToken = default);
 
@@ -54,7 +55,7 @@ internal partial interface IDeliveryApi
     [Get("/items-feed")]
     internal Task<IApiResponse<DeliveryItemsFeedResponse<TModel>>> GetItemsFeedInternalAsync<TModel>(
         [Query] EnumItemsParams? queryParameters = null,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header("X-Continuation")] string? continuation = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         CancellationToken cancellationToken = default);

@@ -56,11 +56,10 @@ public static partial class ServiceCollectionExtensions
     /// Creates the Refit settings the Delivery API contract requires.
     /// </summary>
     /// <remarks>
-    /// Not consumer-configurable: every value here is load-bearing. <see cref="CollectionFormat.Multi"/>
-    /// is what keeps duplicate filters as separate query parameters — <c>Csv</c> would collapse
-    /// <c>[eq]=a&amp;[eq]=b</c> into a single <c>a,b</c> value that the API reads as one string.
-    /// The key formatter is what turns POCO property names into the casing the API expects, and the
-    /// serializer options carry the converters for the wire format.
+    /// Not consumer-configurable: every value here is load-bearing. The key formatter is what turns
+    /// POCO property names into the casing the API expects, and the serializer options carry the
+    /// converters for the wire format. <see cref="CollectionFormat.Multi"/> governs array-valued
+    /// query POCO properties; the filter DSL no longer relies on it, having its own renderer.
     /// </remarks>
     private static RefitSettings CreateRefitSettings(JsonSerializerOptions sharedJsonOptions) =>
         new()
@@ -109,6 +108,10 @@ public static partial class ServiceCollectionExtensions
     /// <param name="clientName">The name of the options for the authentication handler.</param>
     private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)
     {
+        // Applies the filter query. Idempotent by design - see FilterQueryHandler; the resilience
+        // pipeline re-runs every handler below it on each retry attempt.
+        httpClientBuilder.AddHttpMessageHandler(static () => new FilterQueryHandler());
+
         httpClientBuilder.AddHttpMessageHandler(sp => new TrackingHandler(
             sp.GetService<ILogger<TrackingHandler>>()));
 

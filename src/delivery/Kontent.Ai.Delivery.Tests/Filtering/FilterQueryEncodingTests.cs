@@ -73,16 +73,12 @@ public class FilterQueryEncodingTests
         => Assert.Equal("?elements.tags%5Bcontains%5D=a&elements.tags%5Bcontains%5D=b", await CaptureAsync(f => f.Element("tags").Contains("a").Element("tags").Contains("b")));
 
     [Fact]
-    public async Task InterleavedKeys_AreGrouped_LosingDeclarationOrder()
-        // Declared a=1, b=2, a=3 — sent as a=1, a=3, b=2. Same-key values are pulled together
-        // because the filters pass through a Dictionary<string, string[]> on the way to the wire,
-        // and grouping is what building that dictionary does.
-        //
-        // THE ONE EXPECTATION IN THIS FILE THAT THE PLANNED REFACTOR CHANGES. Rendering straight
-        // from the ordered filter list emits declaration order instead, which is faithful to what
-        // the caller wrote. Both are accepted by the API — the operators are AND-ed and order is
-        // not significant — so this is a tidy-up, not a fix. See docs/delivery-filter-dsl-plan.md §6.1.
-        => Assert.Equal("?elements.a%5Beq%5D=1&elements.a%5Beq%5D=3&elements.b%5Beq%5D=2", await CaptureAsync(f => f.Element("a").IsEqualTo("1").Element("b").IsEqualTo("2").Element("a").IsEqualTo("3")));
+    public async Task InterleavedKeys_KeepDeclarationOrder()
+        // Declared a=1, b=2, a=3 — sent in that order. Until the filters stopped travelling through a
+        // Dictionary<string, string[]> they arrived as a=1, a=3, b=2, because grouping is what building
+        // that dictionary did. Results were the same either way (filters are AND-ed, and cache keys are
+        // sorted before hashing), so this was a faithfulness fix rather than a bug fix.
+        => Assert.Equal("?elements.a%5Beq%5D=1&elements.b%5Beq%5D=2&elements.a%5Beq%5D=3", await CaptureAsync(f => f.Element("a").IsEqualTo("1").Element("b").IsEqualTo("2").Element("a").IsEqualTo("3")));
 
     [Fact]
     public async Task BoolAndNumber_UseInvariantFormatting()

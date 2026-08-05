@@ -143,7 +143,7 @@ internal sealed class TaxonomiesQuery(
     {
         var response = await api.GetTaxonomiesInternalAsync(
             _params,
-            _serializedFilters.ToQueryDictionary(),
+            FilterQueryString.Render(_serializedFilters),
             waitForLoadingNewContent,
             cancellationToken).ConfigureAwait(false);
         return await response.ToDeliveryResultAsync(logger).ConfigureAwait(false);

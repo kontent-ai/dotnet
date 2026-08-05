@@ -1,3 +1,4 @@
+using Kontent.Ai.Delivery.Handlers;
 using Kontent.Ai.Delivery.TaxonomyGroups;
 
 namespace Kontent.Ai.Delivery.Api;
@@ -29,7 +30,7 @@ internal partial interface IDeliveryApi
     [Get("/taxonomies")]
     internal Task<IApiResponse<DeliveryTaxonomyListingResponse>> GetTaxonomiesInternalAsync(
         [Query] ListTaxonomyGroupsParams? queryParameters = null,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         CancellationToken cancellationToken = default);
 }

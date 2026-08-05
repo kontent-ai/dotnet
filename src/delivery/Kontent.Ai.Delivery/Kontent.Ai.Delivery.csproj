@@ -14,23 +14,6 @@
     <PackageReference Include="Microsoft.Extensions.Primitives" />
     <PackageReference Include="Refit" />
     <PackageReference Include="Refit.HttpClientFactory" />
-    <!-- Refit builds request logic at compile time and treats the reflection builder as opt-in.
-         IDeliveryApi cannot be fully generated: the filter DSL travels as
-         [Query] Dictionary<string, string[]>, whose keys are only known at runtime (RF006 names
-         the seven methods). Without this reference RestService.For throws for that interface.
-
-         Management and Sync generate completely and deliberately do NOT reference this.
-
-         Dropping it means giving IDeliveryApi a generator-friendly shape for filters, which
-         changes how query strings are built - a wire-level change, not a mechanical one. That
-         also unblocks NativeAOT and trimming for Delivery.
-
-         This does NOT pin us to a Refit version: Refit.Reflection is first-party and its
-         releases track Refit's exactly (it was introduced with 14, when the generator became
-         the default; Refit 13 and earlier had the reflection builder built in). The signal
-         that the rework has become urgent is a Refit release shipping WITHOUT a matching
-         Refit.Reflection. See docs/breaking-changes-net10.md. -->
-    <PackageReference Include="Refit.Reflection" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />

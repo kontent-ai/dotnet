@@ -31,17 +31,6 @@ internal sealed class SerializedFilterCollection : ICollection<KeyValuePair<stri
         return clone;
     }
 
-    internal Dictionary<string, string[]>? ToQueryDictionary() => ToQueryDictionary(this);
-
-    internal static Dictionary<string, string[]>? ToQueryDictionary(IReadOnlyList<KeyValuePair<string, string>> filters)
-        => filters.Count == 0
-            ? null
-            : filters
-                .GroupBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.Select(x => x.Value).ToArray(),
-                    StringComparer.OrdinalIgnoreCase);
 
     public void Clear() => _filters.Clear();
 

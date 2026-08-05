@@ -21,42 +21,47 @@ public class SerializedFilterCollectionTests
     }
 
     [Fact]
-    public void SerializedFilterCollection_ToQueryDictionary_GroupsValuesPerKey()
+    public void Render_EmptyCollection_ReturnsNull()
+        => Assert.Null(FilterQueryString.Render(new SerializedFilterCollection()));
+
+    [Fact]
+    public void Render_EmitsPairsInDeclarationOrder()
+    {
+        var filters = new SerializedFilterCollection
+        {
+            new KeyValuePair<string, string>("elements.a[eq]", "1"),
+            new KeyValuePair<string, string>("elements.b[eq]", "2"),
+            new KeyValuePair<string, string>("elements.a[eq]", "3")
+        };
+
+        // Repeated keys stay where they were written rather than being pulled together.
+        Assert.Equal("elements.a%5Beq%5D=1&elements.b%5Beq%5D=2&elements.a%5Beq%5D=3", FilterQueryString.Render(filters));
+    }
+
+    [Fact]
+    public void Render_PreservesKeyCasing()
     {
         var filters = new SerializedFilterCollection
         {
             new KeyValuePair<string, string>("system.type[eq]", "article"),
-            new KeyValuePair<string, string>("System.Type[eq]", "blog_post"),
-            new KeyValuePair<string, string>("elements.category[contains]", "coffee")
+            new KeyValuePair<string, string>("System.Type[eq]", "blog_post")
         };
 
-        var query = filters.ToQueryDictionary();
-
-        Assert.NotNull(query);
-        Assert.True(query.ContainsKey("system.type[eq]"));
-        Assert.Equal(["article", "blog_post"], query["system.type[eq]"]);
-        Assert.Equal(["coffee"], query["elements.category[contains]"]);
+        // Keys are sent exactly as the caller wrote them. The previous implementation grouped keys
+        // case-insensitively, so a differently-cased codename was silently re-cased to whichever
+        // spelling appeared first. Codenames are lowercase by convention, so this only shows up when
+        // a caller already got one wrong — and surfacing that is better than quietly rewriting it.
+        Assert.Equal("system.type%5Beq%5D=article&System.Type%5Beq%5D=blog_post", FilterQueryString.Render(filters));
     }
 
     [Fact]
-    public void FilterQueryParams_ToQueryDictionary_SerializedFilterCollection_DelegatesToInstance()
+    public void Render_EscapesKeyAndValue()
     {
         var filters = new SerializedFilterCollection
         {
-            new KeyValuePair<string, string>("system.type[eq]", "article")
+            new KeyValuePair<string, string>("elements.title[eq]", "Hello & World")
         };
 
-        var result = FilterQueryParams.ToQueryDictionary(filters);
-
-        Assert.NotNull(result);
-        Assert.Equal(["article"], result["system.type[eq]"]);
-    }
-
-    [Fact]
-    public void FilterQueryParams_ToQueryDictionary_EmptyCollection_ReturnsNull()
-    {
-        var filters = new SerializedFilterCollection();
-
-        Assert.Null(FilterQueryParams.ToQueryDictionary(filters));
+        Assert.Equal("elements.title%5Beq%5D=Hello%20%26%20World", FilterQueryString.Render(filters));
     }
 }

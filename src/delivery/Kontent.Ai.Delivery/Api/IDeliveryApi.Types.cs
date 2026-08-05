@@ -1,3 +1,4 @@
+using Kontent.Ai.Delivery.Handlers;
 using Kontent.Ai.Delivery.ContentTypes;
 using Kontent.Ai.Delivery.ContentTypes.Element;
 
@@ -32,7 +33,7 @@ internal partial interface IDeliveryApi
     [Get("/types")]
     internal Task<IApiResponse<DeliveryTypeListingResponse>> GetTypesInternalAsync(
         [Query] ListTypesParams? queryParameters = null,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         CancellationToken cancellationToken = default);
 

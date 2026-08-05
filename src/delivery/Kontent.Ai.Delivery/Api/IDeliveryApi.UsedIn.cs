@@ -1,3 +1,4 @@
+using Kontent.Ai.Delivery.Handlers;
 using Kontent.Ai.Delivery.UsedIn;
 
 namespace Kontent.Ai.Delivery.Api;
@@ -17,7 +18,7 @@ internal partial interface IDeliveryApi
     [Get("/items/{codename}/used-in")]
     internal Task<IApiResponse<DeliveryUsedInResponse>> GetItemUsedInInternalAsync(
         string codename,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         [Header("X-Continuation")] string? continuationToken = null,
         CancellationToken cancellationToken = default);
@@ -34,7 +35,7 @@ internal partial interface IDeliveryApi
     [Get("/assets/{codename}/used-in")]
     internal Task<IApiResponse<DeliveryUsedInResponse>> GetAssetUsedInInternalAsync(
         string codename,
-        [Query] Dictionary<string, string[]>? filters = null,
+        [Property(FilterQueryHandler.FiltersOptionName)] string? filters = null,
         [Header(HttpRequestHeadersExtensions.WaitForLoadingNewContentHeaderName)] bool? waitForLoadingNewContent = null,
         [Header("X-Continuation")] string? continuationToken = null,
         CancellationToken cancellationToken = default);
