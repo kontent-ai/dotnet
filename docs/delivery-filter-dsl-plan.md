@@ -173,13 +173,32 @@ The method is a null-check plus a comment asserting an ownership boundary that m
 update the comment to point at `FilterQueryString`, or fold the null-check into the caller and
 delete it.
 
-### 6.3 `params string[]` → `params ReadOnlySpan<string>` _(separate decision)_
+### 6.3 `params string[]` → `params ReadOnlySpan<string>` — **recommend against**
 
-31 public signatures across the filter DSL and Management patch factories —
-`IsIn(params string[])`, `ContainsAll(string[])`, `ReplaceAllowedRoles(params Reference[])`. Saves
-an array allocation per call and the filter DSL is called per query. **Binary-breaking but
-source-compatible**, so the current major-version window is the only cheap opportunity. Unrelated
-to this refactor; listed here because it touches the same files.
+Considered and rejected. Listed here so it is not re-proposed.
+
+C# 13 allows `params` on a `ReadOnlySpan<T>`, which lets the compiler stack-allocate the argument
+buffer instead of heap-allocating an array. Measured over 100,000 calls of a three-argument method:
+
+```
+params string[]              48 B/call
+params ReadOnlySpan<string>   0 B/call
+```
+
+Real, but the wrong scale for this code. A filter call happens a handful of times per query, and
+the query then performs an HTTP round trip and deserializes a JSON response — kilobytes at
+minimum, plus the materialized content-item models. Saving ~144 bytes per query against that is
+unmeasurable. `params ReadOnlySpan<T>` pays off in hot loops called millions of times (logging,
+formatting, parsing), not in query construction.
+
+The cost is not small: 31 public signatures across the filter DSL and the Management patch
+factories, approval-snapshot churn in two products, and a **binary-breaking** change — source
+compatible, because `ReadOnlySpan<T>` converts implicitly from `T[]`, but already-compiled
+consumers fail with `MissingMethodException` until rebuilt.
+
+An open major-version window is a reason to take breaking changes that are *worth taking*, not a
+reason to spend churn on one with no measurable payoff. Revisit only if profiling of a real
+workload ever shows filter construction mattering.
 
 ### 6.4 The DSL shape itself is sound
 
@@ -192,7 +211,17 @@ invariant culture and explicit UTC normalisation. No change recommended.
 
 ## 7. Recommendation
 
-**Do it, but not on this branch.**
+Two separate decisions, because §6 raises items that are not part of this refactor:
+
+| item | verdict |
+|---|---|
+| **The filter-DSL rework** (§3) | do it, but not on this branch |
+| Ordering fix (§6.1) | comes free with the rework; changelog it |
+| `FilterValueSerializer` comment (§6.2) | fix with the rework |
+| `params ReadOnlySpan<T>` (§6.3) | **do not do it** — measured payoff does not justify the churn |
+| DSL shape (§6.4) | no change |
+
+### The filter-DSL rework: do it, but not on this branch
 
 It no longer needs the major-version window — §2.1 establishes there is no public API change, so
 it can ship in any minor. That removes the only argument for rushing it alongside the .NET 10
