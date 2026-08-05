@@ -208,7 +208,6 @@ public static class ServiceCollectionExtensions
 
         EnsureClientNameNotAlreadyRegistered(services, name);
 
-        // Register named options
         services.Configure(name, configureOptions);
         services.AddOptions<SyncOptions>(name)
             .ValidateDataAnnotations()

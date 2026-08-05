@@ -1,5 +1,3 @@
-// Global using directives for Kontent.Ai.Sync
-
 global using System;
 global using System.Collections.Generic;
 global using System.Linq;

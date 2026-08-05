@@ -8,8 +8,6 @@
 [**/{ClassCodeGenerator,ManagementClassCodeGenerator}.cs]
 dotnet_diagnostic.S125.severity = none
 
-
-
 # Two deliberate patterns in the CLI argument parser:
 # S127 - `value = args[++i]` consumes the following token as the current flag's value. Advancing
 #   the loop variable IS the parse step for space-separated "--key value" syntax; the alternative

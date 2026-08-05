@@ -14,7 +14,6 @@ public class DeliveryClassCodeGenerator(ClassDefinition classDefinition, string 
     {
         var recordDeclaration = base.GetClassDeclaration();
 
-        // Add ContentTypeCodename attribute
         recordDeclaration = recordDeclaration.AddAttributeLists(
             SyntaxFactory.AttributeList(
                 SyntaxFactory.SingletonSeparatedList(
@@ -27,13 +26,8 @@ public class DeliveryClassCodeGenerator(ClassDefinition classDefinition, string 
                                         SyntaxKind.StringLiteralExpression,
                                         SyntaxFactory.Literal(ClassDefinition.Codename)))))))));
 
-        // Add element codename constants
         recordDeclaration = recordDeclaration.AddMembers(GetPropertyCodenameConstants());
-
-        // Add ContentTypeCodename constant
         recordDeclaration = recordDeclaration.AddMembers(GetContentTypeCodenameConstant());
-
-        // Add element properties
         recordDeclaration = recordDeclaration.AddMembers(GetProperties());
 
         return recordDeclaration;

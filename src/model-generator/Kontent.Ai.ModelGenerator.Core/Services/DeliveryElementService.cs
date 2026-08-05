@@ -18,14 +18,11 @@ public class DeliveryElementService : IDeliveryElementService
     {
         ArgumentNullException.ThrowIfNull(elementType);
 
-        // Modern delivery models are always structured - no suffix needed
-        // Extended delivery models have their own type resolution logic
         return elementType;
     }
 
     private static void Validate(CodeGeneratorOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        // Modern beta version only supports Delivery SDK models
     }
 }

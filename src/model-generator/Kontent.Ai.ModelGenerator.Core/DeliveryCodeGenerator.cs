@@ -38,7 +38,6 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
         {
             try
             {
-                // Modern delivery generates single file per content type (no partials)
                 codeGenerators.Add(GetClassCodeGenerator(contentType));
             }
             catch (InvalidIdentifierException)
@@ -68,8 +67,6 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
                 WriteConsoleErrorMessage(e, element.Key, element.Value.Type, classDefinition.ClassName);
             }
         }
-
-        // Modern delivery: no system property
 
         var classFilename = classDefinition.ClassName;
 

@@ -23,7 +23,6 @@ internal sealed record SyncDeltaResponse : ISyncDeltaResponse
     [JsonPropertyName("taxonomies")]
     public IReadOnlyList<SyncTaxonomy> Taxonomies { get; init; } = [];
 
-    // Explicit interface implementations to expose as interfaces
     IReadOnlyList<ISyncItem> ISyncDeltaResponse.Items => Items;
     IReadOnlyList<ISyncType> ISyncDeltaResponse.Types => Types;
     IReadOnlyList<ISyncLanguage> ISyncDeltaResponse.Languages => Languages;

@@ -36,8 +36,6 @@ public sealed partial class ManagementClient : IManagementClient
     {
     }
 
-    // Standalone construction with the optional hook the ManagementClientBuilder exposes. The public ctor above
-    // delegates here with null, so its behaviour is unchanged.
     internal ManagementClient(
         ManagementOptions managementOptions,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)

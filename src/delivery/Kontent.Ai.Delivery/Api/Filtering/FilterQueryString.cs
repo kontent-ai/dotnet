@@ -6,10 +6,8 @@ namespace Kontent.Ai.Delivery.Api.Filtering;
 /// <remarks>
 /// <para>
 /// Escaping is <see cref="Uri.EscapeDataString(string)"/> on both key and value, and nothing else.
-/// That is a deliberate match for what the transport used to do on our behalf, verified case by
-/// case in <c>FilterQueryEncodingTests</c> — including that a value which is already
-/// percent-encoded gets escaped a second time. The DSL takes raw values; encoding is applied here,
-/// once, at the boundary.
+/// The DSL takes raw values; encoding is applied here, once, at the boundary — so a value that is
+/// already percent-encoded gets escaped a second time.
 /// </para>
 /// <para>
 /// Pairs are rendered in the order the caller declared them. Repeated keys stay repeated and stay

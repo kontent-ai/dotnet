@@ -85,13 +85,11 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// </summary>
     private static bool CalculateHasMoreChanges(T value)
     {
-        // Only delta responses can have more changes
         if (value is not ISyncDeltaResponse deltaResponse)
         {
             return false;
         }
 
-        // Check if any collection has reached the maximum items per response
         return deltaResponse.Items.Count >= SyncConstants.MaxItemsPerEntityType
             || deltaResponse.Types.Count >= SyncConstants.MaxItemsPerEntityType
             || deltaResponse.Languages.Count >= SyncConstants.MaxItemsPerEntityType

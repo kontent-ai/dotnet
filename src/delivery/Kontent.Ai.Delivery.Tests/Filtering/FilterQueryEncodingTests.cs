@@ -13,12 +13,7 @@ namespace Kontent.Ai.Delivery.Tests.Filtering;
 /// These assert the exact bytes sent for a given DSL expression — the contract the Delivery API is
 /// actually consuming. They deliberately go through the public DSL and <see cref="IDeliveryClient"/>
 /// rather than the internal Refit interface, so they stay valid if the transport underneath changes.
-/// </para>
-/// <para>
-/// Written ahead of the work in <c>docs/delivery-filter-dsl-plan.md</c>, which replaces the
-/// reflection-based query building. Every expectation here was captured from the current
-/// implementation and reviewed; they must pass <em>unchanged</em> afterwards. A diff in this file
-/// during that refactor means the wire contract moved, which is the one thing that must not happen.
+/// A diff in an expectation here means the wire contract moved.
 /// </para>
 /// </remarks>
 public class FilterQueryEncodingTests
@@ -74,10 +69,6 @@ public class FilterQueryEncodingTests
 
     [Fact]
     public async Task InterleavedKeys_KeepDeclarationOrder()
-        // Declared a=1, b=2, a=3 — sent in that order. Until the filters stopped travelling through a
-        // Dictionary<string, string[]> they arrived as a=1, a=3, b=2, because grouping is what building
-        // that dictionary did. Results were the same either way (filters are AND-ed, and cache keys are
-        // sorted before hashing), so this was a faithfulness fix rather than a bug fix.
         => Assert.Equal("?elements.a%5Beq%5D=1&elements.b%5Beq%5D=2&elements.a%5Beq%5D=3", await CaptureAsync(f => f.Element("a").IsEqualTo("1").Element("b").IsEqualTo("2").Element("a").IsEqualTo("3")));
 
     [Fact]
@@ -93,14 +84,9 @@ public class FilterQueryEncodingTests
     [Fact]
     public async Task FilterQuery_IsIdenticalOnEveryRetryAttempt()
     {
-        // Guards the design in docs/delivery-filter-dsl-plan.md §5.2. The planned implementation moves
-        // filters out of the Refit parameter list and onto the request via a DelegatingHandler. The
-        // resilience pipeline sits OUTSIDE the handler chain, so every inner handler re-runs per retry
-        // attempt — a handler that appends to RequestUri instead of rebuilding it would send
-        // "?a=1&a=1" on the second attempt. Wrong results, no exception, and only under retry.
-        //
-        // Passes trivially today (nothing mutates the URI). It exists to fail the moment that stops
-        // being true.
+        // The resilience pipeline sits OUTSIDE the handler chain, so every inner handler re-runs per
+        // retry attempt. A FilterQueryHandler that appended to RequestUri instead of rebuilding it
+        // would send "?a=1&a=1" on the second attempt — wrong results, no exception, only under retry.
         var handler = new RetryCaptureHandler();
         var services = new ServiceCollection();
         services.AddDeliveryClient(

@@ -40,9 +40,21 @@ public class SignatureMiddleware
         var request = httpContext.Request;
         request.EnableBuffering();
 
-        using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-        var content = await reader.ReadToEndAsync(httpContext.RequestAborted);
-        request.Body.Seek(0, SeekOrigin.Begin);
+        string content;
+        try
+        {
+            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
+            content = await reader.ReadToEndAsync(httpContext.RequestAborted);
+        }
+        finally
+        {
+            // Rewind even if the read was cancelled: anything upstream that catches the cancellation
+            // and continues would otherwise hand the rest of the pipeline a mid-stream body.
+            if (request.Body.CanSeek)
+            {
+                request.Body.Seek(0, SeekOrigin.Begin);
+            }
+        }
 
         var generatedSignature = GenerateHash(content, WebhookOptions.Value.Secret);
         var signature = request.Headers["X-KC-Signature"].FirstOrDefault() ?? request.Headers["X-Kontent-ai-Signature"].FirstOrDefault();

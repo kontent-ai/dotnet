@@ -23,7 +23,6 @@ public class ClassCodeGeneratorFactory : IClassCodeGeneratorFactory
             return new PartialClassCodeGenerator(classDefinition, classFilename, options.Namespace);
         }
 
-        // Modern beta only supports Delivery SDK models
         return new DeliveryClassCodeGenerator(classDefinition, classFilename, options.Namespace);
     }
 }

@@ -83,7 +83,7 @@ Latest release: [Download](https://github.com/kontent-ai/dotnet/releases)
 <summary>Building a self-contained binary for a specific platform</summary>
 
 * Clone the repository
-* Navigate to `src/Kontent.Ai.ModelGenerator`
+* Navigate to `Kontent.Ai.ModelGenerator`
 * `dotnet build -r <RID>` to build (see the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog))
 * `dotnet publish -c release -r <RID>` to publish
 

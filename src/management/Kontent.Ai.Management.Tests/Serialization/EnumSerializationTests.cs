@@ -45,12 +45,9 @@ public class EnumSerializationTests
 
         JsonSerializer.Deserialize<ElementMetadataType>("\"modular_content\"", options).Should().Be(ElementMetadataType.LinkedItems);
 
-        // Only the exact wire token is accepted. The Management API emits canonical tokens, so anything else is a
-        // caller error worth surfacing rather than quietly repairing.
         var miscased = () => JsonSerializer.Deserialize<ElementMetadataType>("\"MODULAR_CONTENT\"", options);
         miscased.Should().Throw<JsonException>();
 
-        // The C# member name is not a wire token either.
         var memberName = () => JsonSerializer.Deserialize<ElementMetadataType>("\"LinkedItems\"", options);
         memberName.Should().Throw<JsonException>();
     }

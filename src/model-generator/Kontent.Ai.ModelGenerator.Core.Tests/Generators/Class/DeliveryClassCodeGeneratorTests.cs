@@ -11,7 +11,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
 {
     public DeliveryClassCodeGeneratorTests()
     {
-        // Modern delivery models - always structured, no suffixes
         AddElement("text", "text");
         AddElement("rich_text", "rich_text");
         AddElement("number", "number");

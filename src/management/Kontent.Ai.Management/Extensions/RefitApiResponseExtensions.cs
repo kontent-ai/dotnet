@@ -116,9 +116,8 @@ internal static class RefitApiResponseExtensions
         }
     }
 
-    // Null when no response was received at all (a transport-level failure). The ApiException
-    // carries the status when there was one; the final fallback is default rather than an
-    // invented code, because no HTTP exchange completed.
+    // StatusCode is null when no response was received at all (a transport-level failure); the fallback is
+    // default (0) rather than an invented code, because no HTTP exchange completed.
     private static System.Net.HttpStatusCode StatusOf(IApiResponse response) =>
         response.StatusCode ?? (response.Error as ApiException)?.StatusCode ?? default;
 

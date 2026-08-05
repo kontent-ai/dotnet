@@ -18,8 +18,7 @@ Targets .NET 10. The package moves from `net8.0` to `net10.0`; the public API is
 
 ### Dependencies
 
-No shipped dependency floors changed — this package has no direct `Microsoft.Extensions.*` references and picks its versions up transitively from `Kontent.Ai.Delivery`.
-
+No shipped dependency floors changed. This package has no direct `Microsoft.Extensions.*` references — it declares `<FrameworkReference Include="Microsoft.AspNetCore.App" />`, so those assemblies come from the ASP.NET Core shared framework rather than from a package.
 
 ## 0.17.0-preview.1 (2026-08-03)
 

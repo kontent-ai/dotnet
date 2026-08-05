@@ -58,8 +58,7 @@ public static partial class ServiceCollectionExtensions
     /// <remarks>
     /// Not consumer-configurable: every value here is load-bearing. The key formatter is what turns
     /// POCO property names into the casing the API expects, and the serializer options carry the
-    /// converters for the wire format. <see cref="CollectionFormat.Multi"/> governs array-valued
-    /// query POCO properties; the filter DSL no longer relies on it, having its own renderer.
+    /// converters for the wire format.
     /// </remarks>
     private static RefitSettings CreateRefitSettings(JsonSerializerOptions sharedJsonOptions) =>
         new()
@@ -108,8 +107,8 @@ public static partial class ServiceCollectionExtensions
     /// <param name="clientName">The name of the options for the authentication handler.</param>
     private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)
     {
-        // Applies the filter query. Idempotent by design - see FilterQueryHandler; the resilience
-        // pipeline re-runs every handler below it on each retry attempt.
+        // Registered after the resilience handler, so it re-runs on every retry attempt - see
+        // FilterQueryHandler for why that requires it to be idempotent.
         httpClientBuilder.AddHttpMessageHandler(static () => new FilterQueryHandler());
 
         httpClientBuilder.AddHttpMessageHandler(sp => new TrackingHandler(

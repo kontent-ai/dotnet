@@ -57,13 +57,10 @@ internal sealed class SyncClient(
 
         while (true)
         {
-            // Check cancellation
             cancellationToken.ThrowIfCancellationRequested();
 
-            // Fetch next page
             var result = await GetDeltaAsync(currentToken, cancellationToken).ConfigureAwait(false);
 
-            // Handle errors
             if (!result.IsSuccess)
             {
                 return new SyncAllDeltaResult(
@@ -73,18 +70,15 @@ internal sealed class SyncClient(
                     result.Error!);
             }
 
-            // Add response and increment counter
             responses.Add(result.Value);
             pagesFetched++;
             currentToken = result.SyncToken ?? currentToken;
 
-            // Check if more pages available
             if (!result.HasMoreChanges)
             {
                 break;
             }
 
-            // Check max pages limit
             if (maxPages.HasValue && pagesFetched >= maxPages.Value)
             {
                 wasLimitedByMaxPages = true;

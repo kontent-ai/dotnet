@@ -11,7 +11,7 @@ Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai
 dotnet add package Kontent.Ai.AspNetCore
 ```
 
-The package targets `net8.0` and aligns version-wise with the Delivery SDK (`19.x`).
+The package targets `net10.0` and aligns version-wise with the Delivery SDK (`19.x`).
 
 ## Tag Helpers
 
