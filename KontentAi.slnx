@@ -21,10 +21,10 @@
     <Project Path="src/management/Kontent.Ai.Management/Kontent.Ai.Management.csproj" />
   </Folder>
   <Folder Name="/src/model-generator/">
-    <Project Path="src/model-generator/src/Kontent.Ai.ModelGenerator.Core/Kontent.Ai.ModelGenerator.Core.csproj" />
-    <Project Path="src/model-generator/src/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj" />
-    <Project Path="src/model-generator/test/Kontent.Ai.ModelGenerator.Core.Tests/Kontent.Ai.ModelGenerator.Core.Tests.csproj" />
-    <Project Path="src/model-generator/test/Kontent.Ai.ModelGenerator.Tests/Kontent.Ai.ModelGenerator.Tests.csproj" />
+    <Project Path="src/model-generator/Kontent.Ai.ModelGenerator.Core/Kontent.Ai.ModelGenerator.Core.csproj" />
+    <Project Path="src/model-generator/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj" />
+    <Project Path="src/model-generator/Kontent.Ai.ModelGenerator.Core.Tests/Kontent.Ai.ModelGenerator.Core.Tests.csproj" />
+    <Project Path="src/model-generator/Kontent.Ai.ModelGenerator.Tests/Kontent.Ai.ModelGenerator.Tests.csproj" />
   </Folder>
   <Folder Name="/src/sync/">
     <Project Path="src/sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj" />

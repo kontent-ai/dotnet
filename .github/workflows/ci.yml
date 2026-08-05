@@ -82,7 +82,7 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: src/model-generator/test/Kontent.Ai.ModelGenerator.Tests/coverage.opencover.xml,src/model-generator/test/Kontent.Ai.ModelGenerator.Core.Tests/coverage.opencover.xml
+          files: src/model-generator/Kontent.Ai.ModelGenerator.Tests/coverage.opencover.xml,src/model-generator/Kontent.Ai.ModelGenerator.Core.Tests/coverage.opencover.xml
           flags: model-generator
           fail_ci_if_error: true
       - name: Restore local tools

@@ -119,7 +119,7 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    --DeliveryOptions:UseSecureAccess true --DeliveryOptions:SecureAccessApiKey <SecuredApiKey>
    ```
 
-2. [`appSettings.json`](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/src/Kontent.Ai.ModelGenerator/appSettings.json) - suitable for the standalone app release
+2. [`appSettings.json`](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/Kontent.Ai.ModelGenerator/appSettings.json) - suitable for the standalone app release
 
 ## Generated Model Example (Delivery)
 

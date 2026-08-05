@@ -50,8 +50,8 @@
     ],
     "changelog": "src/model-generator/CHANGELOG.md",
     "projects": [
-      "src/model-generator/src/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj",
-      "src/model-generator/src/Kontent.Ai.ModelGenerator.Core/Kontent.Ai.ModelGenerator.Core.csproj"
+      "src/model-generator/Kontent.Ai.ModelGenerator/Kontent.Ai.ModelGenerator.csproj",
+      "src/model-generator/Kontent.Ai.ModelGenerator.Core/Kontent.Ai.ModelGenerator.Core.csproj"
     ],
     "expectedPackages": [
       "Kontent.Ai.ModelGenerator",

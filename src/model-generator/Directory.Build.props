@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <!-- $(MSBuildThisFileDirectory) resolves to src/model-generator/ regardless of how
-         deep the consuming project sits, so this survives the src/ + test/ nesting. -->
+         deep the consuming project sits. -->
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 </Project>
