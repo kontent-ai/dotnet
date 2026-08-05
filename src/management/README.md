@@ -118,7 +118,7 @@ await using var client = new ManagementClient(new ManagementOptions
 });
 ```
 
-A standalone client owns its `HttpClient` instances — dispose it when you are done (it implements both `IDisposable` and `IAsyncDisposable`, hence the `await using` above).
+A standalone client owns its `HttpClient` instances — dispose it when you are done. `ManagementClientBuilder.Build()` and the `ManagementClient` constructor both hand back the concrete `ManagementClient`, which implements `IDisposable` and `IAsyncDisposable` (hence the `await using` above). The `IManagementClient` interface deliberately does not: a client resolved from a container is owned by the container, and nothing you inject should be disposed by you.
 
 ### Fluent Builder
 

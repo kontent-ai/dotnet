@@ -8,134 +8,168 @@ namespace Kontent.Ai.Delivery;
 /// <summary>
 /// Executes requests against the Kontent.ai Delivery API using query builders.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="DeliveryClient"/> class for retrieving content of the specified environment.
-/// </remarks>
-/// <param name="deliveryApi">The Refit-generated API client.</param>
-/// <param name="contentItemMapper">The content item mapper for element hydration.</param>
-/// <param name="contentDeserializer">The content deserializer for JSON to object conversion.</param>
-/// <param name="typeProvider">The type provider for content type to CLR type mapping.</param>
-/// <param name="cacheManager">Optional cache manager for caching API responses (injected when EnableCaching is true).</param>
-/// <param name="logger">Optional logger for diagnostic output.</param>
-/// <param name="optionsAccessor">Provides the effective <see cref="DeliveryOptions"/> at runtime (monitor- or snapshot-backed).</param>
-/// <param name="ownedResources">
-/// Resources whose lifetime this client is responsible for, or <c>null</c> when something else owns them.
-/// A container passes <c>null</c> - it owns the transport and disposes the client itself.
-/// <see cref="DeliveryClientBuilder"/> passes the private service provider it built, so disposing the
-/// client tears down that provider and everything registered in it.
-/// </param>
-internal sealed class DeliveryClient(
-    IDeliveryApi deliveryApi,
-    ContentItemMapper contentItemMapper,
-    IContentDeserializer contentDeserializer,
-    ITypeProvider typeProvider,
-    IDeliveryCacheManager? cacheManager = null,
-    ILogger<DeliveryClient>? logger = null,
-    IDeliveryOptionsAccessor? optionsAccessor = null,
-    IDisposable? ownedResources = null) : IDeliveryClient
+public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposable
 {
+    private readonly IDeliveryApi _deliveryApi;
+    private readonly ContentItemMapper _contentItemMapper;
+    private readonly IContentDeserializer _contentDeserializer;
+    private readonly ITypeProvider _typeProvider;
+    private readonly IDeliveryCacheManager? _cacheManager;
+    private readonly ILogger<DeliveryClient>? _logger;
+    private readonly IDeliveryOptionsAccessor? _optionsAccessor;
+    private readonly IDisposable? _ownedResources;
     private int _disposeState;
 
+    /// <summary>
+    /// Initializes a new client for retrieving content of the specified environment.
+    /// </summary>
+    /// <param name="deliveryApi">The Refit-generated API client.</param>
+    /// <param name="contentItemMapper">The content item mapper for element hydration.</param>
+    /// <param name="contentDeserializer">The content deserializer for JSON to object conversion.</param>
+    /// <param name="typeProvider">The type provider for content type to CLR type mapping.</param>
+    /// <param name="cacheManager">Optional cache manager for caching API responses (injected when EnableCaching is true).</param>
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    /// <param name="optionsAccessor">Provides the effective <see cref="DeliveryOptions"/> at runtime (monitor- or snapshot-backed).</param>
+    /// <param name="ownedResources">
+    /// Resources whose lifetime this client is responsible for, or <c>null</c> when something else owns them.
+    /// A container passes <c>null</c> - it owns the transport and disposes the client itself.
+    /// <see cref="DeliveryClientBuilder"/> passes the private service provider it built, so disposing the
+    /// client tears down that provider and everything registered in it.
+    /// </param>
+    internal DeliveryClient(
+        IDeliveryApi deliveryApi,
+        ContentItemMapper contentItemMapper,
+        IContentDeserializer contentDeserializer,
+        ITypeProvider typeProvider,
+        IDeliveryCacheManager? cacheManager = null,
+        ILogger<DeliveryClient>? logger = null,
+        IDeliveryOptionsAccessor? optionsAccessor = null,
+        IDisposable? ownedResources = null)
+    {
+        _deliveryApi = deliveryApi;
+        _contentItemMapper = contentItemMapper;
+        _contentDeserializer = contentDeserializer;
+        _typeProvider = typeProvider;
+        _cacheManager = cacheManager;
+        _logger = logger;
+        _optionsAccessor = optionsAccessor;
+        _ownedResources = ownedResources;
+    }
+
+    /// <inheritdoc/>
     public IItemQuery<T> GetItem<T>(string codename)
     {
         EnsureCodenameValid(codename);
         return new ItemQuery<T>(
-            deliveryApi,
+            _deliveryApi,
             codename,
-            contentItemMapper,
-            contentDeserializer,
+            _contentItemMapper,
+            _contentDeserializer,
             GetEffectiveCacheManager(),
             GetDefaultRenditionPreset(),
             GetCustomAssetDomain(),
-            logger);
+            _logger);
     }
 
+    /// <inheritdoc/>
     public IDynamicItemQuery GetItem(string codename)
     {
         EnsureCodenameValid(codename);
         return new DynamicItemQuery(
-            deliveryApi,
+            _deliveryApi,
             codename,
-            contentItemMapper,
-            contentDeserializer,
+            _contentItemMapper,
+            _contentDeserializer,
             GetDefaultRenditionPreset(),
             GetCustomAssetDomain(),
-            logger);
+            _logger);
     }
 
+    /// <inheritdoc/>
     public IItemsQuery<T> GetItems<T>() => new ItemsQuery<T>(
-        deliveryApi,
-        contentItemMapper,
-        contentDeserializer,
-        typeProvider,
+        _deliveryApi,
+        _contentItemMapper,
+        _contentDeserializer,
+        _typeProvider,
         GetEffectiveCacheManager(),
         GetDefaultRenditionPreset(),
         GetCustomAssetDomain(),
-        logger);
+        _logger);
 
+    /// <inheritdoc/>
     public IDynamicItemsQuery GetItems()
     {
         return new DynamicItemsQuery(
-            deliveryApi,
-            contentItemMapper,
-            contentDeserializer,
-            typeProvider,
+            _deliveryApi,
+            _contentItemMapper,
+            _contentDeserializer,
+            _typeProvider,
             GetDefaultRenditionPreset(),
             GetCustomAssetDomain(),
-            logger);
+            _logger);
     }
 
+    /// <inheritdoc/>
     public IEnumerateItemsQuery<T> GetItemsFeed<T>() => new EnumerateItemsQuery<T>(
-        deliveryApi,
-        contentItemMapper,
-        typeProvider,
+        _deliveryApi,
+        _contentItemMapper,
+        _typeProvider,
         GetDefaultRenditionPreset(),
         GetCustomAssetDomain(),
-        logger);
+        _logger);
 
+    /// <inheritdoc/>
     public IDynamicEnumerateItemsQuery GetItemsFeed() => new DynamicEnumerateItemsQuery(
-        deliveryApi,
-        contentItemMapper,
-        typeProvider,
+        _deliveryApi,
+        _contentItemMapper,
+        _typeProvider,
         GetDefaultRenditionPreset(),
         GetCustomAssetDomain(),
-        logger);
+        _logger);
 
+    /// <inheritdoc/>
     public ITypeQuery GetType(string codename)
     {
         EnsureCodenameValid(codename);
-        return new TypeQuery(deliveryApi, codename, GetEffectiveCacheManager(), logger);
+        return new TypeQuery(_deliveryApi, codename, GetEffectiveCacheManager(), _logger);
     }
 
-    public ITypesQuery GetTypes() => new TypesQuery(deliveryApi, GetEffectiveCacheManager(), logger);
+    /// <inheritdoc/>
+    public ITypesQuery GetTypes() => new TypesQuery(_deliveryApi, GetEffectiveCacheManager(), _logger);
 
+    /// <inheritdoc/>
     public ITypeElementQuery GetContentElement(string contentTypeCodename, string contentElementCodename)
     {
         EnsureCodenameValid(contentTypeCodename);
         EnsureCodenameValid(contentElementCodename);
-        return new TypeElementQuery(deliveryApi, contentTypeCodename, contentElementCodename, logger);
+        return new TypeElementQuery(_deliveryApi, contentTypeCodename, contentElementCodename, _logger);
     }
 
+    /// <inheritdoc/>
     public ITaxonomyQuery GetTaxonomy(string codename)
     {
         EnsureCodenameValid(codename);
-        return new TaxonomyQuery(deliveryApi, codename, GetEffectiveCacheManager(), logger);
+        return new TaxonomyQuery(_deliveryApi, codename, GetEffectiveCacheManager(), _logger);
     }
 
-    public ITaxonomiesQuery GetTaxonomies() => new TaxonomiesQuery(deliveryApi, GetEffectiveCacheManager(), logger);
+    /// <inheritdoc/>
+    public ITaxonomiesQuery GetTaxonomies() => new TaxonomiesQuery(_deliveryApi, GetEffectiveCacheManager(), _logger);
 
-    public ILanguagesQuery GetLanguages() => new LanguagesQuery(deliveryApi, logger);
+    /// <inheritdoc/>
+    public ILanguagesQuery GetLanguages() => new LanguagesQuery(_deliveryApi, _logger);
 
+    /// <inheritdoc/>
     public IItemUsedInQuery GetItemUsedIn(string codename)
     {
         EnsureCodenameValid(codename);
-        return new ItemUsedInQuery(deliveryApi, codename, logger);
+        return new ItemUsedInQuery(_deliveryApi, codename, _logger);
     }
 
+    /// <inheritdoc/>
     public IAssetUsedInQuery GetAssetUsedIn(string codename)
     {
         EnsureCodenameValid(codename);
-        return new AssetUsedInQuery(deliveryApi, codename, logger);
+        return new AssetUsedInQuery(_deliveryApi, codename, _logger);
     }
 
     /// <summary>
@@ -148,7 +182,7 @@ internal sealed class DeliveryClient(
             return;
         }
 
-        ownedResources?.Dispose();
+        _ownedResources?.Dispose();
     }
 
     /// <inheritdoc/>
@@ -159,13 +193,13 @@ internal sealed class DeliveryClient(
             return;
         }
 
-        if (ownedResources is IAsyncDisposable asyncDisposable)
+        if (_ownedResources is IAsyncDisposable asyncDisposable)
         {
             await asyncDisposable.DisposeAsync().ConfigureAwait(false);
         }
         else
         {
-            ownedResources?.Dispose();
+            _ownedResources?.Dispose();
         }
     }
 
@@ -178,17 +212,17 @@ internal sealed class DeliveryClient(
     }
 
     private IDeliveryCacheManager? GetEffectiveCacheManager()
-        => IsPreviewApiEnabled() ? null : cacheManager;
+        => IsPreviewApiEnabled() ? null : _cacheManager;
 
     private string? GetDefaultRenditionPreset()
-        => optionsAccessor?.Current.DefaultRenditionPreset;
+        => _optionsAccessor?.Current.DefaultRenditionPreset;
 
     private Uri? GetCustomAssetDomain()
     {
-        var domain = optionsAccessor?.Current.CustomAssetDomain;
+        var domain = _optionsAccessor?.Current.CustomAssetDomain;
         return string.IsNullOrWhiteSpace(domain) ? null : new Uri(domain, UriKind.Absolute);
     }
 
     private bool IsPreviewApiEnabled()
-        => optionsAccessor?.Current.UsePreviewApi ?? false;
+        => _optionsAccessor?.Current.UsePreviewApi ?? false;
 }

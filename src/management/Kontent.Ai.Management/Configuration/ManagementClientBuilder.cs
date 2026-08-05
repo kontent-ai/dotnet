@@ -74,6 +74,6 @@ public sealed class ManagementClientBuilder
     /// </summary>
     /// <returns>A new client. Dispose it (or <c>await using</c> it) to release the HTTP resources.</returns>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">The options fail validation (e.g. missing or malformed environment ID or API key).</exception>
-    public IManagementClient Build()
+    public ManagementClient Build()
         => new ManagementClient(_options, _configureResilience);
 }

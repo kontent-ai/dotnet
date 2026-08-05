@@ -14,6 +14,21 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release — restore fails with `NU1202`. Move to .NET 10 first.
+- **The client interfaces no longer carry `IDisposable` / `IAsyncDisposable`; the concrete clients do.** Disposal exists for one situation - a client built outside a container, which owns its own transport and must release it. Putting it on the interface meant every consumer holding `IManagementClient` was offered a `Dispose()` that, on the container path, released nothing and must not be called: the container owns that lifetime. `ManagementClientBuilder.Build()` now returns the concrete `ManagementClient`, which is `IDisposable` and `IAsyncDisposable`, so disposal stays available exactly where it means something.
+
+  `await using var client = ManagementClientBuilder…Build();` is unchanged, and so is every DI usage. The only code that breaks widened the builder result to the interface and then disposed it:
+
+  ```csharp
+  // Before - no longer compiles, because the interface has no Dispose
+  IManagementClient client = ManagementClientBuilder…Build();
+  client.Dispose();
+
+  // After - keep the concrete type, or just use var
+  var client = ManagementClientBuilder…Build();
+  client.Dispose();
+  ```
+
+  Container-resolved clients are still disposed by the container, which checks the runtime type rather than the registered service type - so nothing changes there.
 - **The `configureRefit` parameter is gone from all five `AddManagementClient` overloads, and `ManagementClientBuilder.ConfigureRefit` is removed.** The hook handed out the transport library's settings object, but every value it could reach was load-bearing rather than configurable — the parameter-key formatter matches the API's casing, and the serializer options carry the converters, naming policy and nesting limit the wire format depends on. Overriding them broke requests silently. Delete the argument or the builder call; the SDK's own tests only ever used it to assert the callback fired.
 - **Enum values are now read case-sensitively.** Only the exact wire token is accepted: `"modular_content"` binds, `"MODULAR_CONTENT"` and the C# member name `"LinkedItems"` now throw `JsonException` instead of being coerced. The Management API emits canonical tokens and `ContentModelSnapshot.FromJson` only ever consumes `ToJson` output, so this affects hand-written JSON. Writing is unchanged, and numeric tokens are still rejected in both directions.
 

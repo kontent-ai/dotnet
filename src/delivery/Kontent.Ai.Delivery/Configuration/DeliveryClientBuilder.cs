@@ -180,7 +180,7 @@ public sealed class DeliveryClientBuilder
     /// </code>
     /// </example>
     /// </remarks>
-    public IDeliveryClient Build()
+    public DeliveryClient Build()
     {
         if (_deliveryOptions is null)
         {

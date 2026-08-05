@@ -11,7 +11,7 @@ namespace Kontent.Ai.Management;
 /// <see cref="IAsyncDisposable"/> so non-DI consumers can release the underlying <see cref="HttpClient"/> instances;
 /// DI-managed instances pass <c>null</c> for <c>ownedResources</c> and Dispose becomes a no-op.
 /// </summary>
-public sealed partial class ManagementClient : IManagementClient
+public sealed partial class ManagementClient : IManagementClient, IDisposable, IAsyncDisposable
 {
     private readonly IManagementApi _managementApi;
     private readonly ISubscriptionApi? _subscriptionApi;

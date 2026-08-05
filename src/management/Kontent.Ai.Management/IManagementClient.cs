@@ -34,12 +34,14 @@ namespace Kontent.Ai.Management;
 
 /// <summary>
 /// The Kontent.ai Management API client — one method per API operation, each returning an
-/// <see cref="IManagementResult"/> instead of throwing on API errors. The client owns its underlying HTTP resources when built
-/// standalone (via the <see cref="ManagementClient"/> constructor or <see cref="Configuration.ManagementClientBuilder"/>),
-/// so it is <see cref="IDisposable"/> / <see cref="IAsyncDisposable"/> — dispose it (or <c>await using</c> it) to
-/// release them. For DI-managed instances disposal is a no-op; the host container owns the lifetime.
+/// <see cref="IManagementResult"/> instead of throwing on API errors.
 /// </summary>
-public interface IManagementClient : IDisposable, IAsyncDisposable
+/// <remarks>
+/// This contract carries no disposal. A client resolved from a container is owned by the container,
+/// which releases it; a client built standalone owns its <see cref="HttpClient"/>s and is returned as
+/// the concrete <see cref="ManagementClient"/>, which is disposable.
+/// </remarks>
+public interface IManagementClient
 {
     /// <summary>
     /// Lists all assets.

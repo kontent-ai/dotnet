@@ -175,7 +175,7 @@ public interface IDeliveryCachePurger
     Task PurgeAsync(Boolean allowFailSafe, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryClient : IAsyncDisposable, IDisposable
+public interface IDeliveryClient
     IAssetUsedInQuery GetAssetUsedIn(String codename)
     IDynamicEnumerateItemsQuery GetItemsFeed()
     IDynamicItemQuery GetItem(String codename)

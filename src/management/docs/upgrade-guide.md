@@ -63,7 +63,7 @@ The package name is unchanged — `Kontent.Ai.Management`. The modernized API is
 - [ ] Remove Web Spotlight activation calls.
 - [ ] Follow the compiler through the method and type renames ([§10](#10-model-and-dto-changes)) — most are one-to-one name substitutions.
 - [ ] Add the now-`required` members to your object initializers, and add null checks where reads became nullable ([§10](#10-model-and-dto-changes)).
-- [ ] Dispose standalone clients (`await using`) — `IManagementClient` is now `IDisposable` / `IAsyncDisposable`.
+- [ ] Dispose standalone clients (`await using`) — the concrete `ManagementClient` is `IDisposable` / `IAsyncDisposable`. `IManagementClient` is not; a container-resolved client is owned by the container.
 
 ---
 
@@ -91,7 +91,7 @@ await using var client = new ManagementClient(new ManagementOptions
 });
 ```
 
-A standalone client now owns its `HttpClient` instances and implements both `IDisposable` and `IAsyncDisposable` — dispose it when you're done (hence `await using`).
+A standalone client now owns its `HttpClient` instances, and the concrete `ManagementClient` implements both `IDisposable` and `IAsyncDisposable` — dispose it when you're done (hence `await using`). Keep the builder result as `var` or `ManagementClient`; widening it to `IManagementClient` drops the disposal.
 
 ### 1.2 Dependency injection (new, recommended for apps)
 

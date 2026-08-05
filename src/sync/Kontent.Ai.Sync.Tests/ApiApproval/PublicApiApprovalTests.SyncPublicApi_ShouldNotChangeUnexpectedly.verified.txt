@@ -10,9 +10,17 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, String name, IConfigurationSection configurationSection)
     static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions syncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
+// Kontent.Ai.Sync
+public sealed class SyncClient : IAsyncDisposable, IDisposable, ISyncClient
+    IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
+    Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
+    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
+    ValueTask DisposeAsync()
+    Void Dispose()
+
 // Kontent.Ai.Sync.Configuration
 public sealed class SyncClientBuilder
-    ISyncClient Build()
+    SyncClient Build()
     SyncClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
     SyncClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static SyncClientBuilder WithOptions(Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions)

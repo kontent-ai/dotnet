@@ -125,7 +125,7 @@ public sealed class StandaloneClientTests : IDisposable
     {
         _http.When(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
 
-        ISyncClient client;
+        SyncClient client;
         await using (client = new SyncClient(Options(), primaryHandler: _http))
         {
             (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();

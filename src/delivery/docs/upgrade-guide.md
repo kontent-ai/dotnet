@@ -1664,7 +1664,7 @@ The new builder surface is intentionally minimal:
 | `WithLoggerFactory(ILoggerFactory)` | Enable logging (no-op if omitted). |
 | `WithMemoryCache(...)` / `WithHybridCache(...)` | From `Kontent.Ai.Delivery.Caching`. |
 | `ConfigureServices(Action<IServiceCollection>)` | Escape hatch — register anything else into the builder's internal service collection. |
-| `Build()` | Returns an `IDeliveryClient` that owns its services; dispose via `await using`. |
+| `Build()` | Returns a `DeliveryClient` that owns its services; dispose via `await using`. The concrete type is what carries disposal — `IDeliveryClient` does not. |
 
 Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetryPolicyProvider`, `WithInlineContentItemsResolver<T>`, `WithDeliveryHttpClient`, `WithModelProvider`, `WithInlineContentItemsProcessor`, `WithPropertyMapper`) was removed — see [§9](#9-removed-features--interfaces) for replacements.
 

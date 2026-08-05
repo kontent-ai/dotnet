@@ -229,6 +229,12 @@ The builder supports:
 - `.WithMemoryCache(TimeSpan?)` - Enable in-memory caching (requires `Kontent.Ai.Delivery.Caching`)
 - `.WithHybridCache(IDistributedCache, TimeSpan?)` - Enable hybrid caching (requires `Kontent.Ai.Delivery.Caching`)
 
+`Build()` returns the concrete `DeliveryClient`, which owns the services it was built from — disposing
+it tears those down, which is why the examples use `await using`. Keep the result as `var` (or
+`DeliveryClient`); widening it to `IDeliveryClient` drops the disposal, because the interface
+deliberately does not carry it. A client resolved from a container is owned by the container, so there
+is nothing for you to dispose there.
+
 `IDeliveryOptionsBuilder.WithCustomEndpoint(...)` applies the same endpoint to both Production and Preview URLs. In most real deployments these endpoints differ, so if you need both modes with custom domains, register separate clients (for example named clients) and configure each with its corresponding endpoint.
 
 ### Retrieving Content

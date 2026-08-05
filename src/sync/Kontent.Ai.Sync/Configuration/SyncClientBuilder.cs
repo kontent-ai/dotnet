@@ -117,7 +117,7 @@ public sealed class SyncClientBuilder
     /// creates a new independent client with its own HTTP client.
     /// </para>
     /// </remarks>
-    public ISyncClient Build()
+    public SyncClient Build()
     {
         if (_syncOptions is null)
         {

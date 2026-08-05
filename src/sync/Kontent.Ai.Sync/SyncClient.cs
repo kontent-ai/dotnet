@@ -16,7 +16,7 @@ namespace Kontent.Ai.Sync;
 /// <see cref="SyncClientBuilder"/> uses the other constructor, where the client builds its own
 /// <see cref="HttpClient"/> and owns it - which is what makes disposal meaningful on that path.
 /// </remarks>
-internal sealed class SyncClient : ISyncClient
+public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
 {
     private readonly ISyncApi _syncApi;
     private readonly ISyncOptionsAccessor _optionsAccessor;

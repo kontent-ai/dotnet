@@ -13,7 +13,22 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
-- **`SyncClientBuilder.ConfigureServices` is removed, replaced by `WithResilience`.** Building a client outside dependency injection no longer stands up a private service container: the client constructs the handler chain directly and owns the resulting `HttpClient`, matching how `ManagementClientBuilder` already worked. `ConfigureServices` existed only to reach into that container and has nothing left to configure. Replacing the resilience pipeline was the one thing it was realistically used for, so that is now a first-class `WithResilience(...)`, mirroring the DI overloads and the Management builder. Everything else is unchanged — `Build()` still returns an `ISyncClient` you dispose when finished.
+- **The client interfaces no longer carry `IDisposable` / `IAsyncDisposable`; the concrete clients do.** Disposal exists for one situation - a client built outside a container, which owns its own transport and must release it. Putting it on the interface meant every consumer holding `ISyncClient` was offered a `Dispose()` that, on the container path, released nothing and must not be called: the container owns that lifetime. `SyncClientBuilder.Build()` now returns the concrete `SyncClient`, which is `IDisposable` and `IAsyncDisposable`, so disposal stays available exactly where it means something.
+
+  `await using var client = SyncClientBuilder…Build();` is unchanged, and so is every DI usage. The only code that breaks widened the builder result to the interface and then disposed it:
+
+  ```csharp
+  // Before - no longer compiles, because the interface has no Dispose
+  ISyncClient client = SyncClientBuilder…Build();
+  client.Dispose();
+
+  // After - keep the concrete type, or just use var
+  var client = SyncClientBuilder…Build();
+  client.Dispose();
+  ```
+
+  Container-resolved clients are still disposed by the container, which checks the runtime type rather than the registered service type - so nothing changes there.
+- **`SyncClientBuilder.ConfigureServices` is removed, replaced by `WithResilience`.** Building a client outside dependency injection no longer stands up a private service container: the client constructs the handler chain directly and owns the resulting `HttpClient`, matching how `ManagementClientBuilder` already worked. `ConfigureServices` existed only to reach into that container and has nothing left to configure. Replacing the resilience pipeline was the one thing it was realistically used for, so that is now a first-class `WithResilience(...)`, mirroring the DI overloads and the Management builder. Everything else is unchanged.
 
   This also removes a layer that existed only to make disposal work. Previously `Build()` returned a wrapper whose sole job was to delegate every method and dispose the container behind it; now the client itself owns its `HttpClient`, so disposing it releases exactly what it created. Clients resolved from a container are unaffected: the container owns their transport, and disposing one releases nothing.
 - **`GetAllDeltaAsync` is replaced by `EnumerateDeltaAsync`, which returns `IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>>`.** The old helper decided it had caught up when no collection in a response had reached 100 entries, a threshold published as `SyncConstants.MaxItemsPerEntityType`. The Sync API defines completion differently — [as an empty response](https://kontent.ai/learn/docs/apis/sync-api-v2/synchronization#synchronize-changes) — so the walk ended one request before the API had confirmed the feed was drained, on a condition inferred from a page size rather than read from the signal the API sends. The replacement stops on the empty response, and streams pages instead of buffering every one in memory. Bounding the walk moves to the caller, where `Take` or a `break` replaces `maxPages`.

@@ -13,6 +13,21 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Delivery is not compatible with net8.0`. Move to .NET 10 first. `Kontent.Ai.Delivery.SourceGeneration` is the exception and stays `netstandard2.0`, as Roslyn components must; it loads in every SDK from .NET 8.0.2xx onward, unchanged.
+- **The client interfaces no longer carry `IDisposable` / `IAsyncDisposable`; the concrete clients do.** Disposal exists for one situation - a client built outside a container, which owns its own transport and must release it. Putting it on the interface meant every consumer holding `IDeliveryClient` was offered a `Dispose()` that, on the container path, released nothing and must not be called: the container owns that lifetime. `DeliveryClientBuilder.Build()` now returns the concrete `DeliveryClient`, which is `IDisposable` and `IAsyncDisposable`, so disposal stays available exactly where it means something.
+
+  `await using var client = DeliveryClientBuilder…Build();` is unchanged, and so is every DI usage. The only code that breaks widened the builder result to the interface and then disposed it:
+
+  ```csharp
+  // Before - no longer compiles, because the interface has no Dispose
+  IDeliveryClient client = DeliveryClientBuilder…Build();
+  client.Dispose();
+
+  // After - keep the concrete type, or just use var
+  var client = DeliveryClientBuilder…Build();
+  client.Dispose();
+  ```
+
+  Container-resolved clients are still disposed by the container, which checks the runtime type rather than the registered service type - so nothing changes there.
 - **The `configureRefit` parameter is gone from all six `AddDeliveryClient` overloads**, and `RefitSettingsProvider` is now internal. The hook exposed the transport library's settings object, but everything reachable through it was load-bearing rather than configurable: the parameter-key formatter is what matches the API's casing, and the serializer options carry the converters and nesting limit the wire format requires. Overriding any of them broke requests silently. If you passed `configureRefit`, delete the argument — the SDK's own tests never used it for anything but asserting the callback fired. Should a real need surface, it will return as an API named for what it does rather than for the transport library.
 
 ### Changed

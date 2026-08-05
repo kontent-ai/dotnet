@@ -1,4 +1,23 @@
 ﻿// Kontent.Ai.Delivery
+public sealed class DeliveryClient : IAsyncDisposable, IDeliveryClient, IDisposable
+    IAssetUsedInQuery GetAssetUsedIn(String codename)
+    IDynamicEnumerateItemsQuery GetItemsFeed()
+    IDynamicItemQuery GetItem(String codename)
+    IDynamicItemsQuery GetItems()
+    IEnumerateItemsQuery<T> GetItemsFeed<T>()
+    IItemQuery<T> GetItem<T>(String codename)
+    IItemUsedInQuery GetItemUsedIn(String codename)
+    IItemsQuery<T> GetItems<T>()
+    ILanguagesQuery GetLanguages()
+    ITaxonomiesQuery GetTaxonomies()
+    ITaxonomyQuery GetTaxonomy(String codename)
+    ITypeElementQuery GetContentElement(String contentTypeCodename, String contentElementCodename)
+    ITypeQuery GetType(String codename)
+    ITypesQuery GetTypes()
+    ValueTask DisposeAsync()
+    Void Dispose()
+
+// Kontent.Ai.Delivery
 public sealed class DeliveryClientFactory : IDeliveryClientFactory
     IDeliveryClient Get()
     IDeliveryClient Get(String name)
@@ -56,10 +75,10 @@ public sealed class ServiceCollectionExtensions
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryClientBuilder
+    DeliveryClient Build()
     DeliveryClientBuilder ConfigureServices(Action<IServiceCollection> configure)
     DeliveryClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
     DeliveryClientBuilder WithTypeProvider(ITypeProvider typeProvider)
-    IDeliveryClient Build()
     static DeliveryClientBuilder WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions)
 
 // Kontent.Ai.Delivery.Configuration

@@ -5,11 +5,11 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// All methods return query builders that must be executed with ExecuteAsync() to retrieve the actual API response.
 /// </summary>
 /// <remarks>
-/// Implements <see cref="IAsyncDisposable"/> to support proper resource cleanup when created
-/// via <c>DeliveryClientBuilder</c>. When resolved from a DI container, the container manages
-/// the client's lifetime and disposal.
+/// This contract carries no disposal. A client resolved from a container is owned by the container,
+/// which releases it; a client from <c>DeliveryClientBuilder</c> owns the services it was built from
+/// and is returned as the concrete <c>DeliveryClient</c>, which is disposable.
 /// </remarks>
-public interface IDeliveryClient : IDisposable, IAsyncDisposable
+public interface IDeliveryClient
 {
     /// <summary>
     /// Returns a query builder for retrieving a single strongly typed content item.

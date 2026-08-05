@@ -18,7 +18,7 @@ public interface IError
     String RequestId { get; }
 
 // Kontent.Ai.Sync.Abstractions
-public interface ISyncClient : IAsyncDisposable, IDisposable
+public interface ISyncClient
     IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)

@@ -10,7 +10,7 @@ public interface IError
     String RequestId { get; }
 
 // Kontent.Ai.Management
-public interface IManagementClient : IAsyncDisposable, IDisposable
+public interface IManagementClient
     IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken)
     IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken)
     IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> EnumerateItemsWithVariantsByBulkGetPagesAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken)
@@ -324,7 +324,7 @@ public sealed class SourceTrackingHeaderAttribute : Attribute
 
 // Kontent.Ai.Management.Configuration
 public sealed class ManagementClientBuilder
-    IManagementClient Build()
+    ManagementClient Build()
     ManagementClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static ManagementClientBuilder WithOptions(Action<ManagementOptions> configureOptions)
     static ManagementClientBuilder WithOptions(ManagementOptions options)
