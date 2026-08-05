@@ -27,6 +27,21 @@ public class FilterValidationTests
         Assert.Throws<ArgumentException>(() => FilterPath.Element("system.type"));
     }
 
+    [Theory]
+    [InlineData("Codename", "system.codename")]
+    [InlineData("LAST_MODIFIED", "system.last_modified")]
+    [InlineData("System.Type", "system.type")]
+    public void FilterPath_LowercasesSystemProperty(string input, string expected)
+        // The Delivery API is case-insensitive, but cache keys hash the filter key verbatim, so an
+        // unnormalized spelling would occupy a second cache entry for the same query.
+        => Assert.Equal(expected, FilterPath.System(input));
+
+    [Theory]
+    [InlineData("MyCodename", "elements.mycodename")]
+    [InlineData("  Title  ", "elements.title")]
+    public void FilterPath_LowercasesElementCodename(string input, string expected)
+        => Assert.Equal(expected, FilterPath.Element(input));
+
     [Fact]
     public void SerializeArray_ThrowsOnNullOrEmpty()
     {

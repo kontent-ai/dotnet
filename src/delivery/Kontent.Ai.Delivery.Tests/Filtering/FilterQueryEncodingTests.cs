@@ -81,6 +81,12 @@ public class FilterQueryEncodingTests
         => Assert.Equal("?elements.a%5Beq%5D=1&elements.b%5Beq%5D=2&elements.a%5Beq%5D=3", await CaptureAsync(f => f.Element("a").IsEqualTo("1").Element("b").IsEqualTo("2").Element("a").IsEqualTo("3")));
 
     [Fact]
+    public async Task CallerCasing_IsNormalizedToLowercase()
+        // Uppercase reaches the API fine — it is case-insensitive — but the SDK's cache keys hash the
+        // filter key verbatim, so normalizing at the source keeps one cache entry per logical query.
+        => Assert.Equal("?system.codename%5Beq%5D=richtextitem", await CaptureAsync(f => f.System("Codename").IsEqualTo("richtextitem")));
+
+    [Fact]
     public async Task BoolAndNumber_UseInvariantFormatting()
         => Assert.Equal("?elements.flag%5Beq%5D=true&elements.price%5Beq%5D=1.5", await CaptureAsync(f => f.Element("flag").IsEqualTo(true).Element("price").IsEqualTo(1.5)));
 

@@ -5,6 +5,19 @@ internal static class FilterPath
     internal static string System(string propertyName) => Build("system", propertyName);
     internal static string Element(string elementCodename) => Build("elements", elementCodename);
 
+    /// <summary>
+    /// Normalizes a caller-supplied codename or system property into a filter key.
+    /// </summary>
+    /// <remarks>
+    /// Lower-cased deliberately. The Delivery API is case-insensitive here — <c>System.Codename[EQ]</c>
+    /// and <c>system.codename[eq]</c> return the same items — but the SDK is not: cache keys hash the
+    /// filter key verbatim, so two spellings of one query would occupy two cache entries, double the
+    /// origin calls, and invalidate independently. Kontent.ai codenames are lower-case by construction,
+    /// so this can only ever alter input that was already wrong.
+    ///
+    /// This is a READ-side normalization and must not be copied to the Management SDK, where a
+    /// user-supplied value in a write payload has to reach the API exactly as given.
+    /// </remarks>
     private static string Build(string prefix, string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -12,7 +25,7 @@ internal static class FilterPath
             throw new ArgumentException("Property name cannot be null or whitespace.", nameof(name));
         }
 
-        var trimmed = name.Trim();
+        var trimmed = name.Trim().ToLowerInvariant();
 
         if (trimmed.Contains(' '))
         {
