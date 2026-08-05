@@ -1,11 +1,11 @@
 ﻿// Kontent.Ai.Sync.Abstractions
-public enum ApiMode : Enum
+public enum ApiMode
     Preview
     Public
     Secure
 
 // Kontent.Ai.Sync.Abstractions
-public enum ChangeType : Enum
+public enum ChangeType
     Changed
     Deleted
 

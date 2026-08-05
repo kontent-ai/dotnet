@@ -27,7 +27,7 @@ public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
     Void Deconstruct(T& Value, IReadOnlyList`1& DependencyKeys)
 
 // Kontent.Ai.Delivery.Abstractions
-public enum CacheStorageMode : Enum
+public enum CacheStorageMode
     HydratedObject
     RawJson
 
@@ -607,12 +607,12 @@ public interface IUsedInItemSystemAttributes : ISystemAttributes, ISystemBaseAtt
     String WorkflowStep { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public enum LanguageFallbackMode : Enum
+public enum LanguageFallbackMode
     Disabled
     Enabled
 
 // Kontent.Ai.Delivery.Abstractions
-public enum OrderingMode : Enum
+public enum OrderingMode
     Ascending
     Descending
 
@@ -621,7 +621,7 @@ public sealed class RequiredIfAttribute : ValidationAttribute
     String FormatErrorMessage(String name)
 
 // Kontent.Ai.Delivery.Abstractions
-public enum ResponseSource : Enum
+public enum ResponseSource
     Cache
     Cdn
     FailSafe

@@ -67,7 +67,11 @@ internal static class PublicApiApproval
     {
         var bases = new List<string>();
 
-        if (type.BaseType is not null && type.BaseType != typeof(object) && type.BaseType != typeof(ValueType))
+        // object/ValueType/Enum are implied by the kind already rendered, so listing them is noise.
+        if (type.BaseType is not null
+            && type.BaseType != typeof(object)
+            && type.BaseType != typeof(ValueType)
+            && type.BaseType != typeof(Enum))
         {
             bases.Add(TypeName(type.BaseType));
         }

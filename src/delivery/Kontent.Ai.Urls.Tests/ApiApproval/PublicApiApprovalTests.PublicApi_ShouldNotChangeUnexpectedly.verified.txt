@@ -1,16 +1,16 @@
 ﻿// Kontent.Ai.Urls.ImageTransformation
-public enum ImageCompression : Enum
+public enum ImageCompression
     Lossless
     Lossy
 
 // Kontent.Ai.Urls.ImageTransformation
-public enum ImageFitMode : Enum
+public enum ImageFitMode
     Clip
     Crop
     Scale
 
 // Kontent.Ai.Urls.ImageTransformation
-public enum ImageFormat : Enum
+public enum ImageFormat
     Gif
     Jpg
     Pjpg
