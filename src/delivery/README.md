@@ -117,7 +117,23 @@ services.AddDeliveryClient(options =>
 }
 
 // Program.cs
-services.AddDeliveryClient(configuration, "DeliveryOptions");
+services.AddDeliveryClient(configuration);                              // binds "DeliveryOptions"
+services.AddDeliveryClient(configuration, "MyDeliverySection");         // or a differently-named section
+services.AddDeliveryClient(configuration.GetSection("DeliveryOptions"));// or the section itself
+```
+
+The default section name is available as `DeliveryOptions.DefaultConfigurationSectionName`, so tooling
+that resolves the SDK's configuration from the same sources does not have to hard-code it.
+
+Binding this way is change-token backed: edits to the underlying source are picked up through
+`IOptionsMonitor<DeliveryOptions>` without rebuilding the container. All configuration overloads accept
+the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones, so
+binding from configuration and customizing the pipeline are not mutually exclusive:
+
+```csharp
+services.AddDeliveryClient(
+    configuration,
+    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
 ```
 
 #### Registration from Other DI Services

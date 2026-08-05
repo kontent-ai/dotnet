@@ -407,6 +407,20 @@ public static class TenantRegistration
 }
 ```
 
+If a tenant's settings map onto `DeliveryOptions` directly, you can skip the intermediate POCO and bind
+each section to a named client:
+
+```csharp
+foreach (var tenant in configuration.GetSection("Tenants").GetChildren())
+{
+    services.AddDeliveryClient(tenant.Key, tenant);
+}
+```
+
+Binding this way keeps the change-token wiring, so `IOptionsMonitor<DeliveryOptions>` reflects edits to
+the source per tenant. Use the delegate form above when a tenant carries settings the SDK does not own
+— `CacheExpiration` in this example — since those need reading separately anyway.
+
 ## Multi-Brand Scenarios
 
 ### Brand-Specific Services

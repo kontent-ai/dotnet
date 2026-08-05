@@ -1510,8 +1510,18 @@ services.AddDeliveryClient(Configuration);
 
 **New (same, but also supports new overloads):**
 ```csharp
-// From configuration
+// From configuration - section name defaults to DeliveryOptions.DefaultConfigurationSectionName
+services.AddDeliveryClient(configuration);
 services.AddDeliveryClient(configuration, "DeliveryOptions");
+
+// Named, and from a section directly
+services.AddDeliveryClient("production", configuration, "Delivery:Production");
+services.AddDeliveryClient("preview", configuration.GetSection("Delivery:Preview"));
+
+// Configuration binding composes with the pipeline hooks
+services.AddDeliveryClient(
+    configuration,
+    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
 
 // From action
 services.AddDeliveryClient(options =>

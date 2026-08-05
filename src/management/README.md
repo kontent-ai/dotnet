@@ -156,7 +156,30 @@ services.AddManagementClient(configuration);
 services.AddManagementClient(configuration, "MyManagementSection");
 ```
 
-The configuration-based overloads accept the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones.
+The configuration-based overloads accept the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones, and every form has a named counterpart:
+
+```csharp
+services.AddManagementClient("production", configuration, "Management:Production");
+```
+
+You can also hand over a pre-built options instance, or configure options from other registered services:
+
+```csharp
+services.AddManagementClient(new ManagementOptions
+{
+    EnvironmentId = "<YOUR_ENVIRONMENT_ID>",
+    ApiKey = "<YOUR_API_KEY>",
+});
+
+services.AddManagementClient((sp, options) =>
+{
+    var secrets = sp.GetRequiredService<ISecretStore>();
+    options.EnvironmentId = secrets.EnvironmentId;
+    options.ApiKey = secrets.ManagementApiKey;
+});
+```
+
+The instance's values are copied onto the options the container materializes — the object itself is not registered, so mutating it afterwards has no effect once the options have been read.
 
 ### Multiple Named Clients
 

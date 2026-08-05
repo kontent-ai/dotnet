@@ -155,10 +155,40 @@ services.AddSyncClient(builder => builder
 }
 ```
 
-Registration:
+Registration — pass the whole configuration and let the SDK find its section, or hand it the section
+directly:
 
 ```csharp
-services.AddSyncClient(configuration.GetSection("SyncOptions"));
+services.AddSyncClient(configuration);                              // binds "SyncOptions"
+services.AddSyncClient(configuration, "MySyncSection");             // or a differently-named section
+services.AddSyncClient(configuration.GetSection("SyncOptions"));    // or the section itself
+```
+
+The default section name is available as `SyncOptions.DefaultConfigurationSectionName`, so tooling that
+resolves the SDK's configuration from the same sources does not have to hard-code it.
+
+Binding this way is change-token backed: edits to the underlying source are picked up through
+`IOptionsMonitor<SyncOptions>` without rebuilding the container. All configuration overloads accept the
+same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones:
+
+```csharp
+services.AddSyncClient(
+    configuration,
+    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+```
+
+### Options from other registered services
+
+When the options depend on something else in the container — a secret store, a tenant resolver — use the
+overload that hands you the `IServiceProvider`:
+
+```csharp
+services.AddSyncClient((sp, options) =>
+{
+    var secrets = sp.GetRequiredService<ISecretStore>();
+    options.EnvironmentId = secrets.EnvironmentId;
+    options.ApiKey = secrets.SyncApiKey;
+});
 ```
 
 ## Standalone client (without DI)
@@ -215,6 +245,13 @@ public sealed class MultiEnvironmentService(ISyncClientFactory factory)
     public ISyncClient ProductionClient => factory.Get("production");
     public ISyncClient PreviewClient => factory.Get("preview");
 }
+```
+
+Every registration form has a named counterpart, so named clients can bind from configuration too:
+
+```csharp
+services.AddSyncClient("production", configuration, "Sync:Production");
+services.AddSyncClient("preview", configuration.GetSection("Sync:Preview"));
 ```
 
 ## Error Handling
