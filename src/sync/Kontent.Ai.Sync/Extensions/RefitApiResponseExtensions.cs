@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.ExceptionServices;
 using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync.Extensions;
@@ -35,16 +36,35 @@ internal static class RefitApiResponseExtensions
     /// Resolves the HTTP status of a Refit response.
     /// </summary>
     /// <remarks>
-    /// Null when no response was received at all (<c>IsReceived == false</c>) — a transport-level
-    /// failure. The <see cref="ApiException"/> carries the status when there was one; the final
-    /// fallback is <c>default</c> rather than an invented code, because no HTTP exchange
-    /// completed and any real status here would misreport what happened.
+    /// Null when no response was received at all — a transport-level failure. <c>default</c> rather than
+    /// an invented code, because no HTTP exchange completed.
     /// </remarks>
     private static HttpStatusCode StatusOf<T>(IApiResponse<T> apiResponse) =>
-        apiResponse.StatusCode ?? (apiResponse.Error as ApiException)?.StatusCode ?? default;
+        apiResponse.StatusCode ?? default;
+
+    /// <summary>
+    /// Rethrows caller cancellation instead of reporting it as a failed result.
+    /// </summary>
+    /// <remarks>
+    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
+    /// transport failures — they are an outcome of the call. Cancellation is not: it is the caller
+    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
+    /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
+    /// and <c>catch (OperationCanceledException)</c> would never fire.
+    /// </remarks>
+    /// <param name="error">The captured transport error, if any.</param>
+    private static void RethrowIfCanceled(ApiExceptionBase? error)
+    {
+        if (error?.InnerException is OperationCanceledException canceled)
+        {
+            ExceptionDispatchInfo.Capture(canceled).Throw();
+        }
+    }
 
     private static Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
     {
+        RethrowIfCanceled(apiResponse.Error);
+
         var requestUrl = apiResponse.RequestMessage?.RequestUri?.ToString() ?? string.Empty;
         var statusCode = StatusOf(apiResponse);
         var headers = apiResponse.Headers;
@@ -53,6 +73,7 @@ internal static class RefitApiResponseExtensions
         {
             var fallback = new Error
             {
+                Message = apiResponse.Error?.InnerException?.Message ?? apiResponse.Error?.Message ?? "Unknown error",
                 ErrorCode = (int)statusCode,
                 Exception = apiResponse.Error
             };

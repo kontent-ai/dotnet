@@ -172,4 +172,39 @@ public class RefitApiResponseExtensionsTests
 
         return apiResponse;
     }
+
+    [Fact]
+    public async Task ToSyncResultAsync_Canceled_Throws()
+    {
+        // Refit captures handler-chain exceptions into Error instead of throwing. Cancellation must not
+        // be reported as a failed result, or Task.IsCanceled stays unset and cancellation handlers
+        // upstream never fire.
+        var apiResponse = CreateTransportFailure(new OperationCanceledException("caller went away"));
+
+        var act = async () => await apiResponse.ToSyncResultAsync();
+
+        await act.Should().ThrowAsync<OperationCanceledException>().WithMessage("caller went away");
+    }
+
+    [Fact]
+    public async Task ToSyncResultAsync_TransportFailure_ReturnsFailureCarryingTheRealMessage()
+    {
+        var apiResponse = CreateTransportFailure(new HttpRequestException("No such host is known."));
+
+        var result = await apiResponse.ToSyncResultAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(default(HttpStatusCode));
+        result.Error!.Message.Should().Be("No such host is known.");
+    }
+
+    private static IApiResponse<string> CreateTransportFailure(Exception inner)
+    {
+        var apiResponse = Substitute.For<IApiResponse<string>>();
+        apiResponse.IsSuccessStatusCode.Returns(false);
+        apiResponse.StatusCode.Returns((HttpStatusCode?)null);
+        apiResponse.Content.Returns((string?)null);
+        apiResponse.Error.Returns(new ApiRequestException("request failed", new HttpRequestMessage(), HttpMethod.Get, new RefitSettings(), inner));
+        return apiResponse;
+    }
 }

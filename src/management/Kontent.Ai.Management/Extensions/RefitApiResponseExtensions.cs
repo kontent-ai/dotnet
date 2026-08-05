@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 
 namespace Kontent.Ai.Management.Extensions;
@@ -32,6 +33,8 @@ internal static class RefitApiResponseExtensions
     {
         using (response)
         {
+            RethrowIfCanceled(response.Error);
+
             if (response.IsSuccessStatusCode)
             {
                 if (response.Content is null)
@@ -60,6 +63,8 @@ internal static class RefitApiResponseExtensions
     {
         using (response)
         {
+            RethrowIfCanceled(response.Error);
+
             if (response.IsSuccessStatusCode)
             {
                 return ManagementResult.Success(
@@ -81,6 +86,25 @@ internal static class RefitApiResponseExtensions
     {
         var error = await BuildErrorAsync(response).ConfigureAwait(false);
         return ManagementResult.Failure(error, StatusOf(response), RequestUrl(response));
+    }
+
+    /// <summary>
+    /// Rethrows caller cancellation instead of reporting it as a failed result.
+    /// </summary>
+    /// <remarks>
+    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
+    /// transport failures — they are an outcome of the call. Cancellation is not: it is the caller
+    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
+    /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
+    /// and <c>catch (OperationCanceledException)</c> would never fire.
+    /// </remarks>
+    /// <param name="error">The captured transport error, if any.</param>
+    private static void RethrowIfCanceled(ApiExceptionBase? error)
+    {
+        if (error?.InnerException is OperationCanceledException canceled)
+        {
+            ExceptionDispatchInfo.Capture(canceled).Throw();
+        }
     }
 
     private static async Task<IError> BuildErrorAsync(IApiResponse response)
@@ -119,7 +143,7 @@ internal static class RefitApiResponseExtensions
     // StatusCode is null when no response was received at all (a transport-level failure); the fallback is
     // default (0) rather than an invented code, because no HTTP exchange completed.
     private static System.Net.HttpStatusCode StatusOf(IApiResponse response) =>
-        response.StatusCode ?? (response.Error as ApiException)?.StatusCode ?? default;
+        response.StatusCode ?? default;
 
     private static string? RequestUrl(IApiResponse response) =>
         response.RequestMessage?.RequestUri?.ToString();

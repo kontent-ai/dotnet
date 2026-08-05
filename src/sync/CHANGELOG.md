@@ -17,7 +17,14 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
 ### Changed
 
-- **A request that fails before any response arrives now reports status `0`.** Previously the transport surfaced a status even when no HTTP exchange completed; `ISyncResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
+- **Cancellation now throws; other transport failures are results.** Refit's upgrade changed the
+  contract: exceptions raised in the HTTP pipeline are captured into the response rather than thrown.
+  A network failure, DNS failure or resilience-pipeline rejection is therefore an unsuccessful result
+  carrying the exception, consistent with how every other failure in this SDK is reported. Cancellation
+  is the exception to that: when the caller's token fires, the `OperationCanceledException` is rethrown,
+  so `Task.IsCanceled`, `Task.WhenAll` and cancellation handlers behave as they do everywhere else in
+  .NET. Previously **all** of these threw.
+- **Transport failures report status `0`.** `ISyncResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
 ### Dependencies
 

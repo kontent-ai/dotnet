@@ -8,7 +8,7 @@ Official Kontent.ai **Management SDK for .NET** — a client for the [Management
 
 The pillars:
 
-- **Result pattern.** Public calls return `IManagementResult<T>` (success flag, value, `IError` with the API's error detail, status code, request URL) instead of throwing on 4xx/5xx. Transport-level failures throw by design — the result wraps the HTTP response only. `EnsureSuccess()` / `TryGetValue()` / `AsFailure<T>()` are the opt-in conveniences.
+- **Result pattern.** Public calls return `IManagementResult<T>` (success flag, value, `IError` with the API's error detail, status code, request URL) instead of throwing on 4xx/5xx. Transport failures are results too, carrying the exception — the one exception is cancellation, which is rethrown so `Task.IsCanceled` and cancellation handlers behave normally. `EnsureSuccess()` / `TryGetValue()` / `AsFailure<T>()` are the opt-in conveniences.
 - **Refit transport.** The public `ManagementClient` (partial per domain) wraps the internal `IManagementApi` Refit interface (partial per domain under `Api/`); `ISubscriptionApi` covers the subscription scope. Everything public funnels through `RefitApiResponseExtensions.ToManagementResultAsync` — no endpoint bypasses it, no hand-rolled HTTP.
 - **`System.Text.Json`** with a small set of converters encoding real MAPI quirks (polymorphic elements, codename-out/id-in mapping, string-encoded numbers). Newtonsoft is gone; do not reintroduce it.
 - **Materialized listings.** Every listing is `List{Plural}Async` → `IManagementResult<IReadOnlyList<T>>`, drained internally via `PageEnumerator` (all-or-nothing: first failed page short-circuits). Unbounded listings additionally expose `Enumerate{X}PagesAsync` page streams.
