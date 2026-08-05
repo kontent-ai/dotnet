@@ -1,0 +1,14 @@
+<Project>
+  <!-- Consumer fixtures for the packed artifacts. Deliberately does NOT import the repo-root
+       Directory.Build.props: these projects must see the packages exactly as a customer does,
+       not the repo's analyzers, packaging metadata or SourceLink settings.
+
+       They are absent from KontentAi.slnx on purpose, so `dotnet build` at the root never touches
+       them - they reference package versions that do not exist until something has been packed. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+</Project>

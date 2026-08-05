@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Kontent.Ai.Delivery" />
+    <PackageReference Include="Kontent.Ai.Delivery.SourceGeneration" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Kontent.Ai.Delivery" />
+    <PackageReference Include="Kontent.Ai.Delivery.Caching" />
+    <PackageReference Include="Kontent.Ai.Urls" />
+    <PackageReference Include="Kontent.Ai.Management" />
+    <PackageReference Include="Kontent.Ai.Sync" />
+  </ItemGroup>
+</Project>

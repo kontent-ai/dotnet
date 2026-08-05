@@ -219,3 +219,80 @@ jobs:
         env:
           KONTENT_SDK_RUN_REDIS_TESTS: "true"
           KONTENT_SDK_REDIS_CONNECTION: "localhost:6379"
+
+  smoke-tests:
+    name: Package smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Pack validation proves the .nupkg files exist and contain the expected paths. This job proves a
+    # consumer can actually install and use them, which is a different question: it packs into a local
+    # feed and restores from it, so a broken nuspec dependency, a missing target framework, an analyzer
+    # packed to the wrong path or a .NET tool with no working entry point fails here rather than after
+    # publishing. Each fixture covers a different PACKAGE SHAPE, because they fail in different ways.
+    env:
+      SMOKE_VERSION: 0.0.0-smoke.${{ github.run_number }}
+      SMOKE_FEED: ${{ github.workspace }}/artifacts/smoke-feed
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore dependencies
+        run: dotnet restore /p:UseProjectReferences=false
+      - name: Build
+        run: dotnet build --configuration Release --no-restore /p:UseProjectReferences=false
+
+      # Same product list as pack validation, so a new product is covered by editing products.json only.
+      - name: Pack into a local feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$SMOKE_FEED"
+          for proj in $(jq -r '.[].projects[]' eng/products.json); do
+            dotnet pack "$proj" --no-build --configuration Release --output "$SMOKE_FEED" \
+              /p:UseProjectReferences=false /p:PackageVersion="$SMOKE_VERSION"
+          done
+          ls -1 "$SMOKE_FEED"
+
+      # Plain class libraries: restore from the nuspec, then resolve each client through DI.
+      - name: Library consumer
+        working-directory: eng/smoke/library
+        run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
+
+      # Analyzer package. Roslyn silently skips a generator packed to the wrong path or built against a
+      # newer compiler than the SDK provides, so this fixture only compiles if the generator ran.
+      - name: Source generator consumer
+        working-directory: eng/smoke/sourcegen
+        run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
+
+      # Web SDK package: starts a real host rather than just compiling.
+      - name: ASP.NET Core consumer
+        working-directory: eng/smoke/aspnetcore
+        run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
+
+      # .NET tool: install it the way a user would, then run it. The tool exits non-zero without an
+      # environment id, so success is asserted on its OWN validation message appearing - that only
+      # happens if the package layout, entry point and runtime resolution all worked. A tool that
+      # failed to install or launch produces a host error instead.
+      - name: Model generator tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOOLS="$(mktemp -d)"
+          dotnet tool install Kontent.Ai.ModelGenerator \
+            --version "$SMOKE_VERSION" --add-source "$SMOKE_FEED" --tool-path "$TOOLS"
+
+          set +e
+          output="$("$TOOLS/KontentModelGenerator" 2>&1)"
+          set -e
+          echo "$output"
+
+          if ! grep -q "EnvironmentId" <<< "$output"; then
+            echo "::error::The tool did not run its own argument validation - check the package layout."
+            exit 1
+          fi
+          echo "tool installed and executed"

@@ -1,0 +1,22 @@
+<Project>
+  <!-- Central package management for the fixtures, scoped to this folder. It shadows the repo-root
+       Directory.Packages.props rather than adding to it: these projects reference the packages under
+       test at the version they were just packed with, which the repo-wide file knows nothing about.
+
+       $(KontentVersion) is supplied by the smoke-test job. The default lets the fixtures be run by
+       hand after packing into artifacts/smoke-feed with the same version. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <KontentVersion Condition="'$(KontentVersion)' == ''">0.0.0-smoke</KontentVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Kontent.Ai.AspNetCore" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Delivery" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Delivery.Caching" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Management" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Sync" Version="$(KontentVersion)" />
+    <PackageVersion Include="Kontent.Ai.Urls" Version="$(KontentVersion)" />
+  </ItemGroup>
+</Project>
