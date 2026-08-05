@@ -224,7 +224,8 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Also configure unnamed options for backward compatibility if this is the default name
+        // The default client's options are also registered unnamed, so IOptions<SyncOptions> resolves
+        // without a name.
         if (name == SyncClientNames.Default)
         {
             services.Configure(configureOptions);
