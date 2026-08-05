@@ -71,11 +71,7 @@ internal sealed class SyncClient(
 
             yield return result;
 
-            // The API issues a fresh token with every response. A page of changes without one leaves
-            // nothing to advance to, and reusing the current token would request the same page forever.
-            currentToken = result.SyncToken ?? throw new InvalidOperationException(
-                "The Sync API returned changes without an X-Continuation token, so the feed cannot be " +
-                $"advanced. Request: {result.RequestUrl}");
+            currentToken = result.SyncToken;
         }
     }
 

@@ -60,7 +60,7 @@ public sealed class SyncTransportTests : IDisposable
     {
         _http.Expect(HttpMethod.Get, SyncUrl)
             .WithHeaders("X-Continuation", "my-token")
-            .Respond(_ => WithContinuation(EmptyDelta(), "next-token"));
+            .Respond(_ => EmptyDelta());
 
         var result = await CreateClient().GetDeltaAsync("my-token");
 
@@ -87,7 +87,12 @@ public sealed class SyncTransportTests : IDisposable
             """;
 
         _http.Expect(HttpMethod.Get, SyncUrl)
-            .Respond("application/json", body);
+            .Respond(_ => WithContinuation(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+                },
+                "next-token"));
 
         var result = await CreateClient().GetDeltaAsync("token");
 
@@ -213,13 +218,16 @@ public sealed class SyncTransportTests : IDisposable
         result.Error.ErrorCode.Should().Be(2);
     }
 
-    private static HttpResponseMessage EmptyDelta() => new(HttpStatusCode.OK)
-    {
-        Content = new StringContent(
-            """{"items":[],"types":[],"languages":[],"taxonomies":[]}""",
-            System.Text.Encoding.UTF8,
-            "application/json"),
-    };
+    // Every successful Sync API response carries a continuation token, so fixtures must too.
+    private static HttpResponseMessage EmptyDelta() => WithContinuation(
+        new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"items":[],"types":[],"languages":[],"taxonomies":[]}""",
+                System.Text.Encoding.UTF8,
+                "application/json"),
+        },
+        "next-token");
 
     private static HttpResponseMessage WithContinuation(HttpResponseMessage response, string token)
     {

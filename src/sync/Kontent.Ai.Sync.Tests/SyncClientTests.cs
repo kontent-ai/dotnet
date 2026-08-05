@@ -129,10 +129,10 @@ public class SyncClientTests
         _ = syncApi.DidNotReceiveWithAnyArgs().GetDeltaAsync(default!, default!, default);
     }
 
-    // Without the guard this loops forever: the page always reports changes and the token never
-    // advances, so the same request repeats indefinitely.
+    // The API issues a token with every successful response; without one there is no way to continue,
+    // so the result is refused rather than handed back in a state the caller cannot act on.
     [Fact]
-    public async Task EnumerateDeltaAsync_ChangesWithoutContinuationToken_Throws()
+    public async Task GetDeltaAsync_ResponseWithoutContinuationToken_Throws()
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestEnvironmentId);
@@ -142,27 +142,10 @@ public class SyncClientTests
         syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(page));
 
-        Func<Task> act = async () => await client.EnumerateDeltaAsync("token-1").ToListAsync();
+        Func<Task> act = async () => await client.GetDeltaAsync("token-1");
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*X-Continuation*");
-    }
-
-    // A drained feed has no next page to request, so the terminal response needs no token.
-    [Fact]
-    public async Task EnumerateDeltaAsync_EmptyResponseWithoutToken_EndsCleanly()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestEnvironmentId);
-
-        var empty = CreateSuccessDeltaResponse(nextToken: null, itemCount: 0);
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(empty));
-
-        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
-
-        pages.Should().BeEmpty();
     }
 
     private static IApiResponse<SyncDeltaResponse> CreateSuccessDeltaResponse(string? nextToken, int itemCount)

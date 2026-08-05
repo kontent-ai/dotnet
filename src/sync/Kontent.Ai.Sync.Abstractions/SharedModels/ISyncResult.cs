@@ -27,10 +27,14 @@ public interface ISyncResult<out T>
     HttpStatusCode StatusCode { get; }
 
     /// <summary>
-    /// Gets the synchronization token for the next sync operation.
-    /// This token is extracted from the X-Continuation header.
+    /// Gets the synchronization token for the next sync operation, read from the X-Continuation header.
     /// </summary>
-    string? SyncToken { get; }
+    /// <remarks>
+    /// Meaningful only when <see cref="IsSuccess"/> is <c>true</c>, as <see cref="Value"/> is. The API
+    /// issues a fresh token with every successful response, and a response without one fails rather than
+    /// producing a result, so on a successful result this is always populated.
+    /// </remarks>
+    string SyncToken { get; }
 
     /// <summary>
     /// Gets the URL used to retrieve this response for debugging purposes.

@@ -46,10 +46,6 @@ public interface ISyncClient : IDisposable, IAsyncDisposable
     /// Enumeration is lazy - no request is made until the sequence is iterated - so bounding the walk is
     /// the caller's choice, with <c>Take</c> or by breaking out of the loop.
     /// </para>
-    /// <para>
-    /// Throws <see cref="InvalidOperationException"/> if the API returns changes without the
-    /// X-Continuation token needed to request the next page.
-    /// </para>
     /// </remarks>
     /// <param name="syncToken">The X-Continuation token from a previous sync operation.</param>
     /// <param name="cancellationToken">The cancellation token to cancel operation.</param>

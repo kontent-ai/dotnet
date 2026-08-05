@@ -22,7 +22,7 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     public HttpStatusCode StatusCode { get; }
 
     /// <inheritdoc/>
-    public string? SyncToken { get; }
+    public string SyncToken { get; }
 
     /// <inheritdoc/>
     public string? RequestUrl { get; }
@@ -42,7 +42,7 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         T value,
         string requestUrl,
         HttpStatusCode statusCode,
-        string? syncToken,
+        string syncToken,
         HttpResponseHeaders? responseHeaders)
     {
         Value = value;
@@ -70,7 +70,7 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         IsSuccess = false;
         Error = error;
         StatusCode = statusCode;
-        SyncToken = null;
+        SyncToken = null!;
         RequestUrl = requestUrl;
         ResponseHeaders = responseHeaders;
     }
@@ -94,8 +94,8 @@ internal static class SyncResult
     public static ISyncResult<T> Success<T>(
         T value,
         string requestUrl,
+        string syncToken,
         HttpStatusCode statusCode = HttpStatusCode.OK,
-        string? syncToken = null,
         HttpResponseHeaders? responseHeaders = null)
     => new SyncResult<T>(value, requestUrl, statusCode, syncToken, responseHeaders);
 

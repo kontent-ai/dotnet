@@ -25,8 +25,8 @@ internal static class RefitApiResponseExtensions
             return Task.FromResult<ISyncResult<T>>(SyncResult.Success(
                 apiResponse.Content,
                 RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                RequireSyncToken(apiResponse),
                 RefitResponses.StatusOf(apiResponse),
-                ExtractSyncToken(apiResponse),
                 apiResponse.Headers));
         }
 
@@ -102,10 +102,24 @@ internal static class RefitApiResponseExtensions
         return SyncResult.Failure<T>(requestUrl, statusCode, error, headers);
     }
 
-    private static string? ExtractSyncToken<T>(IApiResponse<T> apiResponse)
+    /// <summary>
+    /// Reads the continuation token every successful Sync API response carries.
+    /// </summary>
+    /// <remarks>
+    /// The API issues a fresh token on every initialization and every delta, and it is the only way to
+    /// make the next request. A successful response without one is the API breaking that contract, and
+    /// there is no result worth handing back: the caller could read this page and would then be unable
+    /// to continue. Failing here says so once, rather than surfacing later as a token that cannot be
+    /// stored or a walk that cannot advance.
+    /// </remarks>
+    private static string RequireSyncToken<T>(IApiResponse<T> apiResponse)
     {
-        return apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
+        var token = apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
             ? values.FirstOrDefault()
             : null;
+
+        return token ?? throw new InvalidOperationException(
+            $"The Sync API returned a successful response without an {ContinuationHeaderName} header, " +
+            $"so synchronization cannot continue. Request: {RefitResponses.RequestUrl(apiResponse)}");
     }
 }

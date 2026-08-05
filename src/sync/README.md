@@ -94,7 +94,7 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken, cancellatio
         Console.WriteLine($"Item change: {item.ChangeType}");
     }
 
-    token = page.SyncToken ?? token;
+    token = page.SyncToken;
 }
 
 // An empty sequence means there was nothing new, and the token you passed in is still current.
@@ -245,7 +245,15 @@ Important fields:
 
 ## Token Persistence
 
-The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into the next `GetDeltaAsync` or `EnumerateDeltaAsync` call.
+The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into
+the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. Every successful response carries one, so it is
+never null on a successful result; a response without it fails rather than returning a result you could
+not continue from.
+
+Where you store it during a walk is a choice. Saving once after the loop means a crash part-way through
+reprocesses from the previous token — some changes arrive twice, none are missed. Saving after each page
+resumes closer to where you stopped. Saving *before* processing a page is the one variant that can lose
+work.
 
 ## Source Tracking (for Tool Authors)
 

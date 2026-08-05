@@ -64,7 +64,7 @@ public class SyncResultTests
     [InlineData(HttpStatusCode.InternalServerError)]
     public void StatusCode_IsPreserved(HttpStatusCode statusCode)
     {
-        var successResult = SyncResult.Success("value", "url", statusCode);
+        var successResult = SyncResult.Success("value", "url", "token", statusCode);
         successResult.StatusCode.Should().Be(statusCode);
 
         var failureResult = SyncResult.Failure<string>("url", statusCode, null);
