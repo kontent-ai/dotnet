@@ -6,6 +6,21 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+Targets .NET 10. The package moves from `net8.0` to `net10.0`; the public API is unchanged.
+
+### Breaking changes
+
+- **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.AspNetCore is not compatible with net8.0`. Move to .NET 10 first. This is a pre-1.0 package, so the minor version carries the break.
+
+### Fixed
+
+- **Webhook signature validation honors client disconnection.** Reading the request body now observes `HttpContext.RequestAborted`, so an aborted request stops the read instead of buffering the whole body first.
+
+### Dependencies
+
+No shipped dependency floors changed — this package has no direct `Microsoft.Extensions.*` references and picks its versions up transitively from `Kontent.Ai.Delivery`.
+
+
 ## 0.17.0-preview.1 (2026-08-03)
 
 ### Changed

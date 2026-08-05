@@ -9,6 +9,30 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release rather than a continuation of the `10.3.0` line. Generated output is unchanged.
+
+### Breaking changes
+
+- **`net8.0` → `net10.0`.** `Kontent.Ai.ModelGenerator.Core` is a library, so a project on .NET 8 cannot reference this release at all — restore fails with `NU1202`. The `Kontent.Ai.ModelGenerator` CLI likewise needs the .NET 10 runtime to run. Move to .NET 10 first.
+
+### Changed
+
+- **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`.
+
+### Dependencies
+
+Shipped floors moved up:
+
+- `Microsoft.CodeAnalysis` **4.13.0** → **5.6.0**, aligning the generator with the Roslyn version the rest of the repo builds against.
+- `Microsoft.Extensions.*` (`Options`, `Configuration.CommandLine`, `Configuration.Json`, `DependencyInjection`) **9.0.15** → **10.0.10**.
+
+### Internal
+
+No consumer-visible effect:
+
+- Identifier-sanitizing regular expressions are compiled at build time and carry an execution timeout. Codenames arrive from the environment's content model, so they are external input, and a generator that hangs on one malformed codename is worse than one that fails.
+
+
 ## 10.3.0-beta-2 (2026-08-04)  _(prerelease)_
 
 ### Improvements

@@ -8,6 +8,43 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`, which is why this is a major release, and Refit's transport is upgraded across four major versions. Beyond the target framework the public API is almost untouched — one configuration hook is removed, and two request-building details change in ways that are visible in logs but not in results.
+
+### Breaking changes
+
+- **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Delivery is not compatible with net8.0`. Move to .NET 10 first. `Kontent.Ai.Delivery.SourceGeneration` is the exception and stays `netstandard2.0`, as Roslyn components must; it loads in every SDK from .NET 8.0.2xx onward, unchanged.
+- **The `configureRefit` parameter is gone from all six `AddDeliveryClient` overloads**, and `RefitSettingsProvider` is now internal. The hook exposed the transport library's settings object, but everything reachable through it was load-bearing rather than configurable: the collection format is what keeps duplicate filters as separate query parameters, the parameter-key formatter is what matches the API's casing, and the serializer options carry the converters and nesting limit the wire format requires. Overriding any of them broke requests silently. If you passed `configureRefit`, delete the argument — the SDK's own tests never used it for anything but asserting the callback fired. Should a real need surface, it will return as an API named for what it does rather than for the transport library.
+
+### Changed
+
+- **Repeated filter parameters are emitted in declaration order.** Filters sharing an element used to be grouped together regardless of where they appeared, so `a`, `b`, `a` was sent as `a`, `a`, `b`. Results are unaffected — filter parameters are AND-ed, and cache keys were already order-independent — but the request URL differs, which shows up in logs and traces.
+- **A request that fails before any response arrives now reports status `0`.** Previously the transport surfaced a status even when no HTTP exchange completed; the result object now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
+
+### Fixed
+
+- **Filter codenames are normalized to lower case, so one query no longer occupies two cache entries.** The Delivery API is case-insensitive here, so `System.Codename[EQ]` and `system.codename[eq]` always returned the same items — but the SDK hashed the filter key verbatim when building cache keys, so the two spellings cached separately, doubled origin calls, and invalidated independently. Codenames are lower case by construction, so this can only change input that was already unconventional.
+
+### Dependencies
+
+Shipped floors on `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Caching` and `Kontent.Ai.Urls` moved up. All are .NET 10 aligned:
+
+- `Microsoft.Extensions.*` (`Configuration`, `.Binder`, `Options`, `.ConfigurationExtensions`, `.DataAnnotations`, `Primitives`, `Logging.Abstractions`) **9.0.15** → **10.0.10**.
+- `Microsoft.Extensions.Http.Resilience` **9.6.0** → **10.8.0**.
+- `Microsoft.Extensions.Caching.Abstractions` **8.0.0** and `.Caching.Memory` **10.0.6** → **10.0.10**; `.Caching.StackExchangeRedis` **8.0.26** → **10.0.10** (`Kontent.Ai.Delivery.Caching`).
+- `AngleSharp` **1.5.0** → **1.7.0**.
+- `ZiggyCreatures.FusionCache` and its `System.Text.Json` serializer **2.5.0** → **2.6.0** (`Kontent.Ai.Delivery.Caching`).
+- `Refit` and `Refit.HttpClientFactory` **10.2.0** → **14.0.1**.
+
+`Kontent.Ai.Delivery.Abstractions` ships no package dependencies of its own and is unaffected.
+
+### Internal
+
+No consumer-visible effect:
+
+- Refit 14 builds request logic at compile time instead of by reflection. The filter DSL, whose parameter names are only known at runtime, now renders its own query string and applies it through a message handler, so every operation compiles to generated code and no reflection package is needed. The escaping this produces is byte-for-byte what the previous transport emitted, pinned by a characterization test suite covering reserved characters, pre-encoded input, non-ASCII values, empty operators and repeated keys.
+- `Kontent.Ai.Delivery.SourceGeneration` deliberately compiles against an older Roslyn than the rest of the repo. That reference sets the oldest compiler able to *load* the generator, and a newer one would be skipped silently on older SDKs.
+
+
 ## 19.4.0 (2026-08-03)
 
 Maintenance release: restores buildability against NuGet signature verification and refreshes the dependency estate. **No public API, behavior, or target framework changes** — no production source file changed since 19.3.1.

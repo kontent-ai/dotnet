@@ -6,6 +6,37 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+Targets .NET 10, completing the framework move that the `9.x` line was always heading for, and upgrades Refit across four major versions. The result pattern, transport architecture and model conventions introduced in the earlier betas are unchanged — see the [9.0.0-beta-1 release notes](release-notes-9.0.0-beta-1.md) for that overview.
+
+> [!WARNING]
+> Still a **prerelease**. Install with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe.
+
+### Breaking changes
+
+- **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release — restore fails with `NU1202`. Move to .NET 10 first.
+- **The `configureRefit` parameter is gone from all five `AddManagementClient` overloads, and `ManagementClientBuilder.ConfigureRefit` is removed.** The hook handed out the transport library's settings object, but every value it could reach was load-bearing rather than configurable — the parameter-key formatter matches the API's casing, and the serializer options carry the converters, naming policy and nesting limit the wire format depends on. Overriding them broke requests silently. Delete the argument or the builder call; the SDK's own tests only ever used it to assert the callback fired.
+- **Enum values are now read case-sensitively.** Only the exact wire token is accepted: `"modular_content"` binds, `"MODULAR_CONTENT"` and the C# member name `"LinkedItems"` now throw `JsonException` instead of being coerced. The Management API emits canonical tokens and `ContentModelSnapshot.FromJson` only ever consumes `ToJson` output, so this affects hand-written JSON. Writing is unchanged, and numeric tokens are still rejected in both directions.
+
+### Changed
+
+- **A request that fails before any response arrives now reports status `0`.** Previously the transport surfaced a status even when no HTTP exchange completed; `IManagementResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
+
+### Dependencies
+
+Shipped floors on `Kontent.Ai.Management` moved up, all .NET 10 aligned:
+
+- `Microsoft.Extensions.*` (`Configuration.Abstractions`, `Logging.Abstractions`, `Options.ConfigurationExtensions`, `Options.DataAnnotations`) **9.0.15** → **10.0.10**.
+- `Microsoft.Extensions.Http.Resilience` **9.6.0** → **10.8.0**.
+- `Refit` and `Refit.HttpClientFactory` **10.2.0** → **14.0.1**.
+
+### Internal
+
+No consumer-visible effect:
+
+- Enum wire tokens now travel on `[JsonStringEnumMemberName]` and serialize through the built-in `System.Text.Json` converter. The custom converter existed only because that attribute did not exist on .NET 8. All 140 members across 36 enums keep their exact tokens, verified by round-trip — including the ones that are not snake_case (`light-purple`, `fullScreen`, `asc`, `modular_content`).
+- Refit 14 builds request logic at compile time rather than by reflection; the Management interfaces generate completely and gained that with no changes.
+
+
 ## 9.0.0-beta-5 (2026-08-03)  _(prerelease)_
 
 A packaging-only fix on top of 9.0.0-beta-4. No API or behavior change — if you are already restoring beta-4 successfully, there is nothing new here.

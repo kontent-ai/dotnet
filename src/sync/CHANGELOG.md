@@ -8,6 +8,32 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release, and Refit's transport is upgraded across four major versions. Nothing else about the API changes.
+
+### Breaking changes
+
+- **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
+- **The `configureRefit` parameter is gone from all three `AddSyncClient` overloads.** The hook exposed the transport library's settings object, but everything reachable through it was load-bearing rather than configurable — the parameter-key formatter matches the API's casing, and the serializer options carry the converters the wire format requires. Overriding them broke requests silently. Delete the argument; the SDK's own tests only ever used it to assert the callback fired.
+
+### Changed
+
+- **A request that fails before any response arrives now reports status `0`.** Previously the transport surfaced a status even when no HTTP exchange completed; `ISyncResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
+
+### Dependencies
+
+Shipped floors on `Kontent.Ai.Sync` moved up, all .NET 10 aligned:
+
+- `Microsoft.Extensions.*` (`Configuration`, `.Binder`, `Logging.Abstractions`, `Options`, `.ConfigurationExtensions`, `.DataAnnotations`) **9.0.15** → **10.0.10**.
+- `Microsoft.Extensions.Http.Resilience` **9.6.0** → **10.8.0**.
+- `Refit` and `Refit.HttpClientFactory` **10.2.0** → **14.0.1**.
+
+`Kontent.Ai.Sync.Abstractions` ships no package dependencies of its own and is unaffected.
+
+### Internal
+
+Refit 14 builds request logic at compile time rather than by reflection. `ISyncApi` generates completely and gained that with no changes.
+
+
 ## 1.0.0 (2026-04-16)
 
 First stable release of the **Kontent.ai Sync SDK for .NET**, targeting the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
