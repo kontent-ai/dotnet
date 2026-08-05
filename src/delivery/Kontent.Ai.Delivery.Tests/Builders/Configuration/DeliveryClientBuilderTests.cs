@@ -588,20 +588,15 @@ public class DeliveryClientBuilderTests
         public string? GetCodename(Type contentType) => null;
     }
 
+    // The builder hands back the DeliveryClient itself, so the cache manager it captured is one
+    // field away - no wrapper to unwrap.
     private static IDeliveryCacheManager? GetCacheManager(IDeliveryClient client)
     {
-        // Unwrap OwnedDeliveryClient to get the inner DeliveryClient
-        var target = client;
-        var innerField = client.GetType()
-            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
-            .FirstOrDefault(f => typeof(IDeliveryClient).IsAssignableFrom(f.FieldType));
-        if (innerField?.GetValue(client) is IDeliveryClient inner)
-            target = inner;
-
-        var cacheManagerField = target.GetType()
+        var cacheManagerField = client.GetType()
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
             .FirstOrDefault(f => typeof(IDeliveryCacheManager).IsAssignableFrom(f.FieldType));
-        return cacheManagerField?.GetValue(target) as IDeliveryCacheManager;
+
+        return cacheManagerField?.GetValue(client) as IDeliveryCacheManager;
     }
 
     // Simple test implementation of IDistributedCache

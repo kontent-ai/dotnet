@@ -18,6 +18,12 @@ namespace Kontent.Ai.Delivery;
 /// <param name="cacheManager">Optional cache manager for caching API responses (injected when EnableCaching is true).</param>
 /// <param name="logger">Optional logger for diagnostic output.</param>
 /// <param name="optionsAccessor">Provides the effective <see cref="DeliveryOptions"/> at runtime (monitor- or snapshot-backed).</param>
+/// <param name="ownedResources">
+/// Resources whose lifetime this client is responsible for, or <c>null</c> when something else owns them.
+/// A container passes <c>null</c> - it owns the transport and disposes the client itself.
+/// <see cref="DeliveryClientBuilder"/> passes the private service provider it built, so disposing the
+/// client tears down that provider and everything registered in it.
+/// </param>
 internal sealed class DeliveryClient(
     IDeliveryApi deliveryApi,
     ContentItemMapper contentItemMapper,
@@ -25,8 +31,10 @@ internal sealed class DeliveryClient(
     ITypeProvider typeProvider,
     IDeliveryCacheManager? cacheManager = null,
     ILogger<DeliveryClient>? logger = null,
-    IDeliveryOptionsAccessor? optionsAccessor = null) : IDeliveryClient
+    IDeliveryOptionsAccessor? optionsAccessor = null,
+    IDisposable? ownedResources = null) : IDeliveryClient
 {
+    private int _disposeState;
 
     public IItemQuery<T> GetItem<T>(string codename)
     {
@@ -131,13 +139,35 @@ internal sealed class DeliveryClient(
     }
 
     /// <summary>
-    /// No-op when the client is managed by a DI container.
-    /// When created via <see cref="DeliveryClientBuilder"/>, disposal is handled by <see cref="OwnedDeliveryClient"/>.
+    /// Releases what this client owns. Nothing, when a container supplied its dependencies.
     /// </summary>
-    public void Dispose() { }
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
+        {
+            return;
+        }
+
+        ownedResources?.Dispose();
+    }
 
     /// <inheritdoc/>
-    public ValueTask DisposeAsync() => default;
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
+        {
+            return;
+        }
+
+        if (ownedResources is IAsyncDisposable asyncDisposable)
+        {
+            await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            ownedResources?.Dispose();
+        }
+    }
 
     private static void EnsureCodenameValid(string? codename, [CallerArgumentExpression(nameof(codename))] string? parameterName = null)
     {

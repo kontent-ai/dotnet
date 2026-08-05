@@ -367,9 +367,23 @@ public static partial class ServiceCollectionExtensions
     /// Factory method for creating keyed DeliveryClient instances.
     /// </summary>
     private static IDeliveryClient CreateDeliveryClient(IServiceProvider sp, object? key)
-    {
-        var clientName = (string)key!;
+        => CreateDeliveryClient(sp, (string)key!);
 
+    /// <summary>
+    /// Builds a client from services already registered in <paramref name="sp"/>.
+    /// </summary>
+    /// <param name="sp">The provider to resolve dependencies from.</param>
+    /// <param name="clientName">The name the client's services were registered under.</param>
+    /// <param name="ownedResources">
+    /// Handed to the client as its own to dispose. The container passes nothing - it owns what it built.
+    /// <see cref="DeliveryClientBuilder"/> passes the provider itself, which is what makes the client it
+    /// returns disposable. Both entry points construct through here so they cannot drift apart.
+    /// </param>
+    internal static DeliveryClient CreateDeliveryClient(
+        IServiceProvider sp,
+        string clientName,
+        IDisposable? ownedResources = null)
+    {
         var deliveryApi = sp.GetRequiredKeyedService<IDeliveryApi>(clientName);
         var contentItemMapper = sp.GetRequiredService<ContentItemMapper>();
         var contentDeserializer = sp.GetRequiredService<IContentDeserializer>();
@@ -389,7 +403,8 @@ public static partial class ServiceCollectionExtensions
             typeProvider,
             cacheManager,
             logger,
-            optionsAccessor);
+            optionsAccessor,
+            ownedResources);
     }
 
     /// <summary>

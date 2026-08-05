@@ -195,9 +195,12 @@ public sealed class DeliveryClientBuilder
         var serviceProvider = services.BuildServiceProvider(
             new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 
-        var client = serviceProvider.GetRequiredService<IDeliveryClient>();
-
-        return new OwnedDeliveryClient(serviceProvider, client);
+        // Built through the same factory the container uses, handed the provider as the resource it owns -
+        // so disposing this client tears down the provider and everything registered in it.
+        return ServiceCollectionExtensions.CreateDeliveryClient(
+            serviceProvider,
+            DeliveryClientNames.Default,
+            ownedResources: serviceProvider);
     }
 
     private void BuildServices(IServiceCollection services)

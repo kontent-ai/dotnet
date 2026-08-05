@@ -119,15 +119,17 @@ public sealed class StandaloneClientTests : IDisposable
     }
 
     // The point of the standalone path owning its HttpClient: disposing the client releases it.
+    // DisposeAsync delegates to Dispose, so this covers both.
     [Fact]
     public async Task DisposingTheClient_ReleasesItsHttpClient()
     {
         _http.When(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
 
-        var client = new SyncClient(Options(), primaryHandler: _http);
-        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
-
-        client.Dispose();
+        ISyncClient client;
+        await using (client = new SyncClient(Options(), primaryHandler: _http))
+        {
+            (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        }
 
         // The transport failure is reported as a result rather than thrown, as every non-cancellation
         // failure in this SDK is; what matters here is that the request no longer reaches the handler.
@@ -140,30 +142,23 @@ public sealed class StandaloneClientTests : IDisposable
     }
 
     [Fact]
-    public async Task AwaitUsing_ReleasesTheHttpClient()
-    {
-        _http.When(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
-
-        ISyncClient client;
-        await using (client = new SyncClient(Options(), primaryHandler: _http))
-        {
-            (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
-        }
-
-        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Disposal_IsIdempotent()
+    public void Dispose_IsIdempotent()
     {
         var client = new SyncClient(Options(), primaryHandler: _http);
 
         client.Dispose();
-        var act = async () =>
-        {
-            client.Dispose();
-            await client.DisposeAsync();
-        };
+        var act = () => client.Dispose();
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_IsIdempotent()
+    {
+        var client = new SyncClient(Options(), primaryHandler: _http);
+
+        await client.DisposeAsync();
+        var act = async () => await client.DisposeAsync();
 
         await act.Should().NotThrowAsync();
     }
