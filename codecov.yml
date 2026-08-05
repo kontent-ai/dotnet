@@ -1,0 +1,28 @@
+# Codecov reports, it does not gate.
+#
+# Coverage is already enforced where it can be judged properly: each test project sets its own
+# coverlet Threshold/ThresholdType/ThresholdStat, and `dotnet test` in ci.yml fails the run if the
+# product drops below it. Those numbers differ by an order of magnitude between a thin CLI entry
+# point and a client library, so they are chosen per product rather than repo-wide.
+#
+# Codecov's default status is `target: auto`, meaning "must not fall below the base commit by any
+# amount". Layered on top of a real gate, that turns a 0.2% ratio shift — which a pure refactor can
+# cause by deleting covered lines — into a red check on an otherwise healthy PR. `informational`
+# keeps the report, the diff annotations and the PR comment, without the veto.
+#
+# If a coverage floor should move, move the coverlet threshold in the relevant test project. That
+# is a deliberate, reviewable decision; a drifting auto-target is not.
+
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false

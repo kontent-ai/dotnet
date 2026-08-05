@@ -179,6 +179,25 @@ insertion order in practice absent removals, so it is stable today — but that 
 contract. If it ever varied, identical queries would emit different URLs and fragment CDN
 caching. Rendering from an ordered `List` is deterministic by contract.
 
+### 6.1b Filter key casing split the cache _(fixed)_
+
+Found while removing the old tests. `ToQueryDictionary` grouped keys with
+`StringComparer.OrdinalIgnoreCase`, but only for *grouping* — a single filter written
+`System.Codename[EQ]` always reached the wire as written, before and after this work.
+
+The Delivery API is case-insensitive, so results were never affected. The SDK's cache was:
+`CacheKeyBuilder.AppendFilters` sorts case-insensitively but hashes the key verbatim, so two
+spellings of one query produced two entries — measured `items:filters=eG7Afvc86mH0` versus
+`items:filters=Irbw_Ml7bAc_`. Double the origin calls, and invalidation clearing only one.
+
+Fixed at the single chokepoint: `FilterPath.Build` now lower-cases the caller's codename, so the
+wire and the cache key inherit one canonical form. `SystemFilterHelpers` also routes through
+`FilterPath`, so there is no bypass. Kontent.ai codenames are lower-case by construction, so this
+can only alter input that was already wrong.
+
+**Read-side only.** It must not be copied into the Management SDK, where a user-supplied value in
+a write payload has to reach the API exactly as given.
+
 ### Changelog line for this
 
 Delivery is already taking a major, so this needs no special handling beyond being stated. Draft:
@@ -188,6 +207,10 @@ Delivery is already taking a major, so this needs no special handling beyond bei
 > declared (`a`, `b`, `a` was sent as `a`, `a`, `b`). Results are unaffected — filters are AND-ed
 > and cache keys were already order-independent — but the request URL differs, which is visible
 > in logs and traces.
+>
+> **Fixed** — Filter codenames are now lower-cased before use. The Delivery API is
+> case-insensitive, so results are unchanged, but the SDK previously cached
+> `System.Codename[EQ]` and `system.codename[eq]` as two separate entries for the same query.
 
 ### 6.2 `FilterValueSerializer.Serialize(string)` becomes misleading
 
