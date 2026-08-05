@@ -1,5 +1,5 @@
-using Kontent.Ai.Common.Http;
 using AwesomeAssertions;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;

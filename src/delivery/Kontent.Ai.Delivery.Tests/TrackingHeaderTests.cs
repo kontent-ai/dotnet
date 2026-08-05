@@ -1,3 +1,4 @@
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Extensions;
 
 namespace Kontent.Ai.Delivery.Tests;
@@ -59,6 +60,30 @@ public class TrackingHeaderTests
         Assert.Equal("CustomModule;2.0.0-beta.1", value);
     }
 
+    // A retried request re-dispatches the same HttpRequestMessage, so the handler runs again on headers
+    // it already wrote. A plain Add would send one duplicate X-KC-SDKID per attempt.
+    [Fact]
+    public void AddSdkTrackingHeader_CalledTwice_WritesSingleValue()
+    {
+        using var request = new HttpRequestMessage();
+
+        request.Headers.AddSdkTrackingHeader();
+        request.Headers.AddSdkTrackingHeader();
+
+        Assert.Single(request.Headers.GetValues("X-KC-SDKID"));
+    }
+
+    [Fact]
+    public void AddSourceTrackingHeader_CalledTwice_WritesSingleValue()
+    {
+        using var request = new HttpRequestMessage();
+
+        request.Headers.AddSourceTrackingHeader();
+        request.Headers.AddSourceTrackingHeader();
+
+        Assert.Single(request.Headers.GetValues("X-KC-SOURCE"));
+    }
+
     [Fact]
     public void GetProductVersion_ReturnsNonEmptyVersion()
     {
@@ -85,7 +110,7 @@ public class TrackingHeaderTests
     [InlineData("5.0.0-beta.2+sha.githash.20260416", "5.0.0-beta.2")]
     public void StripBuildMetadata_RemovesPlusSuffixPreservesPrerelease(string input, string expected)
     {
-        Assert.Equal(expected, HttpRequestHeadersExtensions.StripBuildMetadata(input));
+        Assert.Equal(expected, SdkTrackingHeaders.StripBuildMetadata(input));
     }
 
     [Theory]
@@ -94,7 +119,7 @@ public class TrackingHeaderTests
     [InlineData("   ")]
     public void StripBuildMetadata_NullOrWhitespace_ReturnsNull(string? input)
     {
-        Assert.Null(HttpRequestHeadersExtensions.StripBuildMetadata(input));
+        Assert.Null(SdkTrackingHeaders.StripBuildMetadata(input));
     }
 
     [Fact]

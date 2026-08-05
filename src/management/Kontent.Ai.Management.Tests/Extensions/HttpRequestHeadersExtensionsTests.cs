@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Extensions;
 
 namespace Kontent.Ai.Management.Tests.Extensions;

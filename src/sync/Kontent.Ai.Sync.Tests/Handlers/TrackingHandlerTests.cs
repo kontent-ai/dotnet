@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Handlers;
 
@@ -7,11 +8,11 @@ namespace Kontent.Ai.Sync.Tests.Handlers;
 public class TrackingHandlerTests
 {
     [Fact]
-    public void GetAssemblyVersion_ReadsInformationalVersion_StrippingBuildMetadata()
+    public void GetProductVersion_ReadsInformationalVersion_StrippingBuildMetadata()
     {
         var assembly = typeof(TrackingHandler).Assembly;
 
-        var version = TrackingHandler.GetAssemblyVersion(assembly);
+        var version = assembly.GetProductVersion();
 
         version.Should().NotBeNullOrWhiteSpace();
         version.Should().NotContain("+");
@@ -22,18 +23,28 @@ public class TrackingHandlerTests
     [InlineData("1.0.0+abc123", "1.0.0")]
     [InlineData("2.0.0-beta", "2.0.0-beta")]
     [InlineData("1.0.0", "1.0.0")]
-    [InlineData("", "")]
     public void StripBuildMetadata_RemovesSourceLinkGitSha(string raw, string expected)
     {
-        TrackingHandler.StripBuildMetadata(raw).Should().Be(expected);
+        SdkTrackingHeaders.StripBuildMetadata(raw).Should().Be(expected);
+    }
+
+    // A blank version yields null so the caller falls back to "0.0.0"; an empty string would otherwise
+    // travel into the tracking header as the version.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void StripBuildMetadata_NullOrWhitespace_ReturnsNull(string? raw)
+    {
+        SdkTrackingHeaders.StripBuildMetadata(raw).Should().BeNull();
     }
 
     [Fact]
-    public void GetAssemblyVersion_SdkAssembly_NeverContainsPlus()
+    public void GetProductVersion_SdkAssembly_NeverContainsPlus()
     {
         // SourceLink appends "+<commit-sha>" to AssemblyInformationalVersion; the tracking header
         // must never leak that SHA. Regression guard against removing StripBuildMetadata.
-        var version = TrackingHandler.GetAssemblyVersion(typeof(TrackingHandler).Assembly);
+        var version = typeof(TrackingHandler).Assembly.GetProductVersion();
 
         version.Should().NotContain("+");
     }

@@ -1,8 +1,8 @@
-using Kontent.Ai.Common.Http;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using AwesomeAssertions;
+using Kontent.Ai.Common.Http;
 using Polly;
 using Polly.Retry;
 

@@ -21,6 +21,7 @@
 		<!-- HttpRetryDelay is deliberately not included: this SDK leaves Retry-After to the
 		     built-in ShouldRetryAfterHeader. See ConfigureDefaultResilience. -->
 		<Compile Include="$(KontentCommonPath)Http\HttpRetryPredicates.cs" Link="Common\HttpRetryPredicates.cs" />
+		<Compile Include="$(KontentCommonPath)Http\SdkTrackingHeaders.cs" Link="Common\SdkTrackingHeaders.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

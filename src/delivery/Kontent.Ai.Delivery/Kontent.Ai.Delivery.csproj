@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Compile Include="$(KontentCommonPath)Http\HttpRetryPredicates.cs" Link="Common\HttpRetryPredicates.cs" />
+    <Compile Include="$(KontentCommonPath)Http\SdkTrackingHeaders.cs" Link="Common\SdkTrackingHeaders.cs" />
     <Compile Include="$(KontentCommonPath)Http\HttpRetryDelay.cs" Link="Common\HttpRetryDelay.cs" />
   </ItemGroup>
 
