@@ -26,6 +26,11 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   .NET. Previously **all** of these threw.
 - **Transport failures report status `0`.** `ISyncResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
+### Fixed
+
+- **A failure resolving the `X-KC-SOURCE` header no longer breaks every later request.** The value is cached in a `Lazy<string?>`, and the resolution walks the call stack to attribute the calling package. An exception thrown during that walk was cached alongside the value and rethrown on every subsequent request for the lifetime of the process. Resolution failures are now contained and the header simply omitted, which was the intent.
+- **An assembly with no informational version reports `0.0.0` in tracking headers rather than an empty version.** The build-metadata stripping ran after the fallback rather than before it, so a blank version survived as an empty string and travelled into the header. Only reachable for an assembly built without version attributes, which is not the case for anything this SDK ships.
+
 ### Dependencies
 
 Shipped floors on `Kontent.Ai.Sync` moved up, all .NET 10 aligned:

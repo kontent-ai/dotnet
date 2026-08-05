@@ -29,6 +29,8 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
 
 ### Fixed
 
+- **Retried requests no longer accumulate duplicate `X-KC-SDKID` headers.** The tracking handler sits below the resilience handler, so every retry re-runs it against the same request message. The header was appended rather than replaced, adding one duplicate value per attempt. Writes are now idempotent. Only the outgoing request differed; results were unaffected.
+- **A failure resolving the `X-KC-SOURCE` header no longer breaks every later request.** The value is cached in a `Lazy<string?>`, and the resolution walks the call stack to attribute the calling package. An exception thrown during that walk was cached alongside the value and rethrown on every subsequent request for the lifetime of the process. Resolution failures are now contained and the header simply omitted, which was the intent.
 - **Filter codenames are normalized to lower case, so one query no longer occupies two cache entries.** The Delivery API is case-insensitive here, so `System.Codename[EQ]` and `system.codename[eq]` always returned the same items — but the SDK hashed the filter key verbatim when building cache keys, so the two spellings cached separately, doubled origin calls, and invalidated independently. Codenames are lower case by construction, so this can only change input that was already unconventional.
 
 ### Dependencies
