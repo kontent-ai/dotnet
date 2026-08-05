@@ -21,7 +21,7 @@ public abstract class DeliveryClassCodeGeneratorBase(ClassDefinition classDefini
                                     SyntaxFactory.Literal(property.Codename))))))))
     ];
 
-    protected MemberDeclarationSyntax[] PropertyCodenameConstants
+    protected MemberDeclarationSyntax[] GetPropertyCodenameConstants()
         => ClassDefinition.PropertyCodenameConstants
             .OrderBy(p => p)
             .Select(codename =>

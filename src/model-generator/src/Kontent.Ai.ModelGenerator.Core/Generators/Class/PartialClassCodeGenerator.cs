@@ -15,8 +15,8 @@ public class PartialClassCodeGenerator(ClassDefinition classDefinition, string c
     {
         var classDeclaration = base.GetClassDeclaration();
 
-        classDeclaration = classDeclaration.AddMembers(PropertyCodenameConstants);
-        classDeclaration = classDeclaration.AddMembers(Properties);
+        classDeclaration = classDeclaration.AddMembers(GetPropertyCodenameConstants());
+        classDeclaration = classDeclaration.AddMembers(GetProperties());
 
         return classDeclaration;
     }

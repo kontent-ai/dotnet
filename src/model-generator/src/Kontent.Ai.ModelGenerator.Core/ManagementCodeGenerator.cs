@@ -83,7 +83,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
             }
         }
 
-        var classFilename = GetFileClassName(classDefinition.ClassName);
+        var classFilename = classDefinition.ClassName;
         return new ManagementClassCodeGenerator(classDefinition, classFilename, Options.Namespace);
     }
 

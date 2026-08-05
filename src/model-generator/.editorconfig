@@ -8,18 +8,7 @@
 [**/{ClassCodeGenerator,ManagementClassCodeGenerator}.cs]
 dotnet_diagnostic.S125.severity = none
 
-# `Properties` and `PropertyCodenameConstants` are `protected` members of public generator base
-# classes, so they are part of the subclassing surface. S2365's fix - turning them into methods -
-# is a source-breaking change for derived generators. Worth revisiting in the next major; not
-# worth breaking the contract for now.
-[**/{ClassCodeGenerator,DeliveryClassCodeGeneratorBase}.cs]
-dotnet_diagnostic.S2365.severity = none
 
-# `FilenameSuffix` is a `protected` member of the public generator base. Making it static per
-# S2325 changes how derived classes reference it, so it is the same breaking-change trade-off
-# as S2365 above.
-[**/CodeGeneratorBase.cs]
-dotnet_diagnostic.S2325.severity = none
 
 # Two deliberate patterns in the CLI argument parser:
 # S127 - `value = args[++i]` consumes the following token as the current flag's value. Advancing

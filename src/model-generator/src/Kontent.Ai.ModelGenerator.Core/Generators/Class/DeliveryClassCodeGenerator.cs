@@ -28,13 +28,13 @@ public class DeliveryClassCodeGenerator(ClassDefinition classDefinition, string 
                                         SyntaxFactory.Literal(ClassDefinition.Codename)))))))));
 
         // Add element codename constants
-        recordDeclaration = recordDeclaration.AddMembers(PropertyCodenameConstants);
+        recordDeclaration = recordDeclaration.AddMembers(GetPropertyCodenameConstants());
 
         // Add ContentTypeCodename constant
         recordDeclaration = recordDeclaration.AddMembers(GetContentTypeCodenameConstant());
 
         // Add element properties
-        recordDeclaration = recordDeclaration.AddMembers(Properties);
+        recordDeclaration = recordDeclaration.AddMembers(GetProperties());
 
         return recordDeclaration;
     }

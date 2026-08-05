@@ -14,10 +14,12 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** `Kontent.Ai.ModelGenerator.Core` is a library, so a project on .NET 8 cannot reference this release at all — restore fails with `NU1202`. The `Kontent.Ai.ModelGenerator` CLI likewise needs the .NET 10 runtime to run. Move to .NET 10 first.
+- **Two generator base-class properties became methods.** `ClassCodeGenerator.Properties` is now `GetProperties()`, and `DeliveryClassCodeGeneratorBase.PropertyCodenameConstants` is now `GetPropertyCodenameConstants()`. Both re-sort their input and build a fresh set of Roslyn syntax nodes on every access, so a property was misleading about the cost — two reads returned two different arrays. `GetProperties()` remains `virtual`, so overriding it still works; a derived generator changes `override … Properties` to `override … GetProperties()`. Only affects code that subclasses these base classes.
+- **`CodeGeneratorBase.FilenameSuffix` and `GetFileClassName` are removed.** The suffix has been the empty string since single-file generation landed, which made `GetFileClassName(name)` an identity function. Generated file names are unchanged. Only affects code that subclasses `CodeGeneratorBase`.
 
 ### Changed
 
-- **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`.
+- **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`, verified by the generator's own output assertions.
 
 ### Dependencies
 

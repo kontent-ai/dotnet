@@ -62,7 +62,7 @@ public sealed class ManagementClassCodeGenerator(
                     SyntaxFactory.SimpleBaseType(
                         SyntaxFactory.IdentifierName(ElementsModelInterfaceName)))));
 
-        declaration = declaration.AddMembers(Properties);
+        declaration = declaration.AddMembers(GetProperties());
 
         return declaration;
     }

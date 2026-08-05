@@ -53,7 +53,7 @@ public abstract class ClassCodeGenerator : GeneralGenerator
     /// </summary>
     protected virtual AttributeListSyntax[] BuildPropertyAttributes(Property property) => [];
 
-    protected virtual MemberDeclarationSyntax[] Properties
+    protected virtual MemberDeclarationSyntax[] GetProperties()
         => ClassDefinition.Properties.OrderBy(p => p.Identifier).Select(element =>
         {
             var property = SyntaxFactory

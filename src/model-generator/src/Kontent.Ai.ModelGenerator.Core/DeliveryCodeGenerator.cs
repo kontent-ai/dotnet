@@ -71,7 +71,7 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
 
         // Modern delivery: no system property
 
-        var classFilename = GetFileClassName(classDefinition.ClassName);
+        var classFilename = classDefinition.ClassName;
 
         return ClassCodeGeneratorFactory.CreateClassCodeGenerator(Options, classDefinition, classFilename, Logger);
     }
