@@ -1,0 +1,97 @@
+﻿// Kontent.Ai.AspNetCore.ImageTransformation
+public class AssetTagHelper : TagHelper
+    Boolean AutoFormat { get; set; }
+    IAsset Asset { get; set; }
+    IOptions<ImageTransformationOptions> ImageTransformationOptions { get; set; }
+    Int32 DefaultWidth { get; set; }
+    Int32[] ResponsiveWidths { get; set; }
+    Nullable<ImageCompression> Compression { get; set; }
+    Nullable<ImageFitMode> Fit { get; set; }
+    Nullable<ImageFormat> Format { get; set; }
+    Nullable<Int32> Quality { get; set; }
+    String Rendition { get; set; }
+    String Title { get; set; }
+    Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
+
+// Kontent.Ai.AspNetCore.ImageTransformation
+public class ImageTransformationOptions
+    Int32[] ResponsiveWidths { get; set; }
+
+// Kontent.Ai.AspNetCore.ImageTransformation
+public class MediaConditionTagHelper : TagHelper
+    Int32 ImageWidth { get; set; }
+    Int32 MinWidth { get; set; }
+    Nullable<Int32> MaxWidth { get; set; }
+    Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
+
+// Kontent.Ai.AspNetCore.RichText
+public sealed class RichTextExtensions
+    static Task<IHtmlContent> ToHtmlContentAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
+
+// Kontent.Ai.AspNetCore.RichText
+public class RichTextTagHelper : TagHelper
+    IHtmlResolver Resolver { get; set; }
+    IRichTextContent Content { get; set; }
+    Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
+
+// Kontent.Ai.AspNetCore.RichText
+public sealed class ServiceCollectionExtensions
+    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IHtmlResolverBuilder> configure)
+    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IServiceProvider, IHtmlResolverBuilder> configure)
+
+// Kontent.Ai.AspNetCore.Webhooks
+public sealed class ApplicationBuilderExtensions
+    static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, Action<WebhookOptions> configureOptions)
+    static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, IConfigurationSection configurationSection)
+    static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, WebhookOptions options)
+
+// Kontent.Ai.AspNetCore.Webhooks
+public class SignatureMiddleware
+    IOptions<WebhookOptions> WebhookOptions { get; }
+    Task InvokeAsync(HttpContext httpContext)
+
+// Kontent.Ai.AspNetCore.Webhooks
+public class WebhookOptions
+    String Secret { get; set; }
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class Reference
+    Nullable<Guid> Id { get; set; }
+    String Codename { get; set; }
+    String ExternalId { get; set; }
+    static Reference ByCodename(String codename)
+    static Reference ByExternalId(String externalId)
+    static Reference ById(Guid id)
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class WebhookData
+    WebhookItem System { get; set; }
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class WebhookItem
+    DateTime LastModified { get; set; }
+    Nullable<Guid> Id { get; set; }
+    String Codename { get; set; }
+    String Collection { get; set; }
+    String Language { get; set; }
+    String Name { get; set; }
+    String Type { get; set; }
+    String Workflow { get; set; }
+    String WorkflowStep { get; set; }
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class WebhookMessage
+    Guid EnvironmentId { get; set; }
+    String Action { get; set; }
+    String DeliverySlot { get; set; }
+    String ObjectType { get; set; }
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class WebhookModel
+    WebhookData Data { get; set; }
+    WebhookMessage Message { get; set; }
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public class WebhookNotification
+    WebhookModel[] Notifications { get; set; }
+

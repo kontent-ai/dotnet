@@ -9,63 +9,62 @@ public class DeliverySourceTrackingHeaderAttribute : Attribute
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }
-    String PackageName { get; }
     Int32 PatchVersion { get; }
+    String PackageName { get; }
     String PreReleaseLabel { get; }
 
 // Kontent.Ai.Delivery
 public sealed class QueryCacheExtensions
-    IItemQuery`1 WithCacheExpiration(IItemQuery`1 query, Nullable`1 expiration)
-    IItemsQuery`1 WithCacheExpiration(IItemsQuery`1 query, Nullable`1 expiration)
-    ITypeQuery WithCacheExpiration(ITypeQuery query, Nullable`1 expiration)
-    ITypesQuery WithCacheExpiration(ITypesQuery query, Nullable`1 expiration)
-    ITaxonomyQuery WithCacheExpiration(ITaxonomyQuery query, Nullable`1 expiration)
-    ITaxonomiesQuery WithCacheExpiration(ITaxonomiesQuery query, Nullable`1 expiration)
+    static IItemQuery<TModel> WithCacheExpiration<TModel>(IItemQuery<TModel> query, Nullable<TimeSpan> expiration)
+    static IItemsQuery<TModel> WithCacheExpiration<TModel>(IItemsQuery<TModel> query, Nullable<TimeSpan> expiration)
+    static ITaxonomiesQuery WithCacheExpiration(ITaxonomiesQuery query, Nullable<TimeSpan> expiration)
+    static ITaxonomyQuery WithCacheExpiration(ITaxonomyQuery query, Nullable<TimeSpan> expiration)
+    static ITypeQuery WithCacheExpiration(ITypeQuery query, Nullable<TimeSpan> expiration)
+    static ITypesQuery WithCacheExpiration(ITypesQuery query, Nullable<TimeSpan> expiration)
 
 // Kontent.Ai.Delivery
 public sealed class QueryEnumerationExtensions
-    IAsyncEnumerable`1 EnumerateItemsWithStatusAsync(IItemUsedInQuery query, CancellationToken cancellationToken)
-    IAsyncEnumerable`1 EnumerateItemsWithStatusAsync(IAssetUsedInQuery query, CancellationToken cancellationToken)
-    IAsyncEnumerable`1 EnumerateItemsWithStatusAsync(IEnumerateItemsQuery`1 query, CancellationToken cancellationToken)
-    IAsyncEnumerable`1 EnumerateItemsWithStatusAsync(IDynamicEnumerateItemsQuery query, CancellationToken cancellationToken)
+    static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> EnumerateItemsWithStatusAsync<TModel>(IEnumerateItemsQuery<TModel> query, CancellationToken cancellationToken)
+    static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse>> EnumerateItemsWithStatusAsync(IDynamicEnumerateItemsQuery query, CancellationToken cancellationToken)
+    static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IAssetUsedInQuery query, CancellationToken cancellationToken)
+    static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IItemUsedInQuery query, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery
 public sealed class RichTextExtensions
-    IEnumerable`1 GetBlocks(IRichTextContent richText)
-    IEnumerable`1 GetContentItemLinks(IRichTextContent richText)
-    IEnumerable`1 GetEmbeddedContent(IRichTextContent richText)
-    IEnumerable`1 GetEmbeddedContent(IRichTextContent richText)
-    IEnumerable`1 GetEmbeddedContentOfType(IEnumerable`1 blocks)
-    IEnumerable`1 GetEmbeddedElements(IRichTextContent richText)
-    IEnumerable`1 GetInlineImages(IRichTextContent richText)
-    ValueTask`1 ParseRichTextAsync(JsonElement richTextElement, IReadOnlyDictionary`2 modularContent, CancellationToken cancellationToken)
-    ValueTask`1 ToHtmlAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
+    static IEnumerable<IContentItemLink> GetContentItemLinks(IRichTextContent richText)
+    static IEnumerable<IEmbeddedContent<TModel>> GetEmbeddedContent<TModel>(IRichTextContent richText)
+    static IEnumerable<IEmbeddedContent<TModel>> GetEmbeddedContentOfType<TModel>(IEnumerable<IRichTextBlock> blocks)
+    static IEnumerable<IEmbeddedContent> GetEmbeddedContent(IRichTextContent richText)
+    static IEnumerable<IInlineImage> GetInlineImages(IRichTextContent richText)
+    static IEnumerable<TBlock> GetBlocks<TBlock>(IRichTextContent richText)
+    static IEnumerable<TModel> GetEmbeddedElements<TModel>(IRichTextContent richText)
+    static ValueTask<IRichTextContent> ParseRichTextAsync(JsonElement richTextElement, IReadOnlyDictionary<String, JsonElement> modularContent, CancellationToken cancellationToken)
+    static ValueTask<String> ToHtmlAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery
 public sealed class ServiceCollectionExtensions
-    IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Func`2 buildDeliveryOptions, Action`1 configureHttpClient, Action`1 configureResilience)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`1 configureOptions)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`2 configureOptions)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`1 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
-    IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action`2 configureOptions, Action`1 configureHttpClient, Action`1 configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryClientBuilder
-    IDeliveryClient Build()
-    DeliveryClientBuilder ConfigureServices(Action`1 configure)
+    DeliveryClientBuilder ConfigureServices(Action<IServiceCollection> configure)
     DeliveryClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
-    DeliveryClientBuilder WithOptions(Func`2 buildDeliveryOptions)
     DeliveryClientBuilder WithTypeProvider(ITypeProvider typeProvider)
+    IDeliveryClient Build()
+    static DeliveryClientBuilder WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions)
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     DeliveryOptions Build()
-    IDeliveryOptionsBuilder CreateInstance()
     IDeliveryOptionsBuilder DisableRetryPolicy()
     IDeliveryOptionsBuilder UsePreviewApi(String previewApiKey)
     IDeliveryOptionsBuilder UseProductionApi()
@@ -75,102 +74,104 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     IDeliveryOptionsBuilder WithCustomEndpoint(String endpoint)
     IDeliveryOptionsBuilder WithCustomEndpoint(Uri endpoint)
     IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
-    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
     IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
+    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
+    static IDeliveryOptionsBuilder CreateInstance()
 
 // Kontent.Ai.Delivery.ContentItems
-public sealed class Asset : IAsset, IEquatable`1
-    String Description { get; set; init; }
-    Nullable`1 Height { get; set; init; }
-    String Name { get; set; init; }
-    IReadOnlyDictionary`2 Renditions { get; set; init; }
+public sealed class Asset : IAsset, IEquatable<Asset>
+    IReadOnlyDictionary<String, IAssetRendition> Renditions { get; set; init; }
     Int32 Size { get; set; init; }
+    Nullable<Int32> Height { get; set; init; }
+    Nullable<Int32> Width { get; set; init; }
+    String Description { get; set; init; }
+    String Name { get; set; init; }
     String Type { get; set; init; }
     String Url { get; set; init; }
-    Nullable`1 Width { get; set; init; }
     Asset <Clone>$()
-    Boolean Equals(Object obj)
     Boolean Equals(Asset other)
+    Boolean Equals(Object obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Delivery.ContentItems
-public sealed class AssetRendition : IAssetRendition, IEquatable`1
+public sealed class AssetRendition : IAssetRendition, IEquatable<AssetRendition>
     Int32 Height { get; set; init; }
+    Int32 Width { get; set; init; }
     String PresetId { get; set; init; }
     String Query { get; set; init; }
     String RenditionId { get; set; init; }
-    Int32 Width { get; set; init; }
     AssetRendition <Clone>$()
-    Boolean Equals(Object obj)
     Boolean Equals(AssetRendition other)
+    Boolean Equals(Object obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Delivery.ContentItems
-public sealed class DynamicElements : ReadOnlyDictionary`2, IDynamicElements
+public sealed class DynamicElements : ReadOnlyDictionary<String, JsonElement>, IDynamicElements
 
 // Kontent.Ai.Delivery.ContentItems.RichText
-public sealed class RichTextContent : IRichTextContent, IReadOnlyList`1, IReadOnlyCollection`1, IEnumerable`1, IEnumerable
-    Int32 Count { get; }
+public sealed class RichTextContent : IEnumerable, IEnumerable<IRichTextBlock>, IReadOnlyCollection<IRichTextBlock>, IReadOnlyList<IRichTextBlock>, IRichTextContent
     IRichTextBlock Item { get; }
-    IEnumerator`1 GetEnumerator()
+    Int32 Count { get; }
+    static RichTextContent Empty { get; }
+    IEnumerator<IRichTextBlock> GetEnumerator()
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
 public sealed class DefaultResolvers
-    BlockResolver`1 HtmlElementResolver()
-    BlockResolver`1 UrlPatternResolver(IReadOnlyDictionary`2 typePatterns, String fallbackPattern)
+    static BlockResolver<IContentItemLink> UrlPatternResolver(IReadOnlyDictionary<String, String> typePatterns, String fallbackPattern)
+    static BlockResolver<IHtmlNode> HtmlElementResolver()
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
 public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
-    IHtmlResolver Build()
     HtmlResolverBuilder ThrowOnMissingResolver(Boolean enabled)
-    IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentItemLinkResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver`1 resolver, String description)
-    IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String attributeValue, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithInlineImageResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithTextNodeResolver(BlockResolver`1 resolver)
+    IHtmlResolver Build()
+    IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
+    IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver<IContentItemLink> resolver)
+    IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary<String, BlockResolver<IContentItemLink>> resolvers)
+    IHtmlResolverBuilder WithContentItemLinkResolvers(ValueTuple<String, BlockResolver<IContentItemLink>>[] resolvers)
+    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func<IEmbeddedContent, String> resolver)
+    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func<IEmbeddedContent, ValueTask<String>> resolver)
+    IHtmlResolverBuilder WithContentResolver<TModel>(Func<IEmbeddedContent<TModel>, String> resolver)
+    IHtmlResolverBuilder WithContentResolver<TModel>(Func<IEmbeddedContent<TModel>, ValueTask<String>> resolver)
+    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary<String, Func<IEmbeddedContent, String>> resolvers)
+    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary<Type, Func<IEmbeddedContent, String>> resolvers)
+    IHtmlResolverBuilder WithContentResolvers(ValueTuple<String, Func<IEmbeddedContent, String>>[] resolvers)
+    IHtmlResolverBuilder WithContentResolvers(ValueTuple<Type, Func<IEmbeddedContent, String>>[] resolvers)
+    IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver<IHtmlNode> resolver, String description)
+    IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String attributeValue, BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
+    IHtmlResolverBuilder WithTextNodeResolver(BlockResolver<ITextNode> resolver)
 
 // Kontent.Ai.Delivery.SharedModels
-public sealed class DateTimeContent : IDateTimeContent, IEquatable`1
+public sealed class DateTimeContent : IDateTimeContent, IEquatable<DateTimeContent>
+    Nullable<DateTime> Value { get; set; init; }
     String DisplayTimezone { get; set; init; }
-    Nullable`1 Value { get; set; init; }
-    DateTimeContent <Clone>$()
-    Boolean Equals(Object obj)
     Boolean Equals(DateTimeContent other)
-    Int32 GetHashCode()
-    String ToString()
-
-// Kontent.Ai.Delivery.SharedModels
-public sealed class MultipleChoiceOption : IMultipleChoiceOption, IEquatable`1
-    String Codename { get; set; init; }
-    String Name { get; set; init; }
-    MultipleChoiceOption <Clone>$()
     Boolean Equals(Object obj)
-    Boolean Equals(MultipleChoiceOption other)
+    DateTimeContent <Clone>$()
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Delivery.SharedModels
-public sealed class TaxonomyTerm : ITaxonomyTerm, IEquatable`1
+public sealed class MultipleChoiceOption : IEquatable<MultipleChoiceOption>, IMultipleChoiceOption
     String Codename { get; set; init; }
     String Name { get; set; init; }
-    TaxonomyTerm <Clone>$()
+    Boolean Equals(MultipleChoiceOption other)
+    Boolean Equals(Object obj)
+    Int32 GetHashCode()
+    MultipleChoiceOption <Clone>$()
+    String ToString()
+
+// Kontent.Ai.Delivery.SharedModels
+public sealed class TaxonomyTerm : IEquatable<TaxonomyTerm>, ITaxonomyTerm
+    String Codename { get; set; init; }
+    String Name { get; set; init; }
     Boolean Equals(Object obj)
     Boolean Equals(TaxonomyTerm other)
     Int32 GetHashCode()
     String ToString()
+    TaxonomyTerm <Clone>$()
 

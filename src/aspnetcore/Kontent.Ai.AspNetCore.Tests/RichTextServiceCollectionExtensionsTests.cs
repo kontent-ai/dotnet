@@ -1,7 +1,6 @@
 using Kontent.Ai.AspNetCore.RichText;
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

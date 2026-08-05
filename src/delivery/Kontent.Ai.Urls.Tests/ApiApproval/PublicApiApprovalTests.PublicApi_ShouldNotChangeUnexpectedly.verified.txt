@@ -1,11 +1,22 @@
 ﻿// Kontent.Ai.Urls.ImageTransformation
 public enum ImageCompression : Enum
+    Lossless
+    Lossy
 
 // Kontent.Ai.Urls.ImageTransformation
 public enum ImageFitMode : Enum
+    Clip
+    Crop
+    Scale
 
 // Kontent.Ai.Urls.ImageTransformation
 public enum ImageFormat : Enum
+    Gif
+    Jpg
+    Pjpg
+    Png
+    Png8
+    Webp
 
 // Kontent.Ai.Urls.ImageTransformation
 public sealed class ImageUrlBuilder
@@ -14,11 +25,11 @@ public sealed class ImageUrlBuilder
     ImageUrlBuilder WithAutomaticFormat(ImageFormat backupFormat)
     ImageUrlBuilder WithCompression(ImageCompression compression)
     ImageUrlBuilder WithDpr(Double dpr)
-    ImageUrlBuilder WithFitMode(String fitMode)
     ImageUrlBuilder WithFitMode(ImageFitMode fitMode)
+    ImageUrlBuilder WithFitMode(String fitMode)
     ImageUrlBuilder WithFocalPointCrop(Double x, Double y, Double z)
-    ImageUrlBuilder WithFormat(String format)
     ImageUrlBuilder WithFormat(ImageFormat format)
+    ImageUrlBuilder WithFormat(String format)
     ImageUrlBuilder WithHeight(Double height)
     ImageUrlBuilder WithQuality(Double quality)
     ImageUrlBuilder WithRectangleCrop(Double x, Double y, Double width, Double height)

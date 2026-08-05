@@ -12,6 +12,8 @@
     <!-- Infrastructure the SDKs compile into themselves rather than share via a package.
          See src/common/README.md for what belongs there and why it is source, not a package. -->
     <KontentCommonPath>$(MSBuildThisFileDirectory)src/common/</KontentCommonPath>
+    <!-- Test-only counterpart. Nothing under it ships; see src/testing/README.md. -->
+    <KontentTestingPath>$(MSBuildThisFileDirectory)src/testing/</KontentTestingPath>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -3,7 +3,6 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Urls.ImageTransformation;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

@@ -11,23 +11,23 @@ public enum ChangeType : Enum
 
 // Kontent.Ai.Sync.Abstractions
 public interface IError
-    Nullable<Int32> ErrorCode { get; }
     Exception Exception { get; }
+    Nullable<Int32> ErrorCode { get; }
+    Nullable<Int32> SpecificCode { get; }
     String Message { get; }
     String RequestId { get; }
-    Nullable<Int32> SpecificCode { get; }
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncAllDeltaResult
-    IError Error { get; }
-    String FinalSyncToken { get; }
     Boolean IsSuccess { get; }
-    Int32 PagesFetched { get; }
-    IReadOnlyList<ISyncDeltaResponse> Responses { get; }
     Boolean WasLimitedByMaxPages { get; }
+    IError Error { get; }
+    IReadOnlyList<ISyncDeltaResponse> Responses { get; }
+    Int32 PagesFetched { get; }
+    String FinalSyncToken { get; }
 
 // Kontent.Ai.Sync.Abstractions
-public interface ISyncClient : IDisposable, IAsyncDisposable
+public interface ISyncClient : IAsyncDisposable, IDisposable
     Task<ISyncAllDeltaResult> GetAllDeltaAsync(String syncToken, Nullable<Int32> maxPages, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
@@ -59,24 +59,24 @@ public interface ISyncLanguage
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncOptionsBuilder
-    SyncOptions Build()
     ISyncOptionsBuilder DisableRetryPolicy()
     ISyncOptionsBuilder UsePreviewApi(String apiKey)
     ISyncOptionsBuilder UseProductionApi()
     ISyncOptionsBuilder UseSecureApi(String apiKey)
     ISyncOptionsBuilder WithCustomEndpoint(String endpoint)
     ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
-    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
     ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
+    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
+    SyncOptions Build()
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncResult`1<T>
-    IError Error { get; }
     Boolean HasMoreChanges { get; }
     Boolean IsSuccess { get; }
-    String RequestUrl { get; }
     HttpResponseHeaders ResponseHeaders { get; }
     HttpStatusCode StatusCode { get; }
+    IError Error { get; }
+    String RequestUrl { get; }
     String SyncToken { get; }
     T Value { get; }
 
@@ -92,12 +92,13 @@ public interface ISyncType
 
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncConstants
+    const Int32 MaxItemsPerEntityType = 100
 
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncOptions : IValidatableObject
-    String ApiKey { get; set; }
     ApiMode ApiMode { get; set; }
     Boolean EnableResilience { get; set; }
+    String ApiKey { get; set; }
     String EnvironmentId { get; set; }
     String PreviewEndpoint { get; set; }
     String ProductionEndpoint { get; set; }
@@ -113,7 +114,7 @@ public sealed class SyncSourceTrackingHeaderAttribute : Attribute
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }
-    String PackageName { get; }
     Int32 PatchVersion { get; }
+    String PackageName { get; }
     String PreReleaseLabel { get; }
 

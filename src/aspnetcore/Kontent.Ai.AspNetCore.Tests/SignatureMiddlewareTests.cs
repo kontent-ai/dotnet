@@ -4,7 +4,6 @@ using System.Text;
 using Kontent.Ai.AspNetCore.Webhooks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Kontent.Ai.AspNetCore.Webhooks.Models;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

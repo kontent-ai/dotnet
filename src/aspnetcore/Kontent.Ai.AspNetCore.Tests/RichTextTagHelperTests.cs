@@ -1,7 +1,6 @@
 using System.Text.Encodings.Web;
 using Kontent.Ai.AspNetCore.RichText;
 using Microsoft.AspNetCore.Razor.TagHelpers;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

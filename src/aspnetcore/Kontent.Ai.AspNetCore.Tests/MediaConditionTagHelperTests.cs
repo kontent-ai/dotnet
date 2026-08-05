@@ -1,6 +1,5 @@
 using Kontent.Ai.AspNetCore.ImageTransformation;
 using Microsoft.AspNetCore.Razor.TagHelpers;
-using Xunit;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 

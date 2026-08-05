@@ -1,104 +1,111 @@
 ﻿// Kontent.Ai.Delivery.Abstractions
-public sealed class BlockResolver`1 : MulticastDelegate
-    IAsyncResult BeginInvoke(TBlock block, Func`2 resolveChildren, AsyncCallback callback, Object object)
-    ValueTask`1 EndInvoke(IAsyncResult result)
-    ValueTask`1 Invoke(TBlock block, Func`2 resolveChildren)
+public sealed class BlockResolver`1<TBlock> : MulticastDelegate
+    IAsyncResult BeginInvoke(TBlock block, Func<IEnumerable<IRichTextBlock>, ValueTask<String>> resolveChildren, AsyncCallback callback, Object object)
+    ValueTask<String> EndInvoke(IAsyncResult result)
+    ValueTask<String> Invoke(TBlock block, Func<IEnumerable<IRichTextBlock>, ValueTask<String>> resolveChildren)
 
 // Kontent.Ai.Delivery.Abstractions
-public sealed class CacheEntry`1 : IEquatable`1
-    IEnumerable`1 Dependencies { get; set; init; }
+public sealed class CacheEntry`1<T> : IEquatable<CacheEntry<T>>
+    IEnumerable<String> Dependencies { get; set; init; }
     T Value { get; set; init; }
-    CacheEntry`1 <Clone>$()
+    Boolean Equals(CacheEntry<T> other)
+    Boolean Equals(Object obj)
+    CacheEntry<T> <Clone>$()
+    Int32 GetHashCode()
+    String ToString()
     Void Deconstruct(T& Value, IEnumerable`1& Dependencies)
-    Boolean Equals(Object obj)
-    Boolean Equals(CacheEntry`1 other)
-    Int32 GetHashCode()
-    String ToString()
 
 // Kontent.Ai.Delivery.Abstractions
-public sealed class CacheResult`1 : IEquatable`1
-    IReadOnlyList`1 DependencyKeys { get; set; init; }
+public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
+    IReadOnlyList<String> DependencyKeys { get; set; init; }
     T Value { get; set; init; }
-    CacheResult`1 <Clone>$()
-    Void Deconstruct(T& Value, IReadOnlyList`1& DependencyKeys)
+    Boolean Equals(CacheResult<T> other)
     Boolean Equals(Object obj)
-    Boolean Equals(CacheResult`1 other)
+    CacheResult<T> <Clone>$()
     Int32 GetHashCode()
     String ToString()
+    Void Deconstruct(T& Value, IReadOnlyList`1& DependencyKeys)
 
 // Kontent.Ai.Delivery.Abstractions
 public enum CacheStorageMode : Enum
+    HydratedObject
+    RawJson
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheDependencies
+    const String ItemsListScope = scope_items_list
+    const String TaxonomiesListScope = scope_taxonomies_list
+    const String TypesListScope = scope_types_list
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheOptions
-    Action`1 ConfigureFusionCacheOptions { get; set; }
-    TimeSpan DefaultExpiration { get; set; }
+    Action<Object> ConfigureFusionCacheOptions { get; set; }
+    Boolean IsFailSafeEnabled { get; set; }
     Single EagerRefreshThreshold { get; set; }
+    String KeyPrefix { get; set; }
+    TimeSpan DefaultExpiration { get; set; }
     TimeSpan FailSafeMaxDuration { get; set; }
     TimeSpan FailSafeThrottleDuration { get; set; }
-    Boolean IsFailSafeEnabled { get; set; }
     TimeSpan JitterMaxDuration { get; set; }
-    String KeyPrefix { get; set; }
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptions : IValidatableObject
+    Boolean EnableResilience { get; set; }
+    Boolean UsePreviewApi { get; set; }
+    Boolean UseSecureAccess { get; set; }
     String CustomAssetDomain { get; set; }
     String DefaultRenditionPreset { get; set; }
-    Boolean EnableResilience { get; set; }
     String EnvironmentId { get; set; }
     String PreviewApiKey { get; set; }
     String PreviewEndpoint { get; set; }
     String ProductionEndpoint { get; set; }
     String SecureAccessApiKey { get; set; }
-    Boolean UsePreviewApi { get; set; }
-    Boolean UseSecureAccess { get; set; }
-    IEnumerable`1 Validate(ValidationContext validationContext)
+    IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptionsExtensions
+    static String GetApiKey(DeliveryOptions options)
+    static String GetBaseUrl(DeliveryOptions options)
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class HtmlNodePredicate : MulticastDelegate
-    IAsyncResult BeginInvoke(IHtmlNode node, AsyncCallback callback, Object object)
     Boolean EndInvoke(IAsyncResult result)
     Boolean Invoke(IHtmlNode node)
+    IAsyncResult BeginInvoke(IHtmlNode node, AsyncCallback callback, Object object)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IAsset
-    String Description { get; }
-    Nullable`1 Height { get; }
-    String Name { get; }
-    IReadOnlyDictionary`2 Renditions { get; }
+    IReadOnlyDictionary<String, IAssetRendition> Renditions { get; }
     Int32 Size { get; }
+    Nullable<Int32> Height { get; }
+    Nullable<Int32> Width { get; }
+    String Description { get; }
+    String Name { get; }
     String Type { get; }
     String Url { get; }
-    Nullable`1 Width { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IAssetRendition
     Int32 Height { get; }
+    Int32 Width { get; }
     String PresetId { get; }
     String Query { get; }
     String RenditionId { get; }
-    Int32 Width { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IAssetUsedInQuery
-    IAsyncEnumerable`1 EnumerateAsync(CancellationToken cancellationToken)
     IAssetUsedInQuery WaitForLoadingNewContent(Boolean enabled)
-    IAssetUsedInQuery Where(Func`2 build)
+    IAssetUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IBlockWithChildren : IRichTextBlock
-    IReadOnlyList`1 Children { get; }
+    IReadOnlyList<IRichTextBlock> Children { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentDeserializer
-    Object DeserializeContentItem(String json, Type modelType)
     Object DeserializeContentItem(JsonElement jsonElement, Type modelType)
+    Object DeserializeContentItem(String json, Type modelType)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentElement
@@ -107,7 +114,7 @@ public interface IContentElement
     String Type { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IContentElementValue`1
+public interface IContentElementValue`1<T>
     String Codename { get; }
     String Name { get; }
     String Type { get; }
@@ -115,114 +122,114 @@ public interface IContentElementValue`1
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentItem
-    Object Elements { get; }
     IContentItemSystemAttributes System { get; }
-
-// Kontent.Ai.Delivery.Abstractions
-public interface IContentItem`1 : IContentItem
-    TModel Elements { get; }
+    Object Elements { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentItemLink : IBlockWithChildren, IRichTextBlock
-    IReadOnlyDictionary`2 Attributes { get; }
     Guid ItemId { get; }
     IContentLink Metadata { get; }
+    IReadOnlyDictionary<String, String> Attributes { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentItemSystemAttributes : ISystemAttributes, ISystemBaseAttributes
+    IReadOnlyList<String> SitemapLocation { get; }
     String Collection { get; }
     String Language { get; }
-    IReadOnlyList`1 SitemapLocation { get; }
     String Type { get; }
     String Workflow { get; }
     String WorkflowStep { get; }
 
 // Kontent.Ai.Delivery.Abstractions
+public interface IContentItem`1<TModel> : IContentItem
+    TModel Elements { get; }
+
+// Kontent.Ai.Delivery.Abstractions
 public interface IContentLink
+    Guid Id { get; }
     String Codename { get; }
     String ContentTypeCodename { get; }
-    Guid Id { get; }
     String UrlSlug { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentType
-    IReadOnlyDictionary`2 Elements { get; }
     IContentTypeSystemAttributes System { get; }
+    IReadOnlyDictionary<String, IContentElement> Elements { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IContentTypeSystemAttributes : ISystemAttributes, ISystemBaseAttributes
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDateTimeContent
+    Nullable<DateTime> Value { get; }
     String DisplayTimezone { get; }
-    Nullable`1 Value { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryCacheManager
     CacheStorageMode StorageMode { get; }
-    Task`1 GetOrSetAsync(String cacheKey, Func`2 factory, Nullable`1 expiration, CancellationToken cancellationToken)
-    Task`1 InvalidateAsync(String[] dependencyKeys, CancellationToken cancellationToken)
+    Task<Boolean> InvalidateAsync(String[] dependencyKeys, CancellationToken cancellationToken)
+    Task<CacheResult<T>> GetOrSetAsync<T>(String cacheKey, Func<CancellationToken, Task<CacheEntry<T>>> factory, Nullable<TimeSpan> expiration, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryCachePurger
     Task PurgeAsync(Boolean allowFailSafe, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryClient : IDisposable, IAsyncDisposable
+public interface IDeliveryClient : IAsyncDisposable, IDisposable
     IAssetUsedInQuery GetAssetUsedIn(String codename)
-    ITypeElementQuery GetContentElement(String contentTypeCodename, String contentElementCodename)
-    IItemQuery`1 GetItem(String codename)
-    IDynamicItemQuery GetItem(String codename)
-    IItemsQuery`1 GetItems()
-    IDynamicItemsQuery GetItems()
-    IEnumerateItemsQuery`1 GetItemsFeed()
     IDynamicEnumerateItemsQuery GetItemsFeed()
+    IDynamicItemQuery GetItem(String codename)
+    IDynamicItemsQuery GetItems()
+    IEnumerateItemsQuery<T> GetItemsFeed<T>()
+    IItemQuery<T> GetItem<T>(String codename)
     IItemUsedInQuery GetItemUsedIn(String codename)
+    IItemsQuery<T> GetItems<T>()
     ILanguagesQuery GetLanguages()
     ITaxonomiesQuery GetTaxonomies()
     ITaxonomyQuery GetTaxonomy(String codename)
+    ITypeElementQuery GetContentElement(String contentTypeCodename, String contentElementCodename)
     ITypeQuery GetType(String codename)
     ITypesQuery GetTypes()
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryClientFactory
-    IDeliveryClient Get(String name)
     IDeliveryClient Get()
+    IDeliveryClient Get(String name)
     IDeliveryClient TryGet(String name)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryItemListingResponse : IPageable
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Items { get; }
-    IReadOnlyDictionary`2 ModularContent { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyDictionary<String, JsonElement> ModularContent { get; }
+    IReadOnlyList<IContentItem> Items { get; }
+    Task<IDeliveryResult<IDeliveryItemListingResponse>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryItemListingResponse`1 : IPageable
+public interface IDeliveryItemListingResponse`1<TModel> : IPageable
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Items { get; }
-    IReadOnlyDictionary`2 ModularContent { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyDictionary<String, JsonElement> ModularContent { get; }
+    IReadOnlyList<IContentItem<TModel>> Items { get; }
+    Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryItemsFeedResponse
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Items { get; }
-    IReadOnlyDictionary`2 ModularContent { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyDictionary<String, JsonElement> ModularContent { get; }
+    IReadOnlyList<IContentItem> Items { get; }
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryItemsFeedResponse`1
+public interface IDeliveryItemsFeedResponse`1<TModel>
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Items { get; }
-    IReadOnlyDictionary`2 ModularContent { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyDictionary<String, JsonElement> ModularContent { get; }
+    IReadOnlyList<IContentItem<TModel>> Items { get; }
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryLanguageListingResponse : IPageable
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Languages { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyList<ILanguage> Languages { get; }
+    Task<IDeliveryResult<IDeliveryLanguageListingResponse>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryOptionsBuilder
@@ -236,198 +243,179 @@ public interface IDeliveryOptionsBuilder
     IDeliveryOptionsBuilder WithCustomEndpoint(String endpoint)
     IDeliveryOptionsBuilder WithCustomEndpoint(Uri endpoint)
     IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
-    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
     IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
+    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryResult`1
-    IReadOnlyList`1 DependencyKeys { get; }
-    IError Error { get; }
+public interface IDeliveryResult`1<T>
     Boolean HasStaleContent { get; }
     Boolean IsCacheHit { get; }
     Boolean IsSuccess { get; }
-    String RequestUrl { get; }
     HttpResponseHeaders ResponseHeaders { get; }
-    ResponseSource ResponseSource { get; }
     HttpStatusCode StatusCode { get; }
+    IError Error { get; }
+    IReadOnlyList<String> DependencyKeys { get; }
+    ResponseSource ResponseSource { get; }
+    String RequestUrl { get; }
     T Value { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryTaxonomyListingResponse : IPageable
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Taxonomies { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyList<ITaxonomyGroup> Taxonomies { get; }
+    Task<IDeliveryResult<IDeliveryTaxonomyListingResponse>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryTypeListingResponse : IPageable
     Boolean HasNextPage { get; }
-    IReadOnlyList`1 Types { get; }
-    Task`1 FetchNextPageAsync(CancellationToken cancellationToken)
+    IReadOnlyList<IContentType> Types { get; }
+    Task<IDeliveryResult<IDeliveryTypeListingResponse>> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IDynamicElements : IReadOnlyDictionary`2, IReadOnlyCollection`1, IEnumerable`1, IEnumerable
+public interface IDynamicElements : IEnumerable, IEnumerable<KeyValuePair<String, JsonElement>>, IReadOnlyCollection<KeyValuePair<String, JsonElement>>, IReadOnlyDictionary<String, JsonElement>
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicEnumerateItemsQuery
-    IAsyncEnumerable`1 EnumerateAsync(CancellationToken cancellationToken)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
+    IAsyncEnumerable<IContentItem> EnumerateAsync(CancellationToken cancellationToken)
     IDynamicEnumerateItemsQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
     IDynamicEnumerateItemsQuery WaitForLoadingNewContent(Boolean enabled)
-    IDynamicEnumerateItemsQuery Where(Func`2 build)
+    IDynamicEnumerateItemsQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
     IDynamicEnumerateItemsQuery WithElements(String[] elementCodenames)
     IDynamicEnumerateItemsQuery WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
     IDynamicEnumerateItemsQuery WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicItemQuery
     IDynamicItemQuery Depth(Int32 depth)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     IDynamicItemQuery WaitForLoadingNewContent(Boolean enabled)
     IDynamicItemQuery WithElements(String[] elementCodenames)
     IDynamicItemQuery WithLanguage(String languageCodename)
     IDynamicItemQuery WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IContentItem>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicItemsQuery
     IDynamicItemsQuery Depth(Int32 depth)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     IDynamicItemsQuery Limit(Int32 limit)
     IDynamicItemsQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
     IDynamicItemsQuery Skip(Int32 skip)
     IDynamicItemsQuery WaitForLoadingNewContent(Boolean enabled)
-    IDynamicItemsQuery Where(Func`2 build)
+    IDynamicItemsQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
     IDynamicItemsQuery WithElements(String[] elementCodenames)
     IDynamicItemsQuery WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
-    IDynamicItemsQuery WithoutElements(String[] elementCodenames)
     IDynamicItemsQuery WithTotalCount()
+    IDynamicItemsQuery WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IDeliveryItemListingResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IEmbeddedContent : IContentItem, IRichTextBlock
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IEmbeddedContent`1 : IEmbeddedContent, IContentItem, IRichTextBlock, IContentItem`1
+public interface IEmbeddedContent`1<TModel> : IContentItem, IContentItem<TModel>, IEmbeddedContent, IRichTextBlock
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IEnumerateItemsQuery`1
-    IAsyncEnumerable`1 EnumerateAsync(CancellationToken cancellationToken)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
-    IEnumerateItemsQuery`1 OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
-    IEnumerateItemsQuery`1 WaitForLoadingNewContent(Boolean enabled)
-    IEnumerateItemsQuery`1 Where(Func`2 build)
-    IEnumerateItemsQuery`1 WithElements(String[] elementCodenames)
-    IEnumerateItemsQuery`1 WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
-    IEnumerateItemsQuery`1 WithoutElements(String[] elementCodenames)
+public interface IEnumerateItemsQuery`1<TModel>
+    IAsyncEnumerable<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken)
+    IEnumerateItemsQuery<TModel> OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IEnumerateItemsQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
+    IEnumerateItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+    IEnumerateItemsQuery<TModel> WithElements(String[] elementCodenames)
+    IEnumerateItemsQuery<TModel> WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
+    IEnumerateItemsQuery<TModel> WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IError
-    Nullable`1 ErrorCode { get; }
     Exception Exception { get; }
+    Nullable<Int32> ErrorCode { get; }
+    Nullable<Int32> SpecificCode { get; }
     String Message { get; }
     String RequestId { get; }
-    Nullable`1 SpecificCode { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IHtmlNode : IBlockWithChildren, IRichTextBlock
-    IReadOnlyDictionary`2 Attributes { get; }
+    IReadOnlyDictionary<String, String> Attributes { get; }
     String TagName { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IHtmlResolver : IRichTextResolver`1
+public interface IHtmlResolver : IRichTextResolver<String>
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IHtmlResolverBuilder
     IHtmlResolver Build()
-    IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentItemLinkResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolver(Func`2 resolver)
-    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary`2 resolvers)
-    IHtmlResolverBuilder WithContentResolvers(ValueTuple`2[] resolvers)
-    IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver`1 resolver, String description)
-    IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String attributeValue, BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithInlineImageResolver(BlockResolver`1 resolver)
-    IHtmlResolverBuilder WithTextNodeResolver(BlockResolver`1 resolver)
+    IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
+    IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver<IContentItemLink> resolver)
+    IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary<String, BlockResolver<IContentItemLink>> resolvers)
+    IHtmlResolverBuilder WithContentItemLinkResolvers(ValueTuple<String, BlockResolver<IContentItemLink>>[] resolvers)
+    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func<IEmbeddedContent, String> resolver)
+    IHtmlResolverBuilder WithContentResolver(String contentTypeCodename, Func<IEmbeddedContent, ValueTask<String>> resolver)
+    IHtmlResolverBuilder WithContentResolver<TModel>(Func<IEmbeddedContent<TModel>, String> resolver)
+    IHtmlResolverBuilder WithContentResolver<TModel>(Func<IEmbeddedContent<TModel>, ValueTask<String>> resolver)
+    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary<String, Func<IEmbeddedContent, String>> resolvers)
+    IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary<Type, Func<IEmbeddedContent, String>> resolvers)
+    IHtmlResolverBuilder WithContentResolvers(ValueTuple<String, Func<IEmbeddedContent, String>>[] resolvers)
+    IHtmlResolverBuilder WithContentResolvers(ValueTuple<Type, Func<IEmbeddedContent, String>>[] resolvers)
+    IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver<IHtmlNode> resolver, String description)
+    IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String attributeValue, BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
+    IHtmlResolverBuilder WithTextNodeResolver(BlockResolver<ITextNode> resolver)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IInlineImage : IRichTextBlock
-    String Description { get; }
-    Int32 Height { get; }
     Guid ImageId { get; }
-    String Url { get; }
+    Int32 Height { get; }
     Int32 Width { get; }
+    String Description { get; }
+    String Url { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IItemFieldFilter`1
+public interface IItemFieldFilter`1<TBuilder>
     TBuilder Contains(String value)
     TBuilder ContainsAll(String[] values)
     TBuilder ContainsAny(String[] values)
     TBuilder IsEmpty()
-    TBuilder IsEqualTo(String value)
-    TBuilder IsEqualTo(Double value)
-    TBuilder IsEqualTo(DateTime value)
     TBuilder IsEqualTo(Boolean value)
-    TBuilder IsGreaterThan(Double value)
+    TBuilder IsEqualTo(DateTime value)
+    TBuilder IsEqualTo(Double value)
+    TBuilder IsEqualTo(String value)
     TBuilder IsGreaterThan(DateTime value)
+    TBuilder IsGreaterThan(Double value)
     TBuilder IsGreaterThan(String value)
-    TBuilder IsGreaterThanOrEqualTo(Double value)
     TBuilder IsGreaterThanOrEqualTo(DateTime value)
+    TBuilder IsGreaterThanOrEqualTo(Double value)
     TBuilder IsGreaterThanOrEqualTo(String value)
-    TBuilder IsIn(String[] values)
-    TBuilder IsIn(Double[] values)
     TBuilder IsIn(DateTime[] values)
-    TBuilder IsLessThan(Double value)
+    TBuilder IsIn(Double[] values)
+    TBuilder IsIn(String[] values)
     TBuilder IsLessThan(DateTime value)
+    TBuilder IsLessThan(Double value)
     TBuilder IsLessThan(String value)
-    TBuilder IsLessThanOrEqualTo(Double value)
     TBuilder IsLessThanOrEqualTo(DateTime value)
+    TBuilder IsLessThanOrEqualTo(Double value)
     TBuilder IsLessThanOrEqualTo(String value)
     TBuilder IsNotEmpty()
-    TBuilder IsNotEqualTo(String value)
-    TBuilder IsNotEqualTo(Double value)
-    TBuilder IsNotEqualTo(DateTime value)
     TBuilder IsNotEqualTo(Boolean value)
-    TBuilder IsNotIn(String[] values)
-    TBuilder IsNotIn(Double[] values)
+    TBuilder IsNotEqualTo(DateTime value)
+    TBuilder IsNotEqualTo(Double value)
+    TBuilder IsNotEqualTo(String value)
     TBuilder IsNotIn(DateTime[] values)
-    TBuilder IsWithinRange(Double lower, Double upper)
+    TBuilder IsNotIn(Double[] values)
+    TBuilder IsNotIn(String[] values)
     TBuilder IsWithinRange(DateTime lower, DateTime upper)
+    TBuilder IsWithinRange(Double lower, Double upper)
     TBuilder IsWithinRange(String lower, String upper)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IItemQuery`1
-    IItemQuery`1 Depth(Int32 depth)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
-    IItemQuery`1 WaitForLoadingNewContent(Boolean enabled)
-    IItemQuery`1 WithElements(String[] elementCodenames)
-    IItemQuery`1 WithLanguage(String languageCodename)
-    IItemQuery`1 WithoutElements(String[] elementCodenames)
-
-// Kontent.Ai.Delivery.Abstractions
-public interface IItemsFilterBuilder
-    IItemFieldFilter`1 Element(String elementCodename)
-    IItemFieldFilter`1 System(String propertyName)
-
-// Kontent.Ai.Delivery.Abstractions
-public interface IItemsQuery`1
-    IItemsQuery`1 Depth(Int32 depth)
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
-    IItemsQuery`1 Limit(Int32 limit)
-    IItemsQuery`1 OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
-    IItemsQuery`1 Skip(Int32 skip)
-    IItemsQuery`1 WaitForLoadingNewContent(Boolean enabled)
-    IItemsQuery`1 Where(Func`2 build)
-    IItemsQuery`1 WithElements(String[] elementCodenames)
-    IItemsQuery`1 WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
-    IItemsQuery`1 WithoutElements(String[] elementCodenames)
-    IItemsQuery`1 WithTotalCount()
+public interface IItemQuery`1<TModel>
+    IItemQuery<TModel> Depth(Int32 depth)
+    IItemQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
+    IItemQuery<TModel> WithElements(String[] elementCodenames)
+    IItemQuery<TModel> WithLanguage(String languageCodename)
+    IItemQuery<TModel> WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IContentItem<TModel>>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IItemTypingStrategy
@@ -435,24 +423,43 @@ public interface IItemTypingStrategy
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IItemUsedInQuery
-    IAsyncEnumerable`1 EnumerateAsync(CancellationToken cancellationToken)
+    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
     IItemUsedInQuery WaitForLoadingNewContent(Boolean enabled)
-    IItemUsedInQuery Where(Func`2 build)
+    IItemUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+
+// Kontent.Ai.Delivery.Abstractions
+public interface IItemsFilterBuilder
+    IItemFieldFilter<IItemsFilterBuilder> Element(String elementCodename)
+    IItemFieldFilter<IItemsFilterBuilder> System(String propertyName)
+
+// Kontent.Ai.Delivery.Abstractions
+public interface IItemsQuery`1<TModel>
+    IItemsQuery<TModel> Depth(Int32 depth)
+    IItemsQuery<TModel> Limit(Int32 limit)
+    IItemsQuery<TModel> OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IItemsQuery<TModel> Skip(Int32 skip)
+    IItemsQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
+    IItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+    IItemsQuery<TModel> WithElements(String[] elementCodenames)
+    IItemsQuery<TModel> WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
+    IItemsQuery<TModel> WithTotalCount()
+    IItemsQuery<TModel> WithoutElements(String[] elementCodenames)
+    Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ILanguage
     ILanguageSystemAttributes System { get; }
 
 // Kontent.Ai.Delivery.Abstractions
+public interface ILanguageSystemAttributes : ISystemBaseAttributes
+
+// Kontent.Ai.Delivery.Abstractions
 public interface ILanguagesQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ILanguagesQuery Limit(Int32 limit)
     ILanguagesQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
     ILanguagesQuery Skip(Int32 skip)
     ILanguagesQuery WaitForLoadingNewContent(Boolean enabled)
-
-// Kontent.Ai.Delivery.Abstractions
-public interface ILanguageSystemAttributes : ISystemBaseAttributes
+    Task<IDeliveryResult<IDeliveryLanguageListingResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IMultipleChoiceOption
@@ -467,25 +474,25 @@ public interface IPageable
 public interface IPagination
     Int32 Count { get; }
     Int32 Limit { get; }
-    String NextPageUrl { get; }
     Int32 Skip { get; }
-    Nullable`1 TotalCount { get; }
+    Nullable<Int32> TotalCount { get; }
+    String NextPageUrl { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IRichTextBlock
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IRichTextContent : IReadOnlyList`1, IReadOnlyCollection`1, IEnumerable`1, IEnumerable
+public interface IRichTextContent : IEnumerable, IEnumerable<IRichTextBlock>, IReadOnlyCollection<IRichTextBlock>, IReadOnlyList<IRichTextBlock>
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IRichTextElementValue : IContentElementValue`1
-    IReadOnlyDictionary`2 Images { get; }
-    IReadOnlyDictionary`2 Links { get; }
-    IReadOnlyList`1 ModularContent { get; }
+public interface IRichTextElementValue : IContentElementValue<String>
+    IReadOnlyDictionary<Guid, IContentLink> Links { get; }
+    IReadOnlyDictionary<Guid, IInlineImage> Images { get; }
+    IReadOnlyList<String> ModularContent { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IRichTextResolver`1
-    ValueTask`1 ResolveAsync(IRichTextContent richText, CancellationToken cancellationToken)
+public interface IRichTextResolver`1<TOutput>
+    ValueTask<TOutput> ResolveAsync(IRichTextContent richText, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ISystemAttributes : ISystemBaseAttributes
@@ -493,41 +500,41 @@ public interface ISystemAttributes : ISystemBaseAttributes
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ISystemBaseAttributes
-    String Codename { get; }
     Guid Id { get; }
+    String Codename { get; }
     String Name { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomiesFilterBuilder
-    ITaxonomyFieldFilter`1 System(String propertyName)
+    ITaxonomyFieldFilter<ITaxonomiesFilterBuilder> System(String propertyName)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomiesQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ITaxonomiesQuery Limit(Int32 limit)
     ITaxonomiesQuery Skip(Int32 skip)
     ITaxonomiesQuery WaitForLoadingNewContent(Boolean enabled)
-    ITaxonomiesQuery Where(Func`2 build)
+    ITaxonomiesQuery Where(Func<ITaxonomiesFilterBuilder, ITaxonomiesFilterBuilder> build)
+    Task<IDeliveryResult<IDeliveryTaxonomyListingResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface ITaxonomyFieldFilter`1
-    TBuilder IsEqualTo(String value)
+public interface ITaxonomyFieldFilter`1<TBuilder>
     TBuilder IsEqualTo(DateTime value)
-    TBuilder IsNotEqualTo(String value)
+    TBuilder IsEqualTo(String value)
     TBuilder IsNotEqualTo(DateTime value)
+    TBuilder IsNotEqualTo(String value)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomyGroup
+    IReadOnlyList<ITaxonomyTermDetails> Terms { get; }
     ITaxonomyGroupSystemAttributes System { get; }
-    IReadOnlyList`1 Terms { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomyGroupSystemAttributes : ISystemAttributes, ISystemBaseAttributes
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomyQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ITaxonomyQuery WaitForLoadingNewContent(Boolean enabled)
+    Task<IDeliveryResult<ITaxonomyGroup>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomyTerm
@@ -536,9 +543,9 @@ public interface ITaxonomyTerm
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITaxonomyTermDetails
+    IReadOnlyList<ITaxonomyTermDetails> Terms { get; }
     String Codename { get; }
     String Name { get; }
-    IReadOnlyList`1 Terms { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITextNode : IRichTextBlock
@@ -546,20 +553,20 @@ public interface ITextNode : IRichTextBlock
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITypeElementQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ITypeElementQuery WaitForLoadingNewContent(Boolean enabled)
+    Task<IDeliveryResult<IContentElement>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
-public interface ITypeFieldFilter`1
-    TBuilder IsEqualTo(String value)
+public interface ITypeFieldFilter`1<TBuilder>
     TBuilder IsEqualTo(DateTime value)
+    TBuilder IsEqualTo(String value)
     TBuilder IsGreaterThan(DateTime value)
     TBuilder IsGreaterThanOrEqualTo(DateTime value)
     TBuilder IsIn(String[] values)
     TBuilder IsLessThan(DateTime value)
     TBuilder IsLessThanOrEqualTo(DateTime value)
-    TBuilder IsNotEqualTo(String value)
     TBuilder IsNotEqualTo(DateTime value)
+    TBuilder IsNotEqualTo(String value)
     TBuilder IsNotIn(String[] values)
     TBuilder IsWithinRange(DateTime lower, DateTime upper)
 
@@ -570,22 +577,22 @@ public interface ITypeProvider
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITypeQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ITypeQuery WaitForLoadingNewContent(Boolean enabled)
     ITypeQuery WithElements(String[] elementCodenames)
+    Task<IDeliveryResult<IContentType>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITypesFilterBuilder
-    ITypeFieldFilter`1 System(String propertyName)
+    ITypeFieldFilter<ITypesFilterBuilder> System(String propertyName)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface ITypesQuery
-    Task`1 ExecuteAsync(CancellationToken cancellationToken)
     ITypesQuery Limit(Int32 limit)
     ITypesQuery Skip(Int32 skip)
     ITypesQuery WaitForLoadingNewContent(Boolean enabled)
-    ITypesQuery Where(Func`2 build)
+    ITypesQuery Where(Func<ITypesFilterBuilder, ITypesFilterBuilder> build)
     ITypesQuery WithElements(String[] elementCodenames)
+    Task<IDeliveryResult<IDeliveryTypeListingResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IUsedInItem
@@ -601,9 +608,13 @@ public interface IUsedInItemSystemAttributes : ISystemAttributes, ISystemBaseAtt
 
 // Kontent.Ai.Delivery.Abstractions
 public enum LanguageFallbackMode : Enum
+    Disabled
+    Enabled
 
 // Kontent.Ai.Delivery.Abstractions
 public enum OrderingMode : Enum
+    Ascending
+    Descending
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class RequiredIfAttribute : ValidationAttribute
@@ -611,4 +622,8 @@ public sealed class RequiredIfAttribute : ValidationAttribute
 
 // Kontent.Ai.Delivery.Abstractions
 public enum ResponseSource : Enum
+    Cache
+    Cdn
+    FailSafe
+    Origin
 
