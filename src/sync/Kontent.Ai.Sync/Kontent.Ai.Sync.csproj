@@ -5,6 +5,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(KontentCommonPath)Http\HttpRetryPredicates.cs" Link="Common\HttpRetryPredicates.cs" />
+    <Compile Include="$(KontentCommonPath)Http\HttpRetryDelay.cs" Link="Common\HttpRetryDelay.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />

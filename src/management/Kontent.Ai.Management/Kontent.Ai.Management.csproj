@@ -18,6 +18,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- HttpRetryDelay is deliberately not included: this SDK leaves Retry-After to the
+		     built-in ShouldRetryAfterHeader. See ConfigureDefaultResilience. -->
+		<Compile Include="$(KontentCommonPath)Http\HttpRetryPredicates.cs" Link="Common\HttpRetryPredicates.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
 			<_Parameter1>Kontent.Ai.Management.Tests</_Parameter1>
 		</AssemblyAttribute>

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,7 +7,6 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
-using Polly.Retry;
 
 namespace Kontent.Ai.Delivery;
 
@@ -129,55 +129,12 @@ public static partial class ServiceCollectionExtensions
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
             ShouldHandle = args => ValueTask.FromResult(
-                IsTransientException(args.Outcome.Exception, args.Context.CancellationToken) ||
+                HttpRetryPredicates.IsTransientException(args.Outcome.Exception, args.Context.CancellationToken) ||
                 (args.Outcome.Result?.IsSuccessStatusCode == false &&
-                 IsRetryableStatusCode(args.Outcome.Result?.StatusCode))),
-            DelayGenerator = GetRetryAfterDelay
+                 HttpRetryPredicates.IsRetryableStatusCode(args.Outcome.Result?.StatusCode))),
+            DelayGenerator = HttpRetryDelay.FromRetryAfterHeader
         });
 
         builder.AddTimeout(TimeSpan.FromSeconds(30));
-    }
-
-    /// <summary>
-    /// Extracts the retry delay from the Retry-After header on 429 responses.
-    /// Kontent.ai returns Retry-After as seconds until the next request is allowed.
-    /// </summary>
-    private static ValueTask<TimeSpan?> GetRetryAfterDelay(RetryDelayGeneratorArguments<HttpResponseMessage> args)
-    {
-        if (args.Outcome.Result is { StatusCode: System.Net.HttpStatusCode.TooManyRequests } response
-            && response.Headers.RetryAfter?.Delta is { } retryAfter)
-        {
-            return ValueTask.FromResult<TimeSpan?>(retryAfter);
-        }
-
-        // Fall back to default exponential backoff
-        return ValueTask.FromResult<TimeSpan?>(null);
-    }
-
-    private static bool IsRetryableStatusCode(System.Net.HttpStatusCode? statusCode)
-        => statusCode is
-            System.Net.HttpStatusCode.TooManyRequests or
-            System.Net.HttpStatusCode.RequestTimeout or
-            System.Net.HttpStatusCode.InternalServerError or
-            System.Net.HttpStatusCode.BadGateway or
-            System.Net.HttpStatusCode.ServiceUnavailable or
-            System.Net.HttpStatusCode.GatewayTimeout;
-
-    private static bool IsTransientException(Exception? exception, CancellationToken requestCancellationToken)
-    {
-        if (exception is null)
-            return false;
-
-        if (exception is OperationCanceledException)
-        {
-            // Respect caller cancellations - these should never be retried.
-            if (requestCancellationToken.IsCancellationRequested)
-                return false;
-
-            // HttpClient timeouts commonly surface as TaskCanceledException.
-            return exception is TaskCanceledException || exception.InnerException is TimeoutException;
-        }
-
-        return exception is System.Net.Http.HttpRequestException or TimeoutException;
     }
 }

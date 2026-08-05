@@ -1,3 +1,4 @@
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -111,10 +112,10 @@ public static partial class ServiceCollectionExtensions
         {
             return !response.IsSuccessStatusCode
                 && (response.StatusCode == HttpStatusCode.TooManyRequests
-                    || (IsRetryableStatusCode(response.StatusCode) && IsIdempotent(RequestMethod(response, context))));
+                    || (HttpRetryPredicates.IsRetryableStatusCode(response.StatusCode) && IsIdempotent(RequestMethod(response, context))));
         }
 
-        return IsTransientException(outcome.Exception, context.CancellationToken)
+        return HttpRetryPredicates.IsTransientException(outcome.Exception, context.CancellationToken)
             && IsIdempotent(context.GetRequestMessage()?.Method);
     }
 
@@ -131,24 +132,4 @@ public static partial class ServiceCollectionExtensions
         || method == HttpMethod.Put
         || method == HttpMethod.Delete;
 
-    internal static bool IsRetryableStatusCode(HttpStatusCode? statusCode)
-        => statusCode is
-            HttpStatusCode.TooManyRequests or
-            HttpStatusCode.RequestTimeout or
-            HttpStatusCode.InternalServerError or
-            HttpStatusCode.BadGateway or
-            HttpStatusCode.ServiceUnavailable or
-            HttpStatusCode.GatewayTimeout;
-
-    internal static bool IsTransientException(Exception? exception, CancellationToken requestCancellationToken)
-        => exception switch
-        {
-            null => false,
-            // A caller-initiated cancellation is not transient; a timeout-driven one (surfaced as a bare
-            // TaskCanceledException or wrapping a TimeoutException) is.
-            OperationCanceledException when requestCancellationToken.IsCancellationRequested => false,
-            OperationCanceledException => exception is TaskCanceledException || exception.InnerException is TimeoutException,
-            HttpRequestException or TimeoutException => true,
-            _ => false,
-        };
 }

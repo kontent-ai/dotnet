@@ -1,3 +1,4 @@
+using Kontent.Ai.Common.Http;
 using AwesomeAssertions;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.Http.Resilience;
@@ -31,25 +32,25 @@ public class ResiliencePipelineTests
     [MemberData(nameof(RetryableStatusCodes))]
     public void IsRetryableStatusCode_MatchesExpected(HttpStatusCode code, bool expected)
     {
-        ServiceCollectionExtensions.IsRetryableStatusCode(code).Should().Be(expected);
+        HttpRetryPredicates.IsRetryableStatusCode(code).Should().Be(expected);
     }
 
     [Fact]
     public void IsRetryableStatusCode_Null_ReturnsFalse()
     {
-        ServiceCollectionExtensions.IsRetryableStatusCode(null).Should().BeFalse();
+        HttpRetryPredicates.IsRetryableStatusCode(null).Should().BeFalse();
     }
 
     [Fact]
     public void IsTransientException_Null_ReturnsFalse()
     {
-        ServiceCollectionExtensions.IsTransientException(null, CancellationToken.None).Should().BeFalse();
+        HttpRetryPredicates.IsTransientException(null, CancellationToken.None).Should().BeFalse();
     }
 
     [Fact]
     public void IsTransientException_HttpRequestException_ReturnsTrue()
     {
-        ServiceCollectionExtensions.IsTransientException(new HttpRequestException(), CancellationToken.None).Should().BeTrue();
+        HttpRetryPredicates.IsTransientException(new HttpRequestException(), CancellationToken.None).Should().BeTrue();
     }
 
     [Fact]
@@ -58,19 +59,19 @@ public class ResiliencePipelineTests
         var inner = new SocketException((int)SocketError.ConnectionRefused);
         var ex = new HttpRequestException("transient", inner);
 
-        ServiceCollectionExtensions.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
+        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
     }
 
     [Fact]
     public void IsTransientException_TimeoutException_ReturnsTrue()
     {
-        ServiceCollectionExtensions.IsTransientException(new TimeoutException(), CancellationToken.None).Should().BeTrue();
+        HttpRetryPredicates.IsTransientException(new TimeoutException(), CancellationToken.None).Should().BeTrue();
     }
 
     [Fact]
     public void IsTransientException_TaskCanceledException_WithoutUserCancellation_ReturnsTrue()
     {
-        ServiceCollectionExtensions.IsTransientException(new TaskCanceledException(), CancellationToken.None).Should().BeTrue();
+        HttpRetryPredicates.IsTransientException(new TaskCanceledException(), CancellationToken.None).Should().BeTrue();
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public class ResiliencePipelineTests
     {
         var ex = new TaskCanceledException("http timeout", new TimeoutException());
 
-        ServiceCollectionExtensions.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
+        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
     }
 
     [Fact]
@@ -89,13 +90,13 @@ public class ResiliencePipelineTests
 
         var ex = new OperationCanceledException(cts.Token);
 
-        ServiceCollectionExtensions.IsTransientException(ex, cts.Token).Should().BeFalse();
+        HttpRetryPredicates.IsTransientException(ex, cts.Token).Should().BeFalse();
     }
 
     [Fact]
     public void IsTransientException_InvalidOperationException_ReturnsFalse()
     {
-        ServiceCollectionExtensions.IsTransientException(new InvalidOperationException(), CancellationToken.None).Should().BeFalse();
+        HttpRetryPredicates.IsTransientException(new InvalidOperationException(), CancellationToken.None).Should().BeFalse();
     }
 
     // Retry-After handling is deliberately left to HttpRetryStrategyOptions' built-in ShouldRetryAfterHeader default

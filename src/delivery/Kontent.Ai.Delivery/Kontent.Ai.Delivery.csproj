@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(KontentCommonPath)Http\HttpRetryPredicates.cs" Link="Common\HttpRetryPredicates.cs" />
+    <Compile Include="$(KontentCommonPath)Http\HttpRetryDelay.cs" Link="Common\HttpRetryDelay.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Kontent.Ai.Delivery.Abstractions\Kontent.Ai.Delivery.Abstractions.csproj" />
     <ProjectReference Include="..\Kontent.Ai.Urls\Kontent.Ai.Urls.csproj" />
   </ItemGroup>

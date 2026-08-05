@@ -9,6 +9,12 @@
        it finds walking up from a project, it does not merge them. -->
 
   <PropertyGroup>
+    <!-- Infrastructure the SDKs compile into themselves rather than share via a package.
+         See src/common/README.md for what belongs there and why it is source, not a package. -->
+    <KontentCommonPath>$(MSBuildThisFileDirectory)src/common/</KontentCommonPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
