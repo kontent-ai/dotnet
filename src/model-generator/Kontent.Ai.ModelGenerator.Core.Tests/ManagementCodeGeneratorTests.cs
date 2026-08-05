@@ -8,16 +8,16 @@ using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Services;
-using Moq;
+using NSubstitute;
 using LimitType = Kontent.Ai.Management.Models.Types.LimitType;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests;
 
 public class ManagementCodeGeneratorTests
 {
-    private readonly Mock<IManagementClient> _client = new();
-    private readonly Mock<IOutputProvider> _output = new();
-    private readonly Mock<IUserMessageLogger> _logger = new();
+    private readonly IManagementClient _client = Substitute.For<IManagementClient>();
+    private readonly IOutputProvider _output = Substitute.For<IOutputProvider>();
+    private readonly IUserMessageLogger _logger = Substitute.For<IUserMessageLogger>();
     private readonly ClassDefinitionFactory _classDefinitionFactory = new();
     private readonly ClassCodeGeneratorFactory _classCodeGeneratorFactory = new();
     private readonly ManagementElementService _elementService = new();
@@ -30,9 +30,7 @@ public class ManagementCodeGeneratorTests
         var sut = CreateGenerator(@namespace: "MyProject.Models");
         await sut.RunAsync();
 
-        _output.Verify(
-            o => o.Output(It.IsAny<string>(), "Article", true),
-            Times.Once);
+        _output.Received(1).Output(Arg.Any<string>(), "Article", true);
     }
 
     [Fact]
@@ -43,8 +41,8 @@ public class ManagementCodeGeneratorTests
         SetupClientWithTypes(type);
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator(@namespace: "MyProject.Models").RunAsync();
 
@@ -61,8 +59,8 @@ public class ManagementCodeGeneratorTests
         SetupClientWithTypes(BuildArticleType());
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
@@ -94,7 +92,7 @@ public class ManagementCodeGeneratorTests
         await CreateGenerator().RunAsync();
 
         // Guidelines is silently skipped — neither a warning nor an output.
-        _logger.Verify(l => l.LogWarning(It.IsAny<string>()), Times.Never);
+        _logger.DidNotReceive().LogWarning(Arg.Any<string>());
     }
 
     [Fact]
@@ -124,9 +122,7 @@ public class ManagementCodeGeneratorTests
 
         await CreateGenerator().RunAsync();
 
-        _logger.Verify(
-            l => l.LogWarning(It.Is<string>(s => s.Contains("snippet"))),
-            Times.Once);
+        _logger.Received(1).LogWarning(Arg.Is<string>(s => s != null && s.Contains("snippet")));
     }
 
     [Fact]
@@ -136,7 +132,7 @@ public class ManagementCodeGeneratorTests
 
         await CreateGenerator().RunAsync();
 
-        _output.Verify(o => o.Output(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _output.DidNotReceive().Output(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<bool>());
     }
 
     [Fact]
@@ -177,8 +173,8 @@ public class ManagementCodeGeneratorTests
         SetupClientWithTypes(type);
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
@@ -221,8 +217,8 @@ public class ManagementCodeGeneratorTests
         SetupClientWithTypes(type);
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
@@ -269,8 +265,8 @@ public class ManagementCodeGeneratorTests
         SetupClientWithTypes(type);
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
@@ -321,8 +317,8 @@ public class ManagementCodeGeneratorTests
 
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
@@ -365,13 +361,13 @@ public class ManagementCodeGeneratorTests
 
         string? emitted = null;
         _output
-            .Setup(o => o.Output(It.IsAny<string>(), "Article", true))
-            .Callback<string, string, bool>((content, _, _) => emitted = content);
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
 
         await CreateGenerator().RunAsync();
 
         emitted.Should().Contain("SeoMetaTitle");
-        _logger.Verify(l => l.LogWarning(It.IsAny<string>()), Times.Never);
+        _logger.DidNotReceive().LogWarning(Arg.Any<string>());
     }
 
     [Fact]
@@ -383,17 +379,20 @@ public class ManagementCodeGeneratorTests
 
         await CreateGenerator().RunAsync();
 
-        _output.Verify(o => o.Output(It.IsAny<string>(), "First", true), Times.Once);
-        _output.Verify(o => o.Output(It.IsAny<string>(), "Article", true), Times.Once);
+        _output.Received(1).Output(Arg.Any<string>(), "First", true);
+        _output.Received(1).Output(Arg.Any<string>(), "Article", true);
     }
 
     [Fact]
     public async Task RunAsync_FailedTypeListing_Throws()
     {
-        _client.Setup(c => c.ListContentTypeSnippetsAsync())
-            .ReturnsAsync(SuccessListing<IReadOnlyList<ContentTypeSnippetModel>>([]));
-        _client.Setup(c => c.ListContentTypesAsync())
-            .ReturnsAsync(FailedListing<IReadOnlyList<ContentTypeModel>>("Invalid API key."));
+        // Built before Returns(): configuring a substitute inside the Returns() argument would
+        // overwrite the call NSubstitute is about to attach the return value to.
+        var snippets = SuccessListing<IReadOnlyList<ContentTypeSnippetModel>>([]);
+        var types = FailedListing<IReadOnlyList<ContentTypeModel>>("Invalid API key.");
+
+        _client.ListContentTypeSnippetsAsync().Returns(snippets);
+        _client.ListContentTypesAsync().Returns(types);
 
         var act = async () => await CreateGenerator().RunAsync();
 
@@ -410,29 +409,30 @@ public class ManagementCodeGeneratorTests
         IEnumerable<ContentTypeModel> types,
         IEnumerable<ContentTypeSnippetModel> snippets)
     {
-        _client.Setup(c => c.ListContentTypesAsync())
-            .ReturnsAsync(SuccessListing<IReadOnlyList<ContentTypeModel>>(types.ToList()));
-        _client.Setup(c => c.ListContentTypeSnippetsAsync())
-            .ReturnsAsync(SuccessListing<IReadOnlyList<ContentTypeSnippetModel>>(snippets.ToList()));
+        var typesResult = SuccessListing<IReadOnlyList<ContentTypeModel>>(types.ToList());
+        var snippetsResult = SuccessListing<IReadOnlyList<ContentTypeSnippetModel>>(snippets.ToList());
+
+        _client.ListContentTypesAsync().Returns(typesResult);
+        _client.ListContentTypeSnippetsAsync().Returns(snippetsResult);
     }
 
     private static IManagementResult<T> SuccessListing<T>(T value)
     {
-        var mock = new Mock<IManagementResult<T>>();
-        mock.SetupGet(m => m.IsSuccess).Returns(true);
-        mock.SetupGet(m => m.Value).Returns(value);
-        return mock.Object;
+        var result = Substitute.For<IManagementResult<T>>();
+        result.IsSuccess.Returns(true);
+        result.Value.Returns(value);
+        return result;
     }
 
     private static IManagementResult<T> FailedListing<T>(string message)
     {
-        var error = new Mock<IError>();
-        error.SetupGet(e => e.Message).Returns(message);
+        var error = Substitute.For<IError>();
+        error.Message.Returns(message);
 
-        var mock = new Mock<IManagementResult<T>>();
-        mock.SetupGet(m => m.IsSuccess).Returns(false);
-        mock.SetupGet(m => m.Error).Returns(error.Object);
-        return mock.Object;
+        var result = Substitute.For<IManagementResult<T>>();
+        result.IsSuccess.Returns(false);
+        result.Error.Returns(error);
+        return result;
     }
 
     private static ContentTypeModel BuildArticleType(string codename = "article", Guid? id = null) => new()
@@ -467,12 +467,12 @@ public class ManagementCodeGeneratorTests
 
         return new ManagementCodeGenerator(
             options,
-            _output.Object,
-            _client.Object,
+            _output,
+            _client,
             _classCodeGeneratorFactory,
             _classDefinitionFactory,
             _elementService,
-            _logger.Object);
+            _logger);
     }
 
     private static T WithId<T>(T element, Guid id) where T : ElementMetadataBase

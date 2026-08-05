@@ -1,6 +1,5 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Contract;
-using Moq;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests;
 
@@ -14,11 +13,9 @@ public abstract class CodeGeneratorTestsBase
     protected const string EnvironmentId = "975bf280-fd91-488c-994c-2f04416e5ee3";
     protected readonly IClassCodeGeneratorFactory ClassCodeGeneratorFactory;
     protected readonly IClassDefinitionFactory ClassDefinitionFactory;
-    protected readonly Mock<IUserMessageLogger> Logger;
 
     protected CodeGeneratorTestsBase()
     {
-        Logger = new Mock<IUserMessageLogger>();
         ClassCodeGeneratorFactory = new ClassCodeGeneratorFactory();
         ClassDefinitionFactory = new ClassDefinitionFactory();
         // Cleanup

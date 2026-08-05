@@ -1,6 +1,4 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Configuration;
-using Microsoft.Extensions.Options;
-using Moq;
 
 namespace Kontent.Ai.ModelGenerator.Tests;
 
@@ -9,14 +7,12 @@ public class FileSystemOutputProviderTests
     [Fact]
     public void CreateCodeGeneratorOptions_NoOutputSetInJsonNorInParameters_OutputDirHasDefaultValue()
     {
-        var mockOptions = new Mock<IOptions<CodeGeneratorOptions>>();
         var options = new CodeGeneratorOptions
         {
             OutputDir = ""
         };
-        mockOptions.Setup(x => x.Value).Returns(options);
 
-        var outputProvider = new FileSystemOutputProvider(mockOptions.Object);
+        var outputProvider = new FileSystemOutputProvider(Microsoft.Extensions.Options.Options.Create(options));
 
         options.OutputDir.Should().BeEmpty();
         outputProvider.OutputDir.Should().NotBeNullOrEmpty();
@@ -26,14 +22,12 @@ public class FileSystemOutputProviderTests
     public void CreateCodeGeneratorOptions_OutputSetInParameters_OutputDirHasCustomValue()
     {
         var expectedOutputDir = Environment.CurrentDirectory.TrimEnd(Path.DirectorySeparatorChar);
-        var mockOptions = new Mock<IOptions<CodeGeneratorOptions>>();
         var options = new CodeGeneratorOptions
         {
             OutputDir = ""
         };
-        mockOptions.Setup(x => x.Value).Returns(options);
 
-        var outputProvider = new FileSystemOutputProvider(mockOptions.Object);
+        var outputProvider = new FileSystemOutputProvider(Microsoft.Extensions.Options.Options.Create(options));
 
         var result = outputProvider.OutputDir.TrimEnd(Path.DirectorySeparatorChar);
 
@@ -103,10 +97,8 @@ public class FileSystemOutputProviderTests
 
     private static FileSystemOutputProvider CreateOutputProvider(string outputDir)
     {
-        var mockOptions = new Mock<IOptions<CodeGeneratorOptions>>();
-        mockOptions.Setup(x => x.Value).Returns(new CodeGeneratorOptions { OutputDir = outputDir });
-
-        return new FileSystemOutputProvider(mockOptions.Object);
+        return new FileSystemOutputProvider(
+            Microsoft.Extensions.Options.Options.Create(new CodeGeneratorOptions { OutputDir = outputDir }));
     }
 
     private static string CreateTempDir()

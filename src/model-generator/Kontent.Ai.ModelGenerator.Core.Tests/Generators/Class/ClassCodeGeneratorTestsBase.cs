@@ -1,15 +1,12 @@
 ﻿using Kontent.Ai.ModelGenerator.Core.Common;
-using Kontent.Ai.ModelGenerator.Core.Contract;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Moq;
 
 namespace Kontent.Ai.ModelGenerator.Core.Tests.Generators.Class;
 
 public abstract class ClassCodeGeneratorTestsBase
 {
     protected readonly ClassDefinition ClassDefinition = new("complete_content_type");
-    protected readonly Mock<IUserMessageLogger> LoggerMock = new();
 
     protected static void AssertCompiledCode(CSharpCompilation compilation)
     {
