@@ -3,10 +3,21 @@
 Plan for removing the `Refit.Reflection` dependency from `Kontent.Ai.Delivery` by reshaping how
 the filter DSL reaches the wire.
 
+> [!NOTE]
+> **Done — implemented on `feat/net10`.** Kept as the record of why the change is shaped the way
+> it is, and of what was measured rather than assumed. §7 recommended deferring to a later
+> release; that was reconsidered and the work landed here instead, because the alternative was
+> shipping a `Refit.Reflection` dependency and an `RF006` suppression only to remove them weeks
+> later.
+>
+> `FilterQueryString` renders the query, `FilterQueryHandler` applies it, `FilterPath` normalizes
+> key casing, and `FilterQueryEncodingTests` pins the wire contract. `Refit.Reflection` and
+> `src/delivery/.editorconfig` are both gone; the build reports zero warnings with `RF006` live.
+
 **Verdict: viable, no public API change, smaller than first estimated.** My earlier assessment
 (`breaking-changes-net10.md` §5) called this "wire-level, not mechanical" and recommended
 deferring. That was based on the assumption that reproducing Refit's query encoding was subtle.
-It is not — see §2. The recommendation below is revised accordingly.
+It is not — see §2.
 
 ---
 
@@ -125,9 +136,10 @@ test that asserts a retried request has the same query as the first attempt.**
 
 ### 5.3 Out-of-band data flow
 
-Filters travel via `HttpRequestMessage.Options` rather than as a visible parameter, so reading
-`IDeliveryApi` no longer tells you the full request shape. Worth an XML-doc note on the parameter
-pointing at the handler.
+The parameter is still visible on `IDeliveryApi` — `[Property(...)] string? filters` — but what it
+*does* is not: it lands in `HttpRequestMessage.Options` and only becomes query text once
+`FilterQueryHandler` runs. Reading the interface alone no longer tells you the request shape. Both
+sides carry a comment pointing at the other.
 
 Checked and *not* a problem: `Delivery.Caching` does not key off `RequestUri`, so late URI
 mutation cannot cause cache collisions.

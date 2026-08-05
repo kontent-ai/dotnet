@@ -149,8 +149,8 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://github.com/kontent-ai/Home/wiki/Checklist-for-publishing-a-new-OS-project#badges-->
 
-[dotnet-shield]: https://img.shields.io/badge/.NET-8.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
-[dotnet-url]: https://dotnet.microsoft.com/download/dotnet/8.0
+[dotnet-shield]: https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
+[dotnet-url]: https://dotnet.microsoft.com/download/dotnet/10.0
 [build-shield]: https://img.shields.io/github/actions/workflow/status/kontent-ai/dotnet/ci.yml?style=for-the-badge&label=Build%20%26%20Test
 [build-url]: https://github.com/kontent-ai/dotnet/actions/workflows/ci.yml
 [codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge

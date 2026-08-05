@@ -62,9 +62,12 @@ which is not installed.
 they silently gained generated request building. `IDeliveryApi` does not: seven methods raise
 `RF006`, all of them the ones carrying the filter DSL. See §5 for the detail.
 
-**Consequence:** `Kontent.Ai.Delivery` now has a new package dependency, `Refit.Reflection`.
-This restores the pre-14 behaviour exactly — Refit ≤13 used reflection for everything — but it
-is a new entry in the dependency graph and should be called out.
+**Resolved within this branch — no consumer-visible consequence.** `Kontent.Ai.Delivery` briefly
+took a `Refit.Reflection` dependency to restore the pre-14 behaviour, then shed it again: the
+filter DSL now renders its own query string, so all seven methods generate inline. Delivery ships
+with `Refit` and `Refit.HttpClientFactory` only, exactly as before. See
+[`delivery-filter-dsl-plan.md`](./delivery-filter-dsl-plan.md); nothing here needs a changelog
+entry.
 
 ### 2.2 `IApiResponse.StatusCode` is now nullable — internal only
 
@@ -147,7 +150,6 @@ sense, but it forces transitive upgrades and belongs in the changelog.
 | Delivery (`.Caching`) | `ZiggyCreatures.FusionCache` (+ STJ serializer) | 2.5.0 | 2.6.0 |
 | Delivery (`.Caching`) | `Microsoft.Extensions.Caching.*` | 8.0.0 / 10.0.6 | 10.0.10 |
 | Delivery | `Refit`, `Refit.HttpClientFactory` | 10.2.0 | 14.0.1 |
-| Delivery | `Refit.Reflection` | — | 14.0.1 *(new)* |
 | Management | `Microsoft.Extensions.*` band | 9.0.15 | 10.0.10 |
 | Management | `Microsoft.Extensions.Http.Resilience` | 9.6.0 | 10.8.0 |
 | Management | `Refit`, `Refit.HttpClientFactory` | 10.2.0 | 14.0.1 |
