@@ -34,6 +34,7 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
 
 ### Changed
 
+- **`AddManagementClient` gained the overloads its sibling SDKs already had**, so the three register a client the same way: a pre-built options instance, and options configured with access to the `IServiceProvider`. Nothing was removed, and existing calls are unaffected — this closes gaps rather than reshaping the surface.
 - **Cancellation now throws; other transport failures are results.** Refit's upgrade changed the
   contract: exceptions raised in the HTTP pipeline are captured into the response rather than thrown.
   A network failure, DNS failure or resilience-pipeline rejection is therefore an unsuccessful result

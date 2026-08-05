@@ -8,6 +8,12 @@ namespace Kontent.Ai.Delivery.Abstractions;
 public sealed class DeliveryOptions : IValidatableObject
 {
     /// <summary>
+    /// The configuration section name <c>AddDeliveryClient</c> binds by default. Design-time tools that
+    /// resolve the SDK's configuration from the same sources should probe this section.
+    /// </summary>
+    public const string DefaultConfigurationSectionName = "DeliveryOptions";
+
+    /// <summary>
     /// Gets or sets the environment ID.
     /// </summary>
     [Required]

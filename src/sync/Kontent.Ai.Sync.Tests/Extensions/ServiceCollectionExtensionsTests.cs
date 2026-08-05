@@ -138,6 +138,44 @@ public class ServiceCollectionExtensionsTests
         options.EnableResilience.Should().BeFalse();
     }
 
+    // The gap this closes: before, binding from IConfiguration and customizing the pipeline were
+    // mutually exclusive. Working around it by binding inside an Action<SyncOptions> silently lost
+    // reload, because that path registers no change token.
+    [Fact]
+    public void AddSyncClient_FromConfiguration_SupportsResilienceCustomizationAndStillReloads()
+    {
+        var source = new Dictionary<string, string?>
+        {
+            ["SyncOptions:EnvironmentId"] = EnvironmentId,
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(source).Build();
+        var resilienceConfigured = false;
+
+        var services = new ServiceCollection();
+        services.AddSyncClient(
+            configuration,
+            configureResilience: _ => resilienceConfigured = true);
+
+        using var provider = services.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
+
+        monitor.Get("Default").EnvironmentId.Should().Be(EnvironmentId);
+
+        // Force the HTTP client to be built so the resilience callback runs.
+        _ = provider.GetRequiredService<IHttpClientFactory>();
+        _ = provider.GetRequiredService<ISyncClient>();
+        resilienceConfigured.Should().BeTrue();
+
+        // The binding is change-token backed, so a reload of the source is picked up. Set through the
+        // root rather than the seed dictionary, which the in-memory provider copies at build time.
+        var replacement = Guid.NewGuid().ToString();
+        configuration["SyncOptions:EnvironmentId"] = replacement;
+        configuration.Reload();
+
+        monitor.Get("Default").EnvironmentId.Should().Be(replacement);
+    }
+
     [Fact]
     public void AddSyncClient_RuntimeConfigurationChanges_AreReflectedInOptions()
     {

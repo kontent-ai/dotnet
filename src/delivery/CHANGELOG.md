@@ -32,6 +32,9 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
 
 ### Changed
 
+- **Registering from `IConfiguration` can now customize the HTTP client and the resilience pipeline.** The configuration-based `AddDeliveryClient` overloads took no `configureHttpClient` / `configureResilience`, so binding options from configuration and replacing the retry pipeline were mutually exclusive. The workaround — binding by hand inside an `Action<DeliveryOptions>` — compiles and looks equivalent, but registers no change token, so `IOptionsMonitor` silently stops reloading. Both hooks are now available on every configuration overload, alongside the ones that already had them.
+- **`AddDeliveryClient` gained the overloads its sibling SDKs already had**, so the three register a client the same way: named `IConfiguration` and `IConfigurationSection` registration. Nothing was removed, and existing calls are unaffected — this closes gaps rather than reshaping the surface.
+- **`DeliveryOptions.DefaultConfigurationSectionName`** exposes the section name the configuration overloads bind by default, matching `ManagementOptions`. Design-time tools that resolve the SDK's configuration from the same sources can probe it instead of hard-coding the string.
 - **Repeated filter parameters are emitted in declaration order.** Filters sharing an element used to be grouped together regardless of where they appeared, so `a`, `b`, `a` was sent as `a`, `a`, `b`. Results are unaffected — filter parameters are AND-ed, and cache keys were already order-independent — but the request URL differs, which shows up in logs and traces.
 - **Cancellation now throws; other transport failures are results.** Refit's upgrade changed the
   contract: exceptions raised in the HTTP pipeline are captured into the response rather than thrown.

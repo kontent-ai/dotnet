@@ -176,6 +176,90 @@ public static partial class ServiceCollectionExtensions
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
 
+    /// <summary>
+    /// Registers the Kontent.ai Management client, configuring options with access to the <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <remarks>
+    /// Use when the options depend on something else in the container - a secret store, a tenant resolver.
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddManagementClient(
+        this IServiceCollection services,
+        Action<IServiceProvider, ManagementOptions> configureOptions,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddManagementClient(ManagementClientNames.Default, configureOptions, configureHttpClient, configureResilience);
+
+    /// <summary>
+    /// Registers a named Kontent.ai Management client, configuring options with access to the <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client. Must be unique across all registrations.</param>
+    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
+    public static IServiceCollection AddManagementClient(
+        this IServiceCollection services,
+        string name,
+        Action<IServiceProvider, ManagementOptions> configureOptions,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        NamedClients.ValidateName(name);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
+        EnsureClientNameNotAlreadyRegistered(services, name);
+
+        services.AddOptions<ManagementOptions>(name)
+            .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        if (name == ManagementClientNames.Default)
+        {
+            services.AddOptions<ManagementOptions>()
+                .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+        }
+
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
+    }
+
+    /// <summary>
+    /// Registers the Kontent.ai Management client with the specified options instance.
+    /// </summary>
+    /// <remarks>
+    /// The instance's values are copied onto the options the container materializes; the object itself is
+    /// not registered.
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="managementOptions">The management options instance.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddManagementClient(
+        this IServiceCollection services,
+        ManagementOptions managementOptions,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    {
+        ArgumentNullException.ThrowIfNull(managementOptions);
+
+        return services.AddManagementClient(
+            ManagementClientNames.Default,
+            options => OptionsCopier<ManagementOptions>.Copy(managementOptions, options),
+            configureHttpClient,
+            configureResilience);
+    }
+
     private static IServiceCollection AddManagementClientFromConfiguration(
         this IServiceCollection services,
         string name,

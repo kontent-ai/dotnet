@@ -50,6 +50,7 @@ public sealed class DeliveryCacheOptions
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptions : IValidatableObject
+    const String DefaultConfigurationSectionName = DeliveryOptions
     Boolean EnableResilience { get; set; }
     Boolean UsePreviewApi { get; set; }
     Boolean UseSecureAccess { get; set; }

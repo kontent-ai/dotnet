@@ -68,10 +68,12 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryClientBuilder

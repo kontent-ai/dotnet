@@ -52,6 +52,9 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
 ### Changed
 
+- **Registering from `IConfiguration` can now customize the HTTP client and the resilience pipeline.** The configuration-based `AddSyncClient` overloads took no `configureHttpClient` / `configureResilience`, so binding options from configuration and replacing the retry pipeline were mutually exclusive. The workaround — binding by hand inside an `Action<SyncOptions>` — compiles and looks equivalent, but registers no change token, so `IOptionsMonitor` silently stops reloading. Both hooks are now available on every configuration overload, alongside the ones that already had them.
+- **`AddSyncClient` gained the overloads its sibling SDKs already had**, so the three register a client the same way: options configured with access to the `IServiceProvider`, in both named and unnamed form. Nothing was removed, and existing calls are unaffected — this closes gaps rather than reshaping the surface.
+- **`SyncOptions.DefaultConfigurationSectionName`** exposes the section name the configuration overloads bind by default, matching `ManagementOptions`. Design-time tools that resolve the SDK's configuration from the same sources can probe it instead of hard-coding the string.
 - **Cancellation now throws; other transport failures are results.** Refit's upgrade changed the
   contract: exceptions raised in the HTTP pipeline are captured into the response rather than thrown.
   A network failure, DNS failure or resilience-pipeline rejection is therefore an unsuccessful result

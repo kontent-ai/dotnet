@@ -8,6 +8,12 @@ namespace Kontent.Ai.Sync.Abstractions;
 public sealed class SyncOptions : IValidatableObject
 {
     /// <summary>
+    /// The configuration section name <c>AddSyncClient</c> binds by default. Design-time tools that
+    /// resolve the SDK's configuration from the same sources should probe this section.
+    /// </summary>
+    public const string DefaultConfigurationSectionName = "SyncOptions";
+
+    /// <summary>
     /// Gets or sets the environment ID.
     /// </summary>
     [Required]

@@ -24,6 +24,7 @@
 		<Compile Include="$(KontentCommonPath)Http\SdkTrackingHeaders.cs" Link="Common\SdkTrackingHeaders.cs" />
 		<Compile Include="$(KontentCommonPath)Http\RefitResponses.cs" Link="Common\RefitResponses.cs" />
 		<Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
+		<Compile Include="$(KontentCommonPath)OptionsCopier.cs" Link="Common\OptionsCopier.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

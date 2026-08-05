@@ -72,11 +72,39 @@ public static partial class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The configuration instance.</param>
     /// <param name="configurationSectionName">The configuration section name. Defaults to "DeliveryOptions".</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
         IConfiguration configuration,
-        string configurationSectionName = "DeliveryOptions")
+        string configurationSectionName = DeliveryOptions.DefaultConfigurationSectionName,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddDeliveryClient(
+            DeliveryClientNames.Default,
+            configuration,
+            configurationSectionName,
+            configureHttpClient,
+            configureResilience);
+
+    /// <summary>
+    /// Registers a named Kontent.ai Delivery client using configuration.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="configuration">The configuration instance.</param>
+    /// <param name="configurationSectionName">The configuration section name. Defaults to "DeliveryOptions".</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddDeliveryClient(
+        this IServiceCollection services,
+        string name,
+        IConfiguration configuration,
+        string configurationSectionName = DeliveryOptions.DefaultConfigurationSectionName,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -86,8 +114,10 @@ public static partial class ServiceCollectionExtensions
             : configuration.GetSection(configurationSectionName);
 
         return services.AddDeliveryClientFromConfiguration(
-            DeliveryClientNames.Default,
-            section);
+            name,
+            section,
+            configureHttpClient,
+            configureResilience);
     }
 
     /// <summary>
@@ -95,17 +125,44 @@ public static partial class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configurationSection">The configuration section containing delivery options.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryClient(
         this IServiceCollection services,
-        IConfigurationSection configurationSection)
+        IConfigurationSection configurationSection,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddDeliveryClient(
+            DeliveryClientNames.Default,
+            configurationSection,
+            configureHttpClient,
+            configureResilience);
+
+    /// <summary>
+    /// Registers a named Kontent.ai Delivery client using a configuration section.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client.</param>
+    /// <param name="configurationSection">The configuration section containing delivery options.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddDeliveryClient(
+        this IServiceCollection services,
+        string name,
+        IConfigurationSection configurationSection,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configurationSection);
 
         return services.AddDeliveryClientFromConfiguration(
-            DeliveryClientNames.Default,
-            configurationSection);
+            name,
+            configurationSection,
+            configureHttpClient,
+            configureResilience);
     }
 
     /// <summary>

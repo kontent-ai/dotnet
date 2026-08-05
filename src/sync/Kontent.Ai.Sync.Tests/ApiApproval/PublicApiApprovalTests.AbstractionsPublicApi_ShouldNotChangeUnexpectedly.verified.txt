@@ -82,6 +82,7 @@ public interface ISyncType
 
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncOptions : IValidatableObject
+    const String DefaultConfigurationSectionName = SyncOptions
     ApiMode ApiMode { get; set; }
     Boolean EnableResilience { get; set; }
     String ApiKey { get; set; }

@@ -2,7 +2,6 @@ using Kontent.Ai.Common;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Configuration;
-using Kontent.Ai.Sync.Extensions;
 using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +38,7 @@ public static class ServiceCollectionExtensions
 
         return services.AddSyncClient(
             SyncClientNames.Default,
-            options => SyncOptionsCopyHelper.Copy(syncOptions, options),
+            options => OptionsCopier<SyncOptions>.Copy(syncOptions, options),
             configureHttpClient,
             configureResilience);
     }
@@ -65,7 +64,7 @@ public static class ServiceCollectionExtensions
 
         return services.AddSyncClient(
             SyncClientNames.Default,
-            opts => SyncOptionsCopyHelper.Copy(options, opts),
+            opts => OptionsCopier<SyncOptions>.Copy(options, opts),
             configureHttpClient,
             configureResilience);
     }
@@ -76,21 +75,21 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="configuration">The configuration instance.</param>
     /// <param name="configurationSectionName">The configuration section name. Defaults to "SyncOptions".</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         IConfiguration configuration,
-        string configurationSectionName = "SyncOptions")
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var section = string.IsNullOrWhiteSpace(configurationSectionName)
-            ? configuration
-            : configuration.GetSection(configurationSectionName);
-
-        return services.AddSyncClientFromConfiguration(SyncClientNames.Default, section);
-    }
+        string configurationSectionName = SyncOptions.DefaultConfigurationSectionName,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddSyncClient(
+            SyncClientNames.Default,
+            configuration,
+            configurationSectionName,
+            configureHttpClient,
+            configureResilience);
 
     /// <summary>
     /// Registers a named Kontent.ai Sync client using configuration.
@@ -99,12 +98,16 @@ public static class ServiceCollectionExtensions
     /// <param name="name">The name of the client.</param>
     /// <param name="configuration">The configuration instance.</param>
     /// <param name="configurationSectionName">The configuration section name. Defaults to "SyncOptions".</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         string name,
         IConfiguration configuration,
-        string configurationSectionName = "SyncOptions")
+        string configurationSectionName = SyncOptions.DefaultConfigurationSectionName,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
@@ -113,7 +116,7 @@ public static class ServiceCollectionExtensions
             ? configuration
             : configuration.GetSection(configurationSectionName);
 
-        return services.AddSyncClientFromConfiguration(name, section);
+        return services.AddSyncClientFromConfiguration(name, section, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -121,16 +124,19 @@ public static class ServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configurationSection">The configuration section containing sync options.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
-        IConfigurationSection configurationSection)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configurationSection);
-
-        return services.AddSyncClientFromConfiguration(SyncClientNames.Default, configurationSection);
-    }
+        IConfigurationSection configurationSection,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddSyncClient(
+            SyncClientNames.Default,
+            configurationSection,
+            configureHttpClient,
+            configureResilience);
 
     /// <summary>
     /// Registers a named Kontent.ai Sync client using a configuration section.
@@ -138,16 +144,20 @@ public static class ServiceCollectionExtensions
     /// <param name="services">The service collection.</param>
     /// <param name="name">The name of the client.</param>
     /// <param name="configurationSection">The configuration section containing sync options.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddSyncClient(
         this IServiceCollection services,
         string name,
-        IConfigurationSection configurationSection)
+        IConfigurationSection configurationSection,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configurationSection);
 
-        return services.AddSyncClientFromConfiguration(name, configurationSection);
+        return services.AddSyncClientFromConfiguration(name, configurationSection, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -219,6 +229,63 @@ public static class ServiceCollectionExtensions
         {
             services.Configure(configureOptions);
             services.AddOptions<SyncOptions>()
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+        }
+
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
+    }
+
+    /// <summary>
+    /// Registers the Kontent.ai Sync client, configuring options with access to the <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <remarks>
+    /// Use when the options depend on something else in the container - a secret store, a tenant resolver.
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        Action<IServiceProvider, SyncOptions> configureOptions,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+        => services.AddSyncClient(SyncClientNames.Default, configureOptions, configureHttpClient, configureResilience);
+
+    /// <summary>
+    /// Registers a named Kontent.ai Sync client, configuring options with access to the <see cref="IServiceProvider"/>.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The name of the client. Must be unique across all registrations.</param>
+    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
+    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
+    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
+    public static IServiceCollection AddSyncClient(
+        this IServiceCollection services,
+        string name,
+        Action<IServiceProvider, SyncOptions> configureOptions,
+        Action<IHttpClientBuilder>? configureHttpClient = null,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        NamedClients.ValidateName(name);
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
+        EnsureClientNameNotAlreadyRegistered(services, name);
+
+        services.AddOptions<SyncOptions>(name)
+            .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        if (name == SyncClientNames.Default)
+        {
+            services.AddOptions<SyncOptions>()
+                .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
         }
