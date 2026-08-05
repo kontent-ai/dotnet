@@ -241,6 +241,13 @@ signal to watch is concrete: **a Refit release that ships without a matching
 `Refit.Reflection`.** That is the point to do this work, along with AOT becoming a real
 requirement. Either way, do it with a broader encoding test matrix than the four cases above.
 
+> [!NOTE]
+> The cost estimate in this section is **superseded** by
+> [`delivery-filter-dsl-plan.md`](./delivery-filter-dsl-plan.md), which re-examines it and finds
+> the change materially cheaper: the encoding contract is exactly `Uri.EscapeDataString`
+> (verified against 9 cases), and every affected type is `internal`, so there is no public API
+> change and no need for a major. Read that before acting on this section.
+
 ---
 
 ## 6. Enum serialization — Management
