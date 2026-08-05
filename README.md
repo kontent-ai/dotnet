@@ -55,7 +55,10 @@ Requires the .NET SDK pinned in [`global.json`](./global.json).
 
 ```sh
 dotnet build          # everything, against published sibling packages
-dotnet test           # everything, with per-product coverage gates
+dotnet test           # everything
+
+# Coverage is opt-in. CI adds these, and the per-product thresholds fail the run below them.
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 ```
 
 Each product also has its own solution under `src/<product>/` if you only want to open one.
