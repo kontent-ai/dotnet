@@ -15,6 +15,10 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
 - **`net8.0` → `net10.0`.** `Kontent.Ai.ModelGenerator.Core` is a library, so a project on .NET 8 cannot reference this release at all — restore fails with `NU1202`. The `Kontent.Ai.ModelGenerator` CLI likewise needs the .NET 10 runtime to run. Move to .NET 10 first.
 - **Two generator base-class properties became methods.** `ClassCodeGenerator.Properties` is now `GetProperties()`, and `DeliveryClassCodeGeneratorBase.PropertyCodenameConstants` is now `GetPropertyCodenameConstants()`. Both re-sort their input and build a fresh set of Roslyn syntax nodes on every access, so a property was misleading about the cost — two reads returned two different arrays. `GetProperties()` remains `virtual`, so overriding it still works; a derived generator changes `override … Properties` to `override … GetProperties()`. Only affects code that subclasses these base classes.
+- **`--withtypeprovider` / `-t` and `CodeGeneratorOptions.WithTypeProvider` are removed**, along with the `TypeProviderCodeGenerator` that backed them. The Delivery SDK generates its own `GeneratedTypeProvider` at compile time from `Kontent.Ai.Delivery.SourceGeneration` and discovers it at runtime, so nothing needs a hand-written provider any more.
+
+  The flag had in fact stopped doing anything before this release: the code path behind it lived on a method that hid its base rather than overriding it, and the CLI invokes the base, so passing `-t` generated no provider and printed no warning. Passing it now fails with `Unsupported parameter: -t` rather than being silently ignored. Remove it from your scripts and reference `Kontent.Ai.Delivery.SourceGeneration` from the project your models are generated into.
+
 - **`CodeGeneratorBase.FilenameSuffix` and `GetFileClassName` are removed.** The suffix has been the empty string since single-file generation landed, which made `GetFileClassName(name)` an identity function. Generated file names are unchanged. Only affects code that subclasses `CodeGeneratorBase`.
 
 ### Changed

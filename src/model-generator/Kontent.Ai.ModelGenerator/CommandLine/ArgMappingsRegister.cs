@@ -22,9 +22,6 @@ internal static class ArgMappingsRegister
         { "-b", nameof(CodeGeneratorOptions.BaseRecord) },
         { "-r", nameof(CodeGeneratorOptions.BaseRecord) },
         { "--nullability", nameof(CodeGeneratorOptions.Nullability) },
-#pragma warning disable CS0618 // CodeGeneratorOptions.WithTypeProvider is intentionally kept as [Obsolete] for one more major cycle.
-        { "-t", nameof(CodeGeneratorOptions.WithTypeProvider) }
-#pragma warning restore CS0618
     };
 
     public static readonly IDictionary<string, string> DeliveryEnvironmentIdMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

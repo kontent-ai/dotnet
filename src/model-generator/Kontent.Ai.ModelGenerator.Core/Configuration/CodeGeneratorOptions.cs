@@ -9,7 +9,6 @@ namespace Kontent.Ai.ModelGenerator.Core.Configuration;
 /// </summary>
 public class CodeGeneratorOptions
 {
-    private const bool DefaultWithTypeProvider = false;
 
     /// <summary>
     /// Delivery Client configuration. Populated when generating Delivery models (the default mode).
@@ -32,12 +31,6 @@ public class CodeGeneratorOptions
     /// Output directory for the generated files
     /// </summary>
     public string? OutputDir { get; set; }
-
-    /// <summary>
-    /// Indicates whether the CustomTypeProvider class should be generated
-    /// </summary>
-    [Obsolete("TypeProvider is now generated via source generation in Delivery SDK 19.0.0-rc1+. This option will be removed in a future version.")]
-    public bool WithTypeProvider { get; set; } = DefaultWithTypeProvider;
 
     /// <summary>
     /// Indicates whether a base record should be created and all output records should derive from it using a partial record.
