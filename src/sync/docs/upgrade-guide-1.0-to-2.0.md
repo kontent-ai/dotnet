@@ -77,7 +77,7 @@ foreach (ISyncItem item in page.Value.Items)
 foreach (SyncChange<SyncItemData> item in page.Value.Items)
 {
     string? codename = item.Data?.System.Codename;
-    DateTimeOffset when = item.Timestamp;
+    DateTime when = item.Timestamp;
 }
 ```
 

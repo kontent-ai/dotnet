@@ -159,7 +159,7 @@ public class SyncClientTests
         Codename = codename,
         Language = "en-US",
         Type = "article",
-        LastModified = DateTimeOffset.UnixEpoch,
+        LastModified = DateTime.UnixEpoch,
     };
 
     private static IApiResponse<SyncDeltaResponse> CreateSuccessDeltaResponse(string? nextToken, int itemCount)
@@ -175,7 +175,7 @@ public class SyncClientTests
                 .Select(i => new SyncChange<SyncItemData>
                 {
                     ChangeType = ChangeType.Changed,
-                    Timestamp = DateTimeOffset.UnixEpoch.AddMinutes(i),
+                    Timestamp = DateTime.UnixEpoch.AddMinutes(i),
                     Data = new SyncItemData { System = SystemFor($"item_{i}") },
                 })
                 .ToList()

@@ -37,5 +37,5 @@ public sealed record SyncTaxonomySystem
 
     /// <summary>When the taxonomy group last changed.</summary>
     [JsonPropertyName("last_modified")]
-    public required DateTimeOffset LastModified { get; init; }
+    public required DateTime LastModified { get; init; }
 }

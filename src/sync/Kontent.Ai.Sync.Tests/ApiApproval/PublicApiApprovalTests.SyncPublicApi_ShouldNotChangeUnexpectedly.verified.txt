@@ -78,7 +78,7 @@ public sealed class ServiceCollectionExtensions
 public sealed class SyncChange`1<TData> : IEquatable<SyncChange<TData>>
     .ctor()
     ChangeType ChangeType { get; init; }
-    DateTimeOffset Timestamp { get; init; }
+    DateTime Timestamp { get; init; }
     TData Data { get; init; }
     Boolean Equals(Object obj)
     Boolean Equals(SyncChange<TData> other)
@@ -107,7 +107,7 @@ public sealed class SyncItemData : IEquatable<SyncItemData>
 // Kontent.Ai.Sync
 public sealed class SyncItemSystem : IEquatable<SyncItemSystem>
     .ctor()
-    DateTimeOffset LastModified { get; init; }
+    DateTime LastModified { get; init; }
     Guid Id { get; init; }
     String Codename { get; init; }
     String Collection { get; init; }
@@ -186,7 +186,7 @@ public sealed class SyncTaxonomyData : IEquatable<SyncTaxonomyData>
 // Kontent.Ai.Sync
 public sealed class SyncTaxonomySystem : IEquatable<SyncTaxonomySystem>
     .ctor()
-    DateTimeOffset LastModified { get; init; }
+    DateTime LastModified { get; init; }
     Guid Id { get; init; }
     String Codename { get; init; }
     String Name { get; init; }
@@ -209,7 +209,7 @@ public sealed class SyncTypeData : IEquatable<SyncTypeData>
 // Kontent.Ai.Sync
 public sealed class SyncTypeSystem : IEquatable<SyncTypeSystem>
     .ctor()
-    DateTimeOffset LastModified { get; init; }
+    DateTime LastModified { get; init; }
     Guid Id { get; init; }
     String Codename { get; init; }
     String Name { get; init; }

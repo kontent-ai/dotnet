@@ -21,10 +21,10 @@ public sealed record SyncChange<TData> where TData : class
     public required ChangeType ChangeType { get; init; }
 
     /// <summary>
-    /// When the change occurred in the Delivery API, in UTC.
+    /// When the change occurred in the Delivery API. Always UTC.
     /// </summary>
     [JsonPropertyName("timestamp")]
-    public required DateTimeOffset Timestamp { get; init; }
+    public required DateTime Timestamp { get; init; }
 
     /// <summary>
     /// The affected entity's metadata.

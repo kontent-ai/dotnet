@@ -119,7 +119,7 @@ See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the mi
 
 ### Fixed
 
-- **Every delta now carries its `timestamp`.** The API marks it required on all four delta objects and the SDK dropped it entirely, so there was no way to tell when a change happened — only that it had. It is exposed as `SyncChange<TData>.Timestamp`, a `DateTimeOffset` in UTC.
+- **Every delta now carries its `timestamp`.** The API marks it required on all four delta objects and the SDK dropped it entirely, so there was no way to tell when a change happened — only that it had. It is exposed as `SyncChange<TData>.Timestamp`, a `DateTime` in UTC — matching how every other Kontent.ai SDK types a server-sent timestamp.
 - **The configured retry pipeline can now run to completion.** `HttpClient`'s 100-second default bounds the *whole* call, retries and backoff included, and nothing raised it — so a pipeline allowed four 30-second attempts plus exponential backoff was silently cut off partway through the last one. The SDK's resilience pipeline already bounds each attempt, so it now owns timing outright and the transport-level ceiling is removed. Requests still stop when your `CancellationToken` fires.
 - **Long-running applications pick up DNS changes instead of pinning the address resolved at startup.** The registered client is a singleton and takes its `HttpClient` from `IHttpClientFactory` once, so the handler chain it holds was never rotated — the factory only hands a fresh chain to a *new* `CreateClient` call. Connections now recycle every two minutes, matching the factory's own default handler lifetime. A sync walk is exactly the kind of process that stays up long enough for this to matter. Configuring your own primary handler via `configureHttpClient` still overrides this, as before.
 - **Responses are now disposed once mapped, instead of every request leaking one until finalization.** Each call held its `HttpResponseMessage` open for the garbage collector to reclaim, which on a sync walk means one per page. Nothing the result carries is affected — Refit buffers the content, and header collections outlive disposal.
@@ -166,7 +166,7 @@ First stable release of the **Kontent.ai Sync SDK for .NET**, targeting the [Syn
 
 ### Migration from Legacy (Delivery SDK-based) Sync
 
-See [`docs/upgrade-guide.md`](upgrade-guide.md) for step-by-step migration instructions.
+A step-by-step guide shipped as `docs/upgrade-guide.md` at the time; it was retired once Delivery 19.0 removed the built-in sync it migrated from. See the repository history at the `sync-v1.0.0` tag if you need it.
 
 ### Installation
 
@@ -212,7 +212,7 @@ First release candidate of the **Kontent.ai Sync SDK for .NET**, targeting the [
 
 ### Migration from legacy, delivery-sdk-based sync functionality
 
-See [`docs/upgrade-guide.md`](upgrade-guide.md) for step-by-step migration instructions.
+A step-by-step guide shipped as `docs/upgrade-guide.md` at the time; it was retired once Delivery 19.0 removed the built-in sync it migrated from. See the repository history at the `sync-v1.0.0` tag if you need it.
 
 ### Installation
 

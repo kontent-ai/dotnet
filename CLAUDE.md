@@ -30,6 +30,9 @@ Products with their own `CLAUDE.md` (e.g. `src/management/CLAUDE.md`) carry prod
 - **Use modern C# actively**: primary constructors, file-scoped namespaces, `sealed` by default, `record` for DTOs, `required` members, collection expressions, `init`-only setters, pattern matching over `if`/cast chains, `ArgumentNullException.ThrowIfNull`.
 - **Lean functional over pure OOP**: immutable records, expression-bodied and pure functions, LINQ pipelines over mutating loops, composition over inheritance hierarchies. No speculative abstraction layers or extensibility hooks nobody asked for.
 - **KISS.** The simplest thing that works wins. A clever solution a future reader has to decode loses to a plain one.
+- **Dates split by direction, deliberately.** A timestamp the API *sends* is `DateTime` — every Kontent.ai API emits UTC with a `Z`, so it deserializes to `Kind=Utc` and there is no ambiguity to resolve. A timestamp the caller *supplies* is `DateTimeOffset`, because a bare `DateTime` would be interpreted against whatever zone the code happens to run in. `DeliveryClient`, `ManagementClient`, `SyncClient` and the ASP.NET Core webhook models all follow this, and Delivery's filter API takes `DateTime` so read values pass straight into it.
+
+  `DateTimeOffset` is an instant plus a *fixed offset*, not a time zone — it cannot represent `Europe/Prague` or DST. Where the API sends a zone it does so separately (`display_timezone`, an IANA name), and rendering local time means applying `TimeZoneInfo` to the UTC instant either way. So converting reads to `DateTimeOffset` buys a constant `+00:00` and nothing else. This has been raised more than once; it is decided.
 - Avoid reflection unless genuinely necessary; cache anything reflective.
 
 ## Commenting standards

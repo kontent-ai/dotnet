@@ -143,7 +143,8 @@ public sealed class SyncTransportTests : IDisposable
 
         var item = result.Value.Items.Should().ContainSingle().Subject;
         item.ChangeType.Should().Be(ChangeType.Changed);
-        item.Timestamp.Should().Be(DateTimeOffset.Parse("2025-06-20T13:03:06.1310204Z", CultureInfo.InvariantCulture));
+        item.Timestamp.Should().Be(DateTime.Parse("2025-06-20T13:03:06.1310204Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind));
+        item.Timestamp.Kind.Should().Be(DateTimeKind.Utc, "the API always sends UTC");
         item.Data!.System.Codename.Should().Be("my_article");
         item.Data.System.Collection.Should().Be("default");
         item.Data.System.Language.Should().Be("en-US");

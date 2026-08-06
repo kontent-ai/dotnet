@@ -51,7 +51,7 @@ public sealed record SyncItemSystem
     /// When the item's user content last changed. Moving an item through workflow does not affect it.
     /// </summary>
     [JsonPropertyName("last_modified")]
-    public required DateTimeOffset LastModified { get; init; }
+    public required DateTime LastModified { get; init; }
 
     /// <summary>The codename of the item's current workflow; absent for components.</summary>
     [JsonPropertyName("workflow")]
