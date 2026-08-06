@@ -45,7 +45,7 @@ public sealed class ManagementOptions : IValidatableObject
 
     /// <summary>
     /// Gets or sets the ceiling on one call, covering every retry attempt and the waits between them.
-    /// Defaults to 10 minutes. Use <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to leave the call
+    /// Defaults to 30 minutes. Use <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to leave the call
     /// bounded only by the caller's <see cref="CancellationToken"/>.
     /// </summary>
     /// <remarks>
@@ -53,9 +53,10 @@ public sealed class ManagementOptions : IValidatableObject
     /// large and the link is slow, and cutting one off mid-transfer helps nobody. That intent needs a ceiling
     /// well above <see cref="HttpClient"/>'s 100-second default, which applies to the whole call - so it also
     /// capped the retries and backoff, and killed exactly the uploads the missing per-attempt timeout was
-    /// meant to protect.
+    /// meant to protect. The default is sized against the documented 2 GB asset limit: 30 minutes carries
+    /// that much over a link of roughly 10 Mbps, where 10 minutes would need nearly 30.
     /// </remarks>
-    public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(30);
 
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

@@ -111,5 +111,6 @@ Prefer commands without explicit paths so they keep working if layout shifts.
 
 - **Coordination with `src/model-generator`** for Management-model generation — the generated model shape (records, mapping attributes, collection types) must be agreed jointly before DTOs are declared final. It consumes this package at a floor, so a change here reaches it only after a release.
 - **Webhook trigger switches** (`Enabled`/`Events`/`Slot` nullability) and the **webhook update endpoint** need live-API verification before changing.
+- **Does `POST /files/{file-name}` accept a chunked upload with no `Content-Length`?** `FileUploadContent.TryComputeLength` returns `false` for a non-seekable source, so `HttpClient` sends chunked — while the JS SDK always sets the header from a known byte length. If the API requires one, `new FileContentSource(nonSeekableStream, …)` has never worked on any attempt, and the overload needs to buffer, reject at construction, or go. Decide before the 9.0 surface freezes: a constructor overload that cannot work is not something to ship at GA. (Verified separately: the endpoint *does* accept a zero-length body, which is why a consumed stream on retry stored an empty asset and reported success.)
 
 When you hit these, ask rather than guess.

@@ -155,7 +155,8 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void ManagementOptions_DefaultTimeout_LeavesRoomForALargeUpload()
     {
-        new ManagementOptions().Timeout.Should().Be(TimeSpan.FromMinutes(10));
+        // Sized against the documented 2 GB asset limit — 30 minutes carries that over roughly 10 Mbps.
+        new ManagementOptions().Timeout.Should().Be(TimeSpan.FromMinutes(30));
     }
 
     [Fact]

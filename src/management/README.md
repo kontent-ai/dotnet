@@ -229,7 +229,7 @@ services.AddManagementClient(
 ```
 
 > [!NOTE]
-> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 10 minutes and covers every attempt plus the waits between them.
+> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 30 minutes and covers every attempt plus the waits between them — enough to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link. Raise it for slower links, or lower it if you would rather fail fast.
 
 #### Retrying an upload
 
@@ -243,7 +243,7 @@ A retried request is re-sent from the same `FileContentSource`. Sources created 
 | `ApiKey` | Yes | — | A Management API key, or a Subscription API key for subscription-scoped endpoints. |
 | `SubscriptionId` | No | — | The subscription GUID. Required only for subscription-scoped endpoints (such as user management). |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
-| `Timeout` | No | `10 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
+| `Timeout` | No | `30 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Sized against the 2 GB asset limit. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address; the SDK appends the versioned, scoped path. Override only when targeting a non-production endpoint. |
 
 `ManagementOptions` validates on use: a missing or malformed `EnvironmentId`/`ApiKey` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.
