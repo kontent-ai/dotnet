@@ -17,7 +17,7 @@ namespace Kontent.Ai.AspNetCore.RichText;
 /// The <c>&lt;rich-text&gt;</c> element itself is not emitted — the resolver's HTML is rendered in its place.
 /// </remarks>
 [HtmlTargetElement("rich-text", Attributes = "content")]
-public class RichTextTagHelper : TagHelper
+public sealed class RichTextTagHelper : TagHelper
 {
     private readonly IHtmlResolver? _defaultResolver;
 

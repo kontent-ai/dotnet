@@ -1,9 +1,8 @@
 ﻿// Kontent.Ai.AspNetCore.ImageTransformation
-public class AssetTagHelper : TagHelper
-    .ctor(IOptions<ImageTransformationOptions> imageTransformationOption)
+public sealed class AssetTagHelper : TagHelper
+    .ctor(IOptions<ImageTransformationOptions> imageTransformationOptions)
     Boolean AutoFormat { get; set; }
     IAsset Asset { get; set; }
-    IOptions<ImageTransformationOptions> ImageTransformationOptions { get; set; }
     Int32 DefaultWidth { get; set; }
     Int32[] ResponsiveWidths { get; set; }
     Nullable<ImageCompression> Compression { get; set; }
@@ -15,12 +14,12 @@ public class AssetTagHelper : TagHelper
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.ImageTransformation
-public class ImageTransformationOptions
+public sealed class ImageTransformationOptions
     .ctor()
     Int32[] ResponsiveWidths { get; set; }
 
 // Kontent.Ai.AspNetCore.ImageTransformation
-public class MediaConditionTagHelper : TagHelper
+public sealed class MediaConditionTagHelper : TagHelper
     .ctor()
     Int32 ImageWidth { get; set; }
     Int32 MinWidth { get; set; }
@@ -32,7 +31,7 @@ public sealed class RichTextExtensions
     static Task<IHtmlContent> ToHtmlContentAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.AspNetCore.RichText
-public class RichTextTagHelper : TagHelper
+public sealed class RichTextTagHelper : TagHelper
     .ctor(IHtmlResolver defaultResolver)
     IHtmlResolver Resolver { get; set; }
     IRichTextContent Content { get; set; }
@@ -45,65 +44,80 @@ public sealed class ServiceCollectionExtensions
 
 // Kontent.Ai.AspNetCore.Webhooks
 public sealed class ApplicationBuilderExtensions
+    static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate)
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, Action<WebhookOptions> configureOptions)
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, IConfigurationSection configurationSection)
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, WebhookOptions options)
 
 // Kontent.Ai.AspNetCore.Webhooks
-public class SignatureMiddleware
+public sealed class SignatureMiddleware
     .ctor(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
-    IOptions<WebhookOptions> WebhookOptions { get; }
     Task InvokeAsync(HttpContext httpContext)
 
 // Kontent.Ai.AspNetCore.Webhooks
-public class WebhookOptions
+public sealed class WebhookOptions
     .ctor()
     String Secret { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
-public class Reference
+public sealed class WebhookData : IEquatable<WebhookData>
     .ctor()
-    Nullable<Guid> Id { get; set; }
-    String Codename { get; set; }
-    String ExternalId { get; set; }
-    static Reference ByCodename(String codename)
-    static Reference ByExternalId(String externalId)
-    static Reference ById(Guid id)
+    WebhookItem System { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(WebhookData other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookData <Clone>$()
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
-public class WebhookData
+public sealed class WebhookItem : IEquatable<WebhookItem>
     .ctor()
-    WebhookItem System { get; set; }
+    DateTime LastModified { get; init; }
+    Nullable<Guid> Id { get; init; }
+    String Codename { get; init; }
+    String Collection { get; init; }
+    String Language { get; init; }
+    String Name { get; init; }
+    String Type { get; init; }
+    String Workflow { get; init; }
+    String WorkflowStep { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(WebhookItem other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookItem <Clone>$()
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
-public class WebhookItem
+public sealed class WebhookMessage : IEquatable<WebhookMessage>
     .ctor()
-    DateTime LastModified { get; set; }
-    Nullable<Guid> Id { get; set; }
-    String Codename { get; set; }
-    String Collection { get; set; }
-    String Language { get; set; }
-    String Name { get; set; }
-    String Type { get; set; }
-    String Workflow { get; set; }
-    String WorkflowStep { get; set; }
+    Guid EnvironmentId { get; init; }
+    String Action { get; init; }
+    String DeliverySlot { get; init; }
+    String ObjectType { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(WebhookMessage other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookMessage <Clone>$()
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
-public class WebhookMessage
+public sealed class WebhookModel : IEquatable<WebhookModel>
     .ctor()
-    Guid EnvironmentId { get; set; }
-    String Action { get; set; }
-    String DeliverySlot { get; set; }
-    String ObjectType { get; set; }
+    WebhookData Data { get; init; }
+    WebhookMessage Message { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(WebhookModel other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookModel <Clone>$()
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
-public class WebhookModel
+public sealed class WebhookNotification : IEquatable<WebhookNotification>
     .ctor()
-    WebhookData Data { get; set; }
-    WebhookMessage Message { get; set; }
-
-// Kontent.Ai.AspNetCore.Webhooks.Models
-public class WebhookNotification
-    .ctor()
-    WebhookModel[] Notifications { get; set; }
+    WebhookModel[] Notifications { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(WebhookNotification other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookNotification <Clone>$()
 

@@ -6,7 +6,7 @@ namespace Kontent.Ai.AspNetCore.ImageTransformation;
 /// Represents one media condition from image sizes attribute.
 /// </summary>
 [HtmlTargetElement(ParentTag = "img-asset")]
-public class MediaConditionTagHelper : TagHelper
+public sealed class MediaConditionTagHelper : TagHelper
 {
     /// <summary>
     /// Minimum width of the window that should trigger usage of the <see cref="ImageWidth"/>.

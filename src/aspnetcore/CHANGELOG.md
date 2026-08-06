@@ -6,11 +6,17 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-Targets .NET 10. The package moves from `net8.0` to `net10.0`. The public API is unchanged, but webhook
-signature verification is hardened in two ways worth reading before you upgrade.
+Targets .NET 10, moving from `net8.0` to `net10.0`. Webhook signature verification is hardened in two ways
+worth reading before you upgrade, and the public surface is tightened while the package is still pre-1.0:
+types are sealed, the webhook payload models become immutable records, and two dependency-injected values
+stop being public properties.
 
 ### Breaking changes
 
+- **Every public type is `sealed`, and the webhook payload models are `record`s with `init` properties.** `WebhookNotification`, `WebhookModel`, `WebhookData`, `WebhookMessage` and `WebhookItem` describe an inbound payload: nothing mutates one after it is bound, and comparing two by value is more often what you want than comparing by reference. Each keeps its public parameterless constructor, so `System.Text.Json` binds them exactly as before, and property names and JSON attributes are unchanged. Code that constructs one with an object initializer still compiles; code that assigns a property *after* construction does not.
+- **`Reference` is removed.** A public model with `ById` / `ByCodename` / `ByExternalId` factories that nothing in the package produced, consumed, or referenced — it was reachable only from its own unit test.
+- **`SignatureMiddleware.WebhookOptions` and `AssetTagHelper.ImageTransformationOptions` are no longer public properties.** Both were dependency-injected values exposed for no scenario. The middleware's carried the shared webhook secret. The tag helper's was worse than redundant: Razor binds every public settable property on a tag helper to an HTML attribute unless told otherwise, so `<img-asset>` accepted an `image-transformation-options` attribute that was never meant to exist. Both are now constructor parameters held privately.
+- **`UseWebhookSignatureValidator` no longer takes an optional `WebhookOptions`.** Three overloads accepting reference types meant `UseWebhookSignatureValidator(predicate, null)` could not be resolved. "Use the options from the container" is now its own two-argument overload, and the `WebhookOptions` overload takes a required, non-null instance. Calls that passed options, an `Action<WebhookOptions>`, a configuration section, or nothing at all are unaffected.
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.AspNetCore is not compatible with net8.0`. Move to .NET 10 first. This is a pre-1.0 package, so the minor version carries the break.
 
 ### Security

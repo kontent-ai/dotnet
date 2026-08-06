@@ -9,26 +9,14 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 /// <summary>
 /// Verifies signatures of Kontent.ai webhooks.
 /// </summary>
-public class SignatureMiddleware
+/// <param name="next">The next middleware in the pipeline.</param>
+/// <param name="webhookOptions">
+/// A configuration object that allows to adjust the Kontent.ai webhook behavior. Held privately: it
+/// carries the shared secret, and nothing outside this middleware has a reason to read it.
+/// </param>
+public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
 {
-    private readonly RequestDelegate _next;
-
-    /// <summary>
-    /// A configuration object that allows to adjust the Kontent.ai webhook behavior.
-    /// It contains a webhook secret used for signature validation.
-    /// </summary>
-    public IOptions<WebhookOptions> WebhookOptions { get; }
-
-    /// <summary>
-    /// Creates an instance of the <see cref="SignatureMiddleware"/>.
-    /// </summary>
-    /// <param name="next">The next middleware in the pipeline.</param>
-    /// <param name="webhookOptions">A configuration object that allows to adjust the Kontent.ai webhook behavior.</param>
-    public SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
-    {
-        _next = next;
-        WebhookOptions = webhookOptions;
-    }
+    private readonly RequestDelegate _next = next;
 
     /// <summary>
     /// Processes the request to validate the webhook signature.
@@ -41,7 +29,7 @@ public class SignatureMiddleware
     /// </exception>
     public async Task InvokeAsync(HttpContext httpContext)
     {
-        var secret = WebhookOptions.Value.Secret;
+        var secret = webhookOptions.Value.Secret;
         if (string.IsNullOrEmpty(secret))
         {
             throw new InvalidOperationException(

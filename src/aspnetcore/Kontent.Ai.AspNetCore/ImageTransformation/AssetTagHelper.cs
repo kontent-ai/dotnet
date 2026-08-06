@@ -11,16 +11,16 @@ namespace Kontent.Ai.AspNetCore.ImageTransformation;
 /// <summary>
 /// A tag helper that generates img elements based on assets stored in Kontent.ai.
 /// </summary>
+/// <param name="imageTransformationOptions">
+/// Global image transformation defaults. Held privately rather than as a property: Razor binds every
+/// public settable property on a tag helper to an HTML attribute unless told otherwise, so exposing it
+/// put an <c>image-transformation-options</c> attribute on the element.
+/// </param>
 [RestrictChildren("media-condition")]
 [HtmlTargetElement("img-asset", Attributes = "asset")]
-public class AssetTagHelper : TagHelper
+public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTransformationOptions = null) : TagHelper
 {
     internal const string SizesCollection = "sizes";
-
-    /// <summary>
-    /// Application settings.
-    /// </summary>
-    public IOptions<ImageTransformationOptions>? ImageTransformationOptions { get; set; }
 
     /// <summary>
     /// Represents an asset stored in Kontent.ai. This property is mandatory in order to properly generate an img tag.
@@ -46,7 +46,7 @@ public class AssetTagHelper : TagHelper
     [HtmlAttributeName("responsive-widths")]
     public int[]? ResponsiveWidths
     {
-        get => field ?? ImageTransformationOptions?.Value.ResponsiveWidths;
+        get => field ?? imageTransformationOptions?.Value.ResponsiveWidths;
         set;
     }
 
@@ -87,15 +87,6 @@ public class AssetTagHelper : TagHelper
     /// </summary>
     [HtmlAttributeName("compression")]
     public ImageCompression? Compression { get; set; }
-
-    /// <summary>
-    /// Constructor that allows to set global image transformation behavior.
-    /// </summary>
-    /// <param name="imageTransformationOption">An instance of a configuration object allowing to adjust the image transformation behavior.</param>
-    public AssetTagHelper(IOptions<ImageTransformationOptions>? imageTransformationOption = null)
-    {
-        ImageTransformationOptions = imageTransformationOption;
-    }
 
     /// <inheritdoc/>
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)

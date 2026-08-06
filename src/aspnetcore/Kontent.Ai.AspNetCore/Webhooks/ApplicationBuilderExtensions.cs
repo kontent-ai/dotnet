@@ -11,25 +11,34 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 public static class ApplicationBuilderExtensions
 {
     /// <summary>
+    /// Applies the webhook signature validation to a path given by the <paramref name="predicate"/>,
+    /// using the <see cref="WebhookOptions"/> registered in the service container.
+    /// </summary>
+    /// <param name="app">The <see cref="IApplicationBuilder">application</see> to configure.</param>
+    /// <param name="predicate">Invoked with the request environment to determine if the branch should be taken</param>
+    /// <returns>The original <see cref="IApplicationBuilder"/>.</returns>
+    public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+
+        app.UseWhen(predicate, appBuilder => appBuilder.UseMiddleware<SignatureMiddleware>());
+
+        return app;
+    }
+
+    /// <summary>
     /// Applies the webhook signature validation to a path given by the <paramref name="predicate"/>.
     /// </summary>
     /// <param name="app">The <see cref="IApplicationBuilder">application</see> to configure.</param>
     /// <param name="predicate">Invoked with the request environment to determine if the branch should be taken</param>
     /// <param name="options">A configuration object that allows to adjust the Kontent.ai webhook behavior.</param>
     /// <returns>The original <see cref="IApplicationBuilder"/>.</returns>
-    public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate, WebhookOptions? options = null)
+    public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate, WebhookOptions options)
     {
-        app.UseWhen(predicate, appBuilder =>
-        {
-            if (options != null)
-            {
-                appBuilder.UseMiddleware<SignatureMiddleware>(Options.Create(options));
-            }
-            else
-            {
-                appBuilder.UseMiddleware<SignatureMiddleware>();
-            }
-        });
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(options);
+
+        app.UseWhen(predicate, appBuilder => appBuilder.UseMiddleware<SignatureMiddleware>(Options.Create(options)));
 
         return app;
     }
@@ -44,6 +53,8 @@ public static class ApplicationBuilderExtensions
     /// <returns>The original <see cref="IApplicationBuilder"/>.</returns>
     public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate, Action<WebhookOptions> configureOptions)
     {
+        ArgumentNullException.ThrowIfNull(configureOptions);
+
         var options = new WebhookOptions();
         configureOptions(options);
 
@@ -59,6 +70,8 @@ public static class ApplicationBuilderExtensions
     /// <returns>The original <see cref="IApplicationBuilder"/>.</returns>
     public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate, IConfigurationSection configurationSection)
     {
+        ArgumentNullException.ThrowIfNull(configurationSection);
+
         var options = new WebhookOptions();
         configurationSection.Bind(options);
 
