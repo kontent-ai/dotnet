@@ -21,6 +21,21 @@ public class RefitApiResponseExtensionsTests
     }
 
     [Fact]
+    public async Task ToManagementResultAsync_TimedOut_ReturnsFailureRatherThanCancellation()
+    {
+        // An expired HttpClient.Timeout arrives shaped like cancellation. On a write API, reporting it as
+        // the caller's own cancellation invites the conclusion that nothing was sent - but the request went
+        // out and the server may have applied it.
+        using var apiResponse = CreateTransportFailure(
+            new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()));
+
+        var result = await apiResponse.ToManagementResultAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Exception!.InnerException.Should().BeOfType<TaskCanceledException>();
+    }
+
+    [Fact]
     public async Task ToManagementResultAsync_TransportFailure_ReturnsFailure()
     {
         using var apiResponse = CreateTransportFailure(new HttpRequestException("No such host is known."));

@@ -24,11 +24,19 @@ internal static class RefitResponses
     /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
     /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
     /// and <c>catch (OperationCanceledException)</c> would never fire.
+    /// <para>
+    /// An expired <see cref="HttpClient.Timeout"/> also surfaces as a <see cref="TaskCanceledException"/>,
+    /// and that one is an outcome: the request was sent and may well have been applied. The runtime sets
+    /// the <see cref="TimeoutException"/> inner exception in exactly that case - when the timeout fired and
+    /// the caller's token did not - which is the same signal
+    /// <see cref="HttpRetryPredicates.IsTransientException"/> classifies on.
+    /// </para>
     /// </remarks>
     /// <param name="error">The captured transport error, if any.</param>
     internal static void RethrowIfCanceled(ApiExceptionBase? error)
     {
-        if (error?.InnerException is OperationCanceledException canceled)
+        if (error?.InnerException is OperationCanceledException canceled
+            && canceled.InnerException is not TimeoutException)
         {
             ExceptionDispatchInfo.Capture(canceled).Throw();
         }

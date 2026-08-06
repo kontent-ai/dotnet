@@ -41,7 +41,10 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
   carrying the exception, consistent with how every other failure in this SDK is reported. Cancellation
   is the exception to that: when the caller's token fires, the `OperationCanceledException` is rethrown,
   so `Task.IsCanceled`, `Task.WhenAll` and cancellation handlers behave as they do everywhere else in
-  .NET. Previously **all** of these threw.
+  .NET. Previously **all** of these threw. An expired `HttpClient.Timeout` is *not* cancellation, even
+  though .NET surfaces it as a `TaskCanceledException`. This one matters on a write API: the request was
+  sent and the server may have applied it, so it is reported as a failed result carrying the exception,
+  never as the caller withdrawing a request that never happened.
 - **Transport failures report status `0`.** `IManagementResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
 ### Dependencies
