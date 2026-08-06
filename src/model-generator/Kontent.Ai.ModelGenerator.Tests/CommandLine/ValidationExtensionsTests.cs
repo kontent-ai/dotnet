@@ -7,6 +7,8 @@ namespace Kontent.Ai.ModelGenerator.Tests.CommandLine;
 
 public class ValidationExtensionsTests
 {
+    private static readonly string EnvironmentId = Guid.NewGuid().ToString();
+
     [Fact]
     public void Validate_NoDeliveryOptions_Throws()
     {
@@ -36,7 +38,7 @@ public class ValidationExtensionsTests
     {
         var options = new CodeGeneratorOptions
         {
-            DeliveryOptions = new DeliveryOptions { EnvironmentId = "abc-123" },
+            DeliveryOptions = new DeliveryOptions { EnvironmentId = EnvironmentId },
         };
 
         var call = options.Validate;
@@ -85,11 +87,54 @@ public class ValidationExtensionsTests
     {
         var options = new CodeGeneratorOptions
         {
-            ManagementOptions = new ManagementOptions { EnvironmentId = "abc-123", ApiKey = "secret" },
+            ManagementOptions = new ManagementOptions { EnvironmentId = EnvironmentId, ApiKey = "secret" },
         };
 
         var call = options.ValidateManagement;
 
         call.Should().NotThrow();
+    }
+
+    // The tool used to accept any non-blank environment id, deferring the failure to the first API call.
+    // It now runs the SDKs' own validation, which requires a GUID.
+    [Fact]
+    public void Validate_NonGuidEnvironmentId_Throws()
+    {
+        var options = new CodeGeneratorOptions
+        {
+            DeliveryOptions = new DeliveryOptions { EnvironmentId = "abc-123" },
+        };
+
+        var call = options.Validate;
+
+        call.Should().Throw<InvalidOperationException>().WithMessage("*EnvironmentId*");
+    }
+
+    [Fact]
+    public void ValidateManagement_NonGuidEnvironmentId_Throws()
+    {
+        var options = new CodeGeneratorOptions
+        {
+            ManagementOptions = new ManagementOptions { EnvironmentId = "abc-123", ApiKey = "secret" },
+        };
+
+        var call = options.ValidateManagement;
+
+        call.Should().Throw<InvalidOperationException>().WithMessage("*EnvironmentId*");
+    }
+
+    // Every problem is reported at once, so a run with several bad arguments is not a guessing game.
+    [Fact]
+    public void ValidateManagement_MultipleProblems_ReportsAll()
+    {
+        var options = new CodeGeneratorOptions
+        {
+            ManagementOptions = new ManagementOptions { EnvironmentId = "abc-123", ApiKey = "" },
+        };
+
+        var call = options.ValidateManagement;
+
+        call.Should().Throw<InvalidOperationException>()
+            .Which.Message.Should().Contain("EnvironmentId").And.Contain("ApiKey");
     }
 }

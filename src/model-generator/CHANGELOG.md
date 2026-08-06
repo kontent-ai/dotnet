@@ -19,6 +19,16 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
 ### Changed
 
+- **Arguments are validated against the SDKs' own rules instead of a hand-written subset.** The tool checked only that an environment id was present and non-blank, so `-i not-a-guid` was accepted and the run failed later against the API with a less obvious message. It now runs the validation the SDK options already declare — data annotations plus `IValidatableObject` — which is what the SDKs' own container-free constructors do. Every problem is reported at once rather than the first, so a run started with several bad arguments does not have to be repeated once per mistake.
+
+  ```text
+  $ KontentModelGenerator -i not-a-guid
+  The delivery configuration is not valid:
+    - EnvironmentId: The environment ID must be a valid GUID.
+  See http://bit.ly/k-params for more details on configuration.
+  ```
+
+  Configurations that were valid before remain valid. A configuration the tool used to accept and the API would then reject now fails at startup.
 - **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`, verified by the generator's own output assertions.
 
 ### Dependencies
