@@ -35,8 +35,20 @@ public class SignatureMiddleware
     /// </summary>
     /// <param name="httpContext">HTTP context whose request to inspect.</param>
     /// <returns></returns>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="Webhooks.WebhookOptions.Secret"/> is not configured. Without it no signature can be
+    /// verified, and continuing would admit unsigned requests.
+    /// </exception>
     public async Task InvokeAsync(HttpContext httpContext)
     {
+        var secret = WebhookOptions.Value.Secret;
+        if (string.IsNullOrEmpty(secret))
+        {
+            throw new InvalidOperationException(
+                $"{nameof(Webhooks.WebhookOptions)}.{nameof(Webhooks.WebhookOptions.Secret)} is not configured, so webhook " +
+                "signatures cannot be verified. Set it to the secret shown in the webhook's settings in Kontent.ai.");
+        }
+
         var request = httpContext.Request;
         request.EnableBuffering();
 
@@ -56,10 +68,10 @@ public class SignatureMiddleware
             }
         }
 
-        var generatedSignature = GenerateHash(content, WebhookOptions.Value.Secret);
-        var signature = request.Headers["X-KC-Signature"].FirstOrDefault() ?? request.Headers["X-Kontent-ai-Signature"].FirstOrDefault();
+        var providedSignature = request.Headers["X-KC-Signature"].FirstOrDefault()
+            ?? request.Headers["X-Kontent-ai-Signature"].FirstOrDefault();
 
-        if (generatedSignature != signature)
+        if (!SignatureMatches(content, secret, providedSignature))
         {
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             return;
@@ -68,16 +80,37 @@ public class SignatureMiddleware
         await _next(httpContext);
     }
 
-    private static string GenerateHash(string message, string? secret)
+    /// <summary>
+    /// Compares the signature the request carries against one computed over its body.
+    /// </summary>
+    /// <remarks>
+    /// The comparison runs over the raw hash bytes with <see cref="CryptographicOperations.FixedTimeEquals"/>,
+    /// not over the Base64 text. An ordinary string comparison returns as soon as two characters differ,
+    /// which lets a caller who can time the response recover the expected signature one character at a
+    /// time. Length carries no secret here: an HMAC-SHA256 digest is always the same size, so a signature
+    /// that does not decode to exactly that many bytes is rejected outright.
+    /// </remarks>
+    private static bool SignatureMatches(string content, string secret, string? providedSignature)
     {
-        secret ??= "";
-        var safeUtf8 = new UTF8Encoding(false, true);
-        var keyBytes = safeUtf8.GetBytes(secret);
-        var messageBytes = safeUtf8.GetBytes(message);
+        if (providedSignature is null)
+        {
+            return false;
+        }
 
-        using var hmacsha256 = new HMACSHA256(keyBytes);
-        var hashMessage = hmacsha256.ComputeHash(messageBytes);
+        Span<byte> provided = stackalloc byte[HMACSHA256.HashSizeInBytes];
+        if (!Convert.TryFromBase64String(providedSignature, provided, out var decodedLength)
+            || decodedLength != provided.Length)
+        {
+            return false;
+        }
 
-        return Convert.ToBase64String(hashMessage);
+        // Throws on malformed input rather than substituting replacement characters, so a body that is
+        // not valid UTF-8 cannot hash to the same value as one that is.
+        var encoding = new UTF8Encoding(false, true);
+
+        Span<byte> expected = stackalloc byte[HMACSHA256.HashSizeInBytes];
+        HMACSHA256.HashData(encoding.GetBytes(secret), encoding.GetBytes(content), expected);
+
+        return CryptographicOperations.FixedTimeEquals(expected, provided);
     }
 }

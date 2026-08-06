@@ -6,11 +6,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-Targets .NET 10. The package moves from `net8.0` to `net10.0`; the public API is unchanged.
+Targets .NET 10. The package moves from `net8.0` to `net10.0`. The public API is unchanged, but webhook
+signature verification is hardened in two ways worth reading before you upgrade.
 
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.AspNetCore is not compatible with net8.0`. Move to .NET 10 first. This is a pre-1.0 package, so the minor version carries the break.
+
+### Security
+
+- **Webhook signatures are compared in constant time.** The check compared the Base64 signature strings with an ordinary ordinal comparison, which returns as soon as two characters differ. A caller able to time the response could recover the expected signature one character at a time and forge a request. The comparison now runs over the raw HMAC bytes via `CryptographicOperations.FixedTimeEquals`. A signature that is not well-formed Base64, or that does not decode to exactly one HMAC-SHA256 digest, is rejected before any comparison — digest length is fixed, so rejecting on length leaks nothing.
+- **A missing webhook secret now fails loudly instead of accepting requests.** With `WebhookOptions.Secret` unset, the middleware hashed the body with an *empty key* and compared against that, so anything signed with the same empty key passed validation — a misconfigured deployment silently accepted forged webhooks, and a correctly-signed one looked like a bad signature. The middleware now throws `InvalidOperationException` naming the missing setting.
+
+  If you relied on running without a secret, set `WebhookOptions.Secret` to the value shown in the webhook's settings in Kontent.ai. There is no configuration in which the previous behaviour was safe.
 
 ### Fixed
 

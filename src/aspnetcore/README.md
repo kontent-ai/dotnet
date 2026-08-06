@@ -182,6 +182,9 @@ This middleware verifies the `X-Kontent-ai-Signature` header (and the legacy `X-
 }
 ```
 
+The secret is required. Without it no signature can be verified, so the middleware throws rather than
+letting unsigned requests through. Signatures are compared in constant time over the raw HMAC bytes.
+
 `Program.cs`:
 
 ```csharp

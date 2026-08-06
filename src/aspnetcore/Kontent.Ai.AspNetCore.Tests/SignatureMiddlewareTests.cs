@@ -14,7 +14,7 @@ public class SignatureMiddlewareTests
     [Fact]
     public async Task RequestWithoutSignature_ReturnsUnauthorized()
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions()));
+        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
         var ctx = new DefaultHttpContext();
 
         await middleware.InvokeAsync(ctx);
@@ -27,9 +27,38 @@ public class SignatureMiddlewareTests
     [InlineData("X-Kontent-ai-Signature")]
     public async Task RequestWithInvalidSignatureEmptyBody_ReturnsUnauthorized(string headerName)
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions()));
+        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
         var ctx = new DefaultHttpContext();
         ctx.Request.Headers.Append(headerName, "ABC");
+
+        await middleware.InvokeAsync(ctx);
+
+        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+    }
+
+    // Without a secret nothing can be verified. Accepting the request would admit unsigned traffic, and
+    // the previous behaviour - hashing with an empty key - accepted anything signed with that same
+    // empty key. A misconfigured deployment should fail loudly rather than look like a bad signature.
+    [Fact]
+    public async Task MissingSecret_Throws()
+    {
+        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions()));
+        var ctx = new DefaultHttpContext();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.InvokeAsync(ctx));
+    }
+
+    // The signature is compared as raw bytes, so anything that is not a well-formed digest is rejected
+    // before any comparison happens.
+    [Theory]
+    [InlineData("not base64 at all!")]
+    [InlineData("c2hvcnQ=")]
+    [InlineData("")]
+    public async Task MalformedOrWrongLengthSignature_ReturnsUnauthorized(string signature)
+    {
+        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Headers.Append("X-KC-Signature", signature);
 
         await middleware.InvokeAsync(ctx);
 
