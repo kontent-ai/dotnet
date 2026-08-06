@@ -67,7 +67,7 @@ internal sealed class HtmlResolver : IHtmlResolver
         foreach (var block in richText)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var resolved = await ResolveBlockAsync(block);
+            var resolved = await ResolveBlockAsync(block).ConfigureAwait(false);
             htmlBuilder.Append(resolved);
         }
 
@@ -150,7 +150,7 @@ internal sealed class HtmlResolver : IHtmlResolver
         // Step 1: Check tag resolver cache for O(1) lookup
         if (_tagResolverCache.TryGetValue(node.TagName, out var cachedResolver))
         {
-            return await cachedResolver(node, ResolveChildrenAsync);
+            return await cachedResolver(node, ResolveChildrenAsync).ConfigureAwait(false);
         }
 
         // Step 2: Evaluate conditional resolvers in registration order (first match wins)
@@ -158,17 +158,17 @@ internal sealed class HtmlResolver : IHtmlResolver
             .FirstOrDefault(c => c.Predicate(node));
         if (matchingResolver is not null)
         {
-            return await matchingResolver.Resolver(node, ResolveChildrenAsync);
+            return await matchingResolver.Resolver(node, ResolveChildrenAsync).ConfigureAwait(false);
         }
 
         // Step 3: Use default HTML node resolver if configured
         if (_options.DefaultHtmlNodeResolver is not null)
         {
-            return await _options.DefaultHtmlNodeResolver(node, ResolveChildrenAsync);
+            return await _options.DefaultHtmlNodeResolver(node, ResolveChildrenAsync).ConfigureAwait(false);
         }
 
         // Step 4: Ultimate fallback - built-in default
-        return await DefaultResolvers.HtmlElementResolver()(node, ResolveChildrenAsync);
+        return await DefaultResolvers.HtmlElementResolver()(node, ResolveChildrenAsync).ConfigureAwait(false);
     }
 
     private async ValueTask<string> ResolveChildrenAsync(IEnumerable<IRichTextBlock> children)
@@ -176,7 +176,7 @@ internal sealed class HtmlResolver : IHtmlResolver
         var builder = new StringBuilder();
         foreach (var child in children)
         {
-            builder.Append(await ResolveBlockAsync(child));
+            builder.Append(await ResolveBlockAsync(child).ConfigureAwait(false));
         }
         return builder.ToString();
     }

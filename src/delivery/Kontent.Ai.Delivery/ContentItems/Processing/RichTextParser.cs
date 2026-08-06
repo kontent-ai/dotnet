@@ -30,7 +30,7 @@ internal sealed class RichTextParser(
         if (contentElement is not IRichTextElementValue element)
             return null;
 
-        var document = await parser.ParseDocumentAsync(element.Value, cancellationToken);
+        var document = await parser.ParseDocumentAsync(element.Value, cancellationToken).ConfigureAwait(false);
 
         if (document.Body is null)
         {
@@ -48,7 +48,7 @@ internal sealed class RichTextParser(
         foreach (var childNode in document.Body.ChildNodes)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var block = await ParseNodeAsync(childNode, element, getLinkedItem, currentDepth: 0, cancellationToken);
+            var block = await ParseNodeAsync(childNode, element, getLinkedItem, currentDepth: 0, cancellationToken).ConfigureAwait(false);
             if (block is not null)
                 blocks.Add(block);
         }
@@ -77,17 +77,17 @@ internal sealed class RichTextParser(
         {
             // Parse special Kontent.ai elements
             IElement { TagName: "OBJECT" } el
-                => await ParseEmbeddedContentAsync(el, getLinkedItem),
+                => await ParseEmbeddedContentAsync(el, getLinkedItem).ConfigureAwait(false),
 
             IElement { TagName: "FIGURE" } el when TryGetInlineImage(el, element, out var image)
                 => image,
 
             IElement { TagName: "A" } el when TryGetItemId(el, out var itemId)
-                => await ParseContentItemLinkAsync(el, itemId, element, getLinkedItem, currentDepth, cancellationToken),
+                => await ParseContentItemLinkAsync(el, itemId, element, getLinkedItem, currentDepth, cancellationToken).ConfigureAwait(false),
 
             // Parse all HTML elements into structured tree
             IElement el
-                => await ParseHtmlElementAsync(el, element, getLinkedItem, currentDepth, cancellationToken),
+                => await ParseHtmlElementAsync(el, element, getLinkedItem, currentDepth, cancellationToken).ConfigureAwait(false),
 
             // Text nodes become TextNode leaf blocks.
             IText text when !string.IsNullOrEmpty(text.TextContent)
@@ -112,7 +112,7 @@ internal sealed class RichTextParser(
                 $"Element HTML: {element.OuterHtml}");
         }
 
-        var contentItem = await getLinkedItem(codename);
+        var contentItem = await getLinkedItem(codename).ConfigureAwait(false);
 
         // ContentItem<T> implements IEmbeddedContent<T>, so we can cast directly
         // If content item couldn't be resolved (depth limit, etc.), return null
@@ -143,7 +143,7 @@ internal sealed class RichTextParser(
         foreach (var childNode in anchorElement.ChildNodes)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken);
+            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken).ConfigureAwait(false);
             if (childBlock is not null)
                 children.Add(childBlock);
         }
@@ -167,7 +167,7 @@ internal sealed class RichTextParser(
         foreach (var childNode in element.ChildNodes)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken);
+            var childBlock = await ParseNodeAsync(childNode, elementValue, getLinkedItem, currentDepth + 1, cancellationToken).ConfigureAwait(false);
             if (childBlock is not null)
                 children.Add(childBlock);
         }

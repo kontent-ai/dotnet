@@ -32,7 +32,7 @@ public static class DefaultResolvers
 
         return async (block, resolveChildren) =>
         {
-            var innerHtml = await resolveChildren(block.Children);
+            var innerHtml = await resolveChildren(block.Children).ConfigureAwait(false);
 
             // Get pattern for this content type, or use fallback
             var contentType = block.Metadata?.ContentTypeCodename ?? string.Empty;
@@ -60,7 +60,7 @@ public static class DefaultResolvers
     {
         return async (block, resolveChildren) =>
         {
-            var children = await resolveChildren(block.Children);
+            var children = await resolveChildren(block.Children).ConfigureAwait(false);
             var attributes = BuildAttributes(block.Attributes);
 
             var attributesStr = string.IsNullOrEmpty(attributes) ? "" : $" {attributes}";

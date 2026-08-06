@@ -242,7 +242,7 @@ public static class RichTextExtensions
         var getLinkedItem = CreateLinkedItemResolver(modularContent);
 
         // Parse the rich text using cached parser
-        return await DefaultRichTextParser.Value.ConvertAsync(elementData, getLinkedItem, dependencyContext: null, cancellationToken);
+        return await DefaultRichTextParser.Value.ConvertAsync(elementData, getLinkedItem, dependencyContext: null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

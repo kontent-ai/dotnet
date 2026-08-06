@@ -258,3 +258,14 @@ dotnet_diagnostic.CA2208.severity = silent
 dotnet_diagnostic.IDE0005.severity = warning
 
 # Per-file analyzer suppressions (Management SDK)
+
+# Every await in shipping SDK library code must opt out of the caller's synchronization context.
+# These packages are consumed from hosts that have one - WPF, WinForms, legacy ASP.NET - where an
+# await that resumes on the captured context deadlocks a caller blocking on the task. The rich-text
+# subsystem drifted away from the rest of the SDK once; this keeps it from happening again.
+[src/{delivery,management,sync}/**.cs]
+dotnet_diagnostic.CA2007.severity = warning
+
+# Tests and benchmarks run without a synchronization context.
+[src/{delivery,management,sync}/*.{Tests,Benchmarks}/**.cs]
+dotnet_diagnostic.CA2007.severity = none
