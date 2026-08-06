@@ -12,7 +12,7 @@ public class SyncResultTests
         var headers = new HttpResponseMessage(HttpStatusCode.OK).Headers;
         headers.TryAddWithoutValidation("X-Continuation", "token-123");
 
-        var result = SyncResult.Success(
+        var result = SyncResult<string>.Success(
             value: "test-value",
             requestUrl: "https://test.com/sync",
             statusCode: HttpStatusCode.OK,
@@ -41,7 +41,7 @@ public class SyncResultTests
             RequestId = "req-1"
         };
 
-        var result = SyncResult.Failure<string>(
+        var result = SyncResult<string>.Failure(
             requestUrl: "https://test.com/sync",
             statusCode: HttpStatusCode.NotFound,
             error: error,
@@ -64,10 +64,10 @@ public class SyncResultTests
     [InlineData(HttpStatusCode.InternalServerError)]
     public void StatusCode_IsPreserved(HttpStatusCode statusCode)
     {
-        var successResult = SyncResult.Success("value", "url", "token", statusCode);
+        var successResult = SyncResult<string>.Success("value", "url", "token", statusCode);
         successResult.StatusCode.Should().Be(statusCode);
 
-        var failureResult = SyncResult.Failure<string>("url", statusCode, null);
+        var failureResult = SyncResult<string>.Failure("url", statusCode, null);
         failureResult.StatusCode.Should().Be(statusCode);
     }
 
@@ -84,7 +84,7 @@ public class SyncResultTests
             Exception = exception
         };
 
-        var result = SyncResult.Failure<string>("https://test.com", HttpStatusCode.InternalServerError, error);
+        var result = SyncResult<string>.Failure("https://test.com", HttpStatusCode.InternalServerError, error);
 
         result.Error.Should().NotBeNull();
         result.Error.Message.Should().Be("Operation failed");

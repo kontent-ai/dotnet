@@ -11,11 +11,15 @@ namespace Kontent.Ai.Sync.Abstractions;
 public interface ISyncClient
 {
     /// <summary>
-    /// Initializes content synchronization. Returns X-Continuation token via <see cref="ISyncResult{T}.SyncToken"/>.
+    /// Initializes content synchronization, establishing the point future deltas are measured from.
     /// </summary>
+    /// <remarks>
+    /// Produces no content - the useful output is <see cref="ISyncResult.SyncToken"/>. Store it and pass
+    /// it to <see cref="GetDeltaAsync"/> or <see cref="EnumerateDeltaAsync"/>.
+    /// </remarks>
     /// <param name="cancellationToken">The cancellation token to cancel operation.</param>
-    /// <returns>A sync result containing the initialization response and sync token.</returns>
-    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default);
+    /// <returns>A sync result carrying the token to synchronize from.</returns>
+    Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves delta updates since the last synchronization.
@@ -33,13 +37,13 @@ public interface ISyncClient
     /// The feed ends on the first empty response, which is how the Sync API signals that a client has
     /// caught up. That response is not yielded, so an up-to-date client sees an empty sequence.
     /// <para>
-    /// Carry the <see cref="ISyncResult{T}.SyncToken"/> of the last yielded result into the next
+    /// Carry the <see cref="ISyncResult.SyncToken"/> of the last yielded result into the next
     /// synchronization. When nothing was yielded there is no newer token, and the one passed in is
     /// still current.
     /// </para>
     /// <para>
     /// A failed request is yielded as a failed result and ends the enumeration, so a caller that never
-    /// inspects <see cref="ISyncResult{T}.IsSuccess"/> sees a short feed rather than an exception.
+    /// inspects <see cref="ISyncResult.IsSuccess"/> sees a short feed rather than an exception.
     /// Cancellation throws, as everywhere else in this SDK.
     /// </para>
     /// <para>

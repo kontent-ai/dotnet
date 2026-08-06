@@ -8,11 +8,31 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release, and Refit's transport is upgraded across four major versions. Nothing else about the API changes.
+Targets .NET 10. Both packages move from `net8.0` to `net10.0`, and Refit's transport is upgraded across
+four major versions.
+
+The API changes too. Paging through the sync feed becomes a stream you enumerate, terminating on the
+signal the API actually sends rather than on an inferred page size; the result contract splits so that
+initialization stops pretending to return content; and disposal moves off the client interface onto the
+client that owns resources. Most consumers touch one loop and nothing else.
+
+See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the migration, change by change.
 
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
+- **`InitializeSyncAsync` returns `ISyncResult` instead of `ISyncResult<ISyncInitResponse>`, and `ISyncInitResponse` is removed.** Initialization establishes a starting point rather than returning content — the useful output has always been the token, on `SyncToken`. `ISyncInitResponse` was an interface with no members, so `Value` was an object you could hold but never read. `ISyncResult` is new and non-generic, and `ISyncResult<T>` now derives from it, adding only `Value`; this mirrors `IManagementResult` / `IManagementResult<T>` in the Management SDK. Every other member is unchanged and still reachable on both.
+
+  ```csharp
+  // Before
+  ISyncResult<ISyncInitResponse> init = await syncClient.InitializeSyncAsync();
+
+  // After — or simply var, as every example in the README uses
+  ISyncResult init = await syncClient.InitializeSyncAsync();
+  await SaveTokenAsync(init.SyncToken);   // unchanged
+  ```
+
+  `GetDeltaAsync` and `EnumerateDeltaAsync` are untouched, including `page.Value.Items`. Initialization also no longer deserializes a response body: success now depends on the status code and the continuation token alone, so an unreadable body on an endpoint whose body is irrelevant can no longer fail the call.
 - **The client interfaces no longer carry `IDisposable` / `IAsyncDisposable`; the concrete clients do.** Disposal exists for one situation - a client built outside a container, which owns its own transport and must release it. Putting it on the interface meant every consumer holding `ISyncClient` was offered a `Dispose()` that, on the container path, released nothing and must not be called: the container owns that lifetime. `SyncClientBuilder.Build()` now returns the concrete `SyncClient`, which is `IDisposable` and `IAsyncDisposable`, so disposal stays available exactly where it means something.
 
   `await using var client = SyncClientBuilder…Build();` is unchanged, and so is every DI usage. The only code that breaks widened the builder result to the interface and then disposed it:

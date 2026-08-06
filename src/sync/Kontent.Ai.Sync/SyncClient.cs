@@ -89,7 +89,7 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public async Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken = default)
+    public async Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken = default)
     {
         var rawResponse = await _syncApi.InitializeSyncAsync(EnvironmentId, cancellationToken)
             .ConfigureAwait(false);

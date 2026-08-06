@@ -16,7 +16,7 @@ public sealed class ServiceCollectionExtensions
 public sealed class SyncClient : IAsyncDisposable, IDisposable, ISyncClient
     IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
-    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
+    Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
     ValueTask DisposeAsync()
     Void Dispose()
 

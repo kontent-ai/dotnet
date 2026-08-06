@@ -1,5 +1,3 @@
-using Kontent.Ai.Sync.Models;
-
 namespace Kontent.Ai.Sync.Api;
 
 /// <summary>
@@ -13,9 +11,13 @@ internal partial interface ISyncApi
     /// </summary>
     /// <param name="environmentId">The environment identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Empty response with X-Continuation token in headers.</returns>
+    /// <returns>The response carrying the X-Continuation token in its headers.</returns>
+    /// <remarks>
+    /// The body is not read. Initialization returns the same shape as a delta, but the API guarantees
+    /// every collection in it is empty, so there is nothing to deserialize.
+    /// </remarks>
     [Post("/v2/{environmentId}/sync/init")]
-    internal Task<IApiResponse<SyncInitResponse>> InitializeSyncAsync(
+    internal Task<IApiResponse> InitializeSyncAsync(
         string environmentId,
         CancellationToken cancellationToken = default);
 }

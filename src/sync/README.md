@@ -256,7 +256,10 @@ services.AddSyncClient("preview", configuration.GetSection("Sync:Preview"));
 
 ## Error Handling
 
-`ISyncResult<T>` uses explicit success/failure signaling.
+Every call returns a result rather than throwing. `ISyncResult` carries the outcome — success, error,
+status, the continuation token — and `ISyncResult<T>` adds `Value` for the calls that return content.
+`InitializeSyncAsync` returns the non-generic form, because initialization produces a token rather than
+content; `GetDeltaAsync` and `EnumerateDeltaAsync` return the generic one.
 
 ```csharp
 var result = await syncClient.GetDeltaAsync(syncToken);
@@ -272,9 +275,11 @@ if (!result.IsSuccess)
 ```
 
 Important fields:
-- `ISyncResult<T>.StatusCode` (`HttpStatusCode`)
-- `ISyncResult<T>.ResponseHeaders`
-- `ISyncResult<T>.RequestUrl`
+- `ISyncResult.StatusCode` (`HttpStatusCode`)
+- `ISyncResult.ResponseHeaders`
+- `ISyncResult.RequestUrl`
+- `ISyncResult.SyncToken`
+- `ISyncResult<T>.Value` — the delta payload, on the calls that return content
 - `IError.Message`
 - `IError.RequestId`
 - `IError.ErrorCode` / `IError.SpecificCode`
@@ -329,7 +334,11 @@ Useful when you want to pin the reported version independent of assembly metadat
 
 ## Upgrade Guide
 
-See `docs/upgrade-guide.md` for breaking changes and migration steps.
+- Coming from **1.0** — see the [1.0 → 2.0 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade-guide-1.0-to-2.0.md).
+  The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
+- Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — start with the
+  [standalone-SDK guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade-guide.md),
+  then follow the 1.0 → 2.0 guide above.
 
 ## Contributing
 

@@ -22,7 +22,7 @@ internal static class RefitApiResponseExtensions
     {
         if (apiResponse.IsSuccessStatusCode && apiResponse.Content is not null)
         {
-            return Task.FromResult<ISyncResult<T>>(SyncResult.Success(
+            return Task.FromResult<ISyncResult<T>>(SyncResult<T>.Success(
                 apiResponse.Content,
                 RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
                 RequireSyncToken(apiResponse),
@@ -33,56 +33,81 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
-    private static Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
+    /// <summary>
+    /// Converts a Refit response that carries no content into a sync result.
+    /// </summary>
+    /// <remarks>
+    /// Initialization takes this path: it establishes a starting point rather than returning content, so
+    /// success depends only on the status code and the token the response carries - never on a body.
+    /// </remarks>
+    /// <param name="apiResponse">Refit API response.</param>
+    /// <returns>Sync result carrying the token, or error details.</returns>
+    public static Task<ISyncResult> ToSyncResultAsync(this IApiResponse apiResponse)
+    {
+        if (apiResponse.IsSuccessStatusCode)
+        {
+            return Task.FromResult(SyncResult.Success(
+                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                RequireSyncToken(apiResponse),
+                RefitResponses.StatusOf(apiResponse),
+                apiResponse.Headers));
+        }
+
+        return MapFailureAsync(apiResponse);
+    }
+
+    private static async Task<ISyncResult> MapFailureAsync(IApiResponse apiResponse)
     {
         RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
-        var requestUrl = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
         var statusCode = RefitResponses.StatusOf(apiResponse);
-        var headers = apiResponse.Headers;
+        var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
 
-        if (apiResponse.Error is not ApiException apiException)
+        return SyncResult.Failure(
+            RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+            statusCode,
+            error,
+            apiResponse.Headers);
+    }
+
+    private static async Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
+    {
+        RefitResponses.RethrowIfCanceled(apiResponse.Error);
+
+        var statusCode = RefitResponses.StatusOf(apiResponse);
+        var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
+
+        return SyncResult<T>.Failure(
+            RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+            statusCode,
+            error,
+            apiResponse.Headers);
+    }
+
+    /// <summary>
+    /// Builds the error for a failed response, shared by the typed and untyped paths.
+    /// </summary>
+    private static async Task<IError> BuildErrorAsync(IApiResponse apiResponse, HttpStatusCode statusCode)
+    {
+        // Only ApiException buffers the response body; the other kinds describe a failure that produced
+        // no body to parse.
+        if (apiResponse.Error is not ApiException exception)
         {
-            var fallback = new Error
+            return new Error
             {
                 Message = apiResponse.Error?.InnerException?.Message ?? apiResponse.Error?.Message ?? "Unknown error",
                 ErrorCode = (int)statusCode,
-                Exception = apiResponse.Error
+                Exception = apiResponse.Error,
             };
-
-            return Task.FromResult(SyncResult.Failure<T>(requestUrl, statusCode, fallback, headers));
         }
 
-        return MapApiExceptionAsync<T>(apiException, requestUrl, statusCode, headers);
-    }
-
-    private static async Task<ISyncResult<T>> MapApiExceptionAsync<T>(
-        ApiException exception,
-        string requestUrl,
-        HttpStatusCode statusCode,
-        System.Net.Http.Headers.HttpResponseHeaders? headers)
-    {
-        Error error;
         try
         {
             var parsed = await exception.GetContentAsAsync<Error>().ConfigureAwait(false);
-            if (parsed is not null)
-            {
-                error = parsed with
-                {
-                    ErrorCode = parsed.ErrorCode ?? (int)statusCode,
-                    Exception = exception
-                };
-            }
-            else
-            {
-                error = new Error
-                {
-                    Message = exception.Message,
-                    ErrorCode = (int)statusCode,
-                    Exception = exception
-                };
-            }
+
+            return parsed is not null
+                ? parsed with { ErrorCode = parsed.ErrorCode ?? (int)statusCode, Exception = exception }
+                : new Error { Message = exception.Message, ErrorCode = (int)statusCode, Exception = exception };
         }
         catch (Exception parseException) when (!FatalExceptions.IsFatal(parseException))
         {
@@ -91,15 +116,13 @@ internal static class RefitApiResponseExtensions
                 ? exception.Message
                 : $"{exception.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
 
-            error = new Error
+            return new Error
             {
                 Message = message,
                 ErrorCode = (int)statusCode,
-                Exception = new AggregateException(exception, parseException)
+                Exception = new AggregateException(exception, parseException),
             };
         }
-
-        return SyncResult.Failure<T>(requestUrl, statusCode, error, headers);
     }
 
     /// <summary>
@@ -112,7 +135,7 @@ internal static class RefitApiResponseExtensions
     /// to continue. Failing here says so once, rather than surfacing later as a token that cannot be
     /// stored or a walk that cannot advance.
     /// </remarks>
-    private static string RequireSyncToken<T>(IApiResponse<T> apiResponse)
+    private static string RequireSyncToken(IApiResponse apiResponse)
     {
         var token = apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
             ? values.FirstOrDefault()

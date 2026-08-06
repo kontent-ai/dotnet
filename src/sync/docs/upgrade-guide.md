@@ -2,6 +2,11 @@
 
 This guide is for users migrating from the sync functionality included in `Kontent.Ai.Delivery` to the standalone `Kontent.Ai.Sync` package.
 
+> [!NOTE]
+> This covers the move onto `Kontent.Ai.Sync` **1.0**. If you are landing on **2.0**, follow this guide
+> first and then the [1.0 → 2.0 guide](upgrade-guide-1.0-to-2.0.md), which covers the .NET 10 move and
+> the change from `GetAllDeltaAsync` to `EnumerateDeltaAsync`.
+
 Two structural changes matter most:
 
 1. **Sync has its own client.** Use `ISyncClient` (injected independently) instead of calling sync methods on `IDeliveryClient`.

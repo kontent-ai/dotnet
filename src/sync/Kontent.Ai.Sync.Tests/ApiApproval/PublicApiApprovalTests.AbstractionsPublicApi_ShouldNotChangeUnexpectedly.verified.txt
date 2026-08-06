@@ -21,7 +21,7 @@ public interface IError
 public interface ISyncClient
     IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
-    Task<ISyncResult<ISyncInitResponse>> InitializeSyncAsync(CancellationToken cancellationToken)
+    Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncClientFactory
@@ -34,9 +34,6 @@ public interface ISyncDeltaResponse
     IReadOnlyList<ISyncLanguage> Languages { get; }
     IReadOnlyList<ISyncTaxonomy> Taxonomies { get; }
     IReadOnlyList<ISyncType> Types { get; }
-
-// Kontent.Ai.Sync.Abstractions
-public interface ISyncInitResponse
 
 // Kontent.Ai.Sync.Abstractions
 public interface ISyncItem
@@ -61,13 +58,16 @@ public interface ISyncOptionsBuilder
     SyncOptions Build()
 
 // Kontent.Ai.Sync.Abstractions
-public interface ISyncResult`1<T>
+public interface ISyncResult
     Boolean IsSuccess { get; }
     HttpResponseHeaders ResponseHeaders { get; }
     HttpStatusCode StatusCode { get; }
     IError Error { get; }
     String RequestUrl { get; }
     String SyncToken { get; }
+
+// Kontent.Ai.Sync.Abstractions
+public interface ISyncResult`1<T> : ISyncResult
     T Value { get; }
 
 // Kontent.Ai.Sync.Abstractions
