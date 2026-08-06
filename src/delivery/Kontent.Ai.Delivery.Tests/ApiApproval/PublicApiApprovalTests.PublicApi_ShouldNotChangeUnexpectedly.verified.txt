@@ -22,28 +22,28 @@ public sealed class DeliveryClientFactory : IDeliveryClientFactory
     .ctor(IServiceProvider serviceProvider)
     IDeliveryClient Get()
     IDeliveryClient Get(String name)
-    IDeliveryClient TryGet(String name)
+    IDeliveryClient? TryGet(String name)
 
 // Kontent.Ai.Delivery
 public class DeliverySourceTrackingHeaderAttribute : Attribute
     .ctor()
     .ctor(String packageName)
-    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String preReleaseLabel)
+    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String? preReleaseLabel)
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }
     Int32 PatchVersion { get; }
-    String PackageName { get; }
-    String PreReleaseLabel { get; }
+    String? PackageName { get; }
+    String? PreReleaseLabel { get; }
 
 // Kontent.Ai.Delivery
 public sealed class QueryCacheExtensions
-    static IItemQuery<TModel> WithCacheExpiration<TModel>(IItemQuery<TModel> query, Nullable<TimeSpan> expiration)
-    static IItemsQuery<TModel> WithCacheExpiration<TModel>(IItemsQuery<TModel> query, Nullable<TimeSpan> expiration)
-    static ITaxonomiesQuery WithCacheExpiration(ITaxonomiesQuery query, Nullable<TimeSpan> expiration)
-    static ITaxonomyQuery WithCacheExpiration(ITaxonomyQuery query, Nullable<TimeSpan> expiration)
-    static ITypeQuery WithCacheExpiration(ITypeQuery query, Nullable<TimeSpan> expiration)
-    static ITypesQuery WithCacheExpiration(ITypesQuery query, Nullable<TimeSpan> expiration)
+    static IItemQuery<TModel> WithCacheExpiration<TModel>(IItemQuery<TModel> query, TimeSpan? expiration)
+    static IItemsQuery<TModel> WithCacheExpiration<TModel>(IItemsQuery<TModel> query, TimeSpan? expiration)
+    static ITaxonomiesQuery WithCacheExpiration(ITaxonomiesQuery query, TimeSpan? expiration)
+    static ITaxonomyQuery WithCacheExpiration(ITaxonomyQuery query, TimeSpan? expiration)
+    static ITypeQuery WithCacheExpiration(ITypeQuery query, TimeSpan? expiration)
+    static ITypesQuery WithCacheExpiration(ITypesQuery query, TimeSpan? expiration)
 
 // Kontent.Ai.Delivery
 public sealed class QueryEnumerationExtensions
@@ -61,23 +61,23 @@ public sealed class RichTextExtensions
     static IEnumerable<IInlineImage> GetInlineImages(IRichTextContent richText)
     static IEnumerable<TBlock> GetBlocks<TBlock>(IRichTextContent richText)
     static IEnumerable<TModel> GetEmbeddedElements<TModel>(IRichTextContent richText)
-    static ValueTask<IRichTextContent> ParseRichTextAsync(JsonElement richTextElement, IReadOnlyDictionary<String, JsonElement> modularContent, CancellationToken cancellationToken)
-    static ValueTask<String> ToHtmlAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
+    static ValueTask<IRichTextContent?> ParseRichTextAsync(JsonElement richTextElement, IReadOnlyDictionary<String, JsonElement>? modularContent, CancellationToken cancellationToken)
+    static ValueTask<String> ToHtmlAsync(IRichTextContent richText, IHtmlResolver? resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery
 public sealed class ServiceCollectionExtensions
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
 
 // Kontent.Ai.Delivery.Configuration
 public sealed class DeliveryClientBuilder
@@ -106,31 +106,31 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
 // Kontent.Ai.Delivery.ContentItems
 public sealed class Asset : IAsset, IEquatable<Asset>
     .ctor()
-    IReadOnlyDictionary<String, IAssetRendition> Renditions { get; init; }
-    Int32 Size { get; init; }
-    Nullable<Int32> Height { get; init; }
-    Nullable<Int32> Width { get; init; }
-    String Description { get; init; }
-    String Name { get; init; }
-    String Type { get; init; }
-    String Url { get; init; }
+    Int32? Height { get; init; }
+    Int32? Width { get; init; }
+    String? Description { get; init; }
+    required IReadOnlyDictionary<String, IAssetRendition> Renditions { get; init; }
+    required Int32 Size { get; init; }
+    required String Name { get; init; }
+    required String Type { get; init; }
+    required String Url { get; init; }
     Asset <Clone>$()
-    Boolean Equals(Asset other)
-    Boolean Equals(Object obj)
+    Boolean Equals(Asset? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class AssetRendition : IAssetRendition, IEquatable<AssetRendition>
     .ctor()
-    Int32 Height { get; init; }
-    Int32 Width { get; init; }
-    String PresetId { get; init; }
-    String Query { get; init; }
-    String RenditionId { get; init; }
+    required Int32 Height { get; init; }
+    required Int32 Width { get; init; }
+    required String PresetId { get; init; }
+    required String Query { get; init; }
+    required String RenditionId { get; init; }
     AssetRendition <Clone>$()
-    Boolean Equals(AssetRendition other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetRendition? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -147,7 +147,7 @@ public sealed class RichTextContent : IEnumerable, IEnumerable<IRichTextBlock>, 
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
 public sealed class DefaultResolvers
-    static BlockResolver<IContentItemLink> UrlPatternResolver(IReadOnlyDictionary<String, String> typePatterns, String fallbackPattern)
+    static BlockResolver<IContentItemLink> UrlPatternResolver(IReadOnlyDictionary<String, String> typePatterns, String? fallbackPattern)
     static BlockResolver<IHtmlNode> HtmlElementResolver()
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
@@ -168,19 +168,19 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     IHtmlResolverBuilder WithContentResolvers(ValueTuple<String, Func<IEmbeddedContent, String>>[] resolvers)
     IHtmlResolverBuilder WithContentResolvers(ValueTuple<Type, Func<IEmbeddedContent, String>>[] resolvers)
     IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver<IHtmlNode> resolver, String description)
+    IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver<IHtmlNode> resolver, String? description)
     IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver<IHtmlNode> resolver)
-    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String attributeValue, BlockResolver<IHtmlNode> resolver)
+    IHtmlResolverBuilder WithHtmlNodeResolverForAttribute(String attributeName, String? attributeValue, BlockResolver<IHtmlNode> resolver)
     IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
     IHtmlResolverBuilder WithTextNodeResolver(BlockResolver<ITextNode> resolver)
 
 // Kontent.Ai.Delivery.SharedModels
 public sealed class DateTimeContent : IDateTimeContent, IEquatable<DateTimeContent>
     .ctor()
-    Nullable<DateTime> Value { get; init; }
-    String DisplayTimezone { get; init; }
-    Boolean Equals(DateTimeContent other)
-    Boolean Equals(Object obj)
+    DateTime? Value { get; init; }
+    String? DisplayTimezone { get; init; }
+    Boolean Equals(DateTimeContent? other)
+    Boolean Equals(Object? obj)
     DateTimeContent <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -188,10 +188,10 @@ public sealed class DateTimeContent : IDateTimeContent, IEquatable<DateTimeConte
 // Kontent.Ai.Delivery.SharedModels
 public sealed class MultipleChoiceOption : IEquatable<MultipleChoiceOption>, IMultipleChoiceOption
     .ctor()
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(MultipleChoiceOption other)
-    Boolean Equals(Object obj)
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(MultipleChoiceOption? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MultipleChoiceOption <Clone>$()
     String ToString()
@@ -199,10 +199,10 @@ public sealed class MultipleChoiceOption : IEquatable<MultipleChoiceOption>, IMu
 // Kontent.Ai.Delivery.SharedModels
 public sealed class TaxonomyTerm : IEquatable<TaxonomyTerm>, ITaxonomyTerm
     .ctor()
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyTerm other)
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyTerm? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyTerm <Clone>$()

@@ -1,6 +1,7 @@
 // Shared test source, compiled into each test assembly - see src/testing/README.md.
 
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Kontent.Ai.Testing;
@@ -18,6 +19,9 @@ internal static class PublicApiApproval
 {
     private const BindingFlags DeclaredPublic =
         BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+
+    // Not thread-safe by contract, which is fine: one assembly is rendered at a time.
+    private static readonly NullabilityInfoContext Nullability = new();
 
     internal static string Surface(Assembly assembly)
     {
@@ -79,7 +83,7 @@ internal static class PublicApiApproval
         // Interfaces are sorted rather than taken in reflection order, which is unspecified.
         bases.AddRange(type.GetInterfaces()
             .Where(candidate => !type.BaseType?.GetInterfaces().Contains(candidate) ?? true)
-            .Select(TypeName)
+            .Select(candidate => TypeName(candidate))
             .OrderBy(name => name, StringComparer.Ordinal));
 
         return bases.Count > 0 ? " : " + string.Join(", ", bases) : string.Empty;
@@ -118,7 +122,7 @@ internal static class PublicApiApproval
         .GetFields(DeclaredPublic)
         .Select(field => field.IsLiteral
             ? $"const {TypeName(field.FieldType)} {field.Name} = {field.GetRawConstantValue()}"
-            : $"{FieldModifiers(field)}{TypeName(field.FieldType)} {field.Name}")
+            : $"{RequiredModifier(field)}{FieldModifiers(field)}{TypeName(field.FieldType, Nullability.Create(field))} {field.Name}")
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static string FieldModifiers(FieldInfo field) => (field.IsStatic, field.IsInitOnly) switch
@@ -142,7 +146,8 @@ internal static class PublicApiApproval
             };
             var isStatic = property.GetMethod?.IsStatic == true || property.SetMethod?.IsStatic == true;
 
-            return $"{(isStatic ? "static " : "")}{TypeName(property.PropertyType)} {property.Name} {{ {getter}{setter}}}";
+            return $"{RequiredModifier(property)}{(isStatic ? "static " : "")}"
+                 + $"{TypeName(property.PropertyType, Nullability.Create(property))} {property.Name} {{ {getter}{setter}}}";
         })
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
@@ -156,7 +161,7 @@ internal static class PublicApiApproval
 
     private static IEnumerable<string> Events(Type type) => type
         .GetEvents(DeclaredPublic)
-        .Select(@event => $"event {TypeName(@event.EventHandlerType!)} {@event.Name}")
+        .Select(@event => $"event {TypeName(@event.EventHandlerType!, Nullability.Create(@event))} {@event.Name}")
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static IEnumerable<string> Methods(Type type) => type
@@ -168,26 +173,73 @@ internal static class PublicApiApproval
             var generic = method.IsGenericMethod
                 ? $"<{string.Join(", ", method.GetGenericArguments().Select(argument => argument.Name))}>"
                 : string.Empty;
-            return $"{staticPrefix}{TypeName(method.ReturnType)} {method.Name}{generic}({Parameters(method)})";
+            var returnType = TypeName(method.ReturnType, Nullability.Create(method.ReturnParameter));
+            return $"{staticPrefix}{returnType} {method.Name}{generic}({Parameters(method)})";
         })
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
-        .Select(parameter => $"{TypeName(parameter.ParameterType)} {parameter.Name}"));
+        .Select(parameter => $"{TypeName(parameter.ParameterType, Nullability.Create(parameter))} {parameter.Name}"));
 
-    private static string TypeName(Type type)
+    /// <summary>
+    /// A <c>required</c> member is part of the contract: dropping it silently stops obliging callers to
+    /// set it, and adding one breaks every existing object initializer.
+    /// </summary>
+    private static string RequiredModifier(MemberInfo member) =>
+        member.IsDefined(typeof(RequiredMemberAttribute), inherit: false) ? "required " : "";
+
+    /// <summary>
+    /// Renders a type, marking what may be null.
+    /// </summary>
+    /// <remarks>
+    /// Nullability is metadata, not part of the type, so without <paramref name="nullability"/> a
+    /// <c>string?</c> and a <c>string</c> are indistinguishable here - and narrowing one to the other is a
+    /// breaking change this gate would otherwise wave through. <see cref="NullabilityInfoContext"/> decodes
+    /// the compiler's annotations, including per-argument ones, so <c>IReadOnlyList&lt;string&gt;?</c> and
+    /// <c>IReadOnlyList&lt;string?&gt;</c> read differently. <c>Nullable&lt;T&gt;</c> is rendered <c>T?</c>
+    /// so value and reference nullability look the same.
+    /// </remarks>
+    private static string TypeName(Type type, NullabilityInfo? nullability = null)
     {
-        if (type.IsArray)
+        if (Nullable.GetUnderlyingType(type) is { } underlying)
         {
-            return $"{TypeName(type.GetElementType()!)}[]";
+            return $"{TypeName(underlying)}?";
         }
 
-        if (type.IsGenericType)
+        var rendered = type switch
         {
-            var name = type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)];
-            return $"{name}<{string.Join(", ", type.GetGenericArguments().Select(TypeName))}>";
-        }
+            { IsArray: true } => $"{TypeName(type.GetElementType()!, nullability?.ElementType)}[]",
+            { IsGenericType: true } => RenderGeneric(type, nullability),
+            _ => type.Name,
+        };
 
-        return type.Name;
+        return nullability?.ReadState == NullabilityState.Nullable && CanBeAnnotated(type)
+            ? $"{rendered}?"
+            : rendered;
+    }
+
+    /// <summary>
+    /// Whether a <c>?</c> on this type reflects the declaration rather than an inference about it.
+    /// </summary>
+    /// <remarks>
+    /// An unconstrained type parameter is reported as nullable whatever the source said, because the
+    /// caller decides: <c>T</c> may be instantiated with a nullable reference type. Rendering <c>T?</c>
+    /// for a member declared <c>T</c> would misreport the contract, so only a parameter constrained to a
+    /// reference type - where <c>T?</c> is something the author can actually write - carries the mark.
+    /// </remarks>
+    private static bool CanBeAnnotated(Type type) =>
+        !type.IsGenericParameter
+        || type.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint);
+
+    private static string RenderGeneric(Type type, NullabilityInfo? nullability)
+    {
+        var name = type.Name[..type.Name.IndexOf('`', StringComparison.Ordinal)];
+        var arguments = type.GetGenericArguments();
+        var argumentNullability = nullability?.GenericTypeArguments ?? [];
+
+        var rendered = arguments.Select((argument, i) =>
+            TypeName(argument, i < argumentNullability.Length ? argumentNullability[i] : null));
+
+        return $"{name}<{string.Join(", ", rendered)}>";
     }
 }

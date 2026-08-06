@@ -2,10 +2,10 @@
 public sealed class DeliveryClientBuilderExtensions
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<DeliveryCacheOptions> configureCacheOptions)
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Nullable<TimeSpan> defaultExpiration)
+    static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, TimeSpan? defaultExpiration)
     static DeliveryClientBuilder WithMemoryCache(DeliveryClientBuilder builder, Action<DeliveryCacheOptions> configureCacheOptions)
     static DeliveryClientBuilder WithMemoryCache(DeliveryClientBuilder builder, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static DeliveryClientBuilder WithMemoryCache(DeliveryClientBuilder builder, Nullable<TimeSpan> defaultExpiration)
+    static DeliveryClientBuilder WithMemoryCache(DeliveryClientBuilder builder, TimeSpan? defaultExpiration)
 
 // Kontent.Ai.Delivery
 public sealed class ServiceCollectionExtensions
@@ -13,14 +13,14 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddDeliveryCacheManager(IServiceCollection services, String clientName, Func<IServiceProvider, IDeliveryCacheManager> createCacheManager)
     static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, Action<DeliveryCacheOptions> configureCacheOptions)
     static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, Nullable<TimeSpan> defaultExpiration)
     static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, String clientName, Action<DeliveryCacheOptions> configureCacheOptions)
     static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, String clientName, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, String clientName, String keyPrefix, Nullable<TimeSpan> defaultExpiration)
+    static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, String clientName, String? keyPrefix, TimeSpan? defaultExpiration)
+    static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, TimeSpan? defaultExpiration)
     static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, Action<DeliveryCacheOptions> configureCacheOptions)
     static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, Nullable<TimeSpan> defaultExpiration)
     static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, String clientName, Action<DeliveryCacheOptions> configureCacheOptions)
     static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, String clientName, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
-    static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, String clientName, String keyPrefix, Nullable<TimeSpan> defaultExpiration)
+    static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, String clientName, String? keyPrefix, TimeSpan? defaultExpiration)
+    static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, TimeSpan? defaultExpiration)
 

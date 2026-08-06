@@ -1,46 +1,46 @@
 ﻿// Kontent.Ai.AspNetCore.ImageTransformation
 public sealed class AssetTagHelper : TagHelper
-    .ctor(IOptions<ImageTransformationOptions> imageTransformationOptions)
+    .ctor(IOptions<ImageTransformationOptions>? imageTransformationOptions)
     Boolean AutoFormat { get; set; }
-    IAsset Asset { get; set; }
+    IAsset? Asset { get; set; }
+    ImageCompression? Compression { get; set; }
+    ImageFitMode? Fit { get; set; }
+    ImageFormat? Format { get; set; }
     Int32 DefaultWidth { get; set; }
-    Int32[] ResponsiveWidths { get; set; }
-    Nullable<ImageCompression> Compression { get; set; }
-    Nullable<ImageFitMode> Fit { get; set; }
-    Nullable<ImageFormat> Format { get; set; }
-    Nullable<Int32> Quality { get; set; }
-    String Rendition { get; set; }
-    String Title { get; set; }
+    Int32? Quality { get; set; }
+    Int32[]? ResponsiveWidths { get; set; }
+    String? Rendition { get; set; }
+    String? Title { get; set; }
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.ImageTransformation
 public sealed class ImageTransformationOptions
     .ctor()
-    Int32[] ResponsiveWidths { get; set; }
+    Int32[]? ResponsiveWidths { get; set; }
 
 // Kontent.Ai.AspNetCore.ImageTransformation
 public sealed class MediaConditionTagHelper : TagHelper
     .ctor()
     Int32 ImageWidth { get; set; }
     Int32 MinWidth { get; set; }
-    Nullable<Int32> MaxWidth { get; set; }
+    Int32? MaxWidth { get; set; }
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.RichText
 public sealed class RichTextExtensions
-    static Task<IHtmlContent> ToHtmlContentAsync(IRichTextContent richText, IHtmlResolver resolver, CancellationToken cancellationToken)
+    static Task<IHtmlContent> ToHtmlContentAsync(IRichTextContent richText, IHtmlResolver? resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.AspNetCore.RichText
 public sealed class RichTextTagHelper : TagHelper
-    .ctor(IHtmlResolver defaultResolver)
-    IHtmlResolver Resolver { get; set; }
-    IRichTextContent Content { get; set; }
+    .ctor(IHtmlResolver? defaultResolver)
+    IHtmlResolver? Resolver { get; set; }
+    IRichTextContent? Content { get; set; }
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.RichText
 public sealed class ServiceCollectionExtensions
-    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IHtmlResolverBuilder> configure)
-    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IServiceProvider, IHtmlResolverBuilder> configure)
+    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IHtmlResolverBuilder>? configure)
+    static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IServiceProvider, IHtmlResolverBuilder>? configure)
 
 // Kontent.Ai.AspNetCore.Webhooks
 public sealed class ApplicationBuilderExtensions
@@ -57,14 +57,14 @@ public sealed class SignatureMiddleware
 // Kontent.Ai.AspNetCore.Webhooks
 public sealed class WebhookOptions
     .ctor()
-    String Secret { get; set; }
+    String? Secret { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookData : IEquatable<WebhookData>
     .ctor()
-    WebhookItem System { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookData other)
+    WebhookItem? System { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookData? other)
     Int32 GetHashCode()
     String ToString()
     WebhookData <Clone>$()
@@ -73,16 +73,16 @@ public sealed class WebhookData : IEquatable<WebhookData>
 public sealed class WebhookItem : IEquatable<WebhookItem>
     .ctor()
     DateTime LastModified { get; init; }
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String Collection { get; init; }
-    String Language { get; init; }
-    String Name { get; init; }
-    String Type { get; init; }
-    String Workflow { get; init; }
-    String WorkflowStep { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookItem other)
+    Guid? Id { get; init; }
+    String? Codename { get; init; }
+    String? Collection { get; init; }
+    String? Language { get; init; }
+    String? Name { get; init; }
+    String? Type { get; init; }
+    String? Workflow { get; init; }
+    String? WorkflowStep { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookItem? other)
     Int32 GetHashCode()
     String ToString()
     WebhookItem <Clone>$()
@@ -91,11 +91,11 @@ public sealed class WebhookItem : IEquatable<WebhookItem>
 public sealed class WebhookMessage : IEquatable<WebhookMessage>
     .ctor()
     Guid EnvironmentId { get; init; }
-    String Action { get; init; }
-    String DeliverySlot { get; init; }
-    String ObjectType { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookMessage other)
+    String? Action { get; init; }
+    String? DeliverySlot { get; init; }
+    String? ObjectType { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookMessage? other)
     Int32 GetHashCode()
     String ToString()
     WebhookMessage <Clone>$()
@@ -103,10 +103,10 @@ public sealed class WebhookMessage : IEquatable<WebhookMessage>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookModel : IEquatable<WebhookModel>
     .ctor()
-    WebhookData Data { get; init; }
-    WebhookMessage Message { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookModel other)
+    WebhookData? Data { get; init; }
+    WebhookMessage? Message { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookModel? other)
     Int32 GetHashCode()
     String ToString()
     WebhookModel <Clone>$()
@@ -114,9 +114,9 @@ public sealed class WebhookModel : IEquatable<WebhookModel>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookNotification : IEquatable<WebhookNotification>
     .ctor()
-    WebhookModel[] Notifications { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookNotification other)
+    WebhookModel[]? Notifications { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookNotification? other)
     Int32 GetHashCode()
     String ToString()
     WebhookNotification <Clone>$()

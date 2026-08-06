@@ -3,11 +3,11 @@ public interface IElementsModel
 
 // Kontent.Ai.Management
 public interface IError
-    Exception Exception { get; }
+    Exception? Exception { get; }
     IReadOnlyList<ValidationError> ValidationErrors { get; }
-    Nullable<Int32> ErrorCode { get; }
+    Int32? ErrorCode { get; }
     String Message { get; }
-    String RequestId { get; }
+    String? RequestId { get; }
 
 // Kontent.Ai.Management
 public interface IManagementClient
@@ -78,7 +78,7 @@ public interface IManagementClient
     Task<IManagementResult<LanguageModel>> ModifyLanguageAsync(Reference identifier, IEnumerable<LanguagePatchModel> changes, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel<T>>> GetLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel<T>>> GetPublishedLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
-    Task<IManagementResult<LanguageVariantModel<T>>> UpsertLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, T variant, WorkflowStepIdentifier workflow, CancellationToken cancellationToken)
+    Task<IManagementResult<LanguageVariantModel<T>>> UpsertLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, T variant, WorkflowStepIdentifier? workflow, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetPublishedLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(LanguageVariantIdentifier identifier, LanguageVariantUpsertModel languageVariantUpsertModel, CancellationToken cancellationToken)
@@ -132,8 +132,8 @@ public interface IManagementClientFactory
 public interface IManagementResult
     Boolean IsSuccess { get; }
     HttpStatusCode StatusCode { get; }
-    IError Error { get; }
-    String RequestUrl { get; }
+    IError? Error { get; }
+    String? RequestUrl { get; }
 
 // Kontent.Ai.Management
 public interface IManagementResult`1<T> : IManagementResult
@@ -209,7 +209,7 @@ public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagemen
     Task<IManagementResult<LanguageModel>> ModifyLanguageAsync(Reference identifier, IEnumerable<LanguagePatchModel> changes, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel<T>>> GetLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel<T>>> GetPublishedLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
-    Task<IManagementResult<LanguageVariantModel<T>>> UpsertLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, T variant, WorkflowStepIdentifier workflow, CancellationToken cancellationToken)
+    Task<IManagementResult<LanguageVariantModel<T>>> UpsertLanguageVariantAsync<T>(LanguageVariantIdentifier identifier, T variant, WorkflowStepIdentifier? workflow, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetPublishedLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(LanguageVariantIdentifier identifier, LanguageVariantUpsertModel languageVariantUpsertModel, CancellationToken cancellationToken)
@@ -278,11 +278,11 @@ public sealed class ManagementErrorCodes
 public sealed class ManagementException : Exception
     HttpStatusCode StatusCode { get; }
     IError Error { get; }
-    String RequestUrl { get; }
+    String? RequestUrl { get; }
 
 // Kontent.Ai.Management
 public sealed class ManagementResultExtensions
-    static Boolean TryGetValue<T>(IManagementResult<T> result, T& value)
+    static Boolean TryGetValue<T>(IManagementResult<T> result, T&? value)
     static IManagementResult EnsureSuccess(IManagementResult result)
     static IManagementResult<T> AsFailure<T>(IManagementResult result)
     static T EnsureSuccess<T>(IManagementResult<T> result)
@@ -290,12 +290,12 @@ public sealed class ManagementResultExtensions
 // Kontent.Ai.Management
 public sealed class ValidationError : IEquatable<ValidationError>
     .ctor()
-    Nullable<Int32> Line { get; init; }
-    Nullable<Int32> Position { get; init; }
+    Int32? Line { get; init; }
+    Int32? Position { get; init; }
     String Message { get; init; }
-    String Path { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(ValidationError other)
+    String? Path { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(ValidationError? other)
     Int32 GetHashCode()
     String ToString()
     ValidationError <Clone>$()
@@ -314,21 +314,21 @@ public sealed class KontentEnumValueAttribute : Attribute
 
 // Kontent.Ai.Management.Annotations
 public sealed class KontentTypeAttribute : Attribute
-    .ctor(String codename, String id)
+    .ctor(String codename, String? id)
     String Codename { get; }
-    String Id { get; }
+    String? Id { get; }
 
 // Kontent.Ai.Management.Attributes
 public sealed class SourceTrackingHeaderAttribute : Attribute
     .ctor()
     .ctor(String packageName)
-    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String preReleaseLabel)
+    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String? preReleaseLabel)
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }
     Int32 PatchVersion { get; }
-    String PackageName { get; }
-    String PreReleaseLabel { get; }
+    String? PackageName { get; }
+    String? PreReleaseLabel { get; }
 
 // Kontent.Ai.Management.Configuration
 public sealed class ManagementClientBuilder
@@ -342,22 +342,22 @@ public sealed class ManagementOptions : IValidatableObject
     const String DefaultConfigurationSectionName = ManagementOptions
     .ctor()
     Boolean EnableResilience { get; set; }
-    String ApiKey { get; set; }
     String Endpoint { get; set; }
-    String EnvironmentId { get; set; }
-    String SubscriptionId { get; set; }
+    String? ApiKey { get; set; }
+    String? EnvironmentId { get; set; }
+    String? SubscriptionId { get; set; }
     TimeSpan Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Management.Extensions
 public sealed class AssetExtensions
-    static AssetFolderHierarchy GetFolderHierarchyByCodename(IEnumerable<AssetFolderHierarchy> folders, String codename)
-    static AssetFolderHierarchy GetFolderHierarchyByExternalId(IEnumerable<AssetFolderHierarchy> folders, String externalId)
-    static AssetFolderHierarchy GetFolderHierarchyById(IEnumerable<AssetFolderHierarchy> folders, Guid folderId)
-    static AssetFolderLinkingHierarchy GetParentLinkedFolderHierarchyByCodename(IEnumerable<AssetFolderLinkingHierarchy> folders, String codename)
-    static AssetFolderLinkingHierarchy GetParentLinkedFolderHierarchyByExternalId(IEnumerable<AssetFolderLinkingHierarchy> folders, String externalId)
-    static AssetFolderLinkingHierarchy GetParentLinkedFolderHierarchyById(IEnumerable<AssetFolderLinkingHierarchy> folders, Guid folderId)
-    static IReadOnlyList<AssetFolderLinkingHierarchy> GetParentLinkedFolderHierarchy(IEnumerable<AssetFolderHierarchy> folders, AssetFolderLinkingHierarchy parentLinked)
+    static AssetFolderHierarchy? GetFolderHierarchyByCodename(IEnumerable<AssetFolderHierarchy> folders, String codename)
+    static AssetFolderHierarchy? GetFolderHierarchyByExternalId(IEnumerable<AssetFolderHierarchy> folders, String externalId)
+    static AssetFolderHierarchy? GetFolderHierarchyById(IEnumerable<AssetFolderHierarchy> folders, Guid folderId)
+    static AssetFolderLinkingHierarchy? GetParentLinkedFolderHierarchyByCodename(IEnumerable<AssetFolderLinkingHierarchy> folders, String codename)
+    static AssetFolderLinkingHierarchy? GetParentLinkedFolderHierarchyByExternalId(IEnumerable<AssetFolderLinkingHierarchy> folders, String externalId)
+    static AssetFolderLinkingHierarchy? GetParentLinkedFolderHierarchyById(IEnumerable<AssetFolderLinkingHierarchy> folders, Guid folderId)
+    static IReadOnlyList<AssetFolderLinkingHierarchy> GetParentLinkedFolderHierarchy(IEnumerable<AssetFolderHierarchy> folders, AssetFolderLinkingHierarchy? parentLinked)
     static String GetFullFolderPath(AssetFolderLinkingHierarchy folder)
 
 // Kontent.Ai.Management.Extensions
@@ -373,7 +373,7 @@ public sealed class ManagementClientExtensions
     static Task<IManagementResult<AssetModel>> CreateAssetAsync(IManagementClient client, FileContentSource fileContent, Func<FileReference, AssetCreateModel> createModel, CancellationToken cancellationToken)
     static Task<IManagementResult<AssetModel>> UpsertAssetAsync(IManagementClient client, Reference identifier, FileContentSource fileContent, AssetUpsertModel upsertModel, CancellationToken cancellationToken)
     static Task<IManagementResult<ContentItemModel>> UpsertContentItemAsync(IManagementClient client, Reference identifier, ContentItemModel contentItem, CancellationToken cancellationToken)
-    static Task<IManagementResult<LanguageVariantModel<T>>> CreateContentItemWithVariantAsync<T>(IManagementClient client, ContentItemCreateModel item, Reference language, T variant, WorkflowStepIdentifier workflow, CancellationToken cancellationToken)
+    static Task<IManagementResult<LanguageVariantModel<T>>> CreateContentItemWithVariantAsync<T>(IManagementClient client, ContentItemCreateModel item, Reference language, T variant, WorkflowStepIdentifier? workflow, CancellationToken cancellationToken)
     static Task<IManagementResult<LanguageVariantModel>> CreateContentItemWithVariantAsync(IManagementClient client, ContentItemCreateModel item, Reference language, LanguageVariantUpsertModel variant, CancellationToken cancellationToken)
     static Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(IManagementClient client, LanguageVariantIdentifier identifier, LanguageVariantModel languageVariant, CancellationToken cancellationToken)
 
@@ -392,16 +392,16 @@ public sealed class ModelReferenceExtensions
 
 // Kontent.Ai.Management.Extensions
 public sealed class ServiceCollectionExtensions
-    static IServiceCollection AddManagementClient(IServiceCollection services, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions)
-    static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, ManagementOptions managementOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, ManagementOptions managementOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
 
 // Kontent.Ai.Management.Extensions
 public sealed class VariantIdentifierExtensions
@@ -412,69 +412,69 @@ public sealed class VariantIdentifierExtensions
 // Kontent.Ai.Management.Models.AssetFolders
 public sealed class AssetFolderCreateModel : IEquatable<AssetFolderCreateModel>
     .ctor()
-    IReadOnlyList<AssetFolderHierarchy> Folders { get; init; }
+    required IReadOnlyList<AssetFolderHierarchy> Folders { get; init; }
     AssetFolderCreateModel <Clone>$()
-    Boolean Equals(AssetFolderCreateModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderCreateModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetFolders
 public sealed class AssetFolderHierarchy : IEquatable<AssetFolderHierarchy>
     .ctor()
-    IReadOnlyList<AssetFolderHierarchy> Folders { get; init; }
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
+    Guid? Id { get; init; }
+    IReadOnlyList<AssetFolderHierarchy>? Folders { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required String Name { get; init; }
     AssetFolderHierarchy <Clone>$()
-    Boolean Equals(AssetFolderHierarchy other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderHierarchy? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetFolders
 public sealed class AssetFolderLinkingHierarchy
     .ctor()
-    AssetFolderLinkingHierarchy Parent { get; set; }
-    IReadOnlyList<AssetFolderLinkingHierarchy> Folders { get; set; }
-    Nullable<Guid> Id { get; set; }
-    String Codename { get; set; }
-    String ExternalId { get; set; }
-    String Name { get; set; }
+    AssetFolderLinkingHierarchy? Parent { get; set; }
+    Guid? Id { get; set; }
+    IReadOnlyList<AssetFolderLinkingHierarchy>? Folders { get; set; }
+    String? Codename { get; set; }
+    String? ExternalId { get; set; }
+    String? Name { get; set; }
 
 // Kontent.Ai.Management.Models.AssetFolders
 public sealed class AssetFoldersModel : IEquatable<AssetFoldersModel>
     .ctor()
-    IReadOnlyList<AssetFolderHierarchy> Folders { get; init; }
-    Nullable<DateTime> LastModified { get; init; }
+    DateTime? LastModified { get; init; }
+    required IReadOnlyList<AssetFolderHierarchy> Folders { get; init; }
     AssetFoldersModel <Clone>$()
-    Boolean Equals(AssetFoldersModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFoldersModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetFolders.Patch
 public sealed class AssetFolderAddIntoPatchModel : AssetFolderOperationBaseModel, IEquatable<AssetFolderAddIntoPatchModel>
     .ctor()
-    AssetFolderHierarchy Value { get; init; }
-    Reference After { get; init; }
-    Reference Before { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
+    required AssetFolderHierarchy Value { get; init; }
     AssetFolderAddIntoPatchModel <Clone>$()
-    Boolean Equals(AssetFolderAddIntoPatchModel other)
-    Boolean Equals(AssetFolderOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderAddIntoPatchModel? other)
+    Boolean Equals(AssetFolderOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetFolders.Patch
 public class AssetFolderOperationBaseModel : IEquatable<AssetFolderOperationBaseModel>
-    Reference Reference { get; init; }
+    Reference? Reference { get; init; }
     String Op { get; }
     AssetFolderOperationBaseModel <Clone>$()
-    Boolean Equals(AssetFolderOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -483,9 +483,9 @@ public sealed class AssetFolderRemovePatchModel : AssetFolderOperationBaseModel,
     .ctor()
     String Op { get; }
     AssetFolderRemovePatchModel <Clone>$()
-    Boolean Equals(AssetFolderOperationBaseModel other)
-    Boolean Equals(AssetFolderRemovePatchModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderOperationBaseModel? other)
+    Boolean Equals(AssetFolderRemovePatchModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -493,33 +493,33 @@ public sealed class AssetFolderRemovePatchModel : AssetFolderOperationBaseModel,
 public sealed class AssetFolderRenamePatchModel : AssetFolderOperationBaseModel, IEquatable<AssetFolderRenamePatchModel>
     .ctor()
     String Op { get; }
-    String Value { get; init; }
+    required String Value { get; init; }
     AssetFolderRenamePatchModel <Clone>$()
-    Boolean Equals(AssetFolderOperationBaseModel other)
-    Boolean Equals(AssetFolderRenamePatchModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolderOperationBaseModel? other)
+    Boolean Equals(AssetFolderRenamePatchModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetRenditions
 public sealed class AssetRenditionCreateModel : IEquatable<AssetRenditionCreateModel>
     .ctor()
-    ImageTransformation Transformation { get; init; }
-    String ExternalId { get; init; }
+    String? ExternalId { get; init; }
+    required ImageTransformation Transformation { get; init; }
     AssetRenditionCreateModel <Clone>$()
-    Boolean Equals(AssetRenditionCreateModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetRenditionCreateModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetRenditions
 public sealed class AssetRenditionIdentifier : IEquatable<AssetRenditionIdentifier>
     .ctor(Reference assetIdentifier, Reference renditionIdentifier)
-    Reference AssetIdentifier { get; init; }
-    Reference RenditionIdentifier { get; init; }
+    required Reference AssetIdentifier { get; init; }
+    required Reference RenditionIdentifier { get; init; }
     AssetRenditionIdentifier <Clone>$()
-    Boolean Equals(AssetRenditionIdentifier other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetRenditionIdentifier? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
     static AssetRenditionIdentifier ByIds(Guid assetId, Guid renditionId)
@@ -527,32 +527,32 @@ public sealed class AssetRenditionIdentifier : IEquatable<AssetRenditionIdentifi
 // Kontent.Ai.Management.Models.AssetRenditions
 public sealed class AssetRenditionModel : IEquatable<AssetRenditionModel>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid AssetId { get; init; }
-    Guid RenditionId { get; init; }
-    ImageTransformation Transformation { get; init; }
-    String ExternalId { get; init; }
+    String? ExternalId { get; init; }
+    required DateTime LastModified { get; init; }
+    required Guid AssetId { get; init; }
+    required Guid RenditionId { get; init; }
+    required ImageTransformation Transformation { get; init; }
     AssetRenditionModel <Clone>$()
-    Boolean Equals(AssetRenditionModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetRenditionModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetRenditions
 public sealed class AssetRenditionUpdateModel : IEquatable<AssetRenditionUpdateModel>
     .ctor()
-    ImageTransformation Transformation { get; init; }
+    required ImageTransformation Transformation { get; init; }
     AssetRenditionUpdateModel <Clone>$()
-    Boolean Equals(AssetRenditionUpdateModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetRenditionUpdateModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetRenditions
 public class ImageTransformation : IEquatable<ImageTransformation>
     ImageTransformationMode Mode { get; }
-    Boolean Equals(ImageTransformation other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ImageTransformation? other)
+    Boolean Equals(Object? obj)
     ImageTransformation <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -570,15 +570,15 @@ public sealed class RectangleResizeTransformation : ImageTransformation, IEquata
     .ctor()
     ImageTransformationFit Fit { get; init; }
     ImageTransformationMode Mode { get; }
-    Int32 CustomHeight { get; init; }
-    Int32 CustomWidth { get; init; }
-    Int32 Height { get; init; }
-    Int32 Width { get; init; }
-    Int32 X { get; init; }
-    Int32 Y { get; init; }
-    Boolean Equals(ImageTransformation other)
-    Boolean Equals(Object obj)
-    Boolean Equals(RectangleResizeTransformation other)
+    required Int32 CustomHeight { get; init; }
+    required Int32 CustomWidth { get; init; }
+    required Int32 Height { get; init; }
+    required Int32 Width { get; init; }
+    required Int32 X { get; init; }
+    required Int32 Y { get; init; }
+    Boolean Equals(ImageTransformation? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(RectangleResizeTransformation? other)
     Int32 GetHashCode()
     RectangleResizeTransformation <Clone>$()
     String ToString()
@@ -586,90 +586,90 @@ public sealed class RectangleResizeTransformation : ImageTransformation, IEquata
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetCollectionReference : IEquatable<AssetCollectionReference>
     .ctor()
-    Reference Reference { get; init; }
+    Reference? Reference { get; init; }
     AssetCollectionReference <Clone>$()
-    Boolean Equals(AssetCollectionReference other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetCollectionReference? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetCreateModel : IEquatable<AssetCreateModel>
     .ctor()
-    AssetCollectionReference Collection { get; init; }
-    FileReference FileReference { get; init; }
-    IReadOnlyList<AssetDescription> Descriptions { get; init; }
-    IReadOnlyList<AssetTaxonomyElement> Elements { get; init; }
-    Reference Folder { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Title { get; init; }
+    AssetCollectionReference? Collection { get; init; }
+    IReadOnlyList<AssetDescription>? Descriptions { get; init; }
+    IReadOnlyList<AssetTaxonomyElement>? Elements { get; init; }
+    Reference? Folder { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    String? Title { get; init; }
+    required FileReference FileReference { get; init; }
     AssetCreateModel <Clone>$()
-    Boolean Equals(AssetCreateModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetCreateModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetDescription : IEquatable<AssetDescription>
     .ctor()
-    Reference Language { get; init; }
-    String Description { get; init; }
+    String? Description { get; init; }
+    required Reference Language { get; init; }
     AssetDescription <Clone>$()
-    Boolean Equals(AssetDescription other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetDescription? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetModel : IEquatable<AssetModel>
     .ctor()
-    AssetCollectionReference Collection { get; init; }
-    AssetFolder Folder { get; init; }
-    DateTime LastModified { get; init; }
-    FileReference FileReference { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<AssetDescription> Descriptions { get; init; }
-    IReadOnlyList<AssetTaxonomyElement> Elements { get; init; }
-    Int64 Size { get; init; }
-    Nullable<Int32> ImageHeight { get; init; }
-    Nullable<Int32> ImageWidth { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String FileName { get; init; }
-    String Title { get; init; }
-    String Type { get; init; }
-    String Url { get; init; }
+    AssetCollectionReference? Collection { get; init; }
+    AssetFolder? Folder { get; init; }
+    Int32? ImageHeight { get; init; }
+    Int32? ImageWidth { get; init; }
+    String? ExternalId { get; init; }
+    String? Title { get; init; }
+    required DateTime LastModified { get; init; }
+    required FileReference FileReference { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<AssetDescription> Descriptions { get; init; }
+    required IReadOnlyList<AssetTaxonomyElement> Elements { get; init; }
+    required Int64 Size { get; init; }
+    required String Codename { get; init; }
+    required String FileName { get; init; }
+    required String Type { get; init; }
+    required String Url { get; init; }
     AssetModel <Clone>$()
-    Boolean Equals(AssetModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetTaxonomyElement : IEquatable<AssetTaxonomyElement>
     .ctor()
-    IReadOnlyList<Reference> Value { get; init; }
-    Reference Element { get; init; }
+    required IReadOnlyList<Reference> Value { get; init; }
+    required Reference Element { get; init; }
     AssetTaxonomyElement <Clone>$()
-    Boolean Equals(AssetTaxonomyElement other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetTaxonomyElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Assets
 public sealed class AssetUpsertModel : IEquatable<AssetUpsertModel>
     .ctor()
-    AssetCollectionReference Collection { get; init; }
-    FileReference FileReference { get; init; }
-    IReadOnlyList<AssetDescription> Descriptions { get; init; }
-    IReadOnlyList<AssetTaxonomyElement> Elements { get; init; }
-    Reference Folder { get; init; }
-    String Codename { get; init; }
-    String Title { get; init; }
+    AssetCollectionReference? Collection { get; init; }
+    FileReference? FileReference { get; init; }
+    IReadOnlyList<AssetDescription>? Descriptions { get; init; }
+    IReadOnlyList<AssetTaxonomyElement>? Elements { get; init; }
+    Reference? Folder { get; init; }
+    String? Codename { get; init; }
+    String? Title { get; init; }
     AssetUpsertModel <Clone>$()
-    Boolean Equals(AssetUpsertModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetUpsertModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -686,9 +686,9 @@ public sealed class FileContentSource
 public sealed class FileReference : IEquatable<FileReference>
     .ctor()
     FileReferenceType Type { get; init; }
-    String Id { get; init; }
-    Boolean Equals(FileReference other)
-    Boolean Equals(Object obj)
+    required String Id { get; init; }
+    Boolean Equals(FileReference? other)
+    Boolean Equals(Object? obj)
     FileReference <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -700,11 +700,11 @@ public enum FileReferenceType
 // Kontent.Ai.Management.Models.Collections
 public sealed class CollectionCreateModel : IEquatable<CollectionCreateModel>
     .ctor()
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(CollectionCreateModel other)
-    Boolean Equals(Object obj)
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(CollectionCreateModel? other)
+    Boolean Equals(Object? obj)
     CollectionCreateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -712,12 +712,12 @@ public sealed class CollectionCreateModel : IEquatable<CollectionCreateModel>
 // Kontent.Ai.Management.Models.Collections
 public sealed class CollectionModel : IEquatable<CollectionModel>
     .ctor()
-    Guid Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(CollectionModel other)
-    Boolean Equals(Object obj)
+    String? ExternalId { get; init; }
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(CollectionModel? other)
+    Boolean Equals(Object? obj)
     CollectionModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -725,10 +725,10 @@ public sealed class CollectionModel : IEquatable<CollectionModel>
 // Kontent.Ai.Management.Models.Collections
 public sealed class CollectionsModel : IEquatable<CollectionsModel>
     .ctor()
-    IReadOnlyList<CollectionModel> Collections { get; init; }
-    Nullable<DateTime> LastModified { get; init; }
-    Boolean Equals(CollectionsModel other)
-    Boolean Equals(Object obj)
+    DateTime? LastModified { get; init; }
+    required IReadOnlyList<CollectionModel> Collections { get; init; }
+    Boolean Equals(CollectionsModel? other)
+    Boolean Equals(Object? obj)
     CollectionsModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -736,13 +736,13 @@ public sealed class CollectionsModel : IEquatable<CollectionsModel>
 // Kontent.Ai.Management.Models.Collections.Patch
 public sealed class CollectionAddIntoPatchModel : CollectionOperationBaseModel, IEquatable<CollectionAddIntoPatchModel>
     .ctor()
-    CollectionCreateModel Value { get; init; }
-    Reference After { get; init; }
-    Reference Before { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
-    Boolean Equals(CollectionAddIntoPatchModel other)
-    Boolean Equals(CollectionOperationBaseModel other)
-    Boolean Equals(Object obj)
+    required CollectionCreateModel Value { get; init; }
+    Boolean Equals(CollectionAddIntoPatchModel? other)
+    Boolean Equals(CollectionOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     CollectionAddIntoPatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -750,13 +750,13 @@ public sealed class CollectionAddIntoPatchModel : CollectionOperationBaseModel, 
 // Kontent.Ai.Management.Models.Collections.Patch
 public sealed class CollectionMovePatchModel : CollectionOperationBaseModel, IEquatable<CollectionMovePatchModel>
     .ctor()
-    Reference After { get; init; }
-    Reference Before { get; init; }
-    Reference Reference { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
-    Boolean Equals(CollectionMovePatchModel other)
-    Boolean Equals(CollectionOperationBaseModel other)
-    Boolean Equals(Object obj)
+    required Reference Reference { get; init; }
+    Boolean Equals(CollectionMovePatchModel? other)
+    Boolean Equals(CollectionOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     CollectionMovePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -764,8 +764,8 @@ public sealed class CollectionMovePatchModel : CollectionOperationBaseModel, IEq
 // Kontent.Ai.Management.Models.Collections.Patch
 public class CollectionOperationBaseModel : IEquatable<CollectionOperationBaseModel>
     String Op { get; }
-    Boolean Equals(CollectionOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(CollectionOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     CollectionOperationBaseModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -777,11 +777,11 @@ public enum CollectionPropertyName
 // Kontent.Ai.Management.Models.Collections.Patch
 public sealed class CollectionRemovePatchModel : CollectionOperationBaseModel, IEquatable<CollectionRemovePatchModel>
     .ctor()
-    Reference Reference { get; init; }
     String Op { get; }
-    Boolean Equals(CollectionOperationBaseModel other)
-    Boolean Equals(CollectionRemovePatchModel other)
-    Boolean Equals(Object obj)
+    required Reference Reference { get; init; }
+    Boolean Equals(CollectionOperationBaseModel? other)
+    Boolean Equals(CollectionRemovePatchModel? other)
+    Boolean Equals(Object? obj)
     CollectionRemovePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -790,12 +790,12 @@ public sealed class CollectionRemovePatchModel : CollectionOperationBaseModel, I
 public sealed class CollectionReplacePatchModel : CollectionOperationBaseModel, IEquatable<CollectionReplacePatchModel>
     .ctor()
     CollectionPropertyName PropertyName { get; init; }
-    Reference Reference { get; init; }
     String Op { get; }
-    String Value { get; init; }
-    Boolean Equals(CollectionOperationBaseModel other)
-    Boolean Equals(CollectionReplacePatchModel other)
-    Boolean Equals(Object obj)
+    required Reference Reference { get; init; }
+    required String Value { get; init; }
+    Boolean Equals(CollectionOperationBaseModel? other)
+    Boolean Equals(CollectionReplacePatchModel? other)
+    Boolean Equals(Object? obj)
     CollectionReplacePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -803,23 +803,23 @@ public sealed class CollectionReplacePatchModel : CollectionOperationBaseModel, 
 // Kontent.Ai.Management.Models.Content
 public sealed class AssetReference : IEquatable<AssetReference>
     .ctor()
-    IReadOnlyList<RenditionReference> Renditions { get; init; }
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
+    Guid? Id { get; init; }
+    IReadOnlyList<RenditionReference>? Renditions { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
     AssetReference <Clone>$()
-    Boolean Equals(AssetReference other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetReference? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Content
 public sealed class Component : IEquatable<Component>
     .ctor()
-    Guid Id { get; init; }
     IElementsModel Content { get; init; }
-    Boolean Equals(Component other)
-    Boolean Equals(Object obj)
+    required Guid Id { get; init; }
+    Boolean Equals(Component? other)
+    Boolean Equals(Object? obj)
     Component <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -827,10 +827,10 @@ public sealed class Component : IEquatable<Component>
 // Kontent.Ai.Management.Models.Content
 public sealed class CustomValue : IEquatable<CustomValue>
     .ctor()
-    String SearchableValue { get; init; }
-    String Value { get; init; }
-    Boolean Equals(CustomValue other)
-    Boolean Equals(Object obj)
+    String? SearchableValue { get; init; }
+    String? Value { get; init; }
+    Boolean Equals(CustomValue? other)
+    Boolean Equals(Object? obj)
     CustomValue <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -838,10 +838,10 @@ public sealed class CustomValue : IEquatable<CustomValue>
 // Kontent.Ai.Management.Models.Content
 public sealed class DateTimeValue : IEquatable<DateTimeValue>
     .ctor()
-    DateTimeOffset Value { get; init; }
-    String DisplayTimeZone { get; init; }
-    Boolean Equals(DateTimeValue other)
-    Boolean Equals(Object obj)
+    String? DisplayTimeZone { get; init; }
+    required DateTimeOffset Value { get; init; }
+    Boolean Equals(DateTimeValue? other)
+    Boolean Equals(Object? obj)
     DateTimeValue <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -849,10 +849,10 @@ public sealed class DateTimeValue : IEquatable<DateTimeValue>
 // Kontent.Ai.Management.Models.Content
 public sealed class RenditionReference : IEquatable<RenditionReference>
     .ctor()
-    Nullable<Guid> Id { get; init; }
-    String ExternalId { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(RenditionReference other)
+    Guid? Id { get; init; }
+    String? ExternalId { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(RenditionReference? other)
     Int32 GetHashCode()
     RenditionReference <Clone>$()
     String ToString()
@@ -869,10 +869,10 @@ public sealed class RichTextBuilder
 // Kontent.Ai.Management.Models.Content
 public sealed class RichTextValue : IEquatable<RichTextValue>
     .ctor()
-    IReadOnlyList<Component> Components { get; init; }
-    String Value { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(RichTextValue other)
+    IReadOnlyList<Component>? Components { get; init; }
+    required String Value { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(RichTextValue? other)
     Int32 GetHashCode()
     RichTextValue <Clone>$()
     String ToString()
@@ -885,10 +885,10 @@ public enum UrlSlugMode
 // Kontent.Ai.Management.Models.Content
 public sealed class UrlSlugValue : IEquatable<UrlSlugValue>
     .ctor()
-    String Value { get; init; }
+    String? Value { get; init; }
     UrlSlugMode Mode { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UrlSlugValue other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(UrlSlugValue? other)
     Int32 GetHashCode()
     String ToString()
     UrlSlugValue <Clone>$()
@@ -897,12 +897,12 @@ public sealed class UrlSlugValue : IEquatable<UrlSlugValue>
 public sealed class ContentModelSnapshot : IEquatable<ContentModelSnapshot>
     const Int32 CurrentVersion = 1
     .ctor()
-    IReadOnlyList<ContentTypeModel> Types { get; init; }
-    IReadOnlyList<ContentTypeSnippetModel> Snippets { get; init; }
-    IReadOnlyList<TaxonomyGroupModel> Taxonomies { get; init; }
     Int32 Version { get; init; }
-    Boolean Equals(ContentModelSnapshot other)
-    Boolean Equals(Object obj)
+    required IReadOnlyList<ContentTypeModel> Types { get; init; }
+    required IReadOnlyList<ContentTypeSnippetModel> Snippets { get; init; }
+    required IReadOnlyList<TaxonomyGroupModel> Taxonomies { get; init; }
+    Boolean Equals(ContentModelSnapshot? other)
+    Boolean Equals(Object? obj)
     ContentModelSnapshot <Clone>$()
     Int32 GetHashCode()
     String ToJson()
@@ -912,13 +912,13 @@ public sealed class ContentModelSnapshot : IEquatable<ContentModelSnapshot>
 // Kontent.Ai.Management.Models.ContentModel.Patch
 public sealed class ContentModelAddIntoPatchModel : ContentModelOperationBaseModel, IEquatable<ContentModelAddIntoPatchModel>
     .ctor()
-    Object Value { get; init; }
-    Reference After { get; init; }
-    Reference Before { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
-    Boolean Equals(ContentModelAddIntoPatchModel other)
-    Boolean Equals(ContentModelOperationBaseModel other)
-    Boolean Equals(Object obj)
+    required Object Value { get; init; }
+    Boolean Equals(ContentModelAddIntoPatchModel? other)
+    Boolean Equals(ContentModelOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     ContentModelAddIntoPatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -926,12 +926,12 @@ public sealed class ContentModelAddIntoPatchModel : ContentModelOperationBaseMod
 // Kontent.Ai.Management.Models.ContentModel.Patch
 public sealed class ContentModelMovePatchModel : ContentModelOperationBaseModel, IEquatable<ContentModelMovePatchModel>
     .ctor()
-    Reference After { get; init; }
-    Reference Before { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
-    Boolean Equals(ContentModelMovePatchModel other)
-    Boolean Equals(ContentModelOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ContentModelMovePatchModel? other)
+    Boolean Equals(ContentModelOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     ContentModelMovePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -939,9 +939,9 @@ public sealed class ContentModelMovePatchModel : ContentModelOperationBaseModel,
 // Kontent.Ai.Management.Models.ContentModel.Patch
 public class ContentModelOperationBaseModel : IEquatable<ContentModelOperationBaseModel>
     String Op { get; }
-    String Path { get; init; }
-    Boolean Equals(ContentModelOperationBaseModel other)
-    Boolean Equals(Object obj)
+    required String Path { get; init; }
+    Boolean Equals(ContentModelOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     ContentModelOperationBaseModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -957,9 +957,9 @@ public class ContentModelPatchBase
     static ContentModelOperationBaseModel AddAllowedTableFormatting(Reference element, RichTextFormattingType formatting)
     static ContentModelOperationBaseModel AddAllowedTableTextBlock(Reference element, RichTextTextBlockType block)
     static ContentModelOperationBaseModel AddAllowedTextBlock(Reference element, RichTextTextBlockType block)
-    static ContentModelOperationBaseModel AddElement(ElementMetadataBase element, Reference before, Reference after)
-    static ContentModelOperationBaseModel AddIntoRaw(String path, Object value, Reference before, Reference after)
-    static ContentModelOperationBaseModel AddOption(Reference element, MultipleChoiceOptionModel option, Reference before, Reference after)
+    static ContentModelOperationBaseModel AddElement(ElementMetadataBase element, Reference? before, Reference? after)
+    static ContentModelOperationBaseModel AddIntoRaw(String path, Object value, Reference? before, Reference? after)
+    static ContentModelOperationBaseModel AddOption(Reference element, MultipleChoiceOptionModel option, Reference? before, Reference? after)
     static ContentModelOperationBaseModel MoveElementAfter(Reference element, Reference target)
     static ContentModelOperationBaseModel MoveElementBefore(Reference element, Reference target)
     static ContentModelOperationBaseModel MoveOptionAfter(Reference element, Reference option, Reference target)
@@ -981,21 +981,21 @@ public class ContentModelPatchBase
     static ContentModelOperationBaseModel ReplaceAllowedContentTypes(Reference element, IEnumerable<Reference> types)
     static ContentModelOperationBaseModel ReplaceAllowedElements(Reference element, IEnumerable<Reference> allowedElements)
     static ContentModelOperationBaseModel ReplaceAllowedItemLinkTypes(Reference element, IEnumerable<Reference> types)
-    static ContentModelOperationBaseModel ReplaceDefault(Reference element, Object value)
+    static ContentModelOperationBaseModel ReplaceDefault(Reference element, Object? value)
     static ContentModelOperationBaseModel ReplaceElementName(Reference element, String name)
-    static ContentModelOperationBaseModel ReplaceGuidelines(Reference element, String guidelines)
+    static ContentModelOperationBaseModel ReplaceGuidelines(Reference element, String? guidelines)
     static ContentModelOperationBaseModel ReplaceIsNonLocalizable(Reference element, Boolean isNonLocalizable)
     static ContentModelOperationBaseModel ReplaceIsRequired(Reference element, Boolean isRequired)
     static ContentModelOperationBaseModel ReplaceName(String name)
-    static ContentModelOperationBaseModel ReplaceRaw(String path, Object value)
+    static ContentModelOperationBaseModel ReplaceRaw(String path, Object? value)
 
 // Kontent.Ai.Management.Models.ContentModel.Patch
 public sealed class ContentModelRemovePatchModel : ContentModelOperationBaseModel, IEquatable<ContentModelRemovePatchModel>
     .ctor()
     String Op { get; }
-    Boolean Equals(ContentModelOperationBaseModel other)
-    Boolean Equals(ContentModelRemovePatchModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ContentModelOperationBaseModel? other)
+    Boolean Equals(ContentModelRemovePatchModel? other)
+    Boolean Equals(Object? obj)
     ContentModelRemovePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1003,11 +1003,11 @@ public sealed class ContentModelRemovePatchModel : ContentModelOperationBaseMode
 // Kontent.Ai.Management.Models.ContentModel.Patch
 public sealed class ContentModelReplacePatchModel : ContentModelOperationBaseModel, IEquatable<ContentModelReplacePatchModel>
     .ctor()
-    Object Value { get; init; }
     String Op { get; }
-    Boolean Equals(ContentModelOperationBaseModel other)
-    Boolean Equals(ContentModelReplacePatchModel other)
-    Boolean Equals(Object obj)
+    required Object? Value { get; init; }
+    Boolean Equals(ContentModelOperationBaseModel? other)
+    Boolean Equals(ContentModelReplacePatchModel? other)
+    Boolean Equals(Object? obj)
     ContentModelReplacePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1015,14 +1015,14 @@ public sealed class ContentModelReplacePatchModel : ContentModelOperationBaseMod
 // Kontent.Ai.Management.Models.CustomApps
 public sealed class CustomAppCreateModel : IEquatable<CustomAppCreateModel>
     .ctor()
-    IReadOnlyList<Reference> AllowedRoles { get; init; }
-    Nullable<CustomAppDisplayMode> DisplayMode { get; init; }
-    String Codename { get; init; }
-    String Config { get; init; }
-    String Name { get; init; }
-    String SourceUrl { get; init; }
-    Boolean Equals(CustomAppCreateModel other)
-    Boolean Equals(Object obj)
+    CustomAppDisplayMode? DisplayMode { get; init; }
+    IReadOnlyList<Reference>? AllowedRoles { get; init; }
+    String? Config { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    required String SourceUrl { get; init; }
+    Boolean Equals(CustomAppCreateModel? other)
+    Boolean Equals(Object? obj)
     CustomAppCreateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1035,15 +1035,15 @@ public enum CustomAppDisplayMode
 // Kontent.Ai.Management.Models.CustomApps
 public sealed class CustomAppModel : IEquatable<CustomAppModel>
     .ctor()
-    CustomAppDisplayMode DisplayMode { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<Reference> AllowedRoles { get; init; }
-    String Codename { get; init; }
-    String Config { get; init; }
-    String Name { get; init; }
-    String SourceUrl { get; init; }
-    Boolean Equals(CustomAppModel other)
-    Boolean Equals(Object obj)
+    String? Config { get; init; }
+    required CustomAppDisplayMode DisplayMode { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<Reference> AllowedRoles { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    required String SourceUrl { get; init; }
+    Boolean Equals(CustomAppModel? other)
+    Boolean Equals(Object? obj)
     CustomAppModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1052,20 +1052,20 @@ public sealed class CustomAppModel : IEquatable<CustomAppModel>
 public sealed class CustomAppAddIntoPatchModel : CustomAppOperationBaseModel, IEquatable<CustomAppAddIntoPatchModel>
     .ctor()
     String Op { get; }
-    Boolean Equals(CustomAppAddIntoPatchModel other)
-    Boolean Equals(CustomAppOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(CustomAppAddIntoPatchModel? other)
+    Boolean Equals(CustomAppOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     CustomAppAddIntoPatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.CustomApps.Patch
 public class CustomAppOperationBaseModel : IEquatable<CustomAppOperationBaseModel>
-    CustomAppPropertyName PropertyName { get; init; }
-    Object Value { get; init; }
     String Op { get; }
-    Boolean Equals(CustomAppOperationBaseModel other)
-    Boolean Equals(Object obj)
+    required CustomAppPropertyName PropertyName { get; init; }
+    required Object? Value { get; init; }
+    Boolean Equals(CustomAppOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     CustomAppOperationBaseModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1076,7 +1076,7 @@ public sealed class CustomAppPatch
     static CustomAppRemovePatchModel RemoveAllowedRole(Reference role)
     static CustomAppReplacePatchModel ReplaceAllowedRoles(Reference[] roles)
     static CustomAppReplacePatchModel ReplaceCodename(String codename)
-    static CustomAppReplacePatchModel ReplaceConfig(Object config)
+    static CustomAppReplacePatchModel ReplaceConfig(Object? config)
     static CustomAppReplacePatchModel ReplaceDisplayMode(CustomAppDisplayMode displayMode)
     static CustomAppReplacePatchModel ReplaceName(String name)
     static CustomAppReplacePatchModel ReplaceSourceUrl(String sourceUrl)
@@ -1094,9 +1094,9 @@ public enum CustomAppPropertyName
 public sealed class CustomAppRemovePatchModel : CustomAppOperationBaseModel, IEquatable<CustomAppRemovePatchModel>
     .ctor()
     String Op { get; }
-    Boolean Equals(CustomAppOperationBaseModel other)
-    Boolean Equals(CustomAppRemovePatchModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(CustomAppOperationBaseModel? other)
+    Boolean Equals(CustomAppRemovePatchModel? other)
+    Boolean Equals(Object? obj)
     CustomAppRemovePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1105,9 +1105,9 @@ public sealed class CustomAppRemovePatchModel : CustomAppOperationBaseModel, IEq
 public sealed class CustomAppReplacePatchModel : CustomAppOperationBaseModel, IEquatable<CustomAppReplacePatchModel>
     .ctor()
     String Op { get; }
-    Boolean Equals(CustomAppOperationBaseModel other)
-    Boolean Equals(CustomAppReplacePatchModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(CustomAppOperationBaseModel? other)
+    Boolean Equals(CustomAppReplacePatchModel? other)
+    Boolean Equals(Object? obj)
     CustomAppReplacePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1115,11 +1115,11 @@ public sealed class CustomAppReplacePatchModel : CustomAppOperationBaseModel, IE
 // Kontent.Ai.Management.Models.EnvironmentReport
 public sealed class EnvironmentReportModel : IEquatable<EnvironmentReportModel>
     .ctor()
-    EnvironmentInformationModel Environment { get; init; }
-    IReadOnlyList<TypeIssue> TypeIssues { get; init; }
-    IReadOnlyList<VariantIssue> VariantIssues { get; init; }
-    Boolean Equals(EnvironmentReportModel other)
-    Boolean Equals(Object obj)
+    required EnvironmentInformationModel Environment { get; init; }
+    required IReadOnlyList<TypeIssue> TypeIssues { get; init; }
+    required IReadOnlyList<VariantIssue> VariantIssues { get; init; }
+    Boolean Equals(EnvironmentReportModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentReportModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1127,10 +1127,10 @@ public sealed class EnvironmentReportModel : IEquatable<EnvironmentReportModel>
 // Kontent.Ai.Management.Models.EnvironmentReport
 public sealed class TypeIssue : IEquatable<TypeIssue>
     .ctor()
-    IReadOnlyList<ElementIssue> Issues { get; init; }
-    NamedReference Type { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TypeIssue other)
+    required IReadOnlyList<ElementIssue> Issues { get; init; }
+    required NamedReference Type { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TypeIssue? other)
     Int32 GetHashCode()
     String ToString()
     TypeIssue <Clone>$()
@@ -1138,22 +1138,22 @@ public sealed class TypeIssue : IEquatable<TypeIssue>
 // Kontent.Ai.Management.Models.EnvironmentReport
 public sealed class VariantIssue : IEquatable<VariantIssue>
     .ctor()
-    IReadOnlyList<ElementIssue> Issues { get; init; }
-    NamedReference Item { get; init; }
-    NamedReference Language { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantIssue other)
+    required IReadOnlyList<ElementIssue> Issues { get; init; }
+    required NamedReference Item { get; init; }
+    required NamedReference Language { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantIssue? other)
     Int32 GetHashCode()
     String ToString()
     VariantIssue <Clone>$()
 
 // Kontent.Ai.Management.Models.EnvironmentValidation
 public class AsyncValidationTaskIssueModel : IEquatable<AsyncValidationTaskIssueModel>
-    AsyncValidationTaskIssueType IssueType { get; init; }
-    IReadOnlyList<ElementIssue> Issues { get; init; }
+    required AsyncValidationTaskIssueType IssueType { get; init; }
+    required IReadOnlyList<ElementIssue> Issues { get; init; }
     AsyncValidationTaskIssueModel <Clone>$()
-    Boolean Equals(AsyncValidationTaskIssueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AsyncValidationTaskIssueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -1165,12 +1165,12 @@ public enum AsyncValidationTaskIssueType
 // Kontent.Ai.Management.Models.EnvironmentValidation
 public sealed class AsyncValidationTaskModel : IEquatable<AsyncValidationTaskModel>
     .ctor()
-    AsyncValidationTaskResult ValidationResult { get; init; }
-    AsyncValidationTaskStatus Status { get; init; }
-    Guid Id { get; init; }
+    required AsyncValidationTaskResult ValidationResult { get; init; }
+    required AsyncValidationTaskStatus Status { get; init; }
+    required Guid Id { get; init; }
     AsyncValidationTaskModel <Clone>$()
-    Boolean Equals(AsyncValidationTaskModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AsyncValidationTaskModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -1189,23 +1189,23 @@ public enum AsyncValidationTaskStatus
 // Kontent.Ai.Management.Models.EnvironmentValidation
 public sealed class AsyncValidationTaskTypeIssueModel : AsyncValidationTaskIssueModel, IEquatable<AsyncValidationTaskTypeIssueModel>
     .ctor()
-    NamedReference Type { get; init; }
+    required NamedReference Type { get; init; }
     AsyncValidationTaskTypeIssueModel <Clone>$()
-    Boolean Equals(AsyncValidationTaskIssueModel other)
-    Boolean Equals(AsyncValidationTaskTypeIssueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AsyncValidationTaskIssueModel? other)
+    Boolean Equals(AsyncValidationTaskTypeIssueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.EnvironmentValidation
 public sealed class AsyncValidationTaskVariantIssueModel : AsyncValidationTaskIssueModel, IEquatable<AsyncValidationTaskVariantIssueModel>
     .ctor()
-    NamedReference Item { get; init; }
-    NamedReference Language { get; init; }
+    required NamedReference Item { get; init; }
+    required NamedReference Language { get; init; }
     AsyncValidationTaskVariantIssueModel <Clone>$()
-    Boolean Equals(AsyncValidationTaskIssueModel other)
-    Boolean Equals(AsyncValidationTaskVariantIssueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AsyncValidationTaskIssueModel? other)
+    Boolean Equals(AsyncValidationTaskVariantIssueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -1220,8 +1220,8 @@ public sealed class CopyDataOptions : IEquatable<CopyDataOptions>
     .ctor()
     Boolean ContentItemVersionHistory { get; init; }
     Boolean ContentItemsAssets { get; init; }
-    Boolean Equals(CopyDataOptions other)
-    Boolean Equals(Object obj)
+    Boolean Equals(CopyDataOptions? other)
+    Boolean Equals(Object? obj)
     CopyDataOptions <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1229,11 +1229,11 @@ public sealed class CopyDataOptions : IEquatable<CopyDataOptions>
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentCloneModel : IEquatable<EnvironmentCloneModel>
     .ctor()
-    CopyDataOptions CopyDataOptions { get; init; }
-    IReadOnlyList<Guid> RolesToActivate { get; init; }
-    String Name { get; init; }
-    Boolean Equals(EnvironmentCloneModel other)
-    Boolean Equals(Object obj)
+    CopyDataOptions? CopyDataOptions { get; init; }
+    IReadOnlyList<Guid>? RolesToActivate { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(EnvironmentCloneModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentCloneModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1241,12 +1241,12 @@ public sealed class EnvironmentCloneModel : IEquatable<EnvironmentCloneModel>
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentClonedModel : IEquatable<EnvironmentClonedModel>
     .ctor()
-    Guid Id { get; init; }
-    String DeliveryPreviewApiKey { get; init; }
-    String ManagementApiKey { get; init; }
-    String SecuredDeliveryApiKey { get; init; }
-    Boolean Equals(EnvironmentClonedModel other)
-    Boolean Equals(Object obj)
+    String? DeliveryPreviewApiKey { get; init; }
+    String? SecuredDeliveryApiKey { get; init; }
+    required Guid Id { get; init; }
+    required String ManagementApiKey { get; init; }
+    Boolean Equals(EnvironmentClonedModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentClonedModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1254,9 +1254,9 @@ public sealed class EnvironmentClonedModel : IEquatable<EnvironmentClonedModel>
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentCloningStateModel : IEquatable<EnvironmentCloningStateModel>
     .ctor()
-    CloningState CloningState { get; init; }
-    Boolean Equals(EnvironmentCloningStateModel other)
-    Boolean Equals(Object obj)
+    required CloningState CloningState { get; init; }
+    Boolean Equals(EnvironmentCloningStateModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentCloningStateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1264,11 +1264,11 @@ public sealed class EnvironmentCloningStateModel : IEquatable<EnvironmentCloning
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentInformationModel : IEquatable<EnvironmentInformationModel>
     .ctor()
-    Guid Id { get; init; }
-    String EnvironmentName { get; init; }
-    String ProjectName { get; init; }
-    Boolean Equals(EnvironmentInformationModel other)
-    Boolean Equals(Object obj)
+    required Guid Id { get; init; }
+    required String EnvironmentName { get; init; }
+    required String ProjectName { get; init; }
+    Boolean Equals(EnvironmentInformationModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentInformationModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1276,11 +1276,11 @@ public sealed class EnvironmentInformationModel : IEquatable<EnvironmentInformat
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentModel : IEquatable<EnvironmentModel>
     .ctor()
-    Boolean IsProduction { get; init; }
-    Guid Id { get; init; }
-    String Name { get; init; }
-    Boolean Equals(EnvironmentModel other)
-    Boolean Equals(Object obj)
+    required Boolean IsProduction { get; init; }
+    required Guid Id { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(EnvironmentModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1288,9 +1288,9 @@ public sealed class EnvironmentModel : IEquatable<EnvironmentModel>
 // Kontent.Ai.Management.Models.Environments
 public sealed class MarkAsProductionModel : IEquatable<MarkAsProductionModel>
     .ctor()
-    Nullable<Boolean> EnableWebhooks { get; init; }
-    Boolean Equals(MarkAsProductionModel other)
-    Boolean Equals(Object obj)
+    Boolean? EnableWebhooks { get; init; }
+    Boolean Equals(MarkAsProductionModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MarkAsProductionModel <Clone>$()
     String ToString()
@@ -1298,8 +1298,8 @@ public sealed class MarkAsProductionModel : IEquatable<MarkAsProductionModel>
 // Kontent.Ai.Management.Models.Environments.Patch
 public class EnvironmentOperationBaseModel : IEquatable<EnvironmentOperationBaseModel>
     String Op { get; }
-    Boolean Equals(EnvironmentOperationBaseModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(EnvironmentOperationBaseModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentOperationBaseModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1308,10 +1308,10 @@ public class EnvironmentOperationBaseModel : IEquatable<EnvironmentOperationBase
 public sealed class EnvironmentRenamePatchModel : EnvironmentOperationBaseModel, IEquatable<EnvironmentRenamePatchModel>
     .ctor()
     String Op { get; }
-    String Value { get; init; }
-    Boolean Equals(EnvironmentOperationBaseModel other)
-    Boolean Equals(EnvironmentRenamePatchModel other)
-    Boolean Equals(Object obj)
+    required String Value { get; init; }
+    Boolean Equals(EnvironmentOperationBaseModel? other)
+    Boolean Equals(EnvironmentRenamePatchModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentRenamePatchModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1319,10 +1319,10 @@ public sealed class EnvironmentRenamePatchModel : EnvironmentOperationBaseModel,
 // Kontent.Ai.Management.Models.ItemWithVariant
 public sealed class ContentItemWithVariantModel : IEquatable<ContentItemWithVariantModel>
     .ctor()
-    ContentItemModel Item { get; init; }
-    LanguageVariantModel Variant { get; init; }
-    Boolean Equals(ContentItemWithVariantModel other)
-    Boolean Equals(Object obj)
+    LanguageVariantModel? Variant { get; init; }
+    required ContentItemModel Item { get; init; }
+    Boolean Equals(ContentItemWithVariantModel? other)
+    Boolean Equals(Object? obj)
     ContentItemWithVariantModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1330,9 +1330,9 @@ public sealed class ContentItemWithVariantModel : IEquatable<ContentItemWithVari
 // Kontent.Ai.Management.Models.ItemWithVariant
 public sealed class ItemWithVariantBulkGetRequestModel : IEquatable<ItemWithVariantBulkGetRequestModel>
     .ctor()
-    IReadOnlyList<VariantIdentifierModel> Variants { get; init; }
-    Boolean Equals(ItemWithVariantBulkGetRequestModel other)
-    Boolean Equals(Object obj)
+    required IReadOnlyList<VariantIdentifierModel> Variants { get; init; }
+    Boolean Equals(ItemWithVariantBulkGetRequestModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     ItemWithVariantBulkGetRequestModel <Clone>$()
     String ToString()
@@ -1340,10 +1340,10 @@ public sealed class ItemWithVariantBulkGetRequestModel : IEquatable<ItemWithVari
 // Kontent.Ai.Management.Models.ItemWithVariant
 public sealed class ItemWithVariantFilterRequestModel : IEquatable<ItemWithVariantFilterRequestModel>
     .ctor()
-    VariantFilterFiltersModel Filters { get; init; }
-    VariantFilterOrderModel Order { get; init; }
-    Boolean Equals(ItemWithVariantFilterRequestModel other)
-    Boolean Equals(Object obj)
+    VariantFilterFiltersModel? Filters { get; init; }
+    VariantFilterOrderModel? Order { get; init; }
+    Boolean Equals(ItemWithVariantFilterRequestModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     ItemWithVariantFilterRequestModel <Clone>$()
     String ToString()
@@ -1351,10 +1351,10 @@ public sealed class ItemWithVariantFilterRequestModel : IEquatable<ItemWithVaria
 // Kontent.Ai.Management.Models.ItemWithVariant
 public sealed class ItemWithVariantFilterResultModel : IEquatable<ItemWithVariantFilterResultModel>
     .ctor()
-    Reference Item { get; init; }
-    Reference Language { get; init; }
-    Boolean Equals(ItemWithVariantFilterResultModel other)
-    Boolean Equals(Object obj)
+    required Reference Item { get; init; }
+    required Reference Language { get; init; }
+    Boolean Equals(ItemWithVariantFilterResultModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     ItemWithVariantFilterResultModel <Clone>$()
     String ToString()
@@ -1362,10 +1362,10 @@ public sealed class ItemWithVariantFilterResultModel : IEquatable<ItemWithVarian
 // Kontent.Ai.Management.Models.ItemWithVariant
 public sealed class VariantIdentifierModel : IEquatable<VariantIdentifierModel>
     .ctor()
-    Reference Item { get; init; }
-    Reference Language { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantIdentifierModel other)
+    required Reference Item { get; init; }
+    required Reference Language { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantIdentifierModel? other)
     Int32 GetHashCode()
     String ToString()
     VariantIdentifierModel <Clone>$()
@@ -1373,13 +1373,13 @@ public sealed class VariantIdentifierModel : IEquatable<VariantIdentifierModel>
 // Kontent.Ai.Management.Models.Items
 public sealed class ContentItemCreateModel : IEquatable<ContentItemCreateModel>
     .ctor()
-    Reference Collection { get; init; }
-    Reference Type { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentItemCreateModel other)
-    Boolean Equals(Object obj)
+    Reference? Collection { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required Reference Type { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentItemCreateModel? other)
+    Boolean Equals(Object? obj)
     ContentItemCreateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1387,17 +1387,17 @@ public sealed class ContentItemCreateModel : IEquatable<ContentItemCreateModel>
 // Kontent.Ai.Management.Models.Items
 public sealed class ContentItemModel : IEquatable<ContentItemModel>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<Reference> SitemapLocations { get; init; }
-    IReadOnlyList<Reference> Spaces { get; init; }
-    Reference Collection { get; init; }
-    Reference Type { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentItemModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? SitemapLocations { get; init; }
+    String? ExternalId { get; init; }
+    required DateTime LastModified { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<Reference> Spaces { get; init; }
+    required Reference Collection { get; init; }
+    required Reference Type { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentItemModel? other)
+    Boolean Equals(Object? obj)
     ContentItemModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1405,13 +1405,13 @@ public sealed class ContentItemModel : IEquatable<ContentItemModel>
 // Kontent.Ai.Management.Models.Items
 public sealed class ContentItemUpsertModel : IEquatable<ContentItemUpsertModel>
     .ctor()
-    IReadOnlyList<Reference> SitemapLocations { get; init; }
-    Reference Collection { get; init; }
-    Reference Type { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentItemUpsertModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? SitemapLocations { get; init; }
+    Reference? Collection { get; init; }
+    Reference? Type { get; init; }
+    String? Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentItemUpsertModel? other)
+    Boolean Equals(Object? obj)
     ContentItemUpsertModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1419,13 +1419,13 @@ public sealed class ContentItemUpsertModel : IEquatable<ContentItemUpsertModel>
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class ChangeLanguageVariantWorkflowModel : IEquatable<ChangeLanguageVariantWorkflowModel>
     .ctor(Reference workflow, Reference step)
-    DueDateModel DueDate { get; init; }
-    IReadOnlyList<UserIdentifier> Contributors { get; init; }
-    Reference Step { get; init; }
-    Reference Workflow { get; init; }
-    String Note { get; init; }
-    Boolean Equals(ChangeLanguageVariantWorkflowModel other)
-    Boolean Equals(Object obj)
+    DueDateModel? DueDate { get; init; }
+    IReadOnlyList<UserIdentifier>? Contributors { get; init; }
+    String? Note { get; init; }
+    required Reference Step { get; init; }
+    required Reference Workflow { get; init; }
+    Boolean Equals(ChangeLanguageVariantWorkflowModel? other)
+    Boolean Equals(Object? obj)
     ChangeLanguageVariantWorkflowModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1433,11 +1433,11 @@ public sealed class ChangeLanguageVariantWorkflowModel : IEquatable<ChangeLangua
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class ComponentModel : IEquatable<ComponentModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<BaseElement> Elements { get; init; }
-    Reference Type { get; init; }
-    Boolean Equals(ComponentModel other)
-    Boolean Equals(Object obj)
+    required Guid Id { get; init; }
+    required IReadOnlyList<BaseElement> Elements { get; init; }
+    required Reference Type { get; init; }
+    Boolean Equals(ComponentModel? other)
+    Boolean Equals(Object? obj)
     ComponentModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1445,9 +1445,9 @@ public sealed class ComponentModel : IEquatable<ComponentModel>
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class DueDateModel : IEquatable<DueDateModel>
     .ctor()
-    Nullable<DateTimeOffset> Value { get; init; }
-    Boolean Equals(DueDateModel other)
-    Boolean Equals(Object obj)
+    DateTimeOffset? Value { get; init; }
+    Boolean Equals(DueDateModel? other)
+    Boolean Equals(Object? obj)
     DueDateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1455,10 +1455,10 @@ public sealed class DueDateModel : IEquatable<DueDateModel>
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class LanguageVariantIdentifier : IEquatable<LanguageVariantIdentifier>
     .ctor(Reference itemIdentifier, Reference languageIdentifier)
-    Reference ItemIdentifier { get; init; }
-    Reference LanguageIdentifier { get; init; }
-    Boolean Equals(LanguageVariantIdentifier other)
-    Boolean Equals(Object obj)
+    required Reference ItemIdentifier { get; init; }
+    required Reference LanguageIdentifier { get; init; }
+    Boolean Equals(LanguageVariantIdentifier? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageVariantIdentifier <Clone>$()
     String ToString()
@@ -1468,16 +1468,16 @@ public sealed class LanguageVariantIdentifier : IEquatable<LanguageVariantIdenti
 
 // Kontent.Ai.Management.Models.LanguageVariants
 public class LanguageVariantMetadata : IEquatable<LanguageVariantMetadata>
-    DateTime LastModified { get; init; }
-    DueDateModel DueDate { get; init; }
-    IReadOnlyList<UserIdentifier> Contributors { get; init; }
-    Reference Item { get; init; }
-    Reference Language { get; init; }
-    ScheduleResponseModel Schedule { get; init; }
-    String Note { get; init; }
-    WorkflowStepIdentifier Workflow { get; init; }
-    Boolean Equals(LanguageVariantMetadata other)
-    Boolean Equals(Object obj)
+    String? Note { get; init; }
+    required DateTime LastModified { get; init; }
+    required DueDateModel DueDate { get; init; }
+    required IReadOnlyList<UserIdentifier> Contributors { get; init; }
+    required Reference Item { get; init; }
+    required Reference Language { get; init; }
+    required ScheduleResponseModel Schedule { get; init; }
+    required WorkflowStepIdentifier Workflow { get; init; }
+    Boolean Equals(LanguageVariantMetadata? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageVariantMetadata <Clone>$()
     String ToString()
@@ -1485,10 +1485,10 @@ public class LanguageVariantMetadata : IEquatable<LanguageVariantMetadata>
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class LanguageVariantModel : LanguageVariantMetadata, IEquatable<LanguageVariantModel>
     .ctor()
-    IReadOnlyList<BaseElement> Elements { get; init; }
-    Boolean Equals(LanguageVariantMetadata other)
-    Boolean Equals(LanguageVariantModel other)
-    Boolean Equals(Object obj)
+    required IReadOnlyList<BaseElement> Elements { get; init; }
+    Boolean Equals(LanguageVariantMetadata? other)
+    Boolean Equals(LanguageVariantModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageVariantModel <Clone>$()
     String ToString()
@@ -1496,10 +1496,10 @@ public sealed class LanguageVariantModel : LanguageVariantMetadata, IEquatable<L
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class LanguageVariantModel`1<TModel> : LanguageVariantMetadata, IEquatable<LanguageVariantModel<TModel>>
     .ctor()
-    TModel Elements { get; init; }
-    Boolean Equals(LanguageVariantMetadata other)
-    Boolean Equals(LanguageVariantModel<TModel> other)
-    Boolean Equals(Object obj)
+    required TModel Elements { get; init; }
+    Boolean Equals(LanguageVariantMetadata? other)
+    Boolean Equals(LanguageVariantModel<TModel>? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageVariantModel<TModel> <Clone>$()
     String ToString()
@@ -1507,13 +1507,13 @@ public sealed class LanguageVariantModel`1<TModel> : LanguageVariantMetadata, IE
 // Kontent.Ai.Management.Models.LanguageVariants
 public sealed class LanguageVariantUpsertModel : IEquatable<LanguageVariantUpsertModel>
     .ctor()
-    DueDateModel DueDate { get; init; }
-    IReadOnlyList<BaseElement> Elements { get; init; }
-    IReadOnlyList<UserIdentifier> Contributors { get; init; }
-    String Note { get; init; }
-    WorkflowStepIdentifier Workflow { get; init; }
-    Boolean Equals(LanguageVariantUpsertModel other)
-    Boolean Equals(Object obj)
+    DueDateModel? DueDate { get; init; }
+    IReadOnlyList<UserIdentifier>? Contributors { get; init; }
+    String? Note { get; init; }
+    WorkflowStepIdentifier? Workflow { get; init; }
+    required IReadOnlyList<BaseElement> Elements { get; init; }
+    Boolean Equals(LanguageVariantUpsertModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageVariantUpsertModel <Clone>$()
     String ToString()
@@ -1521,31 +1521,31 @@ public sealed class LanguageVariantUpsertModel : IEquatable<LanguageVariantUpser
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class AssetElement : BaseElement, IEquatable<AssetElement>
     .ctor()
-    IReadOnlyList<AssetReference> Value { get; init; }
+    IReadOnlyList<AssetReference>? Value { get; init; }
     AssetElement <Clone>$()
-    Boolean Equals(AssetElement other)
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetElement? other)
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public class BaseElement : IEquatable<BaseElement>
-    Reference Element { get; init; }
+    required Reference Element { get; init; }
     BaseElement <Clone>$()
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class CustomElement : BaseElement, IEquatable<CustomElement>
     .ctor()
-    String SearchableValue { get; init; }
-    String Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(CustomElement other)
-    Boolean Equals(Object obj)
+    String? SearchableValue { get; init; }
+    String? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(CustomElement? other)
+    Boolean Equals(Object? obj)
     CustomElement <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1553,11 +1553,11 @@ public sealed class CustomElement : BaseElement, IEquatable<CustomElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class DateTimeElement : BaseElement, IEquatable<DateTimeElement>
     .ctor()
-    Nullable<DateTimeOffset> Value { get; init; }
-    String DisplayTimeZone { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(DateTimeElement other)
-    Boolean Equals(Object obj)
+    DateTimeOffset? Value { get; init; }
+    String? DisplayTimeZone { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(DateTimeElement? other)
+    Boolean Equals(Object? obj)
     DateTimeElement <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1565,11 +1565,11 @@ public sealed class DateTimeElement : BaseElement, IEquatable<DateTimeElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class DynamicElement : BaseElement, IEquatable<DynamicElement>
     .ctor()
-    IDictionary<String, JsonElement> AdditionalData { get; init; }
-    Object Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(DynamicElement other)
-    Boolean Equals(Object obj)
+    IDictionary<String, JsonElement>? AdditionalData { get; init; }
+    Object? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(DynamicElement? other)
+    Boolean Equals(Object? obj)
     DynamicElement <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1577,10 +1577,10 @@ public sealed class DynamicElement : BaseElement, IEquatable<DynamicElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class LinkedItemsElement : BaseElement, IEquatable<LinkedItemsElement>
     .ctor()
-    IReadOnlyList<Reference> Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(LinkedItemsElement other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(LinkedItemsElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LinkedItemsElement <Clone>$()
     String ToString()
@@ -1588,10 +1588,10 @@ public sealed class LinkedItemsElement : BaseElement, IEquatable<LinkedItemsElem
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class MultipleChoiceElement : BaseElement, IEquatable<MultipleChoiceElement>
     .ctor()
-    IReadOnlyList<Reference> Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(MultipleChoiceElement other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(MultipleChoiceElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MultipleChoiceElement <Clone>$()
     String ToString()
@@ -1599,10 +1599,10 @@ public sealed class MultipleChoiceElement : BaseElement, IEquatable<MultipleChoi
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class NumberElement : BaseElement, IEquatable<NumberElement>
     .ctor()
-    Nullable<Decimal> Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(NumberElement other)
-    Boolean Equals(Object obj)
+    Decimal? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(NumberElement? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     NumberElement <Clone>$()
     String ToString()
@@ -1610,11 +1610,11 @@ public sealed class NumberElement : BaseElement, IEquatable<NumberElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class RichTextElement : BaseElement, IEquatable<RichTextElement>
     .ctor()
-    IReadOnlyList<ComponentModel> Components { get; init; }
-    String Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
-    Boolean Equals(RichTextElement other)
+    IReadOnlyList<ComponentModel>? Components { get; init; }
+    String? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(RichTextElement? other)
     Int32 GetHashCode()
     RichTextElement <Clone>$()
     String ToString()
@@ -1622,10 +1622,10 @@ public sealed class RichTextElement : BaseElement, IEquatable<RichTextElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class SubpagesElement : BaseElement, IEquatable<SubpagesElement>
     .ctor()
-    IReadOnlyList<Reference> Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
-    Boolean Equals(SubpagesElement other)
+    IReadOnlyList<Reference>? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubpagesElement? other)
     Int32 GetHashCode()
     String ToString()
     SubpagesElement <Clone>$()
@@ -1633,10 +1633,10 @@ public sealed class SubpagesElement : BaseElement, IEquatable<SubpagesElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class TaxonomyElement : BaseElement, IEquatable<TaxonomyElement>
     .ctor()
-    IReadOnlyList<Reference> Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyElement other)
+    IReadOnlyList<Reference>? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyElement? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyElement <Clone>$()
@@ -1644,10 +1644,10 @@ public sealed class TaxonomyElement : BaseElement, IEquatable<TaxonomyElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class TextElement : BaseElement, IEquatable<TextElement>
     .ctor()
-    String Value { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TextElement other)
+    String? Value { get; init; }
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TextElement? other)
     Int32 GetHashCode()
     String ToString()
     TextElement <Clone>$()
@@ -1655,11 +1655,11 @@ public sealed class TextElement : BaseElement, IEquatable<TextElement>
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
 public sealed class UrlSlugElement : BaseElement, IEquatable<UrlSlugElement>
     .ctor()
-    String Value { get; init; }
+    String? Value { get; init; }
     UrlSlugMode Mode { get; init; }
-    Boolean Equals(BaseElement other)
-    Boolean Equals(Object obj)
-    Boolean Equals(UrlSlugElement other)
+    Boolean Equals(BaseElement? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(UrlSlugElement? other)
     Int32 GetHashCode()
     String ToString()
     UrlSlugElement <Clone>$()
@@ -1668,12 +1668,12 @@ public sealed class UrlSlugElement : BaseElement, IEquatable<UrlSlugElement>
 public sealed class LanguageCreateModel : IEquatable<LanguageCreateModel>
     .ctor()
     Boolean IsActive { get; init; }
-    Reference FallbackLanguage { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(LanguageCreateModel other)
-    Boolean Equals(Object obj)
+    Reference? FallbackLanguage { get; init; }
+    String? ExternalId { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(LanguageCreateModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageCreateModel <Clone>$()
     String ToString()
@@ -1681,15 +1681,15 @@ public sealed class LanguageCreateModel : IEquatable<LanguageCreateModel>
 // Kontent.Ai.Management.Models.Languages
 public sealed class LanguageModel : IEquatable<LanguageModel>
     .ctor()
-    Boolean IsActive { get; init; }
-    Boolean IsDefault { get; init; }
-    Guid Id { get; init; }
-    Reference FallbackLanguage { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(LanguageModel other)
-    Boolean Equals(Object obj)
+    String? ExternalId { get; init; }
+    required Boolean IsActive { get; init; }
+    required Boolean IsDefault { get; init; }
+    required Guid Id { get; init; }
+    required Reference FallbackLanguage { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(LanguageModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageModel <Clone>$()
     String ToString()
@@ -1704,11 +1704,11 @@ public sealed class LanguagePatch
 // Kontent.Ai.Management.Models.Languages.Patch
 public sealed class LanguagePatchModel : IEquatable<LanguagePatchModel>
     .ctor()
-    LanguagePropertyName PropertyName { get; init; }
-    Object Value { get; init; }
     String Op { get; }
-    Boolean Equals(LanguagePatchModel other)
-    Boolean Equals(Object obj)
+    required LanguagePropertyName PropertyName { get; init; }
+    required Object Value { get; init; }
+    Boolean Equals(LanguagePatchModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguagePatchModel <Clone>$()
     String ToString()
@@ -1723,10 +1723,10 @@ public enum LanguagePropertyName
 // Kontent.Ai.Management.Models.PreviewConfiguration
 public sealed class PreviewConfigurationModel : IEquatable<PreviewConfigurationModel>
     .ctor()
-    IReadOnlyList<SpaceDomainModel> SpaceDomains { get; init; }
-    IReadOnlyList<TypePreviewUrlPatternModel> PreviewUrlPatterns { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(PreviewConfigurationModel other)
+    required IReadOnlyList<SpaceDomainModel> SpaceDomains { get; init; }
+    required IReadOnlyList<TypePreviewUrlPatternModel> PreviewUrlPatterns { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(PreviewConfigurationModel? other)
     Int32 GetHashCode()
     PreviewConfigurationModel <Clone>$()
     String ToString()
@@ -1734,10 +1734,10 @@ public sealed class PreviewConfigurationModel : IEquatable<PreviewConfigurationM
 // Kontent.Ai.Management.Models.PreviewConfiguration
 public sealed class PreviewUrlPatternModel : IEquatable<PreviewUrlPatternModel>
     .ctor()
-    Reference Space { get; init; }
-    String UrlPattern { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(PreviewUrlPatternModel other)
+    Reference? Space { get; init; }
+    required String UrlPattern { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(PreviewUrlPatternModel? other)
     Int32 GetHashCode()
     PreviewUrlPatternModel <Clone>$()
     String ToString()
@@ -1745,10 +1745,10 @@ public sealed class PreviewUrlPatternModel : IEquatable<PreviewUrlPatternModel>
 // Kontent.Ai.Management.Models.PreviewConfiguration
 public sealed class SpaceDomainModel : IEquatable<SpaceDomainModel>
     .ctor()
-    Reference Space { get; init; }
-    String Domain { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SpaceDomainModel other)
+    required Reference Space { get; init; }
+    required String Domain { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SpaceDomainModel? other)
     Int32 GetHashCode()
     SpaceDomainModel <Clone>$()
     String ToString()
@@ -1756,10 +1756,10 @@ public sealed class SpaceDomainModel : IEquatable<SpaceDomainModel>
 // Kontent.Ai.Management.Models.PreviewConfiguration
 public sealed class TypePreviewUrlPatternModel : IEquatable<TypePreviewUrlPatternModel>
     .ctor()
-    IReadOnlyList<PreviewUrlPatternModel> UrlPatterns { get; init; }
-    Reference ContentType { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TypePreviewUrlPatternModel other)
+    required IReadOnlyList<PreviewUrlPatternModel> UrlPatterns { get; init; }
+    required Reference ContentType { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TypePreviewUrlPatternModel? other)
     Int32 GetHashCode()
     String ToString()
     TypePreviewUrlPatternModel <Clone>$()
@@ -1767,10 +1767,10 @@ public sealed class TypePreviewUrlPatternModel : IEquatable<TypePreviewUrlPatter
 // Kontent.Ai.Management.Models.Publishing
 public sealed class ScheduleModel : IEquatable<ScheduleModel>
     .ctor()
-    DateTimeOffset ScheduledTo { get; init; }
-    String DisplayTimeZone { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(ScheduleModel other)
+    String? DisplayTimeZone { get; init; }
+    required DateTimeOffset ScheduledTo { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(ScheduleModel? other)
     Int32 GetHashCode()
     ScheduleModel <Clone>$()
     String ToString()
@@ -1778,12 +1778,12 @@ public sealed class ScheduleModel : IEquatable<ScheduleModel>
 // Kontent.Ai.Management.Models.Publishing
 public sealed class SchedulePublishAndUnpublishModel : IEquatable<SchedulePublishAndUnpublishModel>
     .ctor()
-    Nullable<DateTimeOffset> PublishScheduledTo { get; init; }
-    Nullable<DateTimeOffset> UnpublishScheduledTo { get; init; }
-    String PublishDisplayTimeZone { get; init; }
-    String UnpublishDisplayTimeZone { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SchedulePublishAndUnpublishModel other)
+    DateTimeOffset? PublishScheduledTo { get; init; }
+    DateTimeOffset? UnpublishScheduledTo { get; init; }
+    String? PublishDisplayTimeZone { get; init; }
+    String? UnpublishDisplayTimeZone { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SchedulePublishAndUnpublishModel? other)
     Int32 GetHashCode()
     SchedulePublishAndUnpublishModel <Clone>$()
     String ToString()
@@ -1791,12 +1791,12 @@ public sealed class SchedulePublishAndUnpublishModel : IEquatable<SchedulePublis
 // Kontent.Ai.Management.Models.Publishing
 public sealed class ScheduleResponseModel : IEquatable<ScheduleResponseModel>
     .ctor()
-    Nullable<DateTimeOffset> PublishTime { get; init; }
-    Nullable<DateTimeOffset> UnpublishTime { get; init; }
-    String PublishDisplayTimeZone { get; init; }
-    String UnpublishDisplayTimeZone { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(ScheduleResponseModel other)
+    DateTimeOffset? PublishTime { get; init; }
+    DateTimeOffset? UnpublishTime { get; init; }
+    String? PublishDisplayTimeZone { get; init; }
+    String? UnpublishDisplayTimeZone { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(ScheduleResponseModel? other)
     Int32 GetHashCode()
     ScheduleResponseModel <Clone>$()
     String ToString()
@@ -1804,11 +1804,11 @@ public sealed class ScheduleResponseModel : IEquatable<ScheduleResponseModel>
 // Kontent.Ai.Management.Models.Roles
 public sealed class EnvironmentRoleModel : IEquatable<EnvironmentRoleModel>
     .ctor()
-    Guid Id { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(EnvironmentRoleModel other)
-    Boolean Equals(Object obj)
+    String? Codename { get; init; }
+    required Guid Id { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(EnvironmentRoleModel? other)
+    Boolean Equals(Object? obj)
     EnvironmentRoleModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1816,20 +1816,20 @@ public sealed class EnvironmentRoleModel : IEquatable<EnvironmentRoleModel>
 // Kontent.Ai.Management.Models.Shared
 public sealed class AssetFolder : IEquatable<AssetFolder>
     .ctor()
-    Guid Id { get; init; }
+    required Guid Id { get; init; }
     AssetFolder <Clone>$()
-    Boolean Equals(AssetFolder other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetFolder? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Shared
 public sealed class ElementIssue : IEquatable<ElementIssue>
     .ctor()
-    IReadOnlyList<String> Messages { get; init; }
-    NamedReference Element { get; init; }
-    Boolean Equals(ElementIssue other)
-    Boolean Equals(Object obj)
+    required IReadOnlyList<String> Messages { get; init; }
+    required NamedReference Element { get; init; }
+    Boolean Equals(ElementIssue? other)
+    Boolean Equals(Object? obj)
     ElementIssue <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -1837,22 +1837,22 @@ public sealed class ElementIssue : IEquatable<ElementIssue>
 // Kontent.Ai.Management.Models.Shared
 public sealed class NamedReference : IEquatable<NamedReference>
     .ctor()
-    Guid Id { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(NamedReference other)
-    Boolean Equals(Object obj)
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(NamedReference? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     NamedReference <Clone>$()
     String ToString()
 
 // Kontent.Ai.Management.Models.Shared
 public sealed class Reference : IEquatable<Reference>
-    Nullable<Guid> Id { get; }
-    String Codename { get; }
-    String ExternalId { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(Reference other)
+    Guid? Id { get; }
+    String? Codename { get; }
+    String? ExternalId { get; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(Reference? other)
     Int32 GetHashCode()
     Reference <Clone>$()
     String ToString()
@@ -1864,10 +1864,10 @@ public sealed class Reference : IEquatable<Reference>
 
 // Kontent.Ai.Management.Models.Shared
 public sealed class UserIdentifier : IEquatable<UserIdentifier>
-    String Email { get; }
-    String Id { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserIdentifier other)
+    String? Email { get; }
+    String? Id { get; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserIdentifier? other)
     Int32 GetHashCode()
     String ToString()
     UserIdentifier <Clone>$()
@@ -1877,12 +1877,12 @@ public sealed class UserIdentifier : IEquatable<UserIdentifier>
 // Kontent.Ai.Management.Models.Spaces
 public sealed class SpaceCreateModel : IEquatable<SpaceCreateModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    Reference RootItem { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SpaceCreateModel other)
+    IReadOnlyList<Reference>? Collections { get; init; }
+    Reference? RootItem { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SpaceCreateModel? other)
     Int32 GetHashCode()
     SpaceCreateModel <Clone>$()
     String ToString()
@@ -1890,13 +1890,13 @@ public sealed class SpaceCreateModel : IEquatable<SpaceCreateModel>
 // Kontent.Ai.Management.Models.Spaces
 public sealed class SpaceModel : IEquatable<SpaceModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<Reference> Collections { get; init; }
-    Reference RootItem { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SpaceModel other)
+    Reference? RootItem { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<Reference> Collections { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SpaceModel? other)
     Int32 GetHashCode()
     SpaceModel <Clone>$()
     String ToString()
@@ -1906,7 +1906,7 @@ public sealed class SpacePatch
     static SpaceReplacePatchModel Codename(String codename)
     static SpaceReplacePatchModel Collections(Reference[] collections)
     static SpaceReplacePatchModel Name(String name)
-    static SpaceReplacePatchModel RootItem(Reference rootItem)
+    static SpaceReplacePatchModel RootItem(Reference? rootItem)
 
 // Kontent.Ai.Management.Models.Spaces.Patch
 public enum SpacePropertyName
@@ -1918,11 +1918,11 @@ public enum SpacePropertyName
 // Kontent.Ai.Management.Models.Spaces.Patch
 public sealed class SpaceReplacePatchModel : IEquatable<SpaceReplacePatchModel>
     .ctor()
-    Object Value { get; init; }
-    SpacePropertyName PropertyName { get; init; }
     String Op { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SpaceReplacePatchModel other)
+    required Object? Value { get; init; }
+    required SpacePropertyName PropertyName { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SpaceReplacePatchModel? other)
     Int32 GetHashCode()
     SpaceReplacePatchModel <Clone>$()
     String ToString()
@@ -1930,10 +1930,10 @@ public sealed class SpaceReplacePatchModel : IEquatable<SpaceReplacePatchModel>
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionCollectionGroupModel : IEquatable<SubscriptionCollectionGroupModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<SubscriptionUserRoleModel> Roles { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionCollectionGroupModel other)
+    required IReadOnlyList<Reference> Collections { get; init; }
+    required IReadOnlyList<SubscriptionUserRoleModel> Roles { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionCollectionGroupModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionCollectionGroupModel <Clone>$()
@@ -1941,10 +1941,10 @@ public sealed class SubscriptionCollectionGroupModel : IEquatable<SubscriptionCo
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionProjectEnvironmentModel : IEquatable<SubscriptionProjectEnvironmentModel>
     .ctor()
-    Guid Id { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionProjectEnvironmentModel other)
+    required Guid Id { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionProjectEnvironmentModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionProjectEnvironmentModel <Clone>$()
@@ -1952,12 +1952,12 @@ public sealed class SubscriptionProjectEnvironmentModel : IEquatable<Subscriptio
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionProjectModel : IEquatable<SubscriptionProjectModel>
     .ctor()
-    Boolean IsActive { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<SubscriptionProjectEnvironmentModel> Environments { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionProjectModel other)
+    required Boolean IsActive { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<SubscriptionProjectEnvironmentModel> Environments { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionProjectModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionProjectModel <Clone>$()
@@ -1965,14 +1965,14 @@ public sealed class SubscriptionProjectModel : IEquatable<SubscriptionProjectMod
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionUserModel : IEquatable<SubscriptionUserModel>
     .ctor()
-    Boolean HasPendingInvitation { get; init; }
-    IReadOnlyList<SubscriptionUserProjectModel> Projects { get; init; }
-    String Email { get; init; }
-    String FirstName { get; init; }
-    String Id { get; init; }
-    String LastName { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionUserModel other)
+    String? FirstName { get; init; }
+    String? LastName { get; init; }
+    required Boolean HasPendingInvitation { get; init; }
+    required IReadOnlyList<SubscriptionUserProjectModel> Projects { get; init; }
+    required String Email { get; init; }
+    required String Id { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionUserModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionUserModel <Clone>$()
@@ -1980,13 +1980,13 @@ public sealed class SubscriptionUserModel : IEquatable<SubscriptionUserModel>
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionUserProjectEnvironmentModel : IEquatable<SubscriptionUserProjectEnvironmentModel>
     .ctor()
-    Boolean IsUserActive { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<SubscriptionCollectionGroupModel> CollectionGroups { get; init; }
-    Nullable<DateTime> LastActivityAt { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionUserProjectEnvironmentModel other)
+    DateTime? LastActivityAt { get; init; }
+    required Boolean IsUserActive { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<SubscriptionCollectionGroupModel> CollectionGroups { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionUserProjectEnvironmentModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionUserProjectEnvironmentModel <Clone>$()
@@ -1994,11 +1994,11 @@ public sealed class SubscriptionUserProjectEnvironmentModel : IEquatable<Subscri
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionUserProjectModel : IEquatable<SubscriptionUserProjectModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<SubscriptionUserProjectEnvironmentModel> Environments { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionUserProjectModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<SubscriptionUserProjectEnvironmentModel> Environments { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionUserProjectModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionUserProjectModel <Clone>$()
@@ -2006,13 +2006,13 @@ public sealed class SubscriptionUserProjectModel : IEquatable<SubscriptionUserPr
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionUserRoleLanguageModel : IEquatable<SubscriptionUserRoleLanguageModel>
     .ctor()
-    Boolean IsActive { get; init; }
-    Guid Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionUserRoleLanguageModel other)
+    String? ExternalId { get; init; }
+    required Boolean IsActive { get; init; }
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionUserRoleLanguageModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionUserRoleLanguageModel <Clone>$()
@@ -2020,23 +2020,23 @@ public sealed class SubscriptionUserRoleLanguageModel : IEquatable<SubscriptionU
 // Kontent.Ai.Management.Models.Subscription
 public sealed class SubscriptionUserRoleModel : IEquatable<SubscriptionUserRoleModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<SubscriptionUserRoleLanguageModel> Languages { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(SubscriptionUserRoleModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<SubscriptionUserRoleLanguageModel> Languages { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubscriptionUserRoleModel? other)
     Int32 GetHashCode()
     String ToString()
     SubscriptionUserRoleModel <Clone>$()
 
 // Kontent.Ai.Management.Models.TaxonomyGroups
 public class TaxonomyBaseModel : IEquatable<TaxonomyBaseModel>
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyBaseModel other)
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyBaseModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyBaseModel <Clone>$()
@@ -2044,10 +2044,10 @@ public class TaxonomyBaseModel : IEquatable<TaxonomyBaseModel>
 // Kontent.Ai.Management.Models.TaxonomyGroups
 public sealed class TaxonomyGroupCreateModel : TaxonomyBaseModel, IEquatable<TaxonomyGroupCreateModel>
     .ctor()
-    IReadOnlyList<TaxonomyTermCreateModel> Terms { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyBaseModel other)
-    Boolean Equals(TaxonomyGroupCreateModel other)
+    IReadOnlyList<TaxonomyTermCreateModel>? Terms { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyBaseModel? other)
+    Boolean Equals(TaxonomyGroupCreateModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupCreateModel <Clone>$()
@@ -2055,12 +2055,12 @@ public sealed class TaxonomyGroupCreateModel : TaxonomyBaseModel, IEquatable<Tax
 // Kontent.Ai.Management.Models.TaxonomyGroups
 public sealed class TaxonomyGroupModel : TaxonomyBaseModel, IEquatable<TaxonomyGroupModel>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<TaxonomyTermModel> Terms { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyBaseModel other)
-    Boolean Equals(TaxonomyGroupModel other)
+    required DateTime LastModified { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<TaxonomyTermModel> Terms { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyBaseModel? other)
+    Boolean Equals(TaxonomyGroupModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupModel <Clone>$()
@@ -2068,10 +2068,10 @@ public sealed class TaxonomyGroupModel : TaxonomyBaseModel, IEquatable<TaxonomyG
 // Kontent.Ai.Management.Models.TaxonomyGroups
 public sealed class TaxonomyTermCreateModel : TaxonomyBaseModel, IEquatable<TaxonomyTermCreateModel>
     .ctor()
-    IReadOnlyList<TaxonomyTermCreateModel> Terms { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyBaseModel other)
-    Boolean Equals(TaxonomyTermCreateModel other)
+    IReadOnlyList<TaxonomyTermCreateModel>? Terms { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyBaseModel? other)
+    Boolean Equals(TaxonomyTermCreateModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyTermCreateModel <Clone>$()
@@ -2079,11 +2079,11 @@ public sealed class TaxonomyTermCreateModel : TaxonomyBaseModel, IEquatable<Taxo
 // Kontent.Ai.Management.Models.TaxonomyGroups
 public sealed class TaxonomyTermModel : TaxonomyBaseModel, IEquatable<TaxonomyTermModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<TaxonomyTermModel> Terms { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyBaseModel other)
-    Boolean Equals(TaxonomyTermModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<TaxonomyTermModel> Terms { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyBaseModel? other)
+    Boolean Equals(TaxonomyTermModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyTermModel <Clone>$()
@@ -2091,13 +2091,13 @@ public sealed class TaxonomyTermModel : TaxonomyBaseModel, IEquatable<TaxonomyTe
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
 public sealed class TaxonomyGroupAddIntoPatchModel : TaxonomyGroupOperationBaseModel, IEquatable<TaxonomyGroupAddIntoPatchModel>
     .ctor()
-    Reference After { get; init; }
-    Reference Before { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
     String Op { get; }
-    TaxonomyTermCreateModel Value { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyGroupAddIntoPatchModel other)
-    Boolean Equals(TaxonomyGroupOperationBaseModel other)
+    required TaxonomyTermCreateModel Value { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyGroupAddIntoPatchModel? other)
+    Boolean Equals(TaxonomyGroupOperationBaseModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupAddIntoPatchModel <Clone>$()
@@ -2105,23 +2105,23 @@ public sealed class TaxonomyGroupAddIntoPatchModel : TaxonomyGroupOperationBaseM
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
 public sealed class TaxonomyGroupMovePatchModel : TaxonomyGroupOperationBaseModel, IEquatable<TaxonomyGroupMovePatchModel>
     .ctor()
-    Reference After { get; init; }
-    Reference Before { get; init; }
-    Reference Under { get; init; }
+    Reference? After { get; init; }
+    Reference? Before { get; init; }
+    Reference? Under { get; init; }
     String Op { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyGroupMovePatchModel other)
-    Boolean Equals(TaxonomyGroupOperationBaseModel other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyGroupMovePatchModel? other)
+    Boolean Equals(TaxonomyGroupOperationBaseModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupMovePatchModel <Clone>$()
 
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
 public class TaxonomyGroupOperationBaseModel : IEquatable<TaxonomyGroupOperationBaseModel>
-    Reference Reference { get; init; }
+    Reference? Reference { get; init; }
     String Op { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyGroupOperationBaseModel other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyGroupOperationBaseModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupOperationBaseModel <Clone>$()
@@ -2142,9 +2142,9 @@ public enum TaxonomyGroupPropertyName
 public sealed class TaxonomyGroupRemovePatchModel : TaxonomyGroupOperationBaseModel, IEquatable<TaxonomyGroupRemovePatchModel>
     .ctor()
     String Op { get; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyGroupOperationBaseModel other)
-    Boolean Equals(TaxonomyGroupRemovePatchModel other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyGroupOperationBaseModel? other)
+    Boolean Equals(TaxonomyGroupRemovePatchModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupRemovePatchModel <Clone>$()
@@ -2152,12 +2152,12 @@ public sealed class TaxonomyGroupRemovePatchModel : TaxonomyGroupOperationBaseMo
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
 public sealed class TaxonomyGroupReplacePatchModel : TaxonomyGroupOperationBaseModel, IEquatable<TaxonomyGroupReplacePatchModel>
     .ctor()
-    Object Value { get; init; }
     String Op { get; }
-    TaxonomyGroupPropertyName PropertyName { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyGroupOperationBaseModel other)
-    Boolean Equals(TaxonomyGroupReplacePatchModel other)
+    required Object Value { get; init; }
+    required TaxonomyGroupPropertyName PropertyName { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyGroupOperationBaseModel? other)
+    Boolean Equals(TaxonomyGroupReplacePatchModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyGroupReplacePatchModel <Clone>$()
@@ -2165,12 +2165,12 @@ public sealed class TaxonomyGroupReplacePatchModel : TaxonomyGroupOperationBaseM
 // Kontent.Ai.Management.Models.TypeSnippets
 public sealed class ContentTypeSnippetCreateModel : IEquatable<ContentTypeSnippetCreateModel>
     .ctor()
-    IReadOnlyList<ElementMetadataBase> Elements { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentTypeSnippetCreateModel other)
-    Boolean Equals(Object obj)
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required IReadOnlyList<ElementMetadataBase> Elements { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentTypeSnippetCreateModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeSnippetCreateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2178,14 +2178,14 @@ public sealed class ContentTypeSnippetCreateModel : IEquatable<ContentTypeSnippe
 // Kontent.Ai.Management.Models.TypeSnippets
 public sealed class ContentTypeSnippetModel : IEquatable<ContentTypeSnippetModel>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<ElementMetadataBase> Elements { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentTypeSnippetModel other)
-    Boolean Equals(Object obj)
+    String? ExternalId { get; init; }
+    required DateTime LastModified { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<ElementMetadataBase> Elements { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentTypeSnippetModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeSnippetModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2196,12 +2196,12 @@ public sealed class ContentTypeSnippetPatch : ContentModelPatchBase
 // Kontent.Ai.Management.Models.Types
 public sealed class ContentGroupModel : IEquatable<ContentGroupModel>
     .ctor()
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentGroupModel other)
-    Boolean Equals(Object obj)
+    Guid? Id { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentGroupModel? other)
+    Boolean Equals(Object? obj)
     ContentGroupModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2209,13 +2209,13 @@ public sealed class ContentGroupModel : IEquatable<ContentGroupModel>
 // Kontent.Ai.Management.Models.Types
 public sealed class ContentTypeCreateModel : IEquatable<ContentTypeCreateModel>
     .ctor()
-    IReadOnlyList<ContentGroupModel> ContentGroups { get; init; }
-    IReadOnlyList<ElementMetadataBase> Elements { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentTypeCreateModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<ContentGroupModel>? ContentGroups { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required IReadOnlyList<ElementMetadataBase> Elements { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentTypeCreateModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeCreateModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2223,15 +2223,15 @@ public sealed class ContentTypeCreateModel : IEquatable<ContentTypeCreateModel>
 // Kontent.Ai.Management.Models.Types
 public sealed class ContentTypeModel : IEquatable<ContentTypeModel>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<ContentGroupModel> ContentGroups { get; init; }
-    IReadOnlyList<ElementMetadataBase> Elements { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentTypeModel other)
-    Boolean Equals(Object obj)
+    String? ExternalId { get; init; }
+    required DateTime LastModified { get; init; }
+    required Guid Id { get; init; }
+    required IReadOnlyList<ContentGroupModel> ContentGroups { get; init; }
+    required IReadOnlyList<ElementMetadataBase> Elements { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentTypeModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2239,10 +2239,10 @@ public sealed class ContentTypeModel : IEquatable<ContentTypeModel>
 // Kontent.Ai.Management.Models.Types
 public sealed class LimitModel : IEquatable<LimitModel>
     .ctor()
-    Int32 Value { get; init; }
-    LimitType Condition { get; init; }
-    Boolean Equals(LimitModel other)
-    Boolean Equals(Object obj)
+    required Int32 Value { get; init; }
+    required LimitType Condition { get; init; }
+    Boolean Equals(LimitModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LimitModel <Clone>$()
     String ToString()
@@ -2256,18 +2256,18 @@ public enum LimitType
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class AssetElementMetadataModel : ContentElementMetadataBase, IEquatable<AssetElementMetadataModel>
     .ctor()
-    AssetElementDefaultValueModel DefaultValue { get; init; }
+    AssetElementDefaultValueModel? DefaultValue { get; init; }
     ElementMetadataType Type { get; }
-    LimitModel AssetCountLimit { get; init; }
-    LimitModel ImageHeightLimit { get; init; }
-    LimitModel ImageWidthLimit { get; init; }
-    Nullable<FileType> AllowedFileTypes { get; init; }
-    Nullable<Int64> MaximumFileSize { get; init; }
-    String Name { get; init; }
+    FileType? AllowedFileTypes { get; init; }
+    Int64? MaximumFileSize { get; init; }
+    LimitModel? AssetCountLimit { get; init; }
+    LimitModel? ImageHeightLimit { get; init; }
+    LimitModel? ImageWidthLimit { get; init; }
+    required String Name { get; init; }
     AssetElementMetadataModel <Clone>$()
-    Boolean Equals(AssetElementMetadataModel other)
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetElementMetadataModel? other)
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -2275,10 +2275,10 @@ public sealed class AssetElementMetadataModel : ContentElementMetadataBase, IEqu
 public class ContentElementMetadataBase : ElementMetadataBase, IEquatable<ContentElementMetadataBase>
     Boolean IsNonLocalizable { get; init; }
     Boolean IsRequired { get; init; }
-    String Guidelines { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(ElementMetadataBase other)
-    Boolean Equals(Object obj)
+    String? Guidelines { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(ElementMetadataBase? other)
+    Boolean Equals(Object? obj)
     ContentElementMetadataBase <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2287,10 +2287,10 @@ public class ContentElementMetadataBase : ElementMetadataBase, IEquatable<Conten
 public sealed class ContentTypeSnippetElementMetadataModel : ElementMetadataBase, IEquatable<ContentTypeSnippetElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    Reference Snippet { get; init; }
-    Boolean Equals(ContentTypeSnippetElementMetadataModel other)
-    Boolean Equals(ElementMetadataBase other)
-    Boolean Equals(Object obj)
+    required Reference Snippet { get; init; }
+    Boolean Equals(ContentTypeSnippetElementMetadataModel? other)
+    Boolean Equals(ElementMetadataBase? other)
+    Boolean Equals(Object? obj)
     ContentTypeSnippetElementMetadataModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2299,13 +2299,13 @@ public sealed class ContentTypeSnippetElementMetadataModel : ElementMetadataBase
 public sealed class CustomElementMetadataModel : ContentElementMetadataBase, IEquatable<CustomElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    IReadOnlyList<Reference> AllowedElements { get; init; }
-    String JsonParameters { get; init; }
-    String Name { get; init; }
-    String SourceUrl { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(CustomElementMetadataModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? AllowedElements { get; init; }
+    String? JsonParameters { get; init; }
+    required String Name { get; init; }
+    required String SourceUrl { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(CustomElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     CustomElementMetadataModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2313,12 +2313,12 @@ public sealed class CustomElementMetadataModel : ContentElementMetadataBase, IEq
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class DateTimeElementMetadataModel : ContentElementMetadataBase, IEquatable<DateTimeElementMetadataModel>
     .ctor()
-    DateTimeElementDefaultValueModel DefaultValue { get; init; }
+    DateTimeElementDefaultValueModel? DefaultValue { get; init; }
     ElementMetadataType Type { get; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(DateTimeElementMetadataModel other)
-    Boolean Equals(Object obj)
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(DateTimeElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     DateTimeElementMetadataModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2326,12 +2326,12 @@ public sealed class DateTimeElementMetadataModel : ContentElementMetadataBase, I
 // Kontent.Ai.Management.Models.Types.Elements
 public class ElementMetadataBase : IEquatable<ElementMetadataBase>
     ElementMetadataType Type { get; }
-    Nullable<Guid> Id { get; init; }
-    Reference ContentGroup { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    Boolean Equals(ElementMetadataBase other)
-    Boolean Equals(Object obj)
+    Guid? Id { get; init; }
+    Reference? ContentGroup { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    Boolean Equals(ElementMetadataBase? other)
+    Boolean Equals(Object? obj)
     ElementMetadataBase <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2361,10 +2361,10 @@ public enum FileType
 public sealed class GuidelinesElementMetadataModel : ElementMetadataBase, IEquatable<GuidelinesElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    String Guidelines { get; init; }
-    Boolean Equals(ElementMetadataBase other)
-    Boolean Equals(GuidelinesElementMetadataModel other)
-    Boolean Equals(Object obj)
+    required String Guidelines { get; init; }
+    Boolean Equals(ElementMetadataBase? other)
+    Boolean Equals(GuidelinesElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     GuidelinesElementMetadataModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2373,13 +2373,13 @@ public sealed class GuidelinesElementMetadataModel : ElementMetadataBase, IEquat
 public sealed class LinkedItemsElementMetadataModel : ContentElementMetadataBase, IEquatable<LinkedItemsElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    IReadOnlyList<Reference> AllowedContentTypes { get; init; }
-    LimitModel ItemCountLimit { get; init; }
-    LinkedItemsElementDefaultValueModel DefaultValue { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(LinkedItemsElementMetadataModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? AllowedContentTypes { get; init; }
+    LimitModel? ItemCountLimit { get; init; }
+    LinkedItemsElementDefaultValueModel? DefaultValue { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(LinkedItemsElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LinkedItemsElementMetadataModel <Clone>$()
     String ToString()
@@ -2387,10 +2387,10 @@ public sealed class LinkedItemsElementMetadataModel : ContentElementMetadataBase
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class MaximumTextLengthModel : IEquatable<MaximumTextLengthModel>
     .ctor()
-    Int32 Value { get; init; }
-    TextLengthLimitType AppliesTo { get; init; }
-    Boolean Equals(MaximumTextLengthModel other)
-    Boolean Equals(Object obj)
+    required Int32 Value { get; init; }
+    required TextLengthLimitType AppliesTo { get; init; }
+    Boolean Equals(MaximumTextLengthModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MaximumTextLengthModel <Clone>$()
     String ToString()
@@ -2399,13 +2399,13 @@ public sealed class MaximumTextLengthModel : IEquatable<MaximumTextLengthModel>
 public sealed class MultipleChoiceElementMetadataModel : ContentElementMetadataBase, IEquatable<MultipleChoiceElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    IReadOnlyList<MultipleChoiceOptionModel> Options { get; init; }
-    MultipleChoiceElementDefaultValueModel DefaultValue { get; init; }
-    MultipleChoiceMode Mode { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(MultipleChoiceElementMetadataModel other)
-    Boolean Equals(Object obj)
+    MultipleChoiceElementDefaultValueModel? DefaultValue { get; init; }
+    required IReadOnlyList<MultipleChoiceOptionModel> Options { get; init; }
+    required MultipleChoiceMode Mode { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(MultipleChoiceElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MultipleChoiceElementMetadataModel <Clone>$()
     String ToString()
@@ -2418,12 +2418,12 @@ public enum MultipleChoiceMode
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class MultipleChoiceOptionModel : IEquatable<MultipleChoiceOptionModel>
     .ctor()
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String ExternalId { get; init; }
-    String Name { get; init; }
-    Boolean Equals(MultipleChoiceOptionModel other)
-    Boolean Equals(Object obj)
+    Guid? Id { get; init; }
+    String? Codename { get; init; }
+    String? ExternalId { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(MultipleChoiceOptionModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MultipleChoiceOptionModel <Clone>$()
     String ToString()
@@ -2432,11 +2432,11 @@ public sealed class MultipleChoiceOptionModel : IEquatable<MultipleChoiceOptionM
 public sealed class NumberElementMetadataModel : ContentElementMetadataBase, IEquatable<NumberElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    NumberElementDefaultValueModel DefaultValue { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(NumberElementMetadataModel other)
-    Boolean Equals(Object obj)
+    NumberElementDefaultValueModel? DefaultValue { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(NumberElementMetadataModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     NumberElementMetadataModel <Clone>$()
     String ToString()
@@ -2452,23 +2452,23 @@ public enum RichTextBlockType
 public sealed class RichTextElementMetadataModel : ContentElementMetadataBase, IEquatable<RichTextElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    IReadOnlyList<Reference> AllowedContentTypes { get; init; }
-    IReadOnlyList<Reference> AllowedItemLinkTypes { get; init; }
-    IReadOnlyList<RichTextBlockType> AllowedBlocks { get; init; }
-    IReadOnlyList<RichTextFormattingType> AllowedFormatting { get; init; }
-    IReadOnlyList<RichTextFormattingType> AllowedTableFormatting { get; init; }
-    IReadOnlyList<RichTextTableBlockType> AllowedTableBlocks { get; init; }
-    IReadOnlyList<RichTextTextBlockType> AllowedTableTextBlocks { get; init; }
-    IReadOnlyList<RichTextTextBlockType> AllowedTextBlocks { get; init; }
-    LimitModel ImageHeightLimit { get; init; }
-    LimitModel ImageWidthLimit { get; init; }
-    MaximumTextLengthModel MaximumTextLength { get; init; }
-    Nullable<FileType> AllowedImageTypes { get; init; }
-    Nullable<Int64> MaximumImageSize { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
-    Boolean Equals(RichTextElementMetadataModel other)
+    FileType? AllowedImageTypes { get; init; }
+    IReadOnlyList<Reference>? AllowedContentTypes { get; init; }
+    IReadOnlyList<Reference>? AllowedItemLinkTypes { get; init; }
+    IReadOnlyList<RichTextBlockType>? AllowedBlocks { get; init; }
+    IReadOnlyList<RichTextFormattingType>? AllowedFormatting { get; init; }
+    IReadOnlyList<RichTextFormattingType>? AllowedTableFormatting { get; init; }
+    IReadOnlyList<RichTextTableBlockType>? AllowedTableBlocks { get; init; }
+    IReadOnlyList<RichTextTextBlockType>? AllowedTableTextBlocks { get; init; }
+    IReadOnlyList<RichTextTextBlockType>? AllowedTextBlocks { get; init; }
+    Int64? MaximumImageSize { get; init; }
+    LimitModel? ImageHeightLimit { get; init; }
+    LimitModel? ImageWidthLimit { get; init; }
+    MaximumTextLengthModel? MaximumTextLength { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(RichTextElementMetadataModel? other)
     Int32 GetHashCode()
     RichTextElementMetadataModel <Clone>$()
     String ToString()
@@ -2504,12 +2504,12 @@ public enum RichTextTextBlockType
 public sealed class SubpagesElementMetadataModel : ContentElementMetadataBase, IEquatable<SubpagesElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    IReadOnlyList<Reference> AllowedContentTypes { get; init; }
-    LimitModel ItemCountLimit { get; init; }
-    String Name { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
-    Boolean Equals(SubpagesElementMetadataModel other)
+    IReadOnlyList<Reference>? AllowedContentTypes { get; init; }
+    LimitModel? ItemCountLimit { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubpagesElementMetadataModel? other)
     Int32 GetHashCode()
     String ToString()
     SubpagesElementMetadataModel <Clone>$()
@@ -2518,13 +2518,13 @@ public sealed class SubpagesElementMetadataModel : ContentElementMetadataBase, I
 public sealed class TaxonomyElementMetadataModel : ContentElementMetadataBase, IEquatable<TaxonomyElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    LimitModel TermCountLimit { get; init; }
-    Reference TaxonomyGroup { get; init; }
-    String Name { get; init; }
-    TaxonomyElementDefaultValueModel DefaultValue { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyElementMetadataModel other)
+    LimitModel? TermCountLimit { get; init; }
+    String? Name { get; init; }
+    TaxonomyElementDefaultValueModel? DefaultValue { get; init; }
+    required Reference TaxonomyGroup { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyElementMetadataModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyElementMetadataModel <Clone>$()
@@ -2533,13 +2533,13 @@ public sealed class TaxonomyElementMetadataModel : ContentElementMetadataBase, I
 public sealed class TextElementMetadataModel : ContentElementMetadataBase, IEquatable<TextElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    MaximumTextLengthModel MaximumTextLength { get; init; }
-    String Name { get; init; }
-    TextElementDefaultValueModel DefaultValue { get; init; }
-    ValidationRegexModel ValidationRegex { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TextElementMetadataModel other)
+    MaximumTextLengthModel? MaximumTextLength { get; init; }
+    TextElementDefaultValueModel? DefaultValue { get; init; }
+    ValidationRegexModel? ValidationRegex { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TextElementMetadataModel? other)
     Int32 GetHashCode()
     String ToString()
     TextElementMetadataModel <Clone>$()
@@ -2552,10 +2552,10 @@ public enum TextLengthLimitType
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class UrlSlugDependency : IEquatable<UrlSlugDependency>
     .ctor()
-    Reference Element { get; init; }
-    Reference Snippet { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UrlSlugDependency other)
+    Reference? Snippet { get; init; }
+    required Reference Element { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UrlSlugDependency? other)
     Int32 GetHashCode()
     String ToString()
     UrlSlugDependency <Clone>$()
@@ -2564,12 +2564,12 @@ public sealed class UrlSlugDependency : IEquatable<UrlSlugDependency>
 public sealed class UrlSlugElementMetadataModel : ContentElementMetadataBase, IEquatable<UrlSlugElementMetadataModel>
     .ctor()
     ElementMetadataType Type { get; }
-    String Name { get; init; }
-    UrlSlugDependency DependsOn { get; init; }
-    ValidationRegexModel ValidationRegex { get; init; }
-    Boolean Equals(ContentElementMetadataBase other)
-    Boolean Equals(Object obj)
-    Boolean Equals(UrlSlugElementMetadataModel other)
+    ValidationRegexModel? ValidationRegex { get; init; }
+    required String Name { get; init; }
+    required UrlSlugDependency DependsOn { get; init; }
+    Boolean Equals(ContentElementMetadataBase? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(UrlSlugElementMetadataModel? other)
     Int32 GetHashCode()
     String ToString()
     UrlSlugElementMetadataModel <Clone>$()
@@ -2577,12 +2577,12 @@ public sealed class UrlSlugElementMetadataModel : ContentElementMetadataBase, IE
 // Kontent.Ai.Management.Models.Types.Elements
 public sealed class ValidationRegexModel : IEquatable<ValidationRegexModel>
     .ctor()
-    Boolean IsActive { get; init; }
-    String Flags { get; init; }
-    String Regex { get; init; }
-    String ValidationMessage { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(ValidationRegexModel other)
+    String? Flags { get; init; }
+    String? Regex { get; init; }
+    String? ValidationMessage { get; init; }
+    required Boolean IsActive { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(ValidationRegexModel? other)
     Int32 GetHashCode()
     String ToString()
     ValidationRegexModel <Clone>$()
@@ -2592,9 +2592,9 @@ public sealed class AssetElementDefaultValueModel : ElementDefaultValue<IReadOnl
     .ctor()
     .ctor(AssetReference[] values)
     AssetElementDefaultValueModel <Clone>$()
-    Boolean Equals(AssetElementDefaultValueModel other)
-    Boolean Equals(ElementDefaultValue<IReadOnlyList<AssetReference>> other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetElementDefaultValueModel? other)
+    Boolean Equals(ElementDefaultValue<IReadOnlyList<AssetReference>>? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -2602,9 +2602,9 @@ public sealed class AssetElementDefaultValueModel : ElementDefaultValue<IReadOnl
 public sealed class DateTimeElementDefaultValueModel : ElementDefaultValue<DateTimeOffset>, IEquatable<DateTimeElementDefaultValueModel>
     .ctor()
     .ctor(DateTimeOffset value)
-    Boolean Equals(DateTimeElementDefaultValueModel other)
-    Boolean Equals(ElementDefaultValue<DateTimeOffset> other)
-    Boolean Equals(Object obj)
+    Boolean Equals(DateTimeElementDefaultValueModel? other)
+    Boolean Equals(ElementDefaultValue<DateTimeOffset>? other)
+    Boolean Equals(Object? obj)
     DateTimeElementDefaultValueModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2612,18 +2612,18 @@ public sealed class DateTimeElementDefaultValueModel : ElementDefaultValue<DateT
 // Kontent.Ai.Management.Models.Types.Elements.DefaultValues
 public sealed class ElementDefaultValueEnvelope`1<TValue> : IEquatable<ElementDefaultValueEnvelope<TValue>>
     .ctor()
-    TValue Value { get; init; }
-    Boolean Equals(ElementDefaultValueEnvelope<TValue> other)
-    Boolean Equals(Object obj)
+    required TValue Value { get; init; }
+    Boolean Equals(ElementDefaultValueEnvelope<TValue>? other)
+    Boolean Equals(Object? obj)
     ElementDefaultValueEnvelope<TValue> <Clone>$()
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Types.Elements.DefaultValues
 public class ElementDefaultValue`1<TValue> : IEquatable<ElementDefaultValue<TValue>>
-    ElementDefaultValueEnvelope<TValue> Global { get; init; }
-    Boolean Equals(ElementDefaultValue<TValue> other)
-    Boolean Equals(Object obj)
+    required ElementDefaultValueEnvelope<TValue> Global { get; init; }
+    Boolean Equals(ElementDefaultValue<TValue>? other)
+    Boolean Equals(Object? obj)
     ElementDefaultValue<TValue> <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2632,9 +2632,9 @@ public class ElementDefaultValue`1<TValue> : IEquatable<ElementDefaultValue<TVal
 public sealed class LinkedItemsElementDefaultValueModel : ElementDefaultValue<IReadOnlyList<Reference>>, IEquatable<LinkedItemsElementDefaultValueModel>
     .ctor()
     .ctor(Reference[] values)
-    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>> other)
-    Boolean Equals(LinkedItemsElementDefaultValueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>>? other)
+    Boolean Equals(LinkedItemsElementDefaultValueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LinkedItemsElementDefaultValueModel <Clone>$()
     String ToString()
@@ -2643,9 +2643,9 @@ public sealed class LinkedItemsElementDefaultValueModel : ElementDefaultValue<IR
 public sealed class MultipleChoiceElementDefaultValueModel : ElementDefaultValue<IReadOnlyList<Reference>>, IEquatable<MultipleChoiceElementDefaultValueModel>
     .ctor()
     .ctor(Reference[] values)
-    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>> other)
-    Boolean Equals(MultipleChoiceElementDefaultValueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>>? other)
+    Boolean Equals(MultipleChoiceElementDefaultValueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     MultipleChoiceElementDefaultValueModel <Clone>$()
     String ToString()
@@ -2654,9 +2654,9 @@ public sealed class MultipleChoiceElementDefaultValueModel : ElementDefaultValue
 public sealed class NumberElementDefaultValueModel : ElementDefaultValue<Decimal>, IEquatable<NumberElementDefaultValueModel>
     .ctor()
     .ctor(Decimal value)
-    Boolean Equals(ElementDefaultValue<Decimal> other)
-    Boolean Equals(NumberElementDefaultValueModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(ElementDefaultValue<Decimal>? other)
+    Boolean Equals(NumberElementDefaultValueModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     NumberElementDefaultValueModel <Clone>$()
     String ToString()
@@ -2665,9 +2665,9 @@ public sealed class NumberElementDefaultValueModel : ElementDefaultValue<Decimal
 public sealed class TaxonomyElementDefaultValueModel : ElementDefaultValue<IReadOnlyList<Reference>>, IEquatable<TaxonomyElementDefaultValueModel>
     .ctor()
     .ctor(Reference[] values)
-    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>> other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyElementDefaultValueModel other)
+    Boolean Equals(ElementDefaultValue<IReadOnlyList<Reference>>? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyElementDefaultValueModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyElementDefaultValueModel <Clone>$()
@@ -2676,16 +2676,16 @@ public sealed class TaxonomyElementDefaultValueModel : ElementDefaultValue<IRead
 public sealed class TextElementDefaultValueModel : ElementDefaultValue<String>, IEquatable<TextElementDefaultValueModel>
     .ctor()
     .ctor(String value)
-    Boolean Equals(ElementDefaultValue<String> other)
-    Boolean Equals(Object obj)
-    Boolean Equals(TextElementDefaultValueModel other)
+    Boolean Equals(ElementDefaultValue<String>? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TextElementDefaultValueModel? other)
     Int32 GetHashCode()
     String ToString()
     TextElementDefaultValueModel <Clone>$()
 
 // Kontent.Ai.Management.Models.Types.Patch
 public sealed class ContentTypePatch : ContentModelPatchBase
-    static ContentModelOperationBaseModel AddContentGroup(ContentGroupModel group, Reference before, Reference after)
+    static ContentModelOperationBaseModel AddContentGroup(ContentGroupModel group, Reference? before, Reference? after)
     static ContentModelOperationBaseModel MoveContentGroupAfter(Reference group, Reference target)
     static ContentModelOperationBaseModel MoveContentGroupBefore(Reference group, Reference target)
     static ContentModelOperationBaseModel RemoveContentGroup(Reference group)
@@ -2694,10 +2694,10 @@ public sealed class ContentTypePatch : ContentModelPatchBase
 // Kontent.Ai.Management.Models.Users
 public sealed class UserCollectionGroup : IEquatable<UserCollectionGroup>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<UserRoleModel> Roles { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserCollectionGroup other)
+    required IReadOnlyList<Reference> Collections { get; init; }
+    required IReadOnlyList<UserRoleModel> Roles { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserCollectionGroup? other)
     Int32 GetHashCode()
     String ToString()
     UserCollectionGroup <Clone>$()
@@ -2705,10 +2705,10 @@ public sealed class UserCollectionGroup : IEquatable<UserCollectionGroup>
 // Kontent.Ai.Management.Models.Users
 public sealed class UserInviteModel : IEquatable<UserInviteModel>
     .ctor()
-    IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
-    String Email { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserInviteModel other)
+    required IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
+    required String Email { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserInviteModel? other)
     Int32 GetHashCode()
     String ToString()
     UserInviteModel <Clone>$()
@@ -2716,10 +2716,10 @@ public sealed class UserInviteModel : IEquatable<UserInviteModel>
 // Kontent.Ai.Management.Models.Users
 public sealed class UserModel : IEquatable<UserModel>
     .ctor()
-    IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
-    String Id { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserModel other)
+    required IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
+    required String Id { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserModel? other)
     Int32 GetHashCode()
     String ToString()
     UserModel <Clone>$()
@@ -2727,10 +2727,10 @@ public sealed class UserModel : IEquatable<UserModel>
 // Kontent.Ai.Management.Models.Users
 public sealed class UserRoleModel : IEquatable<UserRoleModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<Reference> Languages { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserRoleModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<Reference> Languages { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserRoleModel? other)
     Int32 GetHashCode()
     String ToString()
     UserRoleModel <Clone>$()
@@ -2738,9 +2738,9 @@ public sealed class UserRoleModel : IEquatable<UserRoleModel>
 // Kontent.Ai.Management.Models.Users
 public sealed class UserRolesUpdateModel : IEquatable<UserRolesUpdateModel>
     .ctor()
-    IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(UserRolesUpdateModel other)
+    required IReadOnlyList<UserCollectionGroup> CollectionGroups { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(UserRolesUpdateModel? other)
     Int32 GetHashCode()
     String ToString()
     UserRolesUpdateModel <Clone>$()
@@ -2755,20 +2755,20 @@ public enum VariantFilterCompletionStatus
 // Kontent.Ai.Management.Models.VariantFilter
 public sealed class VariantFilterFiltersModel : IEquatable<VariantFilterFiltersModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<Reference> ComponentTypes { get; init; }
-    IReadOnlyList<Reference> ContentTypes { get; init; }
-    IReadOnlyList<Reference> Spaces { get; init; }
-    IReadOnlyList<UserIdentifier> Contributors { get; init; }
-    IReadOnlyList<VariantFilterCompletionStatus> CompletionStatuses { get; init; }
-    IReadOnlyList<VariantFilterPublishingState> PublishingStates { get; init; }
-    IReadOnlyList<VariantFilterTaxonomyGroupModel> TaxonomyGroups { get; init; }
-    IReadOnlyList<VariantFilterWorkflowStepsModel> WorkflowSteps { get; init; }
-    Nullable<Boolean> HasNoContributors { get; init; }
-    Reference Language { get; init; }
-    String SearchPhrase { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantFilterFiltersModel other)
+    Boolean? HasNoContributors { get; init; }
+    IReadOnlyList<Reference>? Collections { get; init; }
+    IReadOnlyList<Reference>? ComponentTypes { get; init; }
+    IReadOnlyList<Reference>? ContentTypes { get; init; }
+    IReadOnlyList<Reference>? Spaces { get; init; }
+    IReadOnlyList<UserIdentifier>? Contributors { get; init; }
+    IReadOnlyList<VariantFilterCompletionStatus>? CompletionStatuses { get; init; }
+    IReadOnlyList<VariantFilterPublishingState>? PublishingStates { get; init; }
+    IReadOnlyList<VariantFilterTaxonomyGroupModel>? TaxonomyGroups { get; init; }
+    IReadOnlyList<VariantFilterWorkflowStepsModel>? WorkflowSteps { get; init; }
+    Reference? Language { get; init; }
+    String? SearchPhrase { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantFilterFiltersModel? other)
     Int32 GetHashCode()
     String ToString()
     VariantFilterFiltersModel <Clone>$()
@@ -2787,10 +2787,10 @@ public enum VariantFilterOrderDirection
 // Kontent.Ai.Management.Models.VariantFilter
 public sealed class VariantFilterOrderModel : IEquatable<VariantFilterOrderModel>
     .ctor()
-    VariantFilterOrderColumn By { get; init; }
     VariantFilterOrderDirection Direction { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantFilterOrderModel other)
+    required VariantFilterOrderColumn By { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantFilterOrderModel? other)
     Int32 GetHashCode()
     String ToString()
     VariantFilterOrderModel <Clone>$()
@@ -2805,10 +2805,10 @@ public enum VariantFilterPublishingState
 public sealed class VariantFilterTaxonomyGroupModel : IEquatable<VariantFilterTaxonomyGroupModel>
     .ctor()
     Boolean IncludeUncategorized { get; init; }
-    IReadOnlyList<Reference> Terms { get; init; }
-    Reference TaxonomyGroup { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantFilterTaxonomyGroupModel other)
+    IReadOnlyList<Reference>? Terms { get; init; }
+    required Reference TaxonomyGroup { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantFilterTaxonomyGroupModel? other)
     Int32 GetHashCode()
     String ToString()
     VariantFilterTaxonomyGroupModel <Clone>$()
@@ -2816,10 +2816,10 @@ public sealed class VariantFilterTaxonomyGroupModel : IEquatable<VariantFilterTa
 // Kontent.Ai.Management.Models.VariantFilter
 public sealed class VariantFilterWorkflowStepsModel : IEquatable<VariantFilterWorkflowStepsModel>
     .ctor()
-    IReadOnlyList<Reference> Steps { get; init; }
-    Reference Workflow { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(VariantFilterWorkflowStepsModel other)
+    IReadOnlyList<Reference>? Steps { get; init; }
+    required Reference Workflow { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(VariantFilterWorkflowStepsModel? other)
     Int32 GetHashCode()
     String ToString()
     VariantFilterWorkflowStepsModel <Clone>$()
@@ -2827,10 +2827,10 @@ public sealed class VariantFilterWorkflowStepsModel : IEquatable<VariantFilterWo
 // Kontent.Ai.Management.Models.Webhooks
 public sealed class CustomHeaderModel : IEquatable<CustomHeaderModel>
     .ctor()
-    String Key { get; init; }
-    String Value { get; init; }
-    Boolean Equals(CustomHeaderModel other)
-    Boolean Equals(Object obj)
+    required String Key { get; init; }
+    required String Value { get; init; }
+    Boolean Equals(CustomHeaderModel? other)
+    Boolean Equals(Object? obj)
     CustomHeaderModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2838,14 +2838,14 @@ public sealed class CustomHeaderModel : IEquatable<CustomHeaderModel>
 // Kontent.Ai.Management.Models.Webhooks
 public sealed class WebhookCreateModel : IEquatable<WebhookCreateModel>
     .ctor()
-    DeliveryTriggersModel DeliveryTriggers { get; init; }
-    IReadOnlyList<CustomHeaderModel> Headers { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
-    String Name { get; init; }
-    String Secret { get; init; }
-    String Url { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookCreateModel other)
+    Boolean? Enabled { get; init; }
+    IReadOnlyList<CustomHeaderModel>? Headers { get; init; }
+    required DeliveryTriggersModel DeliveryTriggers { get; init; }
+    required String Name { get; init; }
+    required String Secret { get; init; }
+    required String Url { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookCreateModel? other)
     Int32 GetHashCode()
     String ToString()
     WebhookCreateModel <Clone>$()
@@ -2860,17 +2860,17 @@ public enum WebhookHealthStatus
 // Kontent.Ai.Management.Models.Webhooks
 public sealed class WebhookModel : IEquatable<WebhookModel>
     .ctor()
-    Boolean Enabled { get; init; }
-    DateTime LastModified { get; init; }
-    DeliveryTriggersModel DeliveryTriggers { get; init; }
-    Guid Id { get; init; }
-    IReadOnlyList<CustomHeaderModel> Headers { get; init; }
-    String Name { get; init; }
-    String Secret { get; init; }
-    String Url { get; init; }
-    WebhookHealthStatus HealthStatus { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WebhookModel other)
+    IReadOnlyList<CustomHeaderModel>? Headers { get; init; }
+    required Boolean Enabled { get; init; }
+    required DateTime LastModified { get; init; }
+    required DeliveryTriggersModel DeliveryTriggers { get; init; }
+    required Guid Id { get; init; }
+    required String Name { get; init; }
+    required String Secret { get; init; }
+    required String Url { get; init; }
+    required WebhookHealthStatus HealthStatus { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookModel? other)
     Int32 GetHashCode()
     String ToString()
     WebhookModel <Clone>$()
@@ -2883,15 +2883,15 @@ public enum DeliverySlot
 // Kontent.Ai.Management.Models.Webhooks.Triggers
 public sealed class DeliveryTriggersModel : IEquatable<DeliveryTriggersModel>
     .ctor()
-    AssetTriggerModel Asset { get; init; }
-    ContentItemTriggerModel ContentItem { get; init; }
-    ContentTypeTriggerModel ContentType { get; init; }
-    LanguageTriggerModel Language { get; init; }
-    Nullable<DeliverySlot> Slot { get; init; }
-    Nullable<WebhookEvents> Events { get; init; }
-    TaxonomyTriggerModel Taxonomy { get; init; }
-    Boolean Equals(DeliveryTriggersModel other)
-    Boolean Equals(Object obj)
+    AssetTriggerModel? Asset { get; init; }
+    ContentItemTriggerModel? ContentItem { get; init; }
+    ContentTypeTriggerModel? ContentType { get; init; }
+    DeliverySlot? Slot { get; init; }
+    LanguageTriggerModel? Language { get; init; }
+    TaxonomyTriggerModel? Taxonomy { get; init; }
+    WebhookEvents? Events { get; init; }
+    Boolean Equals(DeliveryTriggersModel? other)
+    Boolean Equals(Object? obj)
     DeliveryTriggersModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2911,21 +2911,21 @@ public enum AssetAction
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Asset
 public sealed class AssetActionModel : IEquatable<AssetActionModel>
     .ctor()
-    AssetAction Action { get; init; }
+    required AssetAction Action { get; init; }
     AssetActionModel <Clone>$()
-    Boolean Equals(AssetActionModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetActionModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Asset
 public sealed class AssetTriggerModel : IEquatable<AssetTriggerModel>
     .ctor()
-    IReadOnlyList<AssetActionModel> Actions { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
+    Boolean? Enabled { get; init; }
+    IReadOnlyList<AssetActionModel>? Actions { get; init; }
     AssetTriggerModel <Clone>$()
-    Boolean Equals(AssetTriggerModel other)
-    Boolean Equals(Object obj)
+    Boolean Equals(AssetTriggerModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     String ToString()
 
@@ -2942,10 +2942,10 @@ public enum ContentItemAction
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem
 public sealed class ContentItemActionModel : IEquatable<ContentItemActionModel>
     .ctor()
-    ContentItemAction Action { get; init; }
-    IReadOnlyList<ContentItemWorkflowTransition> TransitionTo { get; init; }
-    Boolean Equals(ContentItemActionModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<ContentItemWorkflowTransition>? TransitionTo { get; init; }
+    required ContentItemAction Action { get; init; }
+    Boolean Equals(ContentItemActionModel? other)
+    Boolean Equals(Object? obj)
     ContentItemActionModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2953,11 +2953,11 @@ public sealed class ContentItemActionModel : IEquatable<ContentItemActionModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem
 public sealed class ContentItemFiltersModel : IEquatable<ContentItemFiltersModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<Reference> ContentTypes { get; init; }
-    IReadOnlyList<Reference> Languages { get; init; }
-    Boolean Equals(ContentItemFiltersModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? Collections { get; init; }
+    IReadOnlyList<Reference>? ContentTypes { get; init; }
+    IReadOnlyList<Reference>? Languages { get; init; }
+    Boolean Equals(ContentItemFiltersModel? other)
+    Boolean Equals(Object? obj)
     ContentItemFiltersModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2965,11 +2965,11 @@ public sealed class ContentItemFiltersModel : IEquatable<ContentItemFiltersModel
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem
 public sealed class ContentItemTriggerModel : IEquatable<ContentItemTriggerModel>
     .ctor()
-    ContentItemFiltersModel Filters { get; init; }
-    IReadOnlyList<ContentItemActionModel> Actions { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
-    Boolean Equals(ContentItemTriggerModel other)
-    Boolean Equals(Object obj)
+    Boolean? Enabled { get; init; }
+    ContentItemFiltersModel? Filters { get; init; }
+    IReadOnlyList<ContentItemActionModel>? Actions { get; init; }
+    Boolean Equals(ContentItemTriggerModel? other)
+    Boolean Equals(Object? obj)
     ContentItemTriggerModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2977,10 +2977,10 @@ public sealed class ContentItemTriggerModel : IEquatable<ContentItemTriggerModel
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem
 public sealed class ContentItemWorkflowTransition : IEquatable<ContentItemWorkflowTransition>
     .ctor()
-    Reference Step { get; init; }
-    Reference Workflow { get; init; }
-    Boolean Equals(ContentItemWorkflowTransition other)
-    Boolean Equals(Object obj)
+    required Reference Step { get; init; }
+    required Reference Workflow { get; init; }
+    Boolean Equals(ContentItemWorkflowTransition? other)
+    Boolean Equals(Object? obj)
     ContentItemWorkflowTransition <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -2994,9 +2994,9 @@ public enum ContentTypeAction
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentType
 public sealed class ContentTypeActionModel : IEquatable<ContentTypeActionModel>
     .ctor()
-    ContentTypeAction Action { get; init; }
-    Boolean Equals(ContentTypeActionModel other)
-    Boolean Equals(Object obj)
+    required ContentTypeAction Action { get; init; }
+    Boolean Equals(ContentTypeActionModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeActionModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -3004,9 +3004,9 @@ public sealed class ContentTypeActionModel : IEquatable<ContentTypeActionModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentType
 public sealed class ContentTypeFiltersModel : IEquatable<ContentTypeFiltersModel>
     .ctor()
-    IReadOnlyList<Reference> ContentTypes { get; init; }
-    Boolean Equals(ContentTypeFiltersModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? ContentTypes { get; init; }
+    Boolean Equals(ContentTypeFiltersModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeFiltersModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -3014,11 +3014,11 @@ public sealed class ContentTypeFiltersModel : IEquatable<ContentTypeFiltersModel
 // Kontent.Ai.Management.Models.Webhooks.Triggers.ContentType
 public sealed class ContentTypeTriggerModel : IEquatable<ContentTypeTriggerModel>
     .ctor()
-    ContentTypeFiltersModel Filters { get; init; }
-    IReadOnlyList<ContentTypeActionModel> Actions { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
-    Boolean Equals(ContentTypeTriggerModel other)
-    Boolean Equals(Object obj)
+    Boolean? Enabled { get; init; }
+    ContentTypeFiltersModel? Filters { get; init; }
+    IReadOnlyList<ContentTypeActionModel>? Actions { get; init; }
+    Boolean Equals(ContentTypeTriggerModel? other)
+    Boolean Equals(Object? obj)
     ContentTypeTriggerModel <Clone>$()
     Int32 GetHashCode()
     String ToString()
@@ -3032,9 +3032,9 @@ public enum LanguageAction
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Language
 public sealed class LanguageActionModel : IEquatable<LanguageActionModel>
     .ctor()
-    LanguageAction Action { get; init; }
-    Boolean Equals(LanguageActionModel other)
-    Boolean Equals(Object obj)
+    required LanguageAction Action { get; init; }
+    Boolean Equals(LanguageActionModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageActionModel <Clone>$()
     String ToString()
@@ -3042,9 +3042,9 @@ public sealed class LanguageActionModel : IEquatable<LanguageActionModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Language
 public sealed class LanguageFiltersModel : IEquatable<LanguageFiltersModel>
     .ctor()
-    IReadOnlyList<Reference> Languages { get; init; }
-    Boolean Equals(LanguageFiltersModel other)
-    Boolean Equals(Object obj)
+    IReadOnlyList<Reference>? Languages { get; init; }
+    Boolean Equals(LanguageFiltersModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageFiltersModel <Clone>$()
     String ToString()
@@ -3052,11 +3052,11 @@ public sealed class LanguageFiltersModel : IEquatable<LanguageFiltersModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Language
 public sealed class LanguageTriggerModel : IEquatable<LanguageTriggerModel>
     .ctor()
-    IReadOnlyList<LanguageActionModel> Actions { get; init; }
-    LanguageFiltersModel Filters { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
-    Boolean Equals(LanguageTriggerModel other)
-    Boolean Equals(Object obj)
+    Boolean? Enabled { get; init; }
+    IReadOnlyList<LanguageActionModel>? Actions { get; init; }
+    LanguageFiltersModel? Filters { get; init; }
+    Boolean Equals(LanguageTriggerModel? other)
+    Boolean Equals(Object? obj)
     Int32 GetHashCode()
     LanguageTriggerModel <Clone>$()
     String ToString()
@@ -3074,9 +3074,9 @@ public enum TaxonomyAction
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Taxonomy
 public sealed class TaxonomyActionModel : IEquatable<TaxonomyActionModel>
     .ctor()
-    TaxonomyAction Action { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyActionModel other)
+    required TaxonomyAction Action { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyActionModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyActionModel <Clone>$()
@@ -3084,9 +3084,9 @@ public sealed class TaxonomyActionModel : IEquatable<TaxonomyActionModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Taxonomy
 public sealed class TaxonomyFiltersModel : IEquatable<TaxonomyFiltersModel>
     .ctor()
-    IReadOnlyList<Reference> Taxonomies { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyFiltersModel other)
+    IReadOnlyList<Reference>? Taxonomies { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyFiltersModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyFiltersModel <Clone>$()
@@ -3094,11 +3094,11 @@ public sealed class TaxonomyFiltersModel : IEquatable<TaxonomyFiltersModel>
 // Kontent.Ai.Management.Models.Webhooks.Triggers.Taxonomy
 public sealed class TaxonomyTriggerModel : IEquatable<TaxonomyTriggerModel>
     .ctor()
-    IReadOnlyList<TaxonomyActionModel> Actions { get; init; }
-    Nullable<Boolean> Enabled { get; init; }
-    TaxonomyFiltersModel Filters { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(TaxonomyTriggerModel other)
+    Boolean? Enabled { get; init; }
+    IReadOnlyList<TaxonomyActionModel>? Actions { get; init; }
+    TaxonomyFiltersModel? Filters { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyTriggerModel? other)
     Int32 GetHashCode()
     String ToString()
     TaxonomyTriggerModel <Clone>$()
@@ -3106,12 +3106,12 @@ public sealed class TaxonomyTriggerModel : IEquatable<TaxonomyTriggerModel>
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowArchivedStepModel : IEquatable<WorkflowArchivedStepModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<Guid> RoleIds { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowArchivedStepModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<Guid> RoleIds { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowArchivedStepModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowArchivedStepModel <Clone>$()
@@ -3120,8 +3120,8 @@ public sealed class WorkflowArchivedStepModel : IEquatable<WorkflowArchivedStepM
 public sealed class WorkflowArchivedStepUpsertModel : IEquatable<WorkflowArchivedStepUpsertModel>
     .ctor()
     IReadOnlyList<Guid> RoleIds { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowArchivedStepUpsertModel other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowArchivedStepUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowArchivedStepUpsertModel <Clone>$()
@@ -3129,16 +3129,16 @@ public sealed class WorkflowArchivedStepUpsertModel : IEquatable<WorkflowArchive
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowModel : IEquatable<WorkflowModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<WorkflowScopeModel> Scopes { get; init; }
-    IReadOnlyList<WorkflowStepModel> Steps { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    WorkflowArchivedStepModel ArchivedStep { get; init; }
-    WorkflowPublishedStepModel PublishedStep { get; init; }
-    WorkflowScheduledStepModel ScheduledStep { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<WorkflowScopeModel> Scopes { get; init; }
+    required IReadOnlyList<WorkflowStepModel> Steps { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    required WorkflowArchivedStepModel ArchivedStep { get; init; }
+    required WorkflowPublishedStepModel PublishedStep { get; init; }
+    required WorkflowScheduledStepModel ScheduledStep { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowModel <Clone>$()
@@ -3146,13 +3146,13 @@ public sealed class WorkflowModel : IEquatable<WorkflowModel>
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowPublishedStepModel : IEquatable<WorkflowPublishedStepModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<Guid> CreateNewVersionRoleIds { get; init; }
-    IReadOnlyList<Guid> UnpublishRoleIds { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowPublishedStepModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<Guid> CreateNewVersionRoleIds { get; init; }
+    required IReadOnlyList<Guid> UnpublishRoleIds { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowPublishedStepModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowPublishedStepModel <Clone>$()
@@ -3162,8 +3162,8 @@ public sealed class WorkflowPublishedStepUpsertModel : IEquatable<WorkflowPublis
     .ctor()
     IReadOnlyList<Guid> CreateNewVersionRoleIds { get; init; }
     IReadOnlyList<Guid> UnpublishRoleIds { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowPublishedStepUpsertModel other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowPublishedStepUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowPublishedStepUpsertModel <Clone>$()
@@ -3171,11 +3171,11 @@ public sealed class WorkflowPublishedStepUpsertModel : IEquatable<WorkflowPublis
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowScheduledStepModel : IEquatable<WorkflowScheduledStepModel>
     .ctor()
-    Guid Id { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowScheduledStepModel other)
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowScheduledStepModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowScheduledStepModel <Clone>$()
@@ -3183,10 +3183,10 @@ public sealed class WorkflowScheduledStepModel : IEquatable<WorkflowScheduledSte
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowScopeModel : IEquatable<WorkflowScopeModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<Reference> ContentTypes { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowScopeModel other)
+    required IReadOnlyList<Reference> Collections { get; init; }
+    required IReadOnlyList<Reference> ContentTypes { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowScopeModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowScopeModel <Clone>$()
@@ -3194,10 +3194,10 @@ public sealed class WorkflowScopeModel : IEquatable<WorkflowScopeModel>
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowScopeUpsertModel : IEquatable<WorkflowScopeUpsertModel>
     .ctor()
-    IReadOnlyList<Reference> Collections { get; init; }
-    IReadOnlyList<Reference> ContentTypes { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowScopeUpsertModel other)
+    IReadOnlyList<Reference>? Collections { get; init; }
+    IReadOnlyList<Reference>? ContentTypes { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowScopeUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowScopeUpsertModel <Clone>$()
@@ -3224,10 +3224,10 @@ public enum WorkflowStepColor
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowStepIdentifier : IEquatable<WorkflowStepIdentifier>
     .ctor(Reference workflow, Reference step)
-    Reference Step { get; init; }
-    Reference Workflow { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowStepIdentifier other)
+    required Reference Step { get; init; }
+    required Reference Workflow { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowStepIdentifier? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowStepIdentifier <Clone>$()
@@ -3235,14 +3235,14 @@ public sealed class WorkflowStepIdentifier : IEquatable<WorkflowStepIdentifier>
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowStepModel : IEquatable<WorkflowStepModel>
     .ctor()
-    Guid Id { get; init; }
-    IReadOnlyList<Guid> RoleIds { get; init; }
-    IReadOnlyList<WorkflowStepTransitionToModel> TransitionsTo { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    WorkflowStepColor Color { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowStepModel other)
+    required Guid Id { get; init; }
+    required IReadOnlyList<Guid> RoleIds { get; init; }
+    required IReadOnlyList<WorkflowStepTransitionToModel> TransitionsTo { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
+    required WorkflowStepColor Color { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowStepModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowStepModel <Clone>$()
@@ -3250,9 +3250,9 @@ public sealed class WorkflowStepModel : IEquatable<WorkflowStepModel>
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowStepTransitionToModel : IEquatable<WorkflowStepTransitionToModel>
     .ctor()
-    Reference Step { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowStepTransitionToModel other)
+    required Reference Step { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowStepTransitionToModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowStepTransitionToModel <Clone>$()
@@ -3260,9 +3260,9 @@ public sealed class WorkflowStepTransitionToModel : IEquatable<WorkflowStepTrans
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowStepTransitionToUpsertModel : IEquatable<WorkflowStepTransitionToUpsertModel>
     .ctor()
-    Reference Step { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowStepTransitionToUpsertModel other)
+    required Reference Step { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowStepTransitionToUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowStepTransitionToUpsertModel <Clone>$()
@@ -3270,14 +3270,14 @@ public sealed class WorkflowStepTransitionToUpsertModel : IEquatable<WorkflowSte
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowStepUpsertModel : IEquatable<WorkflowStepUpsertModel>
     .ctor()
+    Guid? Id { get; init; }
     IReadOnlyList<Guid> RoleIds { get; init; }
-    IReadOnlyList<WorkflowStepTransitionToUpsertModel> TransitionsTo { get; init; }
-    Nullable<Guid> Id { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    WorkflowStepColor Color { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowStepUpsertModel other)
+    String? Codename { get; init; }
+    required IReadOnlyList<WorkflowStepTransitionToUpsertModel> TransitionsTo { get; init; }
+    required String Name { get; init; }
+    required WorkflowStepColor Color { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowStepUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowStepUpsertModel <Clone>$()
@@ -3285,14 +3285,14 @@ public sealed class WorkflowStepUpsertModel : IEquatable<WorkflowStepUpsertModel
 // Kontent.Ai.Management.Models.Workflow
 public sealed class WorkflowUpsertModel : IEquatable<WorkflowUpsertModel>
     .ctor()
-    IReadOnlyList<WorkflowScopeUpsertModel> Scopes { get; init; }
-    IReadOnlyList<WorkflowStepUpsertModel> Steps { get; init; }
-    String Codename { get; init; }
-    String Name { get; init; }
-    WorkflowArchivedStepUpsertModel ArchivedStep { get; init; }
-    WorkflowPublishedStepUpsertModel PublishedStep { get; init; }
-    Boolean Equals(Object obj)
-    Boolean Equals(WorkflowUpsertModel other)
+    String? Codename { get; init; }
+    required IReadOnlyList<WorkflowScopeUpsertModel> Scopes { get; init; }
+    required IReadOnlyList<WorkflowStepUpsertModel> Steps { get; init; }
+    required String Name { get; init; }
+    required WorkflowArchivedStepUpsertModel ArchivedStep { get; init; }
+    required WorkflowPublishedStepUpsertModel PublishedStep { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WorkflowUpsertModel? other)
     Int32 GetHashCode()
     String ToString()
     WorkflowUpsertModel <Clone>$()
