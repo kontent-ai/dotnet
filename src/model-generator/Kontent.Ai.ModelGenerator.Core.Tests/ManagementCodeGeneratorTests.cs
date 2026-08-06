@@ -426,6 +426,45 @@ public class ManagementCodeGeneratorTests
             .WithMessage("*content types*Invalid API key.*");
     }
 
+    [Fact]
+    public async Task RunAsync_ElementsCollidingOnOneIdentifier_SkipsOneAndStillEmitsValidCode()
+    {
+        // 'my_element' and 'my__element' are distinct codenames that PascalCase to one identifier.
+        // Emitting both produced a record declaring the same member twice, which does not compile.
+        var type = BuildArticleType();
+        type = type with
+        {
+            Elements =
+            [
+                WithId(new NumberElementMetadataModel { Name = "n", Codename = "my_element" }, Guid.NewGuid()),
+                WithId(new NumberElementMetadataModel { Name = "n", Codename = "my__element" }, Guid.NewGuid()),
+            ],
+        };
+        SetupClientWithTypes(type);
+        string? emitted = null;
+        _output
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
+
+        await CreateGenerator().RunAsync();
+
+        emitted.Should().NotBeNull();
+        emitted.Split("MyElement { get; init; }").Should().HaveCount(2, "the property must be emitted exactly once");
+        _logger.Received().LogWarning(Arg.Is<string>(m => m != null && m.Contains("MyElement") && m.Contains("my__element")));
+    }
+
+    [Fact]
+    public async Task RunAsync_ContentTypesCollidingOnOneFilename_WritesOneAndReportsTheOther()
+    {
+        SetupClientWithTypes(BuildArticleType("my_type"), BuildArticleType("my__type"));
+
+        await CreateGenerator().RunAsync();
+
+        _output.Received(1).Output(Arg.Any<string>(), "MyType", true);
+        _logger.Received().LogWarning(Arg.Is<string>(m => m != null && m.Contains("my__type") && m.Contains("MyType.cs")));
+        _logger.Received().LogInfo("1 content type models were successfully created.");
+    }
+
     private void SetupClientWithTypes(params ContentTypeModel[] types)
     {
         SetupClientWith(types, snippets: []);

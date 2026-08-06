@@ -20,6 +20,7 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   The flag had in fact stopped doing anything before this release: the code path behind it lived on a method that hid its base rather than overriding it, and the CLI invokes the base, so passing `-t` generated no provider and printed no warning. Passing it now fails with `Unsupported parameter: -t` rather than being silently ignored. Remove it from your scripts and reference `Kontent.Ai.Delivery.SourceGeneration` from the project your models are generated into.
 
 - **`CodeGeneratorBase.FilenameSuffix` and `GetFileClassName` are removed.** The suffix has been the empty string since single-file generation landed, which made `GetFileClassName(name)` an identity function. Generated file names are unchanged. Only affects code that subclasses `CodeGeneratorBase`.
+- **`ClassDefinition.AddPropertyCodenameConstant` is removed; `AddProperty` now registers both the property and its codename constant.** The two were always called as a pair, and calling them separately is what allowed a rejected property to leave its constant behind. `CodeGeneratorBase.AddProperty(Property, ref ClassDefinition)`, which wrapped the pair and had no callers, is removed with it. Only affects code that drives `ClassDefinition` directly.
 
 ### Changed
 
@@ -34,7 +35,19 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
   Configurations that were valid before remain valid. A configuration the tool used to accept and the API would then reject now fails at startup.
 - **`--baserecord` no longer fetches the content model twice.** Generating the base record re-read the whole content model rather than reusing what had just been fetched, so a run with `-b` made every request twice — in management mode, both the content-type and snippet listings. The generated output was identical either way; only the number of API calls changes.
-- **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`, verified by the generator's own output assertions.
+- **Nothing about the code the generator emits**, for any content model that generated valid code before. Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`, verified by the generator's own output assertions. Models that previously came out uncompilable are covered under Fixed.
+
+### Fixed
+
+- **Element codenames that differ but produce the same C# identifier no longer emit uncompilable models.** Duplicate detection compared raw codenames while emission used the PascalCased identifier, so `my_element` and `my__element` — two codenames, one identifier — both got through. The generated record then declared `MyElementCodename` twice and did not compile. The same hole existed between the two kinds of member: an element named `title` and one named `title_codename` produced a constant and a property that were both called `TitleCodename`, and that case emitted no warning at all. Everything a record declares is now checked against one registry of identifiers, and the offending element is skipped with a message naming both codenames and the identifier they collide on.
+
+  ```text
+  Warning: Skipping element 'my__element'. Content type 'article': 'my__element' and 'my_element'
+  both produce the identifier 'MyElement'. Rename one of the elements in Kontent.ai.
+  ```
+
+  A rejected element no longer half-registers either — the constant used to be recorded before the property could be refused, so skipping one element still corrupted the output.
+- **Two content types that map to the same file no longer silently overwrite each other.** Type codenames sanitize to a class name the same way element codenames do, so `my_type` and `my__type` both wrote `MyType.cs` — the second overwrote the first, and the run reported both as created. The duplicate is now skipped with a warning, and the "N content type models were successfully created" count reflects what was actually written.
 
 ### Dependencies
 

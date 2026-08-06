@@ -26,7 +26,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
     private void AddElement(string codename, string elementType)
     {
         var property = Property.FromContentTypeElement(codename, elementType);
-        ClassDefinition.AddPropertyCodenameConstant(property.Codename);
         ClassDefinition.AddProperty(property);
     }
 
@@ -75,7 +74,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
         })
         {
             var property = Property.FromContentTypeElement(codename, type, NullabilityMode.Semantic);
-            classDefinition.AddPropertyCodenameConstant(property.Codename);
             classDefinition.AddProperty(property);
         }
 
@@ -113,7 +111,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
     {
         var classDefinition = new ClassDefinition("test_type");
         var property = Property.FromContentTypeElement("content_type_codename", "text");
-        classDefinition.AddPropertyCodenameConstant(property.Codename);
         classDefinition.AddProperty(property);
 
         var classCodeGenerator = new DeliveryClassCodeGenerator(classDefinition, classDefinition.ClassName);
@@ -130,7 +127,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
     {
         var classDefinition = new ClassDefinition("test_type");
         var property = Property.FromContentTypeElement("content_type", "text");
-        classDefinition.AddPropertyCodenameConstant(property.Codename);
         classDefinition.AddProperty(property);
 
         var classCodeGenerator = new DeliveryClassCodeGenerator(classDefinition, classDefinition.ClassName);

@@ -186,7 +186,6 @@ public class ManagementCodeGenerator : CodeGeneratorBase
         }
 
         var output = _elementService.Build(input);
-        classDefinition.AddPropertyCodenameConstant(output.Property.Codename);
         classDefinition.AddProperty(output.Property);
 
         foreach (var enumDef in output.Enums)

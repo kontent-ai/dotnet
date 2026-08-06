@@ -57,19 +57,29 @@ public abstract class CodeGeneratorBase(
 
     protected void WriteToOutputProvider(ICollection<ClassCodeGenerator> classCodeGenerators)
     {
+        // Content type codenames that differ can still sanitize to one class name, and so to one file.
+        // Writing both leaves whichever ran last and reports success for both.
+        var claimedFiles = new Dictionary<string, string>(StringComparer.Ordinal);
+        var written = 0;
+
         foreach (var codeGenerator in classCodeGenerators)
         {
+            var codename = codeGenerator.ClassDefinition.Codename;
+            if (claimedFiles.TryGetValue(codeGenerator.ClassFilename, out var owner))
+            {
+                Logger.LogWarning(
+                    $"Skipping content type '{codename}': it generates the same file as '{owner}' " +
+                    $"('{codeGenerator.ClassFilename}.cs'). Rename one of them in Kontent.ai.");
+                continue;
+            }
+
+            claimedFiles[codeGenerator.ClassFilename] = codename;
             OutputProvider.Output(codeGenerator.GenerateCode(), codeGenerator.ClassFilename,
                 codeGenerator.OverwriteExisting);
+            written++;
         }
 
-        Logger.LogInfo($"{classCodeGenerators.Count} content type models were successfully created.");
-    }
-
-    protected static void AddProperty(Property property, ref ClassDefinition classDefinition)
-    {
-        classDefinition.AddPropertyCodenameConstant(property.Codename);
-        classDefinition.AddProperty(property);
+        Logger.LogInfo($"{written} content type models were successfully created.");
     }
 
     protected abstract Task<ICollection<ClassCodeGenerator>> GetClassCodeGenerators();
@@ -78,8 +88,10 @@ public abstract class CodeGeneratorBase(
     {
         switch (exception)
         {
+            // The identifier clash carries the detail worth acting on - which two codenames collided and
+            // on what - so it is passed through rather than restated.
             case InvalidOperationException:
-                Logger.LogWarning($"Element '{elementCodename}' is already present in Content Type '{className}'.");
+                Logger.LogWarning($"Skipping element '{elementCodename}'. {exception.Message}");
                 break;
             case InvalidIdentifierException:
                 Logger.LogWarning($"Can't create valid C# Identifier from '{elementCodename}'. Skipping element.");

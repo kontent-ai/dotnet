@@ -59,7 +59,6 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
             {
                 var elementType = DeliveryElementService.GetElementType(element.Value.Type);
                 var property = Property.FromContentTypeElement(element.Key, elementType, Options.Nullability);
-                classDefinition.AddPropertyCodenameConstant(property.Codename);
                 classDefinition.AddProperty(property);
             }
             catch (Exception e)
