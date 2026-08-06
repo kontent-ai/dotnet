@@ -26,7 +26,6 @@ Replace any Delivery SDK sync imports with:
 
 ```csharp
 using Kontent.Ai.Sync;
-using Kontent.Ai.Sync.Abstractions;
 ```
 
 ## 3. Register the sync client separately

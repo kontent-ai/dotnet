@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Represents delta updates from a sync operation.

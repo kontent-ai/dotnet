@@ -1,4 +1,7 @@
-namespace Kontent.Ai.Sync.Abstractions;
+using System.Net;
+using System.Net.Http.Headers;
+
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Represents the result of a Sync API operation that produces no value of its own.

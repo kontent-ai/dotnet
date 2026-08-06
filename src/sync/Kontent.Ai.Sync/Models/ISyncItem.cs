@@ -1,9 +1,9 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
-/// Represents a delta update for a language.
+/// Represents a delta update for a content item.
 /// </summary>
-public interface ISyncLanguage
+public interface ISyncItem
 {
     /// <summary>
     /// Gets the type of change that occurred.
@@ -11,8 +11,8 @@ public interface ISyncLanguage
     ChangeType ChangeType { get; }
 
     /// <summary>
-    /// Gets the language data.
-    /// This property contains the full language when ChangeType is Created or Updated.
+    /// Gets the content item data.
+    /// This property contains the full content item when ChangeType is Created or Updated.
     /// When ChangeType is Deleted, this may be null or contain minimal identifying information.
     /// </summary>
     object? Data { get; }

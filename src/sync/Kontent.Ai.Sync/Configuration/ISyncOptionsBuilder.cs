@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// A builder of <see cref="SyncOptions"/> instances.

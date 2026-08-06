@@ -1,6 +1,5 @@
 using System.Net;
 using AwesomeAssertions;
-using Kontent.Ai.Sync.Abstractions;
 using Polly;
 using Polly.Retry;
 using RichardSzalay.MockHttp;

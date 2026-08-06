@@ -44,7 +44,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kontent.Ai.Sync\Kontent.Ai.Sync.csproj" />
-    <ProjectReference Include="..\Kontent.Ai.Sync.Abstractions\Kontent.Ai.Sync.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

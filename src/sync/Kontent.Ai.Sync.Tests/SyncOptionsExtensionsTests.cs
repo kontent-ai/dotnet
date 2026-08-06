@@ -1,5 +1,4 @@
 using AwesomeAssertions;
-using Kontent.Ai.Sync.Abstractions;
 
 namespace Kontent.Ai.Sync.Tests;
 

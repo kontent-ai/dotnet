@@ -1,4 +1,86 @@
 ﻿// Kontent.Ai.Sync
+public enum ApiMode
+    Preview
+    Public
+    Secure
+
+// Kontent.Ai.Sync
+public enum ChangeType
+    Changed
+    Deleted
+
+// Kontent.Ai.Sync
+public interface IError
+    Exception Exception { get; }
+    Nullable<Int32> ErrorCode { get; }
+    Nullable<Int32> SpecificCode { get; }
+    String Message { get; }
+    String RequestId { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncClient
+    IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
+    Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
+    Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
+
+// Kontent.Ai.Sync
+public interface ISyncClientFactory
+    ISyncClient Get()
+    ISyncClient Get(String name)
+
+// Kontent.Ai.Sync
+public interface ISyncDeltaResponse
+    IReadOnlyList<ISyncItem> Items { get; }
+    IReadOnlyList<ISyncLanguage> Languages { get; }
+    IReadOnlyList<ISyncTaxonomy> Taxonomies { get; }
+    IReadOnlyList<ISyncType> Types { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncItem
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncLanguage
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncOptionsBuilder
+    ISyncOptionsBuilder DisableRetryPolicy()
+    ISyncOptionsBuilder UsePreviewApi(String apiKey)
+    ISyncOptionsBuilder UseProductionApi()
+    ISyncOptionsBuilder UseSecureApi(String apiKey)
+    ISyncOptionsBuilder WithCustomEndpoint(String endpoint)
+    ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
+    ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
+    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
+    SyncOptions Build()
+
+// Kontent.Ai.Sync
+public interface ISyncResult
+    Boolean IsSuccess { get; }
+    HttpResponseHeaders ResponseHeaders { get; }
+    HttpStatusCode StatusCode { get; }
+    IError Error { get; }
+    String RequestUrl { get; }
+    String SyncToken { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncResult`1<T> : ISyncResult
+    T Value { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncTaxonomy
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync
+public interface ISyncType
+    ChangeType ChangeType { get; }
+    Object Data { get; }
+
+// Kontent.Ai.Sync
 public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<IServiceProvider, SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions)
@@ -19,6 +101,35 @@ public sealed class SyncClient : IAsyncDisposable, IDisposable, ISyncClient
     Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
     ValueTask DisposeAsync()
     Void Dispose()
+
+// Kontent.Ai.Sync
+public sealed class SyncOptions : IValidatableObject
+    const String DefaultConfigurationSectionName = SyncOptions
+    .ctor()
+    ApiMode ApiMode { get; set; }
+    Boolean EnableResilience { get; set; }
+    String ApiKey { get; set; }
+    String EnvironmentId { get; set; }
+    String PreviewEndpoint { get; set; }
+    String ProductionEndpoint { get; set; }
+    IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+
+// Kontent.Ai.Sync
+public sealed class SyncOptionsExtensions
+    static String GetApiKey(SyncOptions options)
+    static String GetBaseUrl(SyncOptions options)
+
+// Kontent.Ai.Sync
+public sealed class SyncSourceTrackingHeaderAttribute : Attribute
+    .ctor()
+    .ctor(String packageName)
+    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String preReleaseLabel)
+    Boolean LoadFromAssembly { get; }
+    Int32 MajorVersion { get; }
+    Int32 MinorVersion { get; }
+    Int32 PatchVersion { get; }
+    String PackageName { get; }
+    String PreReleaseLabel { get; }
 
 // Kontent.Ai.Sync.Configuration
 public sealed class SyncClientBuilder

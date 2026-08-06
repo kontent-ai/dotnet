@@ -6,7 +6,6 @@ using Kontent.Ai.Management;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
 using Kontent.Ai.Sync;
-using Kontent.Ai.Sync.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
 var environmentId = Guid.NewGuid().ToString();

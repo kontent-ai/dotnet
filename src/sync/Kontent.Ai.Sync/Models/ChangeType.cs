@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Represents the type of change that occurred to a synchronized entity.

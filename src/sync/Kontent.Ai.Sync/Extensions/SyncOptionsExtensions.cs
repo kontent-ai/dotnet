@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Helper methods for resolving effective Sync API options.

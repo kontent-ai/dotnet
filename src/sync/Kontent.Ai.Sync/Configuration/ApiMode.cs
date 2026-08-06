@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Specifies the API mode for accessing Kontent.ai content.

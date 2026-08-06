@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Factory for creating and retrieving named <see cref="ISyncClient"/> instances.

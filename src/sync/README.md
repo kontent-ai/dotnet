@@ -22,7 +22,6 @@ dotnet add package Kontent.Ai.Sync
 
 ```csharp
 using Kontent.Ai.Sync;
-using Kontent.Ai.Sync.Abstractions;
 
 services.AddSyncClient(options =>
 {
@@ -196,7 +195,6 @@ services.AddSyncClient((sp, options) =>
 For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. The builder spins up a private service collection internally; the returned client owns its dependencies and must be disposed.
 
 ```csharp
-using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Configuration;
 
 await using var client = SyncClientBuilder

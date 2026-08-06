@@ -1,9 +1,9 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
-/// Represents a delta update for a taxonomy group.
+/// Represents a delta update for a content type.
 /// </summary>
-public interface ISyncTaxonomy
+public interface ISyncType
 {
     /// <summary>
     /// Gets the type of change that occurred.
@@ -11,8 +11,8 @@ public interface ISyncTaxonomy
     ChangeType ChangeType { get; }
 
     /// <summary>
-    /// Gets the taxonomy group data.
-    /// This property contains the full taxonomy group when ChangeType is Created or Updated.
+    /// Gets the content type data.
+    /// This property contains the full content type definition when ChangeType is Created or Updated.
     /// When ChangeType is Deleted, this may be null or contain minimal identifying information.
     /// </summary>
     object? Data { get; }

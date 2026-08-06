@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Represents configuration of the <see cref="ISyncClient"/>.
@@ -27,13 +27,15 @@ public sealed class SyncOptions : IValidatableObject
     /// <summary>
     /// Gets or sets the format of the Production API endpoint address.
     /// </summary>
-    [Url]
+    // Fully qualified: Refit is in scope via GlobalUsings.cs and also defines a UrlAttribute,
+    // so a bare [Url] is ambiguous. Matches ManagementOptions, which hit the same collision.
+    [System.ComponentModel.DataAnnotations.Url]
     public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai";
 
     /// <summary>
     /// Gets or sets the format of the Preview API endpoint address.
     /// </summary>
-    [Url]
+    [System.ComponentModel.DataAnnotations.Url]
     public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
 
     /// <summary>

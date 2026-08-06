@@ -27,7 +27,6 @@
     <Project Path="src/model-generator/Kontent.Ai.ModelGenerator.Tests/Kontent.Ai.ModelGenerator.Tests.csproj" />
   </Folder>
   <Folder Name="/src/sync/">
-    <Project Path="src/sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj" />
     <Project Path="src/sync/Kontent.Ai.Sync.Tests/Kontent.Ai.Sync.Tests.csproj" />
     <Project Path="src/sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj" />
   </Folder>

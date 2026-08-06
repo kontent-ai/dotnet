@@ -47,7 +47,7 @@ Currently migrated:
 | Delivery SDK | `src/delivery` | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
 | Management SDK | `src/management` | `Kontent.Ai.Management` |
 | Model generator | `src/model-generator` | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
-| Sync SDK | `src/sync` | `Kontent.Ai.Sync`, `Kontent.Ai.Sync.Abstractions` |
+| Sync SDK | `src/sync` | `Kontent.Ai.Sync` |
 
 ## Building
 

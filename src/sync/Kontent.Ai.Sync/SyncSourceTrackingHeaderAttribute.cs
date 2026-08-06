@@ -1,4 +1,4 @@
-namespace Kontent.Ai.Sync.Abstractions;
+namespace Kontent.Ai.Sync;
 
 /// <summary>
 /// Assembly-level attribute allowing authors of libraries built on top of the Kontent.ai Sync SDK

@@ -1,6 +1,5 @@
 using AwesomeAssertions;
 using Kontent.Ai.Common.Http;
-using Kontent.Ai.Sync.Abstractions;
 using Kontent.Ai.Sync.Handlers;
 
 namespace Kontent.Ai.Sync.Tests.Handlers;

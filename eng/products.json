@@ -63,12 +63,10 @@
     "dependsOn": [],
     "changelog": "src/sync/CHANGELOG.md",
     "projects": [
-      "src/sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj",
-      "src/sync/Kontent.Ai.Sync.Abstractions/Kontent.Ai.Sync.Abstractions.csproj"
+      "src/sync/Kontent.Ai.Sync/Kontent.Ai.Sync.csproj"
     ],
     "expectedPackages": [
-      "Kontent.Ai.Sync",
-      "Kontent.Ai.Sync.Abstractions"
+      "Kontent.Ai.Sync"
     ]
   }
 }

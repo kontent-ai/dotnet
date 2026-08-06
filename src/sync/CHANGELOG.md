@@ -1,15 +1,12 @@
 # Kontent.Ai.Sync
 
-Covers `Kontent.Ai.Sync` and `Kontent.Ai.Sync.Abstractions`, which ship in lockstep
-on one version.
-
 Entries before the move to this monorepo were imported from the GitHub Releases of
 [kontent-ai/sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net).
 
 ## Unreleased
 
-Targets .NET 10. Both packages move from `net8.0` to `net10.0`, and Refit's transport is upgraded across
-four major versions.
+Targets .NET 10, moving from `net8.0` to `net10.0`, and Refit's transport is upgraded across four major
+versions. The SDK also becomes a single package: `Kontent.Ai.Sync.Abstractions` is folded in.
 
 The API changes too. Paging through the sync feed becomes a stream you enumerate, terminating on the
 signal the API actually sends rather than on an inferred page size; the result contract splits so that
@@ -20,6 +17,20 @@ See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the mi
 
 ### Breaking changes
 
+- **`Kontent.Ai.Sync.Abstractions` is gone; everything it held now ships in `Kontent.Ai.Sync`, in the `Kontent.Ai.Sync` namespace.** The split existed so contracts could be referenced without the client, and nothing ever did that — the package's only consumer was `Kontent.Ai.Sync` itself. Meanwhile a third of it was not abstract at all (`SyncOptions`, `ApiMode`, `SyncOptionsExtensions`), and keeping the contracts in a separate assembly is what forced every response model to exist three times: a public interface, an internal record, and an explicit reimplementation. The Management SDK reached the same conclusion and never split.
+
+  Drop the package reference and change one `using`:
+
+  ```csharp
+  // Before
+  using Kontent.Ai.Sync;
+  using Kontent.Ai.Sync.Abstractions;
+
+  // After
+  using Kontent.Ai.Sync;
+  ```
+
+  Every type keeps its name and its members; only the namespace and the assembly change. There is no compatibility shim: a stale `Kontent.Ai.Sync.Abstractions` reference fails to compile rather than resolving to a package that will never be updated again. That package is delisted at 2.0.
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
 - **`InitializeSyncAsync` returns `ISyncResult` instead of `ISyncResult<ISyncInitResponse>`, and `ISyncInitResponse` is removed.** Initialization establishes a starting point rather than returning content — the useful output has always been the token, on `SyncToken`. `ISyncInitResponse` was an interface with no members, so `Value` was an object you could hold but never read. `ISyncResult` is new and non-generic, and `ISyncResult<T>` now derives from it, adding only `Value`; this mirrors `IManagementResult` / `IManagementResult<T>` in the Management SDK. Every other member is unchanged and still reachable on both.
 
@@ -102,7 +113,7 @@ Shipped floors on `Kontent.Ai.Sync` moved up, all .NET 10 aligned:
 - `Microsoft.Extensions.Http.Resilience` **9.6.0** → **10.8.0**.
 - `Refit` and `Refit.HttpClientFactory` **10.2.0** → **14.0.1**.
 
-`Kontent.Ai.Sync.Abstractions` ships no package dependencies of its own and is unaffected.
+
 
 ### Internal
 

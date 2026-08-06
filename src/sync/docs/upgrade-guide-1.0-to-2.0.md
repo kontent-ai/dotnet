@@ -14,7 +14,8 @@ small and the compiler points at each one.
 | Change | Effort |
 |---|---|
 | `net8.0` → `net10.0` | Move your project to .NET 10 first |
-| `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§2](#2-paging-is-now-a-stream) |
+| `Kontent.Ai.Sync.Abstractions` folded into `Kontent.Ai.Sync` | Drop the reference, change one `using`; see [§2](#2-one-package-one-namespace) |
+| `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§3](#3-paging-is-now-a-stream) |
 | `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` removed | Delete the usage; the stream ends on its own |
 | `SyncToken` is non-nullable | Drop any `?? previous` fallback |
 | `InitializeSyncAsync` returns `ISyncResult` | Change the declared type, or use `var` |
@@ -31,7 +32,35 @@ There is no multi-targeting. A project on .NET 8 cannot install 2.0 at all — r
 <TargetFramework>net10.0</TargetFramework>
 ```
 
-## 2. Paging is now a stream
+## 2. One package, one namespace
+
+`Kontent.Ai.Sync.Abstractions` no longer exists. Everything it held — `ISyncClient`, `ISyncResult`,
+the model interfaces, `SyncOptions`, `ApiMode` — now ships inside `Kontent.Ai.Sync`, in the
+`Kontent.Ai.Sync` namespace. Type names and members are unchanged.
+
+The split was there so the contracts could be taken without the client. Nothing ever did: the only
+consumer of the package was `Kontent.Ai.Sync` itself.
+
+Remove the package reference:
+
+```xml
+<PackageReference Include="Kontent.Ai.Sync" Version="2.0.0" />
+<!-- delete this line -->
+<PackageReference Include="Kontent.Ai.Sync.Abstractions" Version="1.0.0" />
+```
+
+and drop the `using`:
+
+```csharp
+using Kontent.Ai.Sync;
+- using Kontent.Ai.Sync.Abstractions;
+```
+
+There is no type-forwarding shim, deliberately: leaving the old package resolvable would mean
+shipping an assembly nobody maintains. A stale reference fails at compile time with a missing-type
+error naming exactly what to remove, rather than resolving to something frozen at 1.0.
+
+## 3. Paging is now a stream
 
 `GetAllDeltaAsync` buffered every page into memory and returned them together. It also decided it had
 caught up when no collection in a response had reached 100 entries — a threshold the API never
@@ -86,7 +115,7 @@ crash part-way through reprocesses from the previous token: some changes arrive 
 Saving after each page resumes closer to where you stopped. Saving *before* processing a page is the one
 variant that can lose work.
 
-## 3. `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` are gone
+## 4. `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` are gone
 
 All three existed to support the 100-entry threshold. With completion defined by the API's empty
 response, the sequence simply ends — there is no flag to poll and no page-size constant to keep in step
@@ -103,7 +132,7 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(token)) { /* runs unti
 
 If you are driving the loop yourself with `GetDeltaAsync`, stop when every collection comes back empty.
 
-## 4. `SyncToken` is non-nullable
+## 5. `SyncToken` is non-nullable
 
 The API issues a fresh token with every successful response, and it is the only way to make the next
 request. A successful response without one now fails where the response is mapped — an
@@ -117,7 +146,7 @@ continue from. In exchange, `SyncToken` is declared `string` rather than `string
 
 Code that only reads the token after checking `IsSuccess` needs no change.
 
-## 5. `InitializeSyncAsync` returns `ISyncResult`
+## 6. `InitializeSyncAsync` returns `ISyncResult`
 
 Initialization establishes a starting point rather than returning content, so it no longer carries a
 value. `ISyncInitResponse` — an interface with no members — is removed, and `ISyncResult` is new and
@@ -132,7 +161,7 @@ await SaveTokenAsync(init.SyncToken);   // unchanged
 
 `GetDeltaAsync` and `EnumerateDeltaAsync` are untouched, `page.Value` included.
 
-## 6. Disposal moved to the concrete client
+## 7. Disposal moved to the concrete client
 
 `ISyncClient` no longer carries `IDisposable` / `IAsyncDisposable`. A client resolved from a container is
 owned by the container and was never yours to dispose; a client from `SyncClientBuilder` owns its
@@ -152,7 +181,7 @@ await using var client = SyncClientBuilder.WithOptions(...).Build();
 Container-resolved clients are still disposed by the container, which checks the runtime type rather than
 the registered service type.
 
-## 7. `SyncClientBuilder.ConfigureServices` → `WithResilience`
+## 8. `SyncClientBuilder.ConfigureServices` → `WithResilience`
 
 The builder no longer stands up a private service container — the client constructs its handler chain
 directly and owns the resulting `HttpClient`. `ConfigureServices` existed only to reach into that
@@ -166,7 +195,7 @@ container. Replacing the resilience pipeline was the realistic use, and that is 
 .WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
 ```
 
-## 8. `configureRefit` is gone
+## 9. `configureRefit` is gone
 
 Removed from all three `AddSyncClient` overloads. Everything reachable through it was load-bearing rather
 than configurable — the parameter-key formatter matches the API's casing, and the serializer options
