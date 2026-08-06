@@ -1,5 +1,6 @@
 using System.Reflection;
 using Kontent.Ai.Management;
+using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Models.Shared;
 using Kontent.Ai.Management.Models.Types;
 using Kontent.Ai.Management.Models.Types.Elements;
@@ -465,6 +466,32 @@ public class ManagementCodeGeneratorTests
         _logger.Received().LogInfo("1 content type models were successfully created.");
     }
 
+    [Fact]
+    public async Task RunAsync_BaseRecordAlreadyExists_SaysItWasKeptRatherThanCreated()
+    {
+        // The base record is deliberately not overwritten so hand-written additions survive a rerun -
+        // but the run claimed to have created it either way.
+        SetupClientWithTypes(BuildArticleType());
+        _output.Output(Arg.Any<string>(), "ArticleBase", false).Returns(false);
+
+        await CreateGenerator(baseRecord: "ArticleBase").RunAsync();
+
+        _logger.DidNotReceive().LogInfo("ArticleBase class was successfully created.");
+        _logger.Received().LogInfo(Arg.Is<string>(m => m != null && m.Contains("ArticleBase already exists")));
+    }
+
+    [Fact]
+    public async Task RunAsync_NoContentTypes_NamesTheEnvironmentItLookedIn()
+    {
+        // The message read the Delivery options only, so management-mode runs rendered an empty id.
+        SetupClientWithTypes();
+        var environmentId = Guid.NewGuid().ToString();
+
+        await CreateGenerator(managementEnvironmentId: environmentId).RunAsync();
+
+        _logger.Received().LogInfo(Arg.Is<string>(m => m != null && m.Contains(environmentId)));
+    }
+
     private void SetupClientWithTypes(params ContentTypeModel[] types)
     {
         SetupClientWith(types, snippets: []);
@@ -523,12 +550,18 @@ public class ManagementCodeGeneratorTests
         ],
     };
 
-    private ManagementCodeGenerator CreateGenerator(string? @namespace = null, string? baseRecord = null)
+    private ManagementCodeGenerator CreateGenerator(
+        string? @namespace = null,
+        string? baseRecord = null,
+        string? managementEnvironmentId = null)
     {
         var options = Options.Create(new CodeGeneratorOptions
         {
             Namespace = @namespace,
             BaseRecord = baseRecord,
+            ManagementOptions = managementEnvironmentId is null
+                ? null
+                : new ManagementOptions { EnvironmentId = managementEnvironmentId, ApiKey = "key" },
         });
 
         return new ManagementCodeGenerator(

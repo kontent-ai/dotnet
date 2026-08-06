@@ -20,6 +20,7 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   The flag had in fact stopped doing anything before this release: the code path behind it lived on a method that hid its base rather than overriding it, and the CLI invokes the base, so passing `-t` generated no provider and printed no warning. Passing it now fails with `Unsupported parameter: -t` rather than being silently ignored. Remove it from your scripts and reference `Kontent.Ai.Delivery.SourceGeneration` from the project your models are generated into.
 
 - **`CodeGeneratorBase.FilenameSuffix` and `GetFileClassName` are removed.** The suffix has been the empty string since single-file generation landed, which made `GetFileClassName(name)` an identity function. Generated file names are unchanged. Only affects code that subclasses `CodeGeneratorBase`.
+- **`IOutputProvider.Output` returns `bool` instead of `void`** — `true` when it wrote the file, `false` when the file already existed and `overwriteExisting` was not set. The generator reports each file's outcome and had no way to tell the two apart. Only affects code that implements `IOutputProvider`; a custom implementation adds a `return true;`.
 - **`ClassDefinition.AddPropertyCodenameConstant` is removed; `AddProperty` now registers both the property and its codename constant.** The two were always called as a pair, and calling them separately is what allowed a rejected property to leave its constant behind. `CodeGeneratorBase.AddProperty(Property, ref ClassDefinition)`, which wrapped the pair and had no callers, is removed with it. Only affects code that drives `ClassDefinition` directly.
 
 ### Changed
@@ -47,6 +48,10 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   ```
 
   A rejected element no longer half-registers either — the constant used to be recorded before the property could be refused, so skipping one element still corrupted the output.
+- **An element that fails for an unanticipated reason is now reported instead of vanishing.** Per-element failures were classified by a `switch` with arms for the three expected exception types and no default, so anything else was caught, matched nothing, and left the element out of the generated model with nothing written to the console.
+- **The tool no longer claims to have created a base record it did not write.** `--baserecord` deliberately does not overwrite an existing file, so hand-written additions survive a rerun — but the run printed "`<name>` class was successfully created" either way. It now says the file was kept, and `IOutputProvider.Output` returns whether it wrote (see Breaking changes).
+- **The "no content type available" message names the environment in management mode.** It read the Delivery options only, so a `--managementapi` run against an empty environment reported the id as blank.
+- **A failure with more than one inner exception no longer exits silently.** `Main` had a special case for `AggregateException` that printed the message only when there was exactly one inner exception and otherwise returned exit code 1 with no output at all. `await` unwraps these anyway, so the case was vestigial; it is removed and the general handler reports every failure.
 - **Two content types that map to the same file no longer silently overwrite each other.** Type codenames sanitize to a class name the same way element codenames do, so `my_type` and `my__type` both wrote `MyType.cs` — the second overwrote the first, and the run reported both as created. The duplicate is now skipped with a warning, and the "N content type models were successfully created" count reflects what was actually written.
 
 ### Dependencies

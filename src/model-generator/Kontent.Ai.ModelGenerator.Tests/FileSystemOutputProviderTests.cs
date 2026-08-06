@@ -55,6 +55,29 @@ public class FileSystemOutputProviderTests
         }
     }
 
+    [Theory]
+    [InlineData(true, true, "an existing file is replaced when overwriting is allowed")]
+    [InlineData(false, false, "an existing file is kept when overwriting is not allowed")]
+    public void Output_FileAlreadyExists_ReportsWhetherItWrote(bool overwriteExisting, bool expected, string because)
+    {
+        var outputDir = CreateTempDir();
+        try
+        {
+            var outputProvider = CreateOutputProvider(outputDir);
+            outputProvider.Output("original", "MyClass", overwriteExisting: true).Should().BeTrue();
+
+            var wrote = outputProvider.Output("replacement", "MyClass", overwriteExisting);
+
+            wrote.Should().Be(expected, because);
+            File.ReadAllText(Path.Combine(outputDir, "MyClass.cs"))
+                .Should().Be(expected ? "replacement" : "original");
+        }
+        finally
+        {
+            Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
     [Fact]
     public void Output_FileNameContainsTraversal_ThrowsArgumentException()
     {

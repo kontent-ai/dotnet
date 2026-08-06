@@ -27,7 +27,7 @@ public class FileSystemOutputProvider(IOptions<CodeGeneratorOptions> options) : 
         }
     }
 
-    public void Output(string content, string fileName, bool overwriteExisting)
+    public bool Output(string content, string fileName, bool overwriteExisting)
     {
         // Make sure the output dir exists
         Directory.CreateDirectory(OutputDir);
@@ -42,10 +42,12 @@ public class FileSystemOutputProvider(IOptions<CodeGeneratorOptions> options) : 
                 $"Invalid file name '{fileName}': the resolved path escapes the output directory.", nameof(fileName));
         }
 
-        bool fileExists = File.Exists(outputPath);
-        if (!fileExists || overwriteExisting)
+        if (File.Exists(outputPath) && !overwriteExisting)
         {
-            File.WriteAllText(outputPath, content);
+            return false;
         }
+
+        File.WriteAllText(outputPath, content);
+        return true;
     }
 }

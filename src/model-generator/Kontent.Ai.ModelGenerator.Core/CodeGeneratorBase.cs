@@ -51,8 +51,9 @@ public abstract class CodeGeneratorBase(
             return;
         }
 
-        OutputProvider.Output(content, fileName, overwriteExisting);
-        Logger.LogInfo($"{fileName} class was successfully created.");
+        Logger.LogInfo(OutputProvider.Output(content, fileName, overwriteExisting)
+            ? $"{fileName} class was successfully created."
+            : $"{fileName} already exists and was kept. Delete it to have it regenerated.");
     }
 
     protected void WriteToOutputProvider(ICollection<ClassCodeGenerator> classCodeGenerators)
@@ -74,6 +75,7 @@ public abstract class CodeGeneratorBase(
             }
 
             claimedFiles[codeGenerator.ClassFilename] = codename;
+            // Content types always overwrite, so what is handed to the provider is what lands.
             OutputProvider.Output(codeGenerator.GenerateCode(), codeGenerator.ClassFilename,
                 codeGenerator.OverwriteExisting);
             written++;
@@ -98,6 +100,11 @@ public abstract class CodeGeneratorBase(
                 break;
             case ArgumentNullException or ArgumentException:
                 Logger.LogWarning($"Skipping unknown Content Element type '{elementType}'. (Content Type: '{className}', Element Codename: '{elementCodename}').");
+                break;
+            // The caller catches everything so one bad element cannot end the run; without this arm the
+            // element vanished from the output with nothing said about it.
+            default:
+                Logger.LogWarning($"Skipping element '{elementCodename}' on Content Type '{className}': {exception.GetType().Name}: {exception.Message}");
                 break;
         }
     }

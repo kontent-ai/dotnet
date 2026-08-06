@@ -64,14 +64,6 @@ internal static class Program
 
             return await ((CodeGeneratorBase)serviceProvider.GetRequiredService(generatorServiceType)).RunAsync();
         }
-        catch (AggregateException aex)
-        {
-            if (aex.InnerExceptions.Count == 1 && aex.InnerException != null)
-            {
-                await WriteErrorMessageAsync(aex.InnerException.Message);
-            }
-            return 1;
-        }
         catch (Exception ex)
         {
             await WriteErrorMessageAsync(ex.Message);
