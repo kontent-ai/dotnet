@@ -3,19 +3,46 @@
 //
 //   dotnet run eng/scripts/release-status.cs
 //   dotnet run eng/scripts/release-status.cs -- --json
+//   dotnet run eng/scripts/release-status.cs -- --order
+//   dotnet run eng/scripts/release-status.cs -- --is-published <product>
 //
 // Why this exists: preparing a release and publishing it are two separate steps. A batch can
 // bump three products and then only two get released, leaving the third with a bumped version
 // property and a dated changelog entry but nothing on NuGet. That state is legitimate - it just
 // means "not yet" - but it is invisible, and preparing again would silently skip the version.
 //
-// Informational by design: it always exits 0 unless it cannot do its job (bad repo, network
-// failure). A prepared-but-unpublished version is a normal intermediate state, not an error.
+// Informational by design: the reporting modes always exit 0 unless they cannot do the job (bad
+// repo, network failure). A prepared-but-unpublished version is a normal intermediate state, not
+// an error. --order is the exception: it fails on a dependsOn cycle, because a batch it cannot
+// order is a batch that must not run.
+//
+// --order emits the batch publish-batch.yml works through, one product per line, dependencies
+// first, tab-separated:
+//
+//   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
+//
+// It lives here rather than in the workflow because the inputs are already open: this script
+// reads eng/products.json and eng/Versions.props, and knows which versions are still pending.
+// Doing the ordering in jq meant serialising all of that to JSON and re-deriving it in a
+// language with no way to name a cycle's members.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 var asJson = args.Contains("--json");
+var asOrder = args.Contains("--order");
+
+// Answers "is this one product fully on NuGet yet" with an exit code, for the publish-batch poll
+// loop - which asks up to 60 times per product and has no use for the rest of the report.
+var isPublishedIndex = Array.IndexOf(args, "--is-published");
+var singleProduct = isPublishedIndex >= 0 && isPublishedIndex + 1 < args.Length
+    ? args[isPublishedIndex + 1]
+    : null;
+if (isPublishedIndex >= 0 && singleProduct is null)
+{
+    Console.Error.WriteLine("release-status: --is-published needs a product name");
+    return 2;
+}
 
 var repoRoot = FindRepoRoot();
 if (repoRoot is null) { Console.Error.WriteLine("release-status: not inside a git repository"); return 1; }
@@ -27,8 +54,16 @@ using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
 var rows = new List<Row>();
 
+if (singleProduct is not null && !products.RootElement.TryGetProperty(singleProduct, out _))
+{
+    Console.Error.WriteLine($"release-status: unknown product '{singleProduct}'");
+    return 2;
+}
+
 foreach (var product in products.RootElement.EnumerateObject())
 {
+    if (singleProduct is not null && product.Name != singleProduct) continue;
+
     var versionProperty = product.Value.GetProperty("versionProperty").GetString()!;
     var declared = Regex.Match(versionsXml, $@"<{versionProperty}>([^<]*)</{versionProperty}>").Groups[1].Value;
     if (declared.Length == 0)
@@ -55,6 +90,53 @@ foreach (var product in products.RootElement.EnumerateObject())
         _ => "PARTIALLY PUBLISHED",
     };
     rows.Add(new Row(product.Name, declared, state, unpublished));
+}
+
+if (singleProduct is not null)
+{
+    return rows.Single().Status == "published" ? 0 : 1;
+}
+
+if (asOrder)
+{
+    var pendingRows = rows.Where(r => r.Status != "published").ToList();
+    var pendingNames = pendingRows.Select(r => r.Product).ToHashSet(StringComparer.Ordinal);
+
+    // Kahn's algorithm over dependsOn, restricted to the products actually being released:
+    // a dependency that is already on NuGet imposes no ordering here.
+    var ordered = new List<Row>();
+    var remaining = new List<Row>(pendingRows);
+    while (remaining.Count > 0)
+    {
+        var ready = remaining
+            .Where(r => DependenciesOf(r.Product).Where(pendingNames.Contains)
+                            .All(d => ordered.Exists(o => o.Product == d)))
+            // Stable within a tier, so the same repository state always produces the same batch.
+            .OrderBy(r => r.Product, StringComparer.Ordinal)
+            .ToList();
+
+        if (ready.Count == 0)
+        {
+            // The jq this replaced could only report that the sort came up short. Naming the
+            // products leaves someone with the actual edit to make in eng/products.json.
+            Console.Error.WriteLine(
+                "release-status: dependsOn in eng/products.json has a cycle - these products cannot be ordered: " +
+                string.Join(", ", remaining.Select(r => r.Product).Order(StringComparer.Ordinal)));
+            return 1;
+        }
+
+        ordered.AddRange(ready);
+        remaining.RemoveAll(ready.Contains);
+    }
+
+    foreach (var r in ordered)
+    {
+        var title = $"{products.RootElement.GetProperty(r.Product).GetProperty("expectedPackages")[0].GetString()} {r.Version}";
+        var prerelease = r.Version.Contains('-') ? "prerelease" : "";
+        Console.WriteLine($"{r.Product}\t{r.Version}\t{r.Product}-v{r.Version}\t{title}\t{prerelease}");
+    }
+
+    return 0;
 }
 
 if (asJson)
@@ -109,6 +191,10 @@ async Task<bool> IsPublished(string id, string version)
     return doc.RootElement.GetProperty("versions").EnumerateArray()
         .Any(v => string.Equals(v.GetString(), version, StringComparison.OrdinalIgnoreCase));
 }
+
+IEnumerable<string> DependenciesOf(string product) =>
+    products.RootElement.GetProperty(product).GetProperty("dependsOn")
+        .EnumerateArray().Select(d => d.GetString()!);
 
 static string? FindRepoRoot()
 {

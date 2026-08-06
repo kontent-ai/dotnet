@@ -8,7 +8,8 @@ name: Publish batch
 #
 # It does not decide anything - the state of eng/Versions.props does. A product is released
 # here only if its declared version is missing from nuget.org, so re-running is safe: already
-# published products are skipped.
+# published products are skipped, and a product whose release exists but never published has
+# that release recreated rather than colliding with it.
 on:
   workflow_dispatch:
     inputs:
@@ -59,48 +60,32 @@ jobs:
         run: |
           set -euo pipefail
 
-          # `dotnet run` writes build diagnostics to stdout, so take only the JSON document
-          # rather than assuming the whole stream is one. eng/scripts/Directory.Build.props
-          # keeps the scripts warning-free, but a workflow that publishes packages should not
-          # depend on that staying true.
-          dotnet run eng/scripts/release-status.cs -- --json | sed -n '/^\[/,$p' > /tmp/status.json
-          cat /tmp/status.json
+          # The batch, dependency-first, one product per line:
+          #   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
+          # Ordering, cycle detection and the per-product lookups live in the script because it
+          # already has eng/products.json and eng/Versions.props open; doing them here meant
+          # serialising all of that to JSON and re-deriving it in jq. The script exits non-zero
+          # on a dependsOn cycle, naming the products involved.
+          #
+          # Kept out of a pipeline so a cycle (exit 1) fails the run, while an empty batch does not.
+          if ! dotnet run eng/scripts/release-status.cs -- --order > /tmp/order.raw; then
+            echo "::error::could not work out a release order - see the message above"
+            exit 1
+          fi
 
-          # Dependency-first order, so a consumer is never released before the sibling version
-          # it depends on. Products with no pending release drop out.
-          jq -r '
-            [.[] | select(.status != "published") | .product] as $pending
-            | $pending
-          ' /tmp/status.json > /tmp/pending.json
+          # `dotnet run` writes build diagnostics to stdout, so keep only well-formed rows.
+          # eng/scripts/Directory.Build.props keeps the scripts warning-free, but a workflow that
+          # publishes packages should not depend on that staying true.
+          awk -F'\t' 'NF == 5' /tmp/order.raw > /tmp/order.tsv
 
-          if [ "$(jq 'length' /tmp/pending.json)" -eq 0 ]; then
+          if [ ! -s /tmp/order.tsv ]; then
             echo "Nothing to release - every declared version is already on NuGet."
             echo "count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Topological sort over eng/products.json dependsOn, restricted to pending products.
-          jq -n --slurpfile pending /tmp/pending.json --slurpfile products eng/products.json '
-            ($pending[0]) as $p
-            | ($products[0]) as $prod
-            | reduce range(0; ($p | length)) as $_ ([];
-                . as $done
-                | $done + [ $p[] | select(. as $x | ($done | index($x)) | not)
-                          | select([ $prod[.].dependsOn[] | select(. as $d | $p | index($d)) ]
-                                   - $done | length == 0) ][0:1]
-              )
-          ' > /tmp/order.json
-
-          # A cycle in dependsOn leaves products that never become orderable, and the sort
-          # would just return a shorter list - releasing a subset and reporting success.
-          if [ "$(jq 'length' /tmp/order.json)" -ne "$(jq 'length' /tmp/pending.json)" ]; then
-            echo "::error::dependsOn in eng/products.json has a cycle - these products could not be ordered:"
-            jq -r --slurpfile ordered /tmp/order.json '.[] | select(. as $x | $ordered[0] | index($x) | not)' /tmp/pending.json
-            exit 1
-          fi
-
-          echo "Release order:"; jq -r '.[]' /tmp/order.json
-          echo "count=$(jq 'length' /tmp/order.json)" >> "$GITHUB_OUTPUT"
+          echo "Release order:"; cut -f1 /tmp/order.tsv
+          echo "count=$(wc -l < /tmp/order.tsv | tr -d ' ')" >> "$GITHUB_OUTPUT"
 
       - name: Create releases
         if: steps.plan.outputs.count != '0'
@@ -116,8 +101,7 @@ jobs:
           wait_for_publish() {
             product="$1"
             for _ in $(seq 1 60); do
-              if dotnet run eng/scripts/release-status.cs -- --json | sed -n '/^\[/,$p' \
-                   | jq -e --arg p "$product" '.[] | select(.product == $p and .status == "published")' >/dev/null; then
+              if dotnet run eng/scripts/release-status.cs -- --is-published "$product" >/dev/null 2>&1; then
                 echo "  $product is on NuGet"
                 return 0
               fi
@@ -134,34 +118,49 @@ jobs:
           # reuse the cached build and emit nothing but the notes.
           dotnet run eng/scripts/release-notes.cs -- --warmup >/dev/null 2>&1 || true
 
-          for product in $(jq -r '.[]' /tmp/order.json); do
-            version=$(jq -r --arg p "$product" '.[] | select(.product == $p) | .version' /tmp/status.json)
-            tag="${product}-v${version}"
-
-            prerelease=""
-            case "$version" in *-*) prerelease="--prerelease" ;; esac
+          while IFS=$'\t' read -r product version tag title prerelease; do
+            [ -n "$product" ] || continue
+            prerelease_flag=""
+            [ "$prerelease" = "prerelease" ] && prerelease_flag="--prerelease"
 
             echo "::group::$tag"
             dotnet run eng/scripts/release-notes.cs -- "$tag" > /tmp/notes.md
-            title="$(jq -r --arg p "$product" '.[$p].expectedPackages[0]' eng/products.json) $version"
 
             if [ "$DRY_RUN" = "true" ]; then
-              echo "[dry run] would create release '$title' at tag $tag $prerelease"
+              echo "[dry run] would create release '$title' at tag $tag $prerelease_flag"
               echo "--- notes ---"; cat /tmp/notes.md
               echo "::endgroup::"
               continue
+            fi
+
+            # Reaching here means the product is pending, i.e. its packages are missing from NuGet.
+            # That is also exactly the state a failed release.yml leaves behind: release and tag
+            # created, nothing published. Calling `gh release create` again fails on the existing
+            # tag and, under `set -e`, takes the rest of the batch down with it - so "re-running is
+            # safe" was only true as long as nothing had gone wrong.
+            #
+            # The release is recreated rather than edited, because release.yml listens for
+            # `release: published` and only a draft becoming published raises it; editing a live
+            # release raises `edited` and would publish nothing, leaving the wait below to time
+            # out. Deleting the release leaves the tag alone, so the new one reuses it, and the
+            # notes are regenerated from the changelog either way. A partially published product
+            # is safe to retry: the push step passes --skip-duplicate.
+            if gh release view "$tag" >/dev/null 2>&1; then
+              echo "  $tag exists but its packages are not on NuGet - recreating it to retry the publish"
+              gh release delete "$tag" --yes
             fi
 
             gh release create "$tag" \
               --target "$GITHUB_SHA" \
               --title "$title" \
               --notes-file /tmp/notes.md \
-              $prerelease
+              $prerelease_flag
+            echo "  created $tag"
 
-            echo "  created $tag - waiting for it to publish"
+            echo "  waiting for it to publish"
             wait_for_publish "$product"
             echo "::endgroup::"
-          done
+          done < /tmp/order.tsv
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "Dry run only. Re-run with 'dry_run' unchecked to create these releases."

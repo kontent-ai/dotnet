@@ -15,7 +15,7 @@ using System.Text.RegularExpressions;
 
 if (args.Length != 2)
 {
-    Console.Error.WriteLine("usage: update-version <product> <major|minor|patch|explicit-version>");
+    Console.Error.WriteLine("usage: update-version <product> <major|minor|patch|prerelease|release|explicit-version>");
     return 1;
 }
 
@@ -157,7 +157,72 @@ static string? NextVersion(string current, string bump)
                 Console.Error.WriteLine($"'{bump}' is already the current version - nothing to bump.");
                 return null;
             }
+            // A version that sorts below the current one is almost always a typo, and nothing
+            // downstream would catch it: the tag, the changelog heading and the pack all agree
+            // with each other, so it publishes. On nuget.org it then sits below what is already
+            // there and never becomes the version consumers resolve - a release that looks
+            // successful everywhere except where it matters.
+            if (CompareSemVer(bump, current) < 0)
+            {
+                Console.Error.WriteLine(
+                    $"'{bump}' sorts below the current '{current}', so releasing it would leave " +
+                    $"'{current}' as the newest version on nuget.org. If the current value is wrong " +
+                    "and was never published, correct eng/Versions.props directly rather than bumping to it.");
+                return null;
+            }
             return bump;
+    }
+}
+
+// SemVer 2.0 precedence. Build metadata takes no part, and is rejected before this is reached.
+// The identifier-wise prerelease rule is the same one the warning below is about: `beta-5` is one
+// alphanumeric identifier compared as text, so 9.0.0-beta-10 really does sort below 9.0.0-beta-5.
+static int CompareSemVer(string a, string b)
+{
+    var (aCore, aPre) = SplitVersion(a);
+    var (bCore, bPre) = SplitVersion(b);
+
+    var aNumbers = aCore.Split('.');
+    var bNumbers = bCore.Split('.');
+    for (var i = 0; i < 3; i++)
+    {
+        var compared = long.Parse(aNumbers[i]).CompareTo(long.Parse(bNumbers[i]));
+        if (compared != 0) return compared;
+    }
+
+    // A prerelease has lower precedence than the release it leads to: 9.0.0-rc.1 < 9.0.0.
+    if (aPre is null && bPre is null) return 0;
+    if (aPre is null) return 1;
+    if (bPre is null) return -1;
+
+    var aIds = aPre.Split('.');
+    var bIds = bPre.Split('.');
+    for (var i = 0; i < Math.Max(aIds.Length, bIds.Length); i++)
+    {
+        // Running out of identifiers first means lower precedence: rc.1 < rc.1.1.
+        if (i >= aIds.Length) return -1;
+        if (i >= bIds.Length) return 1;
+
+        var aIsNumeric = long.TryParse(aIds[i], out var aNumber);
+        var bIsNumeric = long.TryParse(bIds[i], out var bNumber);
+
+        // Numeric identifiers always rank below alphanumeric ones.
+        var compared = (aIsNumeric, bIsNumeric) switch
+        {
+            (true, true) => aNumber.CompareTo(bNumber),
+            (true, false) => -1,
+            (false, true) => 1,
+            _ => string.CompareOrdinal(aIds[i], bIds[i]),
+        };
+        if (compared != 0) return compared;
+    }
+
+    return 0;
+
+    static (string Core, string? Prerelease) SplitVersion(string version)
+    {
+        var dash = version.IndexOf('-');
+        return dash < 0 ? (version, null) : (version[..dash], version[(dash + 1)..]);
     }
 }
 
