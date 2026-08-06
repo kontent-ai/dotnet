@@ -47,6 +47,10 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
   never as the caller withdrawing a request that never happened.
 - **Transport failures report status `0`.** `IManagementResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
+### Fixed
+
+- **Long-running applications pick up DNS changes instead of pinning the address resolved at startup.** The registered client is a singleton and takes its `HttpClient` from `IHttpClientFactory` once, so the handler chain it holds was never rotated — the factory only hands a fresh chain to a *new* `CreateClient` call. Connections now recycle every two minutes, matching the factory's own default handler lifetime. This matters when the endpoint's address changes underneath a process that stays up for days: a failover, a scale event, or any re-pointing upstream. Configuring your own primary handler via `configureHttpClient` still overrides this, as before.
+
 ### Dependencies
 
 Shipped floors on `Kontent.Ai.Management` moved up, all .NET 10 aligned:
