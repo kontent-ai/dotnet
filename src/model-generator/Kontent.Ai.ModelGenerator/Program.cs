@@ -18,8 +18,14 @@ internal static class Program
     {
         try
         {
-            if (!ArgHelpers.ContainsValidArgs(args))
+            var invalidArgs = ArgHelpers.FindInvalidArgs(args);
+            if (invalidArgs.Count > 0)
             {
+                foreach (var problem in invalidArgs)
+                {
+                    await WriteErrorMessageAsync(problem);
+                }
+
                 await WriteErrorMessageAsync("Failed to run due to invalid configuration.");
                 return 1;
             }
@@ -102,11 +108,13 @@ internal static class Program
         return typeof(ManagementCodeGenerator);
     }
 
-    private static async Task WriteErrorMessageAsync(string message) => await Console.Error.WriteLineAsync(message);
+    private static readonly UserMessageLogger Messages = new();
+
+    private static Task WriteErrorMessageAsync(string message) => Messages.LogErrorAsync(message);
 
     private static void PrintSdkVersion(bool managementMode)
     {
         var usedSdkInfo = ArgHelpers.GetUsedSdkInfo(managementMode);
-        Console.WriteLine($"Models were generated for {usedSdkInfo.Name} version {usedSdkInfo.Version}");
+        Messages.LogInfo($"Models were generated for {usedSdkInfo.Name} version {usedSdkInfo.Version}");
     }
 }

@@ -10,11 +10,11 @@ public class ArgHelpersTests
     [InlineData("--environmentid=123")]
     [InlineData("--environmentId=123")]
     [InlineData("--ENVIRONMENTID=123")]
-    public void ContainsValidArgs_EnvironmentIdCasingVariants_ReturnsTrue(string argument)
+    public void FindInvalidArgs_EnvironmentIdCasingVariants_ReturnsNoProblems(string argument)
     {
-        var result = ArgHelpers.ContainsValidArgs([argument]);
+        var result = ArgHelpers.FindInvalidArgs([argument]);
 
-        result.Should().BeTrue();
+        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -38,11 +38,11 @@ public class ArgHelpersTests
 
     [Theory]
     [MemberData(nameof(ValidNullabilityArgs))]
-    public void ContainsValidArgs_NullabilityArg_ReturnsTrue(string[] args)
+    public void FindInvalidArgs_NullabilityArg_ReturnsNoProblems(string[] args)
     {
-        var result = ArgHelpers.ContainsValidArgs(args);
+        var result = ArgHelpers.FindInvalidArgs(args);
 
-        result.Should().BeTrue();
+        result.Should().BeEmpty();
     }
 
     public static TheoryData<string[]> InvalidNullabilityArgs => new()
@@ -56,11 +56,11 @@ public class ArgHelpersTests
 
     [Theory]
     [MemberData(nameof(InvalidNullabilityArgs))]
-    public void ContainsValidArgs_InvalidNullabilityValue_ReturnsFalse(string[] args)
+    public void FindInvalidArgs_InvalidNullabilityValue_ReturnsProblems(string[] args)
     {
-        var result = ArgHelpers.ContainsValidArgs(args);
+        var result = ArgHelpers.FindInvalidArgs(args);
 
-        result.Should().BeFalse();
+        result.Should().NotBeEmpty();
     }
 
     [Theory]
@@ -97,13 +97,13 @@ public class ArgHelpersTests
     [InlineData("--management")]
     [InlineData("--MANAGEMENT")]
     [InlineData("-M")]
-    public void IsManagementMode_FlagPresent_ReturnsTrue(string flag)
+    public void IsManagementMode_FlagPresent_ReturnsNoProblems(string flag)
     {
         ArgHelpers.IsManagementMode([flag]).Should().BeTrue();
     }
 
     [Fact]
-    public void IsManagementMode_NoFlag_ReturnsFalse()
+    public void IsManagementMode_NoFlag_ReturnsProblems()
     {
         ArgHelpers.IsManagementMode(["-i", "abc"]).Should().BeFalse();
     }
@@ -146,16 +146,16 @@ public class ArgHelpersTests
 
     [Theory]
     [MemberData(nameof(ManagementSwitchArgs))]
-    public void ContainsValidArgs_ManagementSwitch_Accepted(string[] args)
+    public void FindInvalidArgs_ManagementSwitch_Accepted(string[] args)
     {
-        ArgHelpers.ContainsValidArgs(args).Should().BeTrue();
+        ArgHelpers.FindInvalidArgs(args).Should().BeEmpty();
     }
 
     [Fact]
-    public void ContainsValidArgs_ManagementOptionsLongForm_Accepted()
+    public void FindInvalidArgs_ManagementOptionsLongForm_Accepted()
     {
-        ArgHelpers.ContainsValidArgs(["--ManagementOptions:EnvironmentId=abc"]).Should().BeTrue();
-        ArgHelpers.ContainsValidArgs(["--ManagementOptions:ApiKey=xyz"]).Should().BeTrue();
+        ArgHelpers.FindInvalidArgs(["--ManagementOptions:EnvironmentId=abc"]).Should().BeEmpty();
+        ArgHelpers.FindInvalidArgs(["--ManagementOptions:ApiKey=xyz"]).Should().BeEmpty();
     }
 
     [Fact]

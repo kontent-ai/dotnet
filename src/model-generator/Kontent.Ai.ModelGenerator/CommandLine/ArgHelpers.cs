@@ -49,9 +49,17 @@ internal static class ArgHelpers
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
     }
 
-    public static bool ContainsValidArgs(string[] args)
+    /// <summary>
+    /// Returns every problem with the supplied arguments; an empty list means they are usable.
+    /// </summary>
+    /// <remarks>
+    /// Reporting is the caller's job. Parsing runs before the container exists, so there is no logger to
+    /// resolve here, and writing to <see cref="Console"/> directly is what previously forced the whole
+    /// test assembly to run sequentially.
+    /// </remarks>
+    public static IReadOnlyList<string> FindInvalidArgs(string[] args)
     {
-        var containsValidArgs = true;
+        var problems = new List<string>();
         var codeGeneratorOptionsProperties = typeof(CodeGeneratorOptions).GetProperties()
             .Where(p => p.PropertyType != DeliveryProgramOptionsData.Type
                         && p.PropertyType != ManagementProgramOptionsData.Type)
@@ -69,19 +77,10 @@ internal static class ArgHelpers
                    !IsOptionPropertyValid(codeGeneratorOptionsProperties, argumentName);
         });
 
-        foreach (var arg in brokenArgs)
-        {
-            Console.Error.WriteLine($"Unsupported parameter: {arg}");
-            containsValidArgs = false;
-        }
+        problems.AddRange(brokenArgs.Select(arg => $"Unsupported parameter: {arg}"));
+        problems.AddRange(ValidateEnumArgValues(args));
 
-        foreach (var error in ValidateEnumArgValues(args))
-        {
-            Console.Error.WriteLine(error);
-            containsValidArgs = false;
-        }
-
-        return containsValidArgs;
+        return problems;
     }
 
     private static IEnumerable<string> ValidateEnumArgValues(string[] args)

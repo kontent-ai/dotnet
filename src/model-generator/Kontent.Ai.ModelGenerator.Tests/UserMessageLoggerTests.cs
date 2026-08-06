@@ -9,10 +9,10 @@ public class UserMessageLoggerTests
 
     public UserMessageLoggerTests()
     {
-        _userMessageLogger = new UserMessageLogger();
+        // Injected rather than swapped in through Console.SetOut, which is process-wide and made this
+        // class collide with anything else writing to the console.
         _stringWriter = new StringWriter();
-        Console.SetOut(_stringWriter);
-        Console.SetError(_stringWriter);
+        _userMessageLogger = new UserMessageLogger(_stringWriter, _stringWriter);
     }
 
     [Fact]

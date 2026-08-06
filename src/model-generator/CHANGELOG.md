@@ -47,6 +47,9 @@ Shipped floors moved up:
 
 No consumer-visible effect:
 
+- **The generator's output no longer reaches for `Console` from three different places.** `UserMessageLogger` now takes the writers it should use, defaulting to standard output and standard error, and the two places that bypassed it - command-line validation and the SDK-version banner - go through it. Command-line validation returns the problems it finds rather than printing them, since it runs before there is any container to resolve a logger from. Terminal output is unchanged, character for character.
+
+  This also lets the tool's test assembly run in parallel again. It had been forced sequential because one test captured output by reassigning `Console.Out`, which is process-wide, and collided with another test writing to `Console.Error`.
 - Identifier-sanitizing regular expressions are compiled at build time and carry an execution timeout. Codenames arrive from the environment's content model, so they are external input, and a generator that hangs on one malformed codename is worse than one that fails.
 - **`Kontent.Ai.ModelGenerator.Options` is now `Kontent.Ai.ModelGenerator.CommandLine`.** The namespace holds command-line argument handling — `ArgHelpers`, `ArgMappingsRegister`, `UsedSdkInfo`, `ValidationExtensions` — and nothing to do with `IOptions`. Sitting directly under `Kontent.Ai.ModelGenerator`, it shadowed `Microsoft.Extensions.Options` throughout the assembly and both test projects, so `Options.Create(...)` bound to the namespace and had to be written fully qualified to compile. Only the CLI tool assembly is affected: `Kontent.Ai.ModelGenerator.Core` has no such namespace, and the tool is installed rather than referenced.
 
