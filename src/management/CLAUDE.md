@@ -17,16 +17,18 @@ The pillars:
 
 ## Current phase
 
-Late `9.0` beta. GA is planned together with a coordinated `net8.0` → `net10.0` bump across the whole Kontent.ai .NET stack (see `net-10-updates.md` while it exists). **The window for casual breaking changes is closing**: a break now needs a real defect or a clearly better architecture behind it, an entry in the release notes *and* the upgrade guide, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
+Late `9.0` beta, targeting `net10.0`. The framework bump the `9.x` line was heading for has landed, across the whole Kontent.ai .NET stack at once. GA is next, and every package in the repo takes a major at that point, with an `rc.1` before it. **The window for casual breaking changes is closing**: a break now needs a real defect or a clearly better architecture behind it, an entry in the release notes *and* the upgrade guide, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
 
-## Sibling repos are canonical references
+## Sibling products are canonical references
 
-`../delivery-sdk-net` (primary) and `../sync-sdk-net` (secondary) sit next to this repo. Read them freely for architecture, style, or convention questions; when a design question comes up, **read the sibling first** and only diverge with a stated reason (documented divergences: no default per-attempt timeout, idempotency-aware retries — both because this SDK writes).
+This product lives in the `kontent-ai/dotnet` monorepo alongside `src/delivery` (primary reference), `src/sync` (secondary), `src/aspnetcore` and `src/model-generator`. Read them freely for architecture, style, or convention questions; when a design question comes up, **read the sibling first** and only diverge with a stated reason (documented divergences: no default per-attempt timeout, idempotency-aware retries — both because this SDK writes).
+
+Infrastructure the SDKs would otherwise each copy lives in `src/common`, compiled into each assembly as `internal` rather than shipped as a package — retry predicates, SDK tracking headers, Refit response reading. Test infrastructure shared across products lives in `src/testing`. Both have READMEs stating what belongs there; check them before adding a fourth copy of something.
 
 ## Target framework and language
 
-- **.NET 8 today; .NET 10 at GA** (skip 9, LTS→LTS), coordinated across management + delivery + sync before the .NET 8 EOL window. Until that bump, keep `net8.0`.
-- `LangVersion=latest`, `Nullable=enable`, `ImplicitUsings=enable`, analyzers, deterministic build — centralized in `Directory.Build.props`. Central Package Management via `Directory.Packages.props`; SDK pinned via `global.json`.
+- **`net10.0`**, single-target (LTS→LTS, skipping 9). Every product in the repo moved together; do not reintroduce `net8.0`.
+- `LangVersion=latest`, `Nullable=enable`, `ImplicitUsings=enable`, analyzers, deterministic build — centralized in the **repo-root** `Directory.Build.props`, which `src/management/Directory.Build.props` imports explicitly (MSBuild stops at the first one it finds, so the import is load-bearing). Central Package Management via the root `Directory.Packages.props`; SDK pinned via `global.json`.
 - **Use modern C# actively**: primary constructors, file-scoped namespaces, `sealed` by default, `record` for DTOs, `required` members, collection expressions, `init`-only setters, pattern matching over `if`/cast chains, `ArgumentNullException.ThrowIfNull`.
 
 ## API surface conventions
@@ -43,7 +45,7 @@ Late `9.0` beta. GA is planned together with a coordinated `net8.0` → `net10.0
 - Explicit `[JsonPropertyName]` on **every** property — the serializer options deliberately have no naming policy.
 - **All collection properties are `IReadOnlyList<T>`** (never `IEnumerable`, `ISet`, or concrete types). Method *parameters* may accept `IEnumerable<T>`.
 - Names mirror Kontent.ai API terminology; request and response shapes are separate records when the wire shapes differ (a response model with a fake-`required` field forced into a request body is a defect — see `UserRolesUpdateModel`).
-- Models must stay **generator-friendly** (record-based, immutable, STJ-serializable) — the shape is coordinated with `../model-generator-net`.
+- Models must stay **generator-friendly** (record-based, immutable, STJ-serializable) — the shape is coordinated with `src/model-generator`, which consumes this package.
 - Generated/typed content models map via `KontentTypeAttribute`/`KontentElementAttribute`/`KontentEnumValueAttribute`; the converters read them at runtime (typed *reads* match by id — environment-bound; *writes* key by codename — portable).
 
 ## Adding or changing an endpoint — the playbook
@@ -77,14 +79,15 @@ Late `9.0` beta. GA is planned together with a coordinated `net8.0` → `net10.0
 
 - **Be critical, not compliant.** If a request conflicts with these principles, the siblings' conventions, or good design, push back with reasoning before implementing.
 - **No flattery.** Acknowledge, analyze, recommend.
-- **Surface trade-offs the user may not have weighed** — public API breakage, sibling divergence, `model-generator-net` coupling, wire-contract risk.
-- When uncertain about a convention, read the sibling repo before asking or assuming.
+- **Surface trade-offs the user may not have weighed** — public API breakage, sibling divergence, `src/model-generator` coupling, wire-contract risk.
+- When uncertain about a convention, read the sibling product before asking or assuming.
 
 ## Project structure
 
 - `Kontent.Ai.Management/` — `Api/` (Refit partials), `Configuration/` (options, builder, Refit settings), `Extensions/` (DI registration, client conveniences, `PageEnumerator`, result mapping), `Handlers/` (auth, tracking), `Conversion/` + `Serialization/` (typed-model envelope converter, STJ converters), `Annotations/` (generated-model mapping attributes), `Models/` (per-domain DTOs), root-level result types and error catalog (`ManagementErrorCodes` — curated, not exhaustive; MAPI codes are not unique).
 - `Kontent.Ai.Management.Tests/` — mirrors the above; `Base/` holds the shared test infrastructure.
-- Root: `Directory.Build.props`, `Directory.Packages.props`, `global.json`, solution. No Abstractions or Helpers project — considered and dropped; public contracts live with the implementation.
+- `src/management/Directory.Build.props` — this product's package metadata and its `<Version>`, taken from `eng/Versions.props`. Build settings, package versions and the SDK pin are repo-level. No Abstractions or Helpers project — considered and dropped; public contracts live with the implementation.
+- `CHANGELOG.md` — every user-visible change goes under `## Unreleased`; the release workflow promotes it.
 - `docs/` — per-release notes and the `8.x` → `9.x` upgrade guide. Keep both current with every user-visible change.
 
 ## Development commands
@@ -100,11 +103,13 @@ Prefer commands without explicit paths so they keep working if layout shifts.
 
 - Commit messages follow `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching the branch history. Branch names follow `TICKET-ID_Short_description`.
 - Keep each PR scoped: infra separate from per-domain work separate from model changes.
-- Package version comes from the release git tag: `.github/workflows/release.yml` strips the `v` prefix and passes it as `/p:Version` and `/p:PackageVersion` at build/pack time — no version property in any project file.
+- Package version comes from `<ManagementVersion>` in `eng/Versions.props`, applied by `src/management/Directory.Build.props`. Releases are tag-routed (`management-v<version>`), and the release workflow **refuses to publish if the tag and the property disagree** — the manifest is the source of truth, not the tag.
+- `Kontent.Ai.*` versions in the root `Directory.Packages.props` are declared dependency floors, not just pins. A floor must already be on nuget.org, so floors are raised in their own PR *after* the dependency ships — never in the batch that bumps it. The file's own header has the full reasoning.
+- Public surface is gated by an approval snapshot (`Kontent.Ai.Management.Tests/ApiApproval`). Review the `.received.txt` diff line by line before accepting it; the printer is shared from `src/testing`.
 
 ## Open questions (do not invent answers)
 
-- **Coordination with `model-generator-net`** for Management-model generation — the generated model shape (records, mapping attributes, collection types) must be agreed jointly before DTOs are declared final. This is the main remaining cross-repo dependency.
+- **Coordination with `src/model-generator`** for Management-model generation — the generated model shape (records, mapping attributes, collection types) must be agreed jointly before DTOs are declared final. It consumes this package at a floor, so a change here reaches it only after a release.
 - **Webhook trigger switches** (`Enabled`/`Events`/`Slot` nullability) and the **webhook update endpoint** need live-API verification before changing.
 
 When you hit these, ask rather than guess.

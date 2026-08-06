@@ -49,7 +49,7 @@ Install the SDK via the NuGet Package Manager. The modernized API documented her
 dotnet add package Kontent.Ai.Management --prerelease
 ```
 
-The SDK targets `net8.0`.
+The SDK targets `net10.0`.
 
 ## Upgrade Guide
 
