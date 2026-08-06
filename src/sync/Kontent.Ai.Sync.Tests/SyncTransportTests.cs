@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -69,15 +70,105 @@ public sealed class SyncTransportTests : IDisposable
     }
 
     // Pins the wire contract against the configured serializer: snake_case property names and the
-    // change_type enum token, neither of which is exercised when ISyncApi is stubbed.
+    // change_type enum token, neither of which is exercised when ISyncApi is stubbed. The payloads
+    // are the documented examples verbatim, so a drift between this SDK and the published schema
+    // shows up here rather than against a live environment.
     [Fact]
     public async Task GetDeltaAsync_DeserializesTheWireFormat()
     {
         const string body = """
             {
               "items": [
-                { "change_type": "changed", "data": { "system": { "codename": "article" } } },
-                { "change_type": "deleted", "data": null }
+                {
+                  "change_type": "changed",
+                  "timestamp": "2025-06-20T13:03:06.1310204Z",
+                  "data": {
+                    "system": {
+                      "id": "335d17ac-b6ba-4c6a-ae31-23c1193215cb",
+                      "collection": "default",
+                      "name": "My article",
+                      "codename": "my_article",
+                      "language": "en-US",
+                      "type": "article",
+                      "sitemap_locations": [],
+                      "last_modified": "2019-03-27T13:21:11.38Z",
+                      "workflow": "default",
+                      "workflow_step": "published"
+                    }
+                  }
+                }
+              ],
+              "types": [
+                {
+                  "change_type": "changed",
+                  "timestamp": "2025-06-20T13:03:06.1310204Z",
+                  "data": {
+                    "system": {
+                      "id": "b2c14f2c-6467-460b-a70b-bca17972a33a",
+                      "name": "Article",
+                      "codename": "article",
+                      "last_modified": "2019-10-20T12:03:17.4685693Z"
+                    }
+                  }
+                }
+              ],
+              "languages": [
+                {
+                  "change_type": "changed",
+                  "timestamp": "2025-06-20T13:03:06.1310204Z",
+                  "data": {
+                    "system": {
+                      "id": "00000000-0000-0000-0000-000000000000",
+                      "name": "Default language",
+                      "codename": "default"
+                    }
+                  }
+                }
+              ],
+              "taxonomies": []
+            }
+            """;
+
+        _http.Expect(HttpMethod.Get, SyncUrl)
+            .Respond(_ => WithContinuation(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+                },
+                "next-token"));
+
+        var result = await CreateClient().GetDeltaAsync("token");
+
+        result.IsSuccess.Should().BeTrue();
+
+        var item = result.Value.Items.Should().ContainSingle().Subject;
+        item.ChangeType.Should().Be(ChangeType.Changed);
+        item.Timestamp.Should().Be(DateTimeOffset.Parse("2025-06-20T13:03:06.1310204Z", CultureInfo.InvariantCulture));
+        item.Data!.System.Codename.Should().Be("my_article");
+        item.Data.System.Collection.Should().Be("default");
+        item.Data.System.Language.Should().Be("en-US");
+        item.Data.System.Workflow.Should().Be("default");
+        item.Data.System.WorkflowStep.Should().Be("published");
+
+        // Deprecated and scheduled for removal, so deliberately not modelled - its presence in the
+        // payload must not upset deserialization.
+        result.Value.Types.Should().ContainSingle().Which.Data!.System.Codename.Should().Be("article");
+
+        // The narrowest payload: no last_modified, and nothing the API guarantees.
+        var language = result.Value.Languages.Should().ContainSingle().Subject;
+        language.Data!.System.Codename.Should().Be("default");
+
+        result.Value.Taxonomies.Should().BeEmpty();
+    }
+
+    // A deletion still names what was deleted; only the payload's presence is in question.
+    [Fact]
+    public async Task GetDeltaAsync_DeletedEntryWithoutData_IsStillReadable()
+    {
+        const string body = """
+            {
+              "items": [
+                { "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z", "data": null }
               ],
               "types": [],
               "languages": [],
@@ -96,10 +187,9 @@ public sealed class SyncTransportTests : IDisposable
         var result = await CreateClient().GetDeltaAsync("token");
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.Items.Should().HaveCount(2);
-        result.Value.Items[0].ChangeType.Should().Be(ChangeType.Changed);
-        result.Value.Items[1].ChangeType.Should().Be(ChangeType.Deleted);
-        result.Value.Types.Should().BeEmpty();
+        var deleted = result.Value.Items.Should().ContainSingle().Subject;
+        deleted.ChangeType.Should().Be(ChangeType.Deleted);
+        deleted.Data.Should().BeNull();
     }
 
     [Fact]

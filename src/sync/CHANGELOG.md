@@ -31,6 +31,27 @@ See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the mi
   ```
 
   Every type keeps its name and its members; only the namespace and the assembly change. There is no compatibility shim: a stale `Kontent.Ai.Sync.Abstractions` reference fails to compile rather than resolving to a package that will never be updated again. That package is delisted at 2.0.
+- **The four delta entry types collapse into one generic `SyncChange<TData>`, and `Data` is now typed.** `ISyncItem`, `ISyncType`, `ISyncLanguage` and `ISyncTaxonomy` declared exactly the same two members and were backed by four identical records — while the thing that genuinely differs between them, the payload, was hidden behind `object?`. The split was in the wrong place: every delta the API returns shares one envelope, and none of them share a payload.
+
+  ```csharp
+  // Before — same shape four times, payload opaque
+  foreach (ISyncItem item in page.Value.Items)
+  {
+      var data = item.Data;               // object?, a JsonElement at runtime
+  }
+
+  // After
+  foreach (SyncChange<SyncItemData> item in page.Value.Items)
+  {
+      var codename = item.Data?.System.Codename;
+      var when     = item.Timestamp;
+  }
+  ```
+
+  `SyncItemData`, `SyncTypeData`, `SyncLanguageData` and `SyncTaxonomyData` model each `system` object as the API documents it. They are deliberately not one type: a content item carries `collection`, `language`, `type` and workflow state, while a language carries three properties and no `last_modified` at all. `SyncTypeData` and `SyncTaxonomyData` happen to match today and are still separate, because the API may extend either alone.
+
+  The deprecated `sitemap_locations` array is not modelled. It is scheduled for removal, and leaving it out means that removal changes nothing here.
+- **Every delta now carries its `timestamp`.** The API marks it required on all four delta objects and the SDK dropped it entirely, so there was no way to tell when a change happened — only that it had. It is exposed as `SyncChange<TData>.Timestamp`, a `DateTimeOffset` in UTC.
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release at all — restore fails with `NU1202: Package Kontent.Ai.Sync is not compatible with net8.0`. Move to .NET 10 first.
 - **`InitializeSyncAsync` returns `ISyncResult` instead of `ISyncResult<ISyncInitResponse>`, and `ISyncInitResponse` is removed.** Initialization establishes a starting point rather than returning content — the useful output has always been the token, on `SyncToken`. `ISyncInitResponse` was an interface with no members, so `Value` was an object you could hold but never read. `ISyncResult` is new and non-generic, and `ISyncResult<T>` now derives from it, adding only `Value`; this mirrors `IManagementResult` / `IManagementResult<T>` in the Management SDK. Every other member is unchanged and still reachable on both.
 

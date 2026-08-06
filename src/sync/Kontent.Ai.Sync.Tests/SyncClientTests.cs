@@ -151,6 +151,17 @@ public class SyncClientTests
             .WithMessage("*X-Continuation*");
     }
 
+    private static SyncItemSystem SystemFor(string codename) => new()
+    {
+        Id = Guid.NewGuid(),
+        Collection = "default",
+        Name = codename,
+        Codename = codename,
+        Language = "en-US",
+        Type = "article",
+        LastModified = DateTimeOffset.UnixEpoch,
+    };
+
     private static IApiResponse<SyncDeltaResponse> CreateSuccessDeltaResponse(string? nextToken, int itemCount)
     {
         var response = Substitute.For<IApiResponse<SyncDeltaResponse>>();
@@ -161,7 +172,12 @@ public class SyncClientTests
         response.Content.Returns(new SyncDeltaResponse
         {
             Items = Enumerable.Range(0, itemCount)
-                .Select(i => new SyncItem { ChangeType = ChangeType.Changed, Data = new { index = i } })
+                .Select(i => new SyncChange<SyncItemData>
+                {
+                    ChangeType = ChangeType.Changed,
+                    Timestamp = DateTimeOffset.UnixEpoch.AddMinutes(i),
+                    Data = new SyncItemData { System = SystemFor($"item_{i}") },
+                })
                 .ToList()
         });
 

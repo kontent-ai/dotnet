@@ -1,31 +1,19 @@
 namespace Kontent.Ai.Sync;
 
 /// <summary>
-/// Represents delta updates from a sync operation.
+/// One page of changes since the supplied continuation token.
 /// </summary>
 public interface ISyncDeltaResponse
 {
-    /// <summary>
-    /// Gets the list of delta updates for content items that changed since the last synchronization.
-    /// If there haven't been any changes, the array is empty. Maximum 100 items per response.
-    /// </summary>
-    IReadOnlyList<ISyncItem> Items { get; }
+    /// <summary>Content items that changed.</summary>
+    IReadOnlyList<SyncChange<SyncItemData>> Items { get; }
 
-    /// <summary>
-    /// Gets the list of delta updates for content types that changed since the last synchronization.
-    /// If there haven't been any changes, the array is empty. Maximum 100 items per response.
-    /// </summary>
-    IReadOnlyList<ISyncType> Types { get; }
+    /// <summary>Content types that changed.</summary>
+    IReadOnlyList<SyncChange<SyncTypeData>> Types { get; }
 
-    /// <summary>
-    /// Gets the list of delta updates for languages that changed since the last synchronization.
-    /// If there haven't been any changes, the array is empty. Maximum 100 items per response.
-    /// </summary>
-    IReadOnlyList<ISyncLanguage> Languages { get; }
+    /// <summary>Languages that changed.</summary>
+    IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; }
 
-    /// <summary>
-    /// Gets the list of delta updates for taxonomy groups that changed since the last synchronization.
-    /// If there haven't been any changes, the array is empty. Maximum 100 items per response.
-    /// </summary>
-    IReadOnlyList<ISyncTaxonomy> Taxonomies { get; }
+    /// <summary>Taxonomy groups that changed.</summary>
+    IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; }
 }

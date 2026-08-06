@@ -30,20 +30,10 @@ public interface ISyncClientFactory
 
 // Kontent.Ai.Sync
 public interface ISyncDeltaResponse
-    IReadOnlyList<ISyncItem> Items { get; }
-    IReadOnlyList<ISyncLanguage> Languages { get; }
-    IReadOnlyList<ISyncTaxonomy> Taxonomies { get; }
-    IReadOnlyList<ISyncType> Types { get; }
-
-// Kontent.Ai.Sync
-public interface ISyncItem
-    ChangeType ChangeType { get; }
-    Object Data { get; }
-
-// Kontent.Ai.Sync
-public interface ISyncLanguage
-    ChangeType ChangeType { get; }
-    Object Data { get; }
+    IReadOnlyList<SyncChange<SyncItemData>> Items { get; }
+    IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; }
+    IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; }
+    IReadOnlyList<SyncChange<SyncTypeData>> Types { get; }
 
 // Kontent.Ai.Sync
 public interface ISyncOptionsBuilder
@@ -71,16 +61,6 @@ public interface ISyncResult`1<T> : ISyncResult
     T Value { get; }
 
 // Kontent.Ai.Sync
-public interface ISyncTaxonomy
-    ChangeType ChangeType { get; }
-    Object Data { get; }
-
-// Kontent.Ai.Sync
-public interface ISyncType
-    ChangeType ChangeType { get; }
-    Object Data { get; }
-
-// Kontent.Ai.Sync
 public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<IServiceProvider, SyncOptions> configureOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions)
@@ -95,12 +75,74 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions syncOptions, Action<IHttpClientBuilder> configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
 
 // Kontent.Ai.Sync
+public sealed class SyncChange`1<TData> : IEquatable<SyncChange<TData>>
+    .ctor()
+    ChangeType ChangeType { get; init; }
+    DateTimeOffset Timestamp { get; init; }
+    TData Data { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncChange<TData> other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncChange<TData> <Clone>$()
+
+// Kontent.Ai.Sync
 public sealed class SyncClient : IAsyncDisposable, IDisposable, ISyncClient
     IAsyncEnumerable<ISyncResult<ISyncDeltaResponse>> EnumerateDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult<ISyncDeltaResponse>> GetDeltaAsync(String syncToken, CancellationToken cancellationToken)
     Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
     ValueTask DisposeAsync()
     Void Dispose()
+
+// Kontent.Ai.Sync
+public sealed class SyncItemData : IEquatable<SyncItemData>
+    .ctor()
+    SyncItemSystem System { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncItemData other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncItemData <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncItemSystem : IEquatable<SyncItemSystem>
+    .ctor()
+    DateTimeOffset LastModified { get; init; }
+    Guid Id { get; init; }
+    String Codename { get; init; }
+    String Collection { get; init; }
+    String Language { get; init; }
+    String Name { get; init; }
+    String Type { get; init; }
+    String Workflow { get; init; }
+    String WorkflowStep { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncItemSystem other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncItemSystem <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncLanguageData : IEquatable<SyncLanguageData>
+    .ctor()
+    SyncLanguageSystem System { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncLanguageData other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncLanguageData <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncLanguageSystem : IEquatable<SyncLanguageSystem>
+    .ctor()
+    Nullable<Guid> Id { get; init; }
+    String Codename { get; init; }
+    String Name { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncLanguageSystem other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncLanguageSystem <Clone>$()
 
 // Kontent.Ai.Sync
 public sealed class SyncOptions : IValidatableObject
@@ -130,6 +172,52 @@ public sealed class SyncSourceTrackingHeaderAttribute : Attribute
     Int32 PatchVersion { get; }
     String PackageName { get; }
     String PreReleaseLabel { get; }
+
+// Kontent.Ai.Sync
+public sealed class SyncTaxonomyData : IEquatable<SyncTaxonomyData>
+    .ctor()
+    SyncTaxonomySystem System { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncTaxonomyData other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncTaxonomyData <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncTaxonomySystem : IEquatable<SyncTaxonomySystem>
+    .ctor()
+    DateTimeOffset LastModified { get; init; }
+    Guid Id { get; init; }
+    String Codename { get; init; }
+    String Name { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncTaxonomySystem other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncTaxonomySystem <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncTypeData : IEquatable<SyncTypeData>
+    .ctor()
+    SyncTypeSystem System { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncTypeData other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncTypeData <Clone>$()
+
+// Kontent.Ai.Sync
+public sealed class SyncTypeSystem : IEquatable<SyncTypeSystem>
+    .ctor()
+    DateTimeOffset LastModified { get; init; }
+    Guid Id { get; init; }
+    String Codename { get; init; }
+    String Name { get; init; }
+    Boolean Equals(Object obj)
+    Boolean Equals(SyncTypeSystem other)
+    Int32 GetHashCode()
+    String ToString()
+    SyncTypeSystem <Clone>$()
 
 // Kontent.Ai.Sync.Configuration
 public sealed class SyncClientBuilder

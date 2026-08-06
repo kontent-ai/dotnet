@@ -2,29 +2,17 @@ using System.Text.Json.Serialization;
 
 namespace Kontent.Ai.Sync.Models;
 
-/// <summary>
-/// Represents delta updates from a sync operation.
-/// </summary>
 internal sealed record SyncDeltaResponse : ISyncDeltaResponse
 {
-    /// <inheritdoc/>
     [JsonPropertyName("items")]
-    public IReadOnlyList<SyncItem> Items { get; init; } = [];
+    public IReadOnlyList<SyncChange<SyncItemData>> Items { get; init; } = [];
 
-    /// <inheritdoc/>
     [JsonPropertyName("types")]
-    public IReadOnlyList<SyncType> Types { get; init; } = [];
+    public IReadOnlyList<SyncChange<SyncTypeData>> Types { get; init; } = [];
 
-    /// <inheritdoc/>
     [JsonPropertyName("languages")]
-    public IReadOnlyList<SyncLanguage> Languages { get; init; } = [];
+    public IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; init; } = [];
 
-    /// <inheritdoc/>
     [JsonPropertyName("taxonomies")]
-    public IReadOnlyList<SyncTaxonomy> Taxonomies { get; init; } = [];
-
-    IReadOnlyList<ISyncItem> ISyncDeltaResponse.Items => Items;
-    IReadOnlyList<ISyncType> ISyncDeltaResponse.Types => Types;
-    IReadOnlyList<ISyncLanguage> ISyncDeltaResponse.Languages => Languages;
-    IReadOnlyList<ISyncTaxonomy> ISyncDeltaResponse.Taxonomies => Taxonomies;
+    public IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; init; } = [];
 }

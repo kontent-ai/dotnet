@@ -15,7 +15,8 @@ small and the compiler points at each one.
 |---|---|
 | `net8.0` → `net10.0` | Move your project to .NET 10 first |
 | `Kontent.Ai.Sync.Abstractions` folded into `Kontent.Ai.Sync` | Drop the reference, change one `using`; see [§2](#2-one-package-one-namespace) |
-| `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§3](#3-paging-is-now-a-stream) |
+| `ISyncItem`/`ISyncType`/`ISyncLanguage`/`ISyncTaxonomy` → `SyncChange<TData>` | Change the loop variable's type; `Data` is now typed. See [§3](#3-one-delta-type-with-a-typed-payload) |
+| `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§4](#4-paging-is-now-a-stream) |
 | `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` removed | Delete the usage; the stream ends on its own |
 | `SyncToken` is non-nullable | Drop any `?? previous` fallback |
 | `InitializeSyncAsync` returns `ISyncResult` | Change the declared type, or use `var` |
@@ -60,7 +61,38 @@ There is no type-forwarding shim, deliberately: leaving the old package resolvab
 shipping an assembly nobody maintains. A stale reference fails at compile time with a missing-type
 error naming exactly what to remove, rather than resolving to something frozen at 1.0.
 
-## 3. Paging is now a stream
+## 3. One delta type, with a typed payload
+
+The four entry interfaces are gone. Each declared the same two members, and each was backed by an
+identical record — while the part that genuinely differs, the payload, sat behind `object?`.
+
+```csharp
+// Before
+foreach (ISyncItem item in page.Value.Items)
+{
+    object? data = item.Data;   // a JsonElement at runtime; parse it yourself
+}
+
+// After
+foreach (SyncChange<SyncItemData> item in page.Value.Items)
+{
+    string? codename = item.Data?.System.Codename;
+    DateTimeOffset when = item.Timestamp;
+}
+```
+
+`var` in the loop keeps this to a no-op. What changes is that `Data` is now a modelled type rather
+than an object you had to deserialize by hand, and that `Timestamp` exists at all — see [§4 of the
+changelog](../CHANGELOG.md) for why it was missing.
+
+The four payloads are separate types on purpose. A content item's `system` carries `collection`,
+`language`, `type` and workflow state; a language's carries three properties and no `last_modified`.
+`SyncTypeData` and `SyncTaxonomyData` are identical today and still separate, because the API can
+extend either on its own.
+
+`Data` stays nullable: a deletion may arrive without a payload.
+
+## 4. Paging is now a stream
 
 `GetAllDeltaAsync` buffered every page into memory and returned them together. It also decided it had
 caught up when no collection in a response had reached 100 entries — a threshold the API never
@@ -115,7 +147,7 @@ crash part-way through reprocesses from the previous token: some changes arrive 
 Saving after each page resumes closer to where you stopped. Saving *before* processing a page is the one
 variant that can lose work.
 
-## 4. `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` are gone
+## 5. `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` are gone
 
 All three existed to support the 100-entry threshold. With completion defined by the API's empty
 response, the sequence simply ends — there is no flag to poll and no page-size constant to keep in step
@@ -132,7 +164,7 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(token)) { /* runs unti
 
 If you are driving the loop yourself with `GetDeltaAsync`, stop when every collection comes back empty.
 
-## 5. `SyncToken` is non-nullable
+## 6. `SyncToken` is non-nullable
 
 The API issues a fresh token with every successful response, and it is the only way to make the next
 request. A successful response without one now fails where the response is mapped — an
@@ -146,7 +178,7 @@ continue from. In exchange, `SyncToken` is declared `string` rather than `string
 
 Code that only reads the token after checking `IsSuccess` needs no change.
 
-## 6. `InitializeSyncAsync` returns `ISyncResult`
+## 7. `InitializeSyncAsync` returns `ISyncResult`
 
 Initialization establishes a starting point rather than returning content, so it no longer carries a
 value. `ISyncInitResponse` — an interface with no members — is removed, and `ISyncResult` is new and
@@ -161,7 +193,7 @@ await SaveTokenAsync(init.SyncToken);   // unchanged
 
 `GetDeltaAsync` and `EnumerateDeltaAsync` are untouched, `page.Value` included.
 
-## 7. Disposal moved to the concrete client
+## 8. Disposal moved to the concrete client
 
 `ISyncClient` no longer carries `IDisposable` / `IAsyncDisposable`. A client resolved from a container is
 owned by the container and was never yours to dispose; a client from `SyncClientBuilder` owns its
@@ -181,7 +213,7 @@ await using var client = SyncClientBuilder.WithOptions(...).Build();
 Container-resolved clients are still disposed by the container, which checks the runtime type rather than
 the registered service type.
 
-## 8. `SyncClientBuilder.ConfigureServices` → `WithResilience`
+## 9. `SyncClientBuilder.ConfigureServices` → `WithResilience`
 
 The builder no longer stands up a private service container — the client constructs its handler chain
 directly and owns the resulting `HttpClient`. `ConfigureServices` existed only to reach into that
@@ -195,7 +227,7 @@ container. Replacing the resilience pipeline was the realistic use, and that is 
 .WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
 ```
 
-## 9. `configureRefit` is gone
+## 10. `configureRefit` is gone
 
 Removed from all three `AddSyncClient` overloads. Everything reachable through it was load-bearing rather
 than configurable — the parameter-key formatter matches the API's casing, and the serializer options

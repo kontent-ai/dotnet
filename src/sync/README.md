@@ -65,7 +65,8 @@ if (!deltaResult.IsSuccess)
 var delta = deltaResult.Value;
 foreach (var item in delta.Items)
 {
-    Console.WriteLine($"Item change: {item.ChangeType}");
+    // Data is null when the entry only records that something was deleted.
+    Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data?.System.Codename}");
 }
 
 await SaveSyncTokenAsync(deltaResult.SyncToken);
@@ -90,7 +91,7 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken, cancellatio
 
     foreach (var item in page.Value.Items)
     {
-        Console.WriteLine($"Item change: {item.ChangeType}");
+        Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data?.System.Codename}");
     }
 
     token = page.SyncToken;
@@ -99,6 +100,29 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken, cancellatio
 // An empty sequence means there was nothing new, and the token you passed in is still current.
 await SaveSyncTokenAsync(token);
 ```
+
+## What a delta page contains
+
+Each of the four collections holds `SyncChange<TData>` entries sharing one envelope — what changed,
+when, and the metadata:
+
+| Member | |
+|---|---|
+| `ChangeType` | `Changed` or `Deleted` |
+| `Timestamp` | when the change occurred in the Delivery API, UTC |
+| `Data` | the entity's metadata; `null` when the entry carries none |
+
+The payload differs per collection, because the API's does:
+
+| Collection | `Data` | `Data.System` |
+|---|---|---|
+| `Items` | `SyncItemData` | id, collection, name, codename, language, type, last modified, workflow, workflow step |
+| `Types` | `SyncTypeData` | id, name, codename, last modified |
+| `Taxonomies` | `SyncTaxonomyData` | id, name, codename, last modified |
+| `Languages` | `SyncLanguageData` | id, name, codename |
+
+`Workflow` and `WorkflowStep` are absent for components. A language carries no last-modified stamp,
+which is why the four payloads are separate types rather than one.
 
 ## Configuration
 
