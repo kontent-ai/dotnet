@@ -16,7 +16,19 @@ internal sealed class FileUploadContent : HttpContent
         _source = source;
         Headers.ContentType = MediaTypeHeaderValue.Parse(source.ContentType);
         Length = GetKnownLength(source);
+        IsReplayable = source.CreatesNewStream || source.OpenReadStream().CanSeek;
     }
+
+    /// <summary>
+    /// Whether this body can be sent more than once.
+    /// </summary>
+    /// <remarks>
+    /// A caller-supplied stream that cannot seek is consumed by the first attempt, so a retry would send an
+    /// empty body - which the API can accept, storing a truncated asset under a successful result. The
+    /// resilience pipeline reads this to leave such a request alone, so the caller gets the real failure
+    /// back and can decide what to do with a source only they can rewind.
+    /// </remarks>
+    public bool IsReplayable { get; }
 
     /// <summary>Content length when the source size is known (seekable); <c>null</c> for non-seekable streams.</summary>
     private long? Length { get; }

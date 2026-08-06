@@ -43,6 +43,20 @@ public sealed class ManagementOptions : IValidatableObject
     /// </summary>
     public bool EnableResilience { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the ceiling on one call, covering every retry attempt and the waits between them.
+    /// Defaults to 10 minutes. Use <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to leave the call
+    /// bounded only by the caller's <see cref="CancellationToken"/>.
+    /// </summary>
+    /// <remarks>
+    /// This SDK deliberately sets no per-attempt timeout, because an asset upload is as slow as the file is
+    /// large and the link is slow, and cutting one off mid-transfer helps nobody. That intent needs a ceiling
+    /// well above <see cref="HttpClient"/>'s 100-second default, which applies to the whole call - so it also
+    /// capped the retries and backoff, and killed exactly the uploads the missing per-attempt timeout was
+    /// meant to protect.
+    /// </remarks>
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(10);
+
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -72,6 +86,13 @@ public sealed class ManagementOptions : IValidatableObject
             yield return new ValidationResult(
                 $"Provided string is not a valid subscription identifier ({SubscriptionId}).",
                 [nameof(SubscriptionId)]);
+        }
+
+        if (Timeout <= TimeSpan.Zero && Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+        {
+            yield return new ValidationResult(
+                "Timeout must be positive, or Timeout.InfiniteTimeSpan for no ceiling.",
+                [nameof(Timeout)]);
         }
     }
 }

@@ -34,6 +34,12 @@ public static partial class ServiceCollectionExtensions
                 // Note: BaseAddress is static and won't update with runtime configuration changes.
                 // The DeliveryAuthenticationHandler handles runtime endpoint switching.
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
+
+                // The resilience pipeline owns timing: it bounds each attempt (see ConfigureDefaultResilience)
+                // and therefore the whole call. HttpClient's own 100-second default applies to the entire
+                // SendAsync - retries and backoff included - so it silently clipped the last attempt of a
+                // pipeline that is allowed to take longer than that.
+                httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
             });
 
         // Add resilience and message handlers

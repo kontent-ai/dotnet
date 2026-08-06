@@ -229,7 +229,11 @@ services.AddManagementClient(
 ```
 
 > [!NOTE]
-> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it.
+> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 10 minutes and covers every attempt plus the waits between them.
+
+#### Retrying an upload
+
+A retried request is re-sent from the same `FileContentSource`. Sources created from a `byte[]` or a file path re-read cleanly, and a seekable stream is rewound — but a **non-seekable stream cannot be replayed**, because the first attempt consumed it. The SDK will not retry such a request; you get the original failure back and can retry it yourself with a fresh stream. Pass a `byte[]`, a file path, or a seekable stream if you want uploads to survive a `429`.
 
 ## Configuration Options
 
@@ -239,6 +243,7 @@ services.AddManagementClient(
 | `ApiKey` | Yes | — | A Management API key, or a Subscription API key for subscription-scoped endpoints. |
 | `SubscriptionId` | No | — | The subscription GUID. Required only for subscription-scoped endpoints (such as user management). |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
+| `Timeout` | No | `10 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address; the SDK appends the versioned, scoped path. Override only when targeting a non-production endpoint. |
 
 `ManagementOptions` validates on use: a missing or malformed `EnvironmentId`/`ApiKey` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.

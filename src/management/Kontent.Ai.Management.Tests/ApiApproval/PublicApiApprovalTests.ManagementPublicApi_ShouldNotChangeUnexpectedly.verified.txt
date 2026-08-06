@@ -346,6 +346,7 @@ public sealed class ManagementOptions : IValidatableObject
     String Endpoint { get; set; }
     String EnvironmentId { get; set; }
     String SubscriptionId { get; set; }
+    TimeSpan Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Management.Extensions

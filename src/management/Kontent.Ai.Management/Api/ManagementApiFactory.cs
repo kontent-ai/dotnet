@@ -51,6 +51,7 @@ internal static class ManagementApiFactory
         return new HttpClient(outermost)
         {
             BaseAddress = options.ScopedEndpoint(scopePath),
+            Timeout = options.Timeout,
         };
     }
 }

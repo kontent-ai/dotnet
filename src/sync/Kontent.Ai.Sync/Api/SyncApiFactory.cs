@@ -47,6 +47,10 @@ internal static class SyncApiFactory
         return new HttpClient(outermost)
         {
             BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute),
+
+            // Matches the DI path: the resilience pipeline bounds each attempt, so HttpClient's own
+            // 100-second ceiling on the whole call would only clip it.
+            Timeout = System.Threading.Timeout.InfiniteTimeSpan,
         };
     }
 }

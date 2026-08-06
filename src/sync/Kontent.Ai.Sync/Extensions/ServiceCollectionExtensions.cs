@@ -390,6 +390,12 @@ public static class ServiceCollectionExtensions
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
                 var options = optionsMonitor.Get(name);
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
+
+                // The resilience pipeline owns timing: it bounds each attempt (see ConfigureDefaultResilience)
+                // and therefore the whole call. HttpClient's own 100-second default applies to the entire
+                // SendAsync - retries and backoff included - so it silently clipped the last attempt of a
+                // pipeline that is allowed to take longer than that.
+                httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
             });
 
         ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);

@@ -47,8 +47,12 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
   never as the caller withdrawing a request that never happened.
 - **Transport failures report status `0`.** `IManagementResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
+- **`ManagementOptions.Timeout`** sets the ceiling on one call, covering every retry attempt and the waits between them. Defaults to 10 minutes.
+
 ### Fixed
 
+- **A long upload is no longer cut off at 100 seconds.** This SDK deliberately configures no per-attempt timeout, because an asset upload takes as long as the file is large and the link is slow. But `HttpClient`'s own 100-second default bounds the *whole* call — every attempt and all the backoff between them — and nothing raised it, so it capped exactly the uploads the missing per-attempt timeout was meant to protect. It also silently truncated retries: a `429` carrying `Retry-After: 60` spent most of the budget before the next attempt began. The ceiling is now `ManagementOptions.Timeout`, defaulting to 10 minutes.
+- **An upload that cannot be re-sent is no longer retried into a truncated asset.** `429` is retried for every method, including the upload `POST`, because a rejected request was never processed. But a `FileContentSource` built from a non-seekable stream is consumed by the first attempt, so the retry uploaded an **empty body** — which the API can accept, storing a truncated asset and reporting success. Such a request is now left alone and the original failure is returned, so the decision rests with the caller, who is the only one able to rewind the source. Sources created from a `byte[]`, a file path, or a seekable stream re-read cleanly and still retry as before.
 - **Long-running applications pick up DNS changes instead of pinning the address resolved at startup.** The registered client is a singleton and takes its `HttpClient` from `IHttpClientFactory` once, so the handler chain it holds was never rotated — the factory only hands a fresh chain to a *new* `CreateClient` call. Connections now recycle every two minutes, matching the factory's own default handler lifetime. This matters when the endpoint's address changes underneath a process that stays up for days: a failover, a scale event, or any re-pointing upstream. Configuring your own primary handler via `configureHttpClient` still overrides this, as before.
 
 ### Dependencies

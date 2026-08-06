@@ -134,6 +134,31 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddManagementClient_AppliesTheConfiguredTimeoutToTheHttpClient()
+    {
+        // HttpClient's 100-second default bounds the whole call, retries and backoff included, so it capped
+        // exactly the long uploads this SDK's missing per-attempt timeout is meant to allow.
+        var services = new ServiceCollection();
+        services.AddManagementClient(options =>
+        {
+            ConfigureValidOptions(options);
+            options.Timeout = TimeSpan.FromMinutes(42);
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var httpClient = provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient($"Kontent.Ai.Management.HttpClient.{ManagementClientNames.Default}");
+
+        httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(42));
+    }
+
+    [Fact]
+    public void ManagementOptions_DefaultTimeout_LeavesRoomForALargeUpload()
+    {
+        new ManagementOptions().Timeout.Should().Be(TimeSpan.FromMinutes(10));
+    }
+
+    [Fact]
     public void AddManagementClient_RegistersManagementApiAndSubscriptionApi()
     {
         var services = new ServiceCollection();

@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Extensions;
+using Kontent.Ai.Management.Models.Assets;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using System.Net;
@@ -183,6 +184,44 @@ public class ResiliencePipelineTests
 
         InvokeShouldRetry(Outcome.FromException<HttpResponseMessage>(new HttpRequestException()), request)
             .Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldRetry_UploadFromNonSeekableStream_DoesNotRetry()
+    {
+        // 429 is retried for every method because the request was rejected rather than processed - but the
+        // body of this one cannot be produced twice. Re-sending it uploads an empty file, which the API can
+        // accept, storing a truncated asset under a successful result.
+        var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            RequestMessage = new HttpRequestMessage(HttpMethod.Post, "https://example.test/")
+            {
+                Content = new FileUploadContent(
+                    new FileContentSource(new NonSeekableStream("payload"u8.ToArray()), "a.txt", "text/plain")),
+            },
+        };
+
+        InvokeShouldRetry(Outcome.FromResult(response), request: null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void ShouldRetry_UploadFromReplayableSource_StillRetries()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests)
+        {
+            RequestMessage = new HttpRequestMessage(HttpMethod.Post, "https://example.test/")
+            {
+                Content = new FileUploadContent(
+                    new FileContentSource("payload"u8.ToArray(), "a.txt", "text/plain")),
+            },
+        };
+
+        InvokeShouldRetry(Outcome.FromResult(response), request: null).Should().BeTrue();
+    }
+
+    private sealed class NonSeekableStream(byte[] data) : MemoryStream(data)
+    {
+        public override bool CanSeek => false;
     }
 
     [Fact]
