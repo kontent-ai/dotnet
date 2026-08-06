@@ -39,8 +39,19 @@ jobs:
       # Threshold/ThresholdType and coverlet fails the run if coverage drops below it.
       # A repo-wide number is not possible - coverage legitimately differs by an order
       # of magnitude between a thin CLI entry point and a library.
+      #
+      # Linux only: the Codecov uploads below are Linux-only, so Windows coverage was
+      # computed and discarded - while coverlet.msbuild's GenerateCoverageResult has a
+      # timing race on Windows (it can read the hits file before the exiting test host
+      # finishes flushing it, failing the build with "Unable to read beyond the end of
+      # the stream" even though every test passed). The Windows leg's job is proving
+      # build + tests on Windows, so it runs without instrumentation.
       - name: Test
+        if: runner.os == 'Linux'
         run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=false /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+      - name: Test (no coverage)
+        if: runner.os == 'Windows'
+        run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=false
 
       # Uploaded per product with its own flag. Without flags every product's coverage
       # would merge into one repo-wide percentage, which is meaningless across a client
