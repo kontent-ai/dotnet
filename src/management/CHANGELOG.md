@@ -14,6 +14,19 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
 ### Breaking changes
 
 - **`net8.0` → `net10.0`.** There is no multi-targeting, so a project on .NET 8 cannot install this release — restore fails with `NU1202`. Move to .NET 10 first.
+- **`new FileContentSource(stream, …)` now rejects a stream that cannot seek**, with an `ArgumentException` naming the parameter. The upload endpoint needs the size up front: without a `Content-Length` the request goes out chunked and is refused with *"the file is bigger than the maximal allowed limit (2 GB)"* — regardless of the actual size, and verified against the live API. A non-seekable stream has no length to declare, so this overload could never produce a successful upload; the error simply arrived from the server, describing the wrong problem. It is now refused where the stream is passed in.
+
+  Nothing that worked stops working — there was no combination in which a non-seekable stream uploaded successfully. If you were passing one, buffer it first or use the `byte[]`/file-path overload:
+
+  ```csharp
+  // Before — always failed, with an error about a 2 GB limit
+  var source = new FileContentSource(httpResponseStream, "photo.jpg", "image/jpeg");
+
+  // After — buffer, so the length is known
+  using var buffered = new MemoryStream();
+  await httpResponseStream.CopyToAsync(buffered);
+  var source = new FileContentSource(buffered.ToArray(), "photo.jpg", "image/jpeg");
+  ```
 - **The client interfaces no longer carry `IDisposable` / `IAsyncDisposable`; the concrete clients do.** Disposal exists for one situation - a client built outside a container, which owns its own transport and must release it. Putting it on the interface meant every consumer holding `IManagementClient` was offered a `Dispose()` that, on the container path, released nothing and must not be called: the container owns that lifetime. `ManagementClientBuilder.Build()` now returns the concrete `ManagementClient`, which is `IDisposable` and `IAsyncDisposable`, so disposal stays available exactly where it means something.
 
   `await using var client = ManagementClientBuilder…Build();` is unchanged, and so is every DI usage. The only code that breaks widened the builder result to the interface and then disposed it:
@@ -52,7 +65,7 @@ Targets .NET 10, completing the framework move that the `9.x` line was always he
 ### Fixed
 
 - **A long upload is no longer cut off at 100 seconds.** This SDK deliberately configures no per-attempt timeout, because an asset upload takes as long as the file is large and the link is slow. But `HttpClient`'s own 100-second default bounds the *whole* call — every attempt and all the backoff between them — and nothing raised it, so it capped exactly the uploads the missing per-attempt timeout was meant to protect. It also silently truncated retries: a `429` carrying `Retry-After: 60` spent most of the budget before the next attempt began. The ceiling is now `ManagementOptions.Timeout`, defaulting to 10 minutes.
-- **An upload that cannot be re-sent is no longer retried into an empty asset.** `429` is retried for every method, including the upload `POST`, because a rejected request was never processed. But a `FileContentSource` built from a non-seekable stream is consumed by the first attempt, so what went out on the retry was an **empty body** — and the API accepts a zero-length upload, verified against the live endpoint. The result was a 0-byte asset stored under a successful result: the call reported success, and the file was silently gone. Such a request is now left alone and the original failure is returned, so the decision rests with the caller, who is the only one able to rewind the source. Sources created from a `byte[]`, a file path, or a seekable stream re-read cleanly and still retry as before.
+- **Uploads always declare a `Content-Length`.** A source that could not report its size sent the request chunked, and the endpoint rejects that outright — reporting "the file is bigger than the maximal allowed limit (2 GB)" no matter how small the file actually was. Every source now carries a length, so the request the SDK builds is one the API can accept.
 - **Long-running applications pick up DNS changes instead of pinning the address resolved at startup.** The registered client is a singleton and takes its `HttpClient` from `IHttpClientFactory` once, so the handler chain it holds was never rotated — the factory only hands a fresh chain to a *new* `CreateClient` call. Connections now recycle every two minutes, matching the factory's own default handler lifetime. This matters when the endpoint's address changes underneath a process that stays up for days: a failover, a scale event, or any re-pointing upstream. Configuring your own primary handler via `configureHttpClient` still overrides this, as before.
 
 ### Dependencies

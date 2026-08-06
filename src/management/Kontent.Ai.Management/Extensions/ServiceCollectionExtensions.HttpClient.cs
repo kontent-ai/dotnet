@@ -1,7 +1,6 @@
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Handlers;
-using Kontent.Ai.Management.Models.Assets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
@@ -129,14 +128,6 @@ public static partial class ServiceCollectionExtensions
 
     internal static bool ShouldRetry(Outcome<HttpResponseMessage> outcome, ResilienceContext context)
     {
-        // A body that cannot be produced twice makes the request unsafe to re-send whatever the status was:
-        // the second attempt would upload an empty file, and the API can accept it. Returning the original
-        // failure instead leaves the decision with the caller, who is the only one able to rewind the source.
-        if (!IsReplayable(outcome.Result?.RequestMessage ?? context.GetRequestMessage()))
-        {
-            return false;
-        }
-
         if (outcome.Result is { } response)
         {
             return !response.IsSuccessStatusCode
@@ -152,9 +143,6 @@ public static partial class ServiceCollectionExtensions
     // ResilienceHandler) is the fallback for handlers that don't set it.
     private static HttpMethod? RequestMethod(HttpResponseMessage response, ResilienceContext context)
         => (response.RequestMessage ?? context.GetRequestMessage())?.Method;
-
-    private static bool IsReplayable(HttpRequestMessage? request)
-        => request?.Content is not FileUploadContent upload || upload.IsReplayable;
 
     // An unknown method — no request message available — is treated as non-idempotent: no retry unless provably safe.
     internal static bool IsIdempotent(HttpMethod? method)

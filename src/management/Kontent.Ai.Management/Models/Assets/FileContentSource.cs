@@ -83,13 +83,28 @@ public sealed class FileContentSource
     /// <summary>
     /// Creates content source file.
     /// </summary>
-    /// <param name="stream">Stream of the input data</param>
+    /// <param name="stream">Stream of the input data; must be seekable.</param>
     /// <param name="fileName">Name of the file; must be a bare file name without path separators.</param>
     /// <param name="contentType">The media type of the asset, for example: "image/jpeg".</param>
+    /// <exception cref="ArgumentException"><paramref name="stream"/> cannot seek.</exception>
+    /// <remarks>
+    /// The upload endpoint needs the size up front and rejects a request that arrives without a
+    /// <c>Content-Length</c> - with "the file is bigger than the maximal allowed limit (2 GB)", whatever the
+    /// real size. A stream that cannot seek has no length to declare, so the request could never succeed;
+    /// refusing it here reports the actual problem instead of leaving the API to misdescribe it.
+    /// </remarks>
     public FileContentSource(Stream stream, string fileName, string contentType)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrEmpty(contentType);
+
+        if (!stream.CanSeek)
+        {
+            throw new ArgumentException(
+                "The Management API requires a known content length, so the stream must be seekable. " +
+                "Buffer it first, or use the byte[] or file-path overload.",
+                nameof(stream));
+        }
 
         _stream = stream;
         FileName = ReferenceUrlExtensions.EnsureSingleSegment(fileName);

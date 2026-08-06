@@ -231,9 +231,9 @@ services.AddManagementClient(
 > [!NOTE]
 > Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 30 minutes and covers every attempt plus the waits between them — enough to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link. Raise it for slower links, or lower it if you would rather fail fast.
 
-#### Retrying an upload
+#### Uploading a file
 
-A retried request is re-sent from the same `FileContentSource`. Sources created from a `byte[]` or a file path re-read cleanly, and a seekable stream is rewound — but a **non-seekable stream cannot be replayed**, because the first attempt consumed it. The SDK will not retry such a request; you get the original failure back and can retry it yourself with a fresh stream. Pass a `byte[]`, a file path, or a seekable stream if you want uploads to survive a `429`.
+The upload endpoint needs the file's size up front, so `FileContentSource` accepts only sources that can report one: a `byte[]`, a file path, or a **seekable** stream. Passing a non-seekable stream throws — buffer it first. This also makes every upload safe to retry: `byte[]` and file-path sources reopen on each attempt, and a seekable stream is rewound, so a `429` retry re-sends the same bytes rather than a truncated body.
 
 ## Configuration Options
 

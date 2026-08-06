@@ -50,12 +50,27 @@ public class FileUploadContentTests
     }
 
     [Fact]
-    public async Task NonSeekableSource_HasNoLengthAndStreamsOnce()
+    public void NonSeekableSource_IsRefusedWhereItIsPassedIn()
     {
-        var content = new FileUploadContent(new FileContentSource(new NonSeekableStream(Payload), "hello.txt", "text/plain"));
+        // Without a length the request goes out chunked, and the endpoint rejects that as "bigger than the
+        // maximal allowed limit (2 GB)" whatever the real size — so this could never have produced an upload.
+        var act = () => new FileContentSource(new NonSeekableStream(Payload), "hello.txt", "text/plain");
 
-        content.Headers.ContentLength.Should().BeNull();
-        (await SerializeAsync(content)).Should().Equal(Payload);
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*seekable*")
+            .And.ParamName.Should().Be("stream");
+    }
+
+    [Fact]
+    public void EverySource_DeclaresAContentLength()
+    {
+        // The endpoint needs one; nothing that reaches the wire may be missing it.
+        using var file = new MemoryStream(Payload);
+
+        new FileUploadContent(new FileContentSource(Payload, "a.txt", "text/plain"))
+            .Headers.ContentLength.Should().Be(Payload.Length);
+        new FileUploadContent(new FileContentSource(file, "a.txt", "text/plain"))
+            .Headers.ContentLength.Should().Be(Payload.Length);
     }
 
     private sealed class NonSeekableStream(byte[] data) : MemoryStream(data)

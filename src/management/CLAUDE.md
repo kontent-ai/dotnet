@@ -47,6 +47,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 - Names mirror Kontent.ai API terminology; request and response shapes are separate records when the wire shapes differ (a response model with a fake-`required` field forced into a request body is a defect — see `UserRolesUpdateModel`).
 - Models must stay **generator-friendly** (record-based, immutable, STJ-serializable) — the shape is coordinated with `src/model-generator`, which consumes this package.
 - Generated/typed content models map via `KontentTypeAttribute`/`KontentElementAttribute`/`KontentEnumValueAttribute`; the converters read them at runtime (typed *reads* match by id — environment-bound; *writes* key by codename — portable).
+- **Asset uploads must carry a `Content-Length`** (verified against the live endpoint). A chunked request is refused with error `206`, *"the file is bigger than the maximal allowed limit (2 GB)"*, whatever the real size — so the message is no guide to the actual fault. A zero-length body, by contrast, is **accepted** and stores an empty asset. `FileContentSource` therefore only takes sources whose size is knowable, which is also what makes every upload safe to retry.
 
 ## Adding or changing an endpoint — the playbook
 
@@ -111,6 +112,4 @@ Prefer commands without explicit paths so they keep working if layout shifts.
 
 - **Coordination with `src/model-generator`** for Management-model generation — the generated model shape (records, mapping attributes, collection types) must be agreed jointly before DTOs are declared final. It consumes this package at a floor, so a change here reaches it only after a release.
 - **Webhook trigger switches** (`Enabled`/`Events`/`Slot` nullability) and the **webhook update endpoint** need live-API verification before changing.
-- **Does `POST /files/{file-name}` accept a chunked upload with no `Content-Length`?** `FileUploadContent.TryComputeLength` returns `false` for a non-seekable source, so `HttpClient` sends chunked — while the JS SDK always sets the header from a known byte length. If the API requires one, `new FileContentSource(nonSeekableStream, …)` has never worked on any attempt, and the overload needs to buffer, reject at construction, or go. Decide before the 9.0 surface freezes: a constructor overload that cannot work is not something to ship at GA. (Verified separately: the endpoint *does* accept a zero-length body, which is why a consumed stream on retry stored an empty asset and reported success.)
-
 When you hit these, ask rather than guess.
