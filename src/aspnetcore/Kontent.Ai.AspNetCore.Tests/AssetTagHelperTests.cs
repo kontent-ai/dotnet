@@ -1,3 +1,4 @@
+using System.Globalization;
 using Kontent.Ai.AspNetCore.ImageTransformation;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Urls.ImageTransformation;
@@ -378,6 +379,46 @@ public class AssetTagHelperTests
         await helper.ProcessAsync(context, output);
 
         Assert.StartsWith(customUrl, AttrValue(output, "src"));
+    }
+
+    [Theory]
+    [InlineData("100%")]
+    [InlineData("auto")]
+    [InlineData("calc(100% - 2rem)")]
+    [InlineData("")]
+    public async Task ProcessAsync_WithNonNumericWidth_RendersWithoutTheTransformation(string width)
+    {
+        // HTML permits these; the image API has no equivalent. They must not take the page down.
+        var helper = new AssetTagHelper { Asset = new TestAsset { Url = AssetUrl } };
+        var context = CreateContext(("width", width));
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Equal(AssetUrl, AttrValue(output, "src"));
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithFractionalWidth_ParsesInvariantlyRegardlessOfServerCulture()
+    {
+        // de-DE reads "." as a digit group separator, so a current-culture parse turned 1.5 into 15 -
+        // while ImageUrlBuilder writes the value back invariantly. The round trip has to agree.
+        var original = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try
+        {
+            var helper = new AssetTagHelper { Asset = new TestAsset { Url = AssetUrl } };
+            var context = CreateContext(("width", "1.5"));
+            var output = CreateOutput();
+
+            await helper.ProcessAsync(context, output);
+
+            Assert.Equal($"{AssetUrl}?w=1.5", AttrValue(output, "src"));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
     }
 
     private static TagHelperContext CreateContext(params (string name, object value)[] attributes)

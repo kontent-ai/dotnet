@@ -1,3 +1,4 @@
+using System.Globalization;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Urls.ImageTransformation;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -190,6 +191,19 @@ public class AssetTagHelper : TagHelper
         if (Compression.HasValue) builder.WithCompression(Compression.Value);
     }
 
-    private static double? ParseNumeric(object? value)
-        => value == null ? null : Convert.ToDouble(value.ToString());
+    /// <summary>
+    /// Reads a <c>width</c>/<c>height</c> attribute as a transformation dimension, or <c>null</c> when it
+    /// is not one.
+    /// </summary>
+    /// <remarks>
+    /// HTML allows values the image API has no equivalent for - <c>100%</c>, <c>auto</c>, a CSS calc - and
+    /// those must still render: the attribute stays on the element and simply does not drive the
+    /// transformation. Parsing is invariant because the value is authored in markup and because
+    /// <see cref="ImageUrlBuilder"/> formats it back invariantly; reading it in the server's culture made
+    /// the round trip asymmetric, so <c>width="1.5"</c> became <c>w=15</c> wherever <c>.</c> groups digits.
+    /// </remarks>
+    private static double? ParseNumeric(object? value) =>
+        double.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
 }

@@ -23,6 +23,7 @@ signature verification is hardened in two ways worth reading before you upgrade.
 ### Fixed
 
 - **Webhook signature validation honors client disconnection.** Reading the request body now observes `HttpContext.RequestAborted`, so an aborted request stops the read instead of buffering the whole body first.
+- **`<img-asset>` reads `width` and `height` invariantly, and no longer throws on values that are not numbers.** The attributes were parsed with `Convert.ToDouble` in the server's culture while `ImageUrlBuilder` writes the value back invariantly, so the round trip disagreed wherever `.` groups digits — on a `de-DE` server `width="1.5"` produced `?w=15`, a silent tenfold resize. The same call threw `FormatException` for any value HTML allows but the image API has no equivalent for (`100%`, `auto`, a CSS `calc`), taking the render down with a 500. Such values now leave the transformation alone; the attribute still renders on the element, so it keeps working as plain HTML.
 
 ### Dependencies
 
