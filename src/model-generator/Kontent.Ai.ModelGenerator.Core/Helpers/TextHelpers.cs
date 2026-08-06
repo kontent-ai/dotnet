@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Kontent.Ai.ModelGenerator.Core.Common;
 
 namespace Kontent.Ai.ModelGenerator.Core.Helpers;
@@ -31,19 +30,6 @@ public static partial class TextHelpers
         .Select(word => char.ToUpper(word[0]) + word.Substring(1))
         .Aggregate((previous, current) => previous + current);
 
-    /// <summary>
-    /// Returns a Snake Case format for given string.
-    /// </summary>
-    /// <param name="name">name to be transformed</param>
-    /// <returns></returns>
-    public static string GetUpperSnakeCasedIdentifierName(string name) => new(
-        SplitName(name)
-            .Select(word => char.ToUpper(word[0]) + word.Substring(1) + "_")
-            .Aggregate((previous, current) => previous + current)
-            .SkipLast(1)
-            .ToArray()
-        );
-
     public static string NormalizeLineEndings(this string text) =>
         LineEndingsRegex().Replace(text, Environment.NewLine);
 
@@ -62,10 +48,6 @@ public static partial class TextHelpers
 {customComment}
 // </auto-generated>{Environment.NewLine}{Environment.NewLine}";
     }
-
-    public static string GetEnumerableType(string typeName) => string.IsNullOrWhiteSpace(typeName)
-        ? throw new ArgumentException("", nameof(typeName))
-        : $"{nameof(IEnumerable)}<{typeName}>";
 
     private static string[] SplitName(string name)
     {

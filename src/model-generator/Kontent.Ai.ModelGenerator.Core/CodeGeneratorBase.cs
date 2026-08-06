@@ -76,8 +76,9 @@ public abstract class CodeGeneratorBase(
 
             claimedFiles[codeGenerator.ClassFilename] = codename;
             // Content types always overwrite, so what is handed to the provider is what lands.
-            OutputProvider.Output(codeGenerator.GenerateCode(), codeGenerator.ClassFilename,
-                codeGenerator.OverwriteExisting);
+            // Generated type files are always rewritten; the base record is the only output that is
+            // kept if it already exists, and it is written separately.
+            OutputProvider.Output(codeGenerator.GenerateCode(), codeGenerator.ClassFilename, overwriteExisting: true);
             written++;
         }
 

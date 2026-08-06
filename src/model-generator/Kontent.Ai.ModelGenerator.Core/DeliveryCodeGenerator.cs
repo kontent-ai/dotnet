@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.ModelGenerator.Core;
 
-public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
+public class DeliveryCodeGenerator : CodeGeneratorBase
 {
     private readonly IDeliveryClient _deliveryClient;
 
@@ -17,9 +17,8 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
         IDeliveryClient deliveryClient,
         IClassCodeGeneratorFactory classCodeGeneratorFactory,
         IClassDefinitionFactory classDefinitionFactory,
-        IDeliveryElementService deliveryElementService,
         IUserMessageLogger logger)
-        : base(options, outputProvider, classCodeGeneratorFactory, classDefinitionFactory, deliveryElementService, logger)
+        : base(options, outputProvider, classCodeGeneratorFactory, classDefinitionFactory, logger)
     {
         _deliveryClient = deliveryClient;
     }
@@ -57,8 +56,7 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
         {
             try
             {
-                var elementType = DeliveryElementService.GetElementType(element.Value.Type);
-                var property = Property.FromContentTypeElement(element.Key, elementType, Options.Nullability);
+                var property = Property.FromContentTypeElement(element.Key, element.Value.Type, Options.Nullability);
                 classDefinition.AddProperty(property);
             }
             catch (Exception e)
@@ -69,6 +67,6 @@ public class DeliveryCodeGenerator : DeliveryCodeGeneratorBase
 
         var classFilename = classDefinition.ClassName;
 
-        return ClassCodeGeneratorFactory.CreateClassCodeGenerator(Options, classDefinition, classFilename, Logger);
+        return ClassCodeGeneratorFactory.CreateClassCodeGenerator(Options, classDefinition, classFilename);
     }
 }

@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Globalization;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Helpers;
 
@@ -10,8 +9,6 @@ public class Property(string codename, string typeName, string? id = null, strin
     private const string RichTextElementType = "rich_text";
     private const string DateTimeElementType = "date_time";
     private const string ModularContentElementType = "modular_content";
-
-    public static string ObjectType => nameof(Object).ToLower(CultureInfo.InvariantCulture);
 
     public string? IdentifierOverride { get; init; }
 
@@ -32,22 +29,6 @@ public class Property(string codename, string typeName, string? id = null, strin
     /// </summary>
     public string? Initializer { get; } = initializer;
 
-    /// <summary>
-    /// Gets whether this property is nullable.
-    /// </summary>
-    public bool IsNullable => TypeName.EndsWith('?');
-
-    /// <summary>
-    /// Gets whether this property has an explicit initializer expression.
-    /// </summary>
-    public bool HasInitializer => !string.IsNullOrEmpty(Initializer);
-
-    /// <summary>
-    /// Gets whether this property requires a default! initializer (non-nullable reference type).
-    /// </summary>
-    [Obsolete("Replaced by HasInitializer, which carries the actual initializer expression. This property will be removed in a future version.")]
-    public bool RequiresDefaultInitializer => !IsNullable;
-
     private sealed record DeliveryElementMapping(string StrictTypeName, string SemanticTypeName, string? SemanticInitializer);
 
     private static readonly IImmutableDictionary<string, DeliveryElementMapping> DeliverElementTypesDictionary =
@@ -64,12 +45,6 @@ public class Property(string codename, string typeName, string? id = null, strin
             { "url_slug", new("string?", "string", "string.Empty") },
             { "custom", new("string?", "string?", null) }
         }.ToImmutableDictionary();
-
-    public static bool IsDateTimeElementType(string elementType) => elementType == DateTimeElementType;
-
-    public static bool IsRichTextElementType(string elementType) => elementType == RichTextElementType;
-
-    public static bool IsModularContentElementType(string elementType) => elementType == ModularContentElementType;
 
     public static Property FromContentTypeElement(string codename, string elementType) =>
         FromContentTypeElement(codename, elementType, NullabilityMode.Strict);

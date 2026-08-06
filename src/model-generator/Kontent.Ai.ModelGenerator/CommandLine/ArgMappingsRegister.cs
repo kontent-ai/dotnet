@@ -43,7 +43,7 @@ internal static class ArgMappingsRegister
     /// <summary>
     /// All recognized argument keys across both modes plus the mode-switch flags themselves
     /// (which don't bind to a config property but are still legal). Used by
-    /// <see cref="ArgHelpers.ContainsValidArgs"/> to reject typos early.
+    /// <see cref="ArgHelpers.FindInvalidArgs"/> to reject typos early.
     /// </summary>
     public static readonly ISet<string> AllMappingsKeys = new HashSet<string>(
         GeneralMappings.Keys

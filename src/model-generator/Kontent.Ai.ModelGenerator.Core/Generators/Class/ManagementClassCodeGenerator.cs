@@ -19,10 +19,6 @@ public sealed class ManagementClassCodeGenerator(
     private const string ElementsModelInterfaceName = "IElementsModel";
     private const string KontentTypeAttribute = "KontentType";
 
-    protected override bool IsRecord => true;
-
-    protected override bool UseFileScopedNamespace => true;
-
     protected override AttributeListSyntax[] BuildPropertyAttributes(Property property)
     {
         if (property is not ManagementProperty managementProperty)

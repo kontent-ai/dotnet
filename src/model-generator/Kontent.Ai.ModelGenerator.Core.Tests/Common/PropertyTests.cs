@@ -75,7 +75,6 @@ public class PropertyTests
 
         element.TypeName.Should().Be(expectedTypeName);
         element.Initializer.Should().Be(expectedInitializer);
-        element.HasInitializer.Should().Be(expectedInitializer is not null);
     }
 
     [Theory]
@@ -88,83 +87,6 @@ public class PropertyTests
 
         element.TypeName.Should().Be(expectedTypeName);
         element.Initializer.Should().BeNull();
-        element.HasInitializer.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData(null)]
-    public void IsDateTimeElementType_NullOrWhiteSpace_ReturnsFalse(string? elementType)
-    {
-        var result = Property.IsDateTimeElementType(elementType!);
-
-        result.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("text")]
-    [InlineData("date_time(structured)")]
-    public void IsDateTimeElementType_NotDateTimeElementType_ReturnsFalse(string? elementType)
-    {
-        var result = Property.IsDateTimeElementType(elementType!);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsDateTimeElementType_ReturnsTrue()
-    {
-        var result = Property.IsDateTimeElementType("date_time");
-
-        result.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData(null)]
-    public void IsRichTextElementType_NullOrWhiteSpace_ReturnsFalse(string? elementType)
-    {
-        var result = Property.IsRichTextElementType(elementType!);
-
-        result.Should().BeFalse();
-    }
-
-    [Theory]
-    [InlineData("text")]
-    [InlineData("rich_text(structured)")]
-    public void IsRichTextElementType_NotDateTimeElementType_ReturnsFalse(string? elementType)
-    {
-        var result = Property.IsRichTextElementType(elementType!);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsRichTextElementType_ReturnsTrue()
-    {
-        var result = Property.IsRichTextElementType("rich_text");
-
-        result.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData("text")]
-    [InlineData("modular_content(structured)")]
-    public void IsModularContentElementType_NotModularContentElementType_ReturnsFalse(string? elementType)
-    {
-        var result = Property.IsModularContentElementType(elementType!);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsModularContentElementType_ReturnsTrue()
-    {
-        var result = Property.IsModularContentElementType("modular_content");
-
-        result.Should().BeTrue();
     }
 
     [Fact]

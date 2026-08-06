@@ -78,7 +78,6 @@ internal static class Program
         services.AddSingleton<IUserMessageLogger, UserMessageLogger>();
         services.AddSingleton<IClassCodeGeneratorFactory, ClassCodeGeneratorFactory>();
         services.AddSingleton<IClassDefinitionFactory, ClassDefinitionFactory>();
-        services.AddSingleton<IDeliveryElementService, DeliveryElementService>();
         services.AddSingleton<DeliveryCodeGenerator>();
         return typeof(DeliveryCodeGenerator);
     }

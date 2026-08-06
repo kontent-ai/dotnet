@@ -21,18 +21,6 @@ public abstract class ClassCodeGenerator : GeneralGenerator
         ClassFilename = string.IsNullOrWhiteSpace(classFilename) ? ClassDefinition.ClassName : classFilename;
     }
 
-    public bool OverwriteExisting => GetType() != typeof(PartialClassCodeGenerator);
-
-    /// <summary>
-    /// Determines if this generator creates a record instead of a class.
-    /// </summary>
-    protected virtual bool IsRecord => false;
-
-    /// <summary>
-    /// Determines if this generator uses file-scoped namespace.
-    /// </summary>
-    protected virtual bool UseFileScopedNamespace => false;
-
     public string GenerateCode()
     {
         var usings = GetApiUsings();
@@ -66,29 +54,18 @@ public abstract class ClassCodeGenerator : GeneralGenerator
                 property = property.AddAttributeLists(attributeLists);
             }
 
-            // Add accessor list (init instead of set for records/modern delivery)
-            if (IsRecord)
-            {
-                // Records need { get; init; }
-                property = property.AddAccessorListAccessors(
-                    GetAccessorDeclaration(SyntaxKind.GetAccessorDeclaration),
-                    GetAccessorDeclaration(SyntaxKind.InitAccessorDeclaration));
+            property = property.AddAccessorListAccessors(
+                GetAccessorDeclaration(SyntaxKind.GetAccessorDeclaration),
+                GetAccessorDeclaration(SyntaxKind.InitAccessorDeclaration));
 
-                // Emit explicit initializer (e.g. = string.Empty / = [] / = RichTextContent.Empty)
-                // when the Property carries one. Used by Semantic nullability mode.
-                var initializer = element.Initializer;
-                if (!string.IsNullOrEmpty(initializer))
-                {
-                    property = property.WithInitializer(
-                        SyntaxFactory.EqualsValueClause(SyntaxFactory.ParseExpression(initializer)))
-                        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-                }
-            }
-            else
+            // Emit explicit initializer (e.g. = string.Empty / = [] / = RichTextContent.Empty)
+            // when the Property carries one. Used by Semantic nullability mode.
+            var initializer = element.Initializer;
+            if (!string.IsNullOrEmpty(initializer))
             {
-                property = property.AddAccessorListAccessors(
-                    GetAccessorDeclaration(SyntaxKind.GetAccessorDeclaration),
-                    GetAccessorDeclaration(SyntaxKind.SetAccessorDeclaration));
+                property = property.WithInitializer(
+                    SyntaxFactory.EqualsValueClause(SyntaxFactory.ParseExpression(initializer)))
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
             }
 
             return property;
@@ -96,42 +73,29 @@ public abstract class ClassCodeGenerator : GeneralGenerator
 
     protected virtual TypeDeclarationSyntax GetClassDeclaration()
     {
-        TypeDeclarationSyntax typeDeclaration;
-
-        if (IsRecord)
-        {
-            // Create record declaration with proper braces
-            typeDeclaration = SyntaxFactory.RecordDeclaration(
-                attributeLists: default,
-                modifiers: default,
-                keyword: SyntaxFactory.Token(SyntaxKind.RecordKeyword),
-                identifier: SyntaxFactory.Identifier(ClassDefinition.ClassName),
-                typeParameterList: null,
-                parameterList: null,
-                baseList: null,
-                constraintClauses: default,
-                openBraceToken: SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
-                members: default,
-                closeBraceToken: SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
-                semicolonToken: default);
-        }
-        else
-        {
-            typeDeclaration = SyntaxFactory.ClassDeclaration(ClassDefinition.ClassName);
-        }
+        TypeDeclarationSyntax typeDeclaration = SyntaxFactory.RecordDeclaration(
+            attributeLists: default,
+            modifiers: default,
+            keyword: SyntaxFactory.Token(SyntaxKind.RecordKeyword),
+            identifier: SyntaxFactory.Identifier(ClassDefinition.ClassName),
+            typeParameterList: null,
+            parameterList: null,
+            baseList: null,
+            constraintClauses: default,
+            openBraceToken: SyntaxFactory.Token(SyntaxKind.OpenBraceToken),
+            members: default,
+            closeBraceToken: SyntaxFactory.Token(SyntaxKind.CloseBraceToken),
+            semicolonToken: default);
 
         return typeDeclaration
             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
             .AddModifiers(SyntaxFactory.Token(SyntaxKind.PartialKeyword));
     }
 
-    protected override SyntaxTrivia ClassDescription()
-    {
-        var typeWord = IsRecord ? "record" : "class";
-        return ClassDeclarationHelper.GenerateSyntaxTrivia(
+    protected override SyntaxTrivia ClassDescription() =>
+        ClassDeclarationHelper.GenerateSyntaxTrivia(
             @$"{LostChangesComment}
-// To extend this {typeWord}, create a separate partial {typeWord} with the same name.");
-    }
+// To extend this record, create a separate partial record with the same name.");
 
     protected static AccessorDeclarationSyntax GetAccessorDeclaration(SyntaxKind kind) =>
         SyntaxFactory.AccessorDeclaration(kind).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
@@ -153,28 +117,13 @@ public abstract class ClassCodeGenerator : GeneralGenerator
             namespaceMembers[i + 1] = siblingTypes[i];
         }
 
-        CompilationUnitSyntax compilationUnit;
-
-        if (UseFileScopedNamespace)
-        {
-            // File-scoped namespace: namespace Foo;
-            var fileScopedNamespace = SyntaxFactory.FileScopedNamespaceDeclaration(
+        var fileScopedNamespace = SyntaxFactory.FileScopedNamespaceDeclaration(
                 SyntaxFactory.IdentifierName(Namespace))
-                .AddMembers(namespaceMembers);
+            .AddMembers(namespaceMembers);
 
-            compilationUnit = SyntaxFactory.CompilationUnit()
-                .AddUsings(usings)
-                .AddMembers(fileScopedNamespace);
-        }
-        else
-        {
-            // Traditional namespace: namespace Foo { }
-            compilationUnit = SyntaxFactory.CompilationUnit()
-                .AddUsings(usings)
-                .AddMembers(
-                    SyntaxFactory.NamespaceDeclaration(SyntaxFactory.IdentifierName(Namespace))
-                        .AddMembers(namespaceMembers));
-        }
+        var compilationUnit = SyntaxFactory.CompilationUnit()
+            .AddUsings(usings)
+            .AddMembers(fileScopedNamespace);
 
         var leadingTrivia = SyntaxFactory.TriviaList(
             ClassDescription(),

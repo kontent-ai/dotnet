@@ -35,7 +35,6 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
         var classCodeGenerator = new DeliveryClassCodeGenerator(ClassDefinition, ClassDefinition.ClassName);
 
         classCodeGenerator.Should().NotBeNull();
-        classCodeGenerator.OverwriteExisting.Should().BeTrue();
     }
 
     [Fact]
