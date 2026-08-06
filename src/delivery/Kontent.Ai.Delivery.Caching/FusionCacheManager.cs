@@ -233,10 +233,16 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
                 .Where(d => !string.IsNullOrWhiteSpace(d))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            return new CacheResult<T>(entry.Value, deps);
+            return new CacheResult<T>(entry.Value, deps) { FromFactory = true };
         }
 
         var formattedKey = _cacheKeyFormatter(cacheKey);
+
+        // The only reliable way to tell whether the value we get back was produced by *this* call:
+        // FusionCache runs the factory on a background thread for eager refresh while returning the
+        // stale value immediately, so a flag set inside the factory says nothing about which call it
+        // belongs to. The envelope instance does - it comes back only if this invocation produced it.
+        CacheEnvelope<T>? producedHere = null;
 
         try
         {
@@ -263,7 +269,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
                     ctx.Options.Duration = expiration ?? _defaultExpiration;
                     _failSafeActiveKeys.TryRemove(formattedKey, out var _);
                     _failSafeActiveKeys.TryRemove(cacheKey, out var _);
-                    return new CacheEnvelope<T>(factoryResult.Value, deps);
+                    return producedHere = new CacheEnvelope<T>(factoryResult.Value, deps);
                 },
                 _baseWriteOptions,
                 token: cancellationToken).ConfigureAwait(false);
@@ -271,7 +277,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             if (envelope is null)
                 return null;
 
-            return new CacheResult<T>(envelope.Value, envelope.DependencyKeys);
+            return new CacheResult<T>(envelope.Value, envelope.DependencyKeys)
+            {
+                FromFactory = ReferenceEquals(envelope, producedHere),
+            };
         }
         catch (CacheFactoryFailedException)
         {

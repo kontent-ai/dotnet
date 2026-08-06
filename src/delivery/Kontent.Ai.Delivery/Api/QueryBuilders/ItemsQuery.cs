@@ -123,28 +123,29 @@ internal sealed class ItemsQuery<TModel>(
         CancellationToken cancellationToken)
     {
         var cacheKey = BuildCacheKey(cacheManager.StorageMode);
-        IDeliveryResult<DeliveryItemListingResponse<TModel>>? apiResult = null;
-        var factoryInvoked = false;
 
-        var cached = cacheManager.StorageMode == CacheStorageMode.RawJson
-            ? await ExecuteWithRawJsonCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, r => apiResult = r, () => factoryInvoked = true, cancellationToken).ConfigureAwait(false)
-            : await ExecuteWithHydratedCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, r => apiResult = r, () => factoryInvoked = true, cancellationToken).ConfigureAwait(false);
+        var outcome = await CachedQueryExecutor.ExecuteAsync<DeliveryItemListingResponse<TModel>, DeliveryItemListingResponse<TModel>>(
+            cacheManager,
+            cacheKey,
+            (captureApiResult, ct) => cacheManager.StorageMode == CacheStorageMode.RawJson
+                ? ExecuteWithRawJsonCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, captureApiResult, ct)
+                : ExecuteWithHydratedCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, captureApiResult, ct),
+            cancellationToken).ConfigureAwait(false);
 
-        // Cache hit (factory never called) or fail-safe served stale data after HTTP error
-        if (cached is not null && (apiResult is null || !apiResult.IsSuccess))
+        var cached = outcome.Cached;
+
+        if (outcome.Source is not CachedQuerySource.Fetched)
         {
             _log.LogQueryCompleted(stopwatch, HttpStatusCode.OK, cacheHit: true);
-            var isFailSafe = factoryInvoked
-                || (cacheManager is IFailSafeStateProvider failSafeProvider && failSafeProvider.IsFailSafeActive(cacheKey));
 
-            return isFailSafe
+            return outcome.Source is CachedQuerySource.FailSafeHit
                 ? DeliveryResult.FailSafeHit<IDeliveryItemListingResponse<TModel>>(
-                    WithNextPageFetcher(cached.Value), cached.DependencyKeys)
+                    WithNextPageFetcher(cached!.Value), cached.DependencyKeys)
                 : DeliveryResult.CacheHit<IDeliveryItemListingResponse<TModel>>(
-                    WithNextPageFetcher(cached.Value), cached.DependencyKeys);
+                    WithNextPageFetcher(cached!.Value), cached.DependencyKeys);
         }
 
-        apiResult = QueryExecutionResultHelper.EnsureApiResult(apiResult, "Items", "list");
+        var apiResult = QueryExecutionResultHelper.EnsureApiResult(outcome.ApiResult, "Items", "list");
         if (!apiResult.IsSuccess)
         {
             _log.LogQueryFailed(apiResult.StatusCode, apiResult.Error?.Message);
@@ -162,14 +163,12 @@ internal sealed class ItemsQuery<TModel>(
         string cacheKey,
         bool? waitForLoadingNewContent,
         Action<IDeliveryResult<DeliveryItemListingResponse<TModel>>> captureApiResult,
-        Action captureFactoryInvoked,
         CancellationToken cancellationToken)
     {
         var cached = await cacheManager.GetOrSetAsync(
             cacheKey,
             async ct =>
             {
-                captureFactoryInvoked();
                 var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
                 captureApiResult(result);
                 if (!result.IsSuccess)
@@ -195,7 +194,8 @@ internal sealed class ItemsQuery<TModel>(
             logger,
             cancellationToken).ConfigureAwait(false);
 
-        return new CacheResult<DeliveryItemListingResponse<TModel>>(response, cached.DependencyKeys);
+        // The rehydrated value replaces the stored payload, so provenance has to be carried across.
+        return new CacheResult<DeliveryItemListingResponse<TModel>>(response, cached.DependencyKeys) { FromFactory = cached.FromFactory };
     }
 
     private async Task<CacheResult<DeliveryItemListingResponse<TModel>>?> ExecuteWithHydratedCacheAsync(
@@ -203,14 +203,12 @@ internal sealed class ItemsQuery<TModel>(
         string cacheKey,
         bool? waitForLoadingNewContent,
         Action<IDeliveryResult<DeliveryItemListingResponse<TModel>>> captureApiResult,
-        Action captureFactoryInvoked,
         CancellationToken cancellationToken)
     {
         return await cacheManager.GetOrSetAsync(
             cacheKey,
             async ct =>
             {
-                captureFactoryInvoked();
                 var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
                 captureApiResult(result);
                 if (!result.IsSuccess)

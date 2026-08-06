@@ -19,6 +19,7 @@ public sealed class CacheEntry`1<T> : IEquatable<CacheEntry<T>>
 // Kontent.Ai.Delivery.Abstractions
 public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
     .ctor(T Value, IReadOnlyList<String> DependencyKeys)
+    Boolean FromFactory { get; init; }
     IReadOnlyList<String> DependencyKeys { get; init; }
     T Value { get; init; }
     Boolean Equals(CacheResult<T> other)

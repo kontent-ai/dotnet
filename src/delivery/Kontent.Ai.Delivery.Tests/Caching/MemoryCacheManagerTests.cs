@@ -29,6 +29,23 @@ public class MemoryCacheManagerTests : IDisposable
     #region Basic Operations Tests
 
     [Fact]
+    public async Task GetOrSetAsync_ReportsWhetherTheFactoryProducedTheValue()
+    {
+        // Callers classify a result as a cache hit or a fresh fetch from this flag. They cannot infer it
+        // from the factory: under eager refresh the factory also runs in the background, so anything it
+        // records belongs to a different call than the one reading it.
+        var value = new TestCacheValue { Id = 1, Name = "Test" };
+        Task<CacheEntry<TestCacheValue>?> Factory(CancellationToken _) =>
+            Task.FromResult<CacheEntry<TestCacheValue>?>(new CacheEntry<TestCacheValue>(value, ["dep1"]));
+
+        var miss = await _cacheManager.GetOrSetAsync("provenance_key", Factory);
+        var hit = await _cacheManager.GetOrSetAsync("provenance_key", Factory);
+
+        Assert.True(miss!.FromFactory);
+        Assert.False(hit!.FromFactory);
+    }
+
+    [Fact]
     public async Task GetOrSetAsync_CacheMiss_CallsFactory()
     {
         var factoryCalled = false;

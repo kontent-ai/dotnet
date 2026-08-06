@@ -54,37 +54,37 @@ internal sealed class TypeQuery(
         CancellationToken cancellationToken)
     {
         var cacheKey = CacheKeyBuilder.BuildTypeKey(codename, _params);
-        IDeliveryResult<IContentType>? apiResult = null;
-        var factoryInvoked = false;
 
-        var cached = await cacheManager.GetOrSetAsync(
+        var outcome = await CachedQueryExecutor.ExecuteAsync<ContentType, IContentType>(
+            cacheManager,
             cacheKey,
-            async ct =>
-            {
-                factoryInvoked = true;
-                apiResult = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
-                if (!apiResult.IsSuccess)
-                    return null;
+            (captureApiResult, ct) => cacheManager.GetOrSetAsync(
+                cacheKey,
+                async factoryToken =>
+                {
+                    var result = await FetchFromApiAsync(waitForLoadingNewContent, factoryToken).ConfigureAwait(false);
+                    captureApiResult(result);
+                    if (!result.IsSuccess)
+                        return null;
 
-                var dependencies = BuildDependencies(apiResult.Value);
-                return new CacheEntry<ContentType>((ContentType)apiResult.Value, dependencies);
-            },
-            CacheExpiration,
+                    return new CacheEntry<ContentType>((ContentType)result.Value, BuildDependencies(result.Value));
+                },
+                CacheExpiration,
+                ct),
             cancellationToken).ConfigureAwait(false);
 
-        // Cache hit (factory never called) or fail-safe served stale data after HTTP error
-        if (cached is not null && (apiResult is null || !apiResult.IsSuccess))
+        var cached = outcome.Cached;
+
+        if (outcome.Source is not CachedQuerySource.Fetched)
         {
             _log.LogQueryCompleted(stopwatch, HttpStatusCode.OK, cacheHit: true);
-            var isFailSafe = factoryInvoked
-                || (cacheManager is IFailSafeStateProvider failSafeProvider && failSafeProvider.IsFailSafeActive(cacheKey));
 
-            return isFailSafe
-                ? DeliveryResult.FailSafeHit<IContentType>(cached.Value, cached.DependencyKeys)
-                : DeliveryResult.CacheHit<IContentType>(cached.Value, cached.DependencyKeys);
+            return outcome.Source is CachedQuerySource.FailSafeHit
+                ? DeliveryResult.FailSafeHit<IContentType>(cached!.Value, cached.DependencyKeys)
+                : DeliveryResult.CacheHit<IContentType>(cached!.Value, cached.DependencyKeys);
         }
 
-        apiResult = QueryExecutionResultHelper.EnsureApiResult(apiResult, "Type", codename);
+        var apiResult = QueryExecutionResultHelper.EnsureApiResult(outcome.ApiResult, "Type", codename);
 
         if (!apiResult.IsSuccess)
         {

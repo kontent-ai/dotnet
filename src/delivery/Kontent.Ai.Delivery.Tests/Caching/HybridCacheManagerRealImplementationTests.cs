@@ -28,6 +28,23 @@ public class HybridCacheManagerRealImplementationTests
     #region Basic Operations
 
     [Fact]
+    public async Task GetOrSetAsync_ReportsWhetherTheFactoryProducedTheValue_ThroughDistributedStorage()
+    {
+        // The L2 path serializes the entry, so a served value is a different instance than the factory's.
+        // That is exactly what makes the distinction detectable - and what must not accidentally mark a
+        // genuine factory result as a cache hit.
+        var value = new TestValue { Id = 7, Name = "Provenance" };
+        Task<CacheEntry<TestValue>?> Factory(CancellationToken _) =>
+            Task.FromResult<CacheEntry<TestValue>?>(new CacheEntry<TestValue>(value, ["dep1"]));
+
+        var miss = await _cacheManager.GetOrSetAsync("provenance_distributed", Factory);
+        var hit = await _cacheManager.GetOrSetAsync("provenance_distributed", Factory);
+
+        Assert.True(miss!.FromFactory);
+        Assert.False(hit!.FromFactory);
+    }
+
+    [Fact]
     public async Task GetOrSetAsync_CacheMissAndHit_WithRealImplementation()
     {
         var key = "real_test_key";

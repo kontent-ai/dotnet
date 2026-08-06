@@ -47,37 +47,37 @@ internal sealed class TaxonomyQuery(
         CancellationToken cancellationToken)
     {
         var cacheKey = CacheKeyBuilder.BuildTaxonomyKey(codename);
-        IDeliveryResult<ITaxonomyGroup>? apiResult = null;
-        var factoryInvoked = false;
 
-        var cached = await cacheManager.GetOrSetAsync(
+        var outcome = await CachedQueryExecutor.ExecuteAsync<TaxonomyGroup, ITaxonomyGroup>(
+            cacheManager,
             cacheKey,
-            async ct =>
-            {
-                factoryInvoked = true;
-                apiResult = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
-                if (!apiResult.IsSuccess)
-                    return null;
+            (captureApiResult, ct) => cacheManager.GetOrSetAsync(
+                cacheKey,
+                async factoryToken =>
+                {
+                    var result = await FetchFromApiAsync(waitForLoadingNewContent, factoryToken).ConfigureAwait(false);
+                    captureApiResult(result);
+                    if (!result.IsSuccess)
+                        return null;
 
-                var dependencies = BuildDependencies(apiResult.Value);
-                return new CacheEntry<TaxonomyGroup>((TaxonomyGroup)apiResult.Value, dependencies);
-            },
-            CacheExpiration,
+                    return new CacheEntry<TaxonomyGroup>((TaxonomyGroup)result.Value, BuildDependencies(result.Value));
+                },
+                CacheExpiration,
+                ct),
             cancellationToken).ConfigureAwait(false);
 
-        // Cache hit (factory never called) or fail-safe served stale data after HTTP error
-        if (cached is not null && (apiResult is null || !apiResult.IsSuccess))
+        var cached = outcome.Cached;
+
+        if (outcome.Source is not CachedQuerySource.Fetched)
         {
             _log.LogQueryCompleted(stopwatch, HttpStatusCode.OK, cacheHit: true);
-            var isFailSafe = factoryInvoked
-                || (cacheManager is IFailSafeStateProvider failSafeProvider && failSafeProvider.IsFailSafeActive(cacheKey));
 
-            return isFailSafe
-                ? DeliveryResult.FailSafeHit<ITaxonomyGroup>(cached.Value, cached.DependencyKeys)
-                : DeliveryResult.CacheHit<ITaxonomyGroup>(cached.Value, cached.DependencyKeys);
+            return outcome.Source is CachedQuerySource.FailSafeHit
+                ? DeliveryResult.FailSafeHit<ITaxonomyGroup>(cached!.Value, cached.DependencyKeys)
+                : DeliveryResult.CacheHit<ITaxonomyGroup>(cached!.Value, cached.DependencyKeys);
         }
 
-        apiResult = QueryExecutionResultHelper.EnsureApiResult(apiResult, "Taxonomy", codename);
+        var apiResult = QueryExecutionResultHelper.EnsureApiResult(outcome.ApiResult, "Taxonomy", codename);
 
         if (!apiResult.IsSuccess)
         {
