@@ -24,11 +24,21 @@ public abstract class CodeGeneratorBase(
 
     public async Task<int> RunAsync()
     {
-        await GenerateContentTypeModels();
+        // Fetched once and reused. Generating the base record from a second fetch would repeat every
+        // request the content model needs, for a result that has to match the first one anyway.
+        var classCodeGenerators = await GetClassCodeGenerators();
+
+        if (classCodeGenerators.Count == 0)
+        {
+            Logger.LogInfo(NoContentTypeAvailableMessage);
+            return 0;
+        }
+
+        WriteToOutputProvider(classCodeGenerators);
 
         if (!string.IsNullOrEmpty(Options.BaseRecord))
         {
-            await GenerateBaseClass();
+            GenerateBaseClass(classCodeGenerators);
         }
 
         return 0;
@@ -85,28 +95,8 @@ public abstract class CodeGeneratorBase(
         Logger.LogWarning($"Skipping Content Type '{contentTypeCodename}'. Can't create valid C# identifier from its name.");
     }
 
-    private async Task GenerateContentTypeModels()
+    private void GenerateBaseClass(ICollection<ClassCodeGenerator> classCodeGenerators)
     {
-        var classCodeGenerators = await GetClassCodeGenerators();
-
-        if (!classCodeGenerators.Any())
-        {
-            Logger.LogInfo(NoContentTypeAvailableMessage);
-            return;
-        }
-
-        WriteToOutputProvider(classCodeGenerators);
-    }
-
-    private async Task GenerateBaseClass()
-    {
-        var classCodeGenerators = await GetClassCodeGenerators();
-
-        if (!classCodeGenerators.Any())
-        {
-            return;
-        }
-
         var baseClassCodeGenerator = new BaseClassCodeGenerator(Options);
 
         foreach (var codeGenerator in classCodeGenerators)

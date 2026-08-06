@@ -29,6 +29,7 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   ```
 
   Configurations that were valid before remain valid. A configuration the tool used to accept and the API would then reject now fails at startup.
+- **`--baserecord` no longer fetches the content model twice.** Generating the base record re-read the whole content model rather than reusing what had just been fetched, so a run with `-b` made every request twice — in management mode, both the content-type and snippet listings. The generated output was identical either way; only the number of API calls changes.
 - **Nothing about the code the generator emits.** Model classes, enums and the mapping attributes are byte-identical to `10.3.0-beta-2`, verified by the generator's own output assertions.
 
 ### Dependencies

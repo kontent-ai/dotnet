@@ -384,6 +384,31 @@ public class ManagementCodeGeneratorTests
         _output.Received(1).Output(Arg.Any<string>(), "Article", true);
     }
 
+    // BaseRecord had no coverage at all, and it is the only option that used to make the generator
+    // fetch the content model a second time.
+    [Fact]
+    public async Task RunAsync_WithBaseRecord_WritesBaseRecordAndExtender()
+    {
+        SetupClientWithTypes(BuildArticleType());
+
+        await CreateGenerator(baseRecord: "ArticleBase").RunAsync();
+
+        _output.Received(1).Output(Arg.Any<string>(), "Article", true);
+        _output.Received(1).Output(Arg.Any<string>(), "ArticleBase", false);
+        _output.Received(1).Output(Arg.Any<string>(), "ArticleBaseExtender", true);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithBaseRecord_FetchesTheContentModelOnce()
+    {
+        SetupClientWithTypes(BuildArticleType());
+
+        await CreateGenerator(baseRecord: "ArticleBase").RunAsync();
+
+        _ = _client.Received(1).ListContentTypesAsync();
+        _ = _client.Received(1).ListContentTypeSnippetsAsync();
+    }
+
     [Fact]
     public async Task RunAsync_FailedTypeListing_Throws()
     {
@@ -459,11 +484,12 @@ public class ManagementCodeGeneratorTests
         ],
     };
 
-    private ManagementCodeGenerator CreateGenerator(string? @namespace = null)
+    private ManagementCodeGenerator CreateGenerator(string? @namespace = null, string? baseRecord = null)
     {
         var options = Options.Create(new CodeGeneratorOptions
         {
             Namespace = @namespace,
+            BaseRecord = baseRecord,
         });
 
         return new ManagementCodeGenerator(
