@@ -81,11 +81,14 @@ See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the mi
   carrying the exception, consistent with how every other failure in this SDK is reported. Cancellation
   is the exception to that: when the caller's token fires, the `OperationCanceledException` is rethrown,
   so `Task.IsCanceled`, `Task.WhenAll` and cancellation handlers behave as they do everywhere else in
-  .NET. Previously **all** of these threw.
+  .NET. Previously **all** of these threw. An expired `HttpClient.Timeout` is *not* cancellation, even
+  though .NET surfaces it as a `TaskCanceledException`: the request was sent, so it is reported as a
+  failed result like any other transport failure.
 - **Transport failures report status `0`.** `ISyncResult` now carries `(HttpStatusCode)0` for that case rather than an invented code. Responses that did arrive are unaffected.
 
 ### Fixed
 
+- **Responses are now disposed once mapped, instead of every request leaking one until finalization.** Each call held its `HttpResponseMessage` open for the garbage collector to reclaim, which on a sync walk means one per page. Nothing the result carries is affected — Refit buffers the content, and header collections outlive disposal.
 - **A failure resolving the `X-KC-SOURCE` header no longer breaks every later request.** The value is cached in a `Lazy<string?>`, and the resolution walks the call stack to attribute the calling package. An exception thrown during that walk was cached alongside the value and rethrown on every subsequent request for the lifetime of the process. Resolution failures are now contained and the header simply omitted, which was the intent.
 - **An assembly with no informational version reports `0.0.0` in tracking headers rather than an empty version.** The build-metadata stripping ran after the fallback rather than before it, so a blank version survived as an empty string and travelled into the header. Only reachable for an assembly built without version attributes, which is not the case for anything this SDK ships.
 

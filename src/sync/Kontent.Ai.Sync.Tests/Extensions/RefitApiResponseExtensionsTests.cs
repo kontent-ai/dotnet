@@ -107,6 +107,28 @@ public class RefitApiResponseExtensionsTests
         result.Error.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task ToSyncResultAsync_SuccessfulResponse_DisposesTheResponse()
+    {
+        var apiResponse = CreateSuccessResponse("payload", "https://sync.kontent.ai/test", "token");
+
+        var result = await apiResponse.ToSyncResultAsync();
+
+        apiResponse.Received(1).Dispose();
+        // Headers survive disposal, which is what lets the result keep carrying them.
+        result.ResponseHeaders.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ToSyncResultAsync_FailedResponse_DisposesTheResponse()
+    {
+        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.NotFound, "https://sync.kontent.ai/test", null);
+
+        await apiResponse.ToSyncResultAsync();
+
+        apiResponse.Received(1).Dispose();
+    }
+
     private static IApiResponse<T> CreateSuccessResponse<T>(T content, string requestUrl, string? syncToken = null)
     {
         var apiResponse = Substitute.For<IApiResponse<T>>();
@@ -184,6 +206,20 @@ public class RefitApiResponseExtensionsTests
         var act = async () => await apiResponse.ToSyncResultAsync();
 
         await act.Should().ThrowAsync<OperationCanceledException>().WithMessage("caller went away");
+    }
+
+    [Fact]
+    public async Task ToSyncResultAsync_TimedOut_ReturnsFailureRatherThanCancellation()
+    {
+        // An expired HttpClient.Timeout arrives shaped like cancellation, but it is an outcome of the call,
+        // not the caller withdrawing it - the result pattern owns it.
+        var apiResponse = CreateTransportFailure(
+            new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException()));
+
+        var result = await apiResponse.ToSyncResultAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Exception.Should().BeOfType<ApiRequestException>();
     }
 
     [Fact]

@@ -8,6 +8,10 @@ namespace Kontent.Ai.Sync.Extensions;
 /// <summary>
 /// Extension methods for converting Refit responses to sync results.
 /// </summary>
+// Every path disposes the response. Doing so while the result still carries its headers is safe:
+// HttpResponseMessage.Dispose releases the content, not the header collections, and Refit has already
+// buffered everything else the result needs - the deserialized Content and the ApiException's
+// body-as-string both outlive the message. Without it, every response lingers until finalization.
 internal static class RefitApiResponseExtensions
 {
     private const string ContinuationHeaderName = "X-Continuation";
@@ -22,12 +26,15 @@ internal static class RefitApiResponseExtensions
     {
         if (apiResponse.IsSuccessStatusCode && apiResponse.Content is not null)
         {
-            return Task.FromResult<ISyncResult<T>>(SyncResult<T>.Success(
-                apiResponse.Content,
-                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                RequireSyncToken(apiResponse),
-                RefitResponses.StatusOf(apiResponse),
-                apiResponse.Headers));
+            using (apiResponse)
+            {
+                return Task.FromResult<ISyncResult<T>>(SyncResult<T>.Success(
+                    apiResponse.Content,
+                    RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                    RequireSyncToken(apiResponse),
+                    RefitResponses.StatusOf(apiResponse),
+                    apiResponse.Headers));
+            }
         }
 
         return MapFailureAsync(apiResponse);
@@ -46,11 +53,14 @@ internal static class RefitApiResponseExtensions
     {
         if (apiResponse.IsSuccessStatusCode)
         {
-            return Task.FromResult(SyncResult.Success(
-                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                RequireSyncToken(apiResponse),
-                RefitResponses.StatusOf(apiResponse),
-                apiResponse.Headers));
+            using (apiResponse)
+            {
+                return Task.FromResult(SyncResult.Success(
+                    RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                    RequireSyncToken(apiResponse),
+                    RefitResponses.StatusOf(apiResponse),
+                    apiResponse.Headers));
+            }
         }
 
         return MapFailureAsync(apiResponse);
@@ -58,30 +68,36 @@ internal static class RefitApiResponseExtensions
 
     private static async Task<ISyncResult> MapFailureAsync(IApiResponse apiResponse)
     {
-        RefitResponses.RethrowIfCanceled(apiResponse.Error);
+        using (apiResponse)
+        {
+            RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
-        var statusCode = RefitResponses.StatusOf(apiResponse);
-        var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
+            var statusCode = RefitResponses.StatusOf(apiResponse);
+            var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
 
-        return SyncResult.Failure(
-            RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-            statusCode,
-            error,
-            apiResponse.Headers);
+            return SyncResult.Failure(
+                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                statusCode,
+                error,
+                apiResponse.Headers);
+        }
     }
 
     private static async Task<ISyncResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse)
     {
-        RefitResponses.RethrowIfCanceled(apiResponse.Error);
+        using (apiResponse)
+        {
+            RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
-        var statusCode = RefitResponses.StatusOf(apiResponse);
-        var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
+            var statusCode = RefitResponses.StatusOf(apiResponse);
+            var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
 
-        return SyncResult<T>.Failure(
-            RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-            statusCode,
-            error,
-            apiResponse.Headers);
+            return SyncResult<T>.Failure(
+                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                statusCode,
+                error,
+                apiResponse.Headers);
+        }
     }
 
     /// <summary>
