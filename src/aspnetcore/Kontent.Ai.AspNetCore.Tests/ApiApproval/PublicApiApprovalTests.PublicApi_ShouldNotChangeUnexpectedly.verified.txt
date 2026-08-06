@@ -1,5 +1,6 @@
 ﻿// Kontent.Ai.AspNetCore.ImageTransformation
 public class AssetTagHelper : TagHelper
+    .ctor(IOptions<ImageTransformationOptions> imageTransformationOption)
     Boolean AutoFormat { get; set; }
     IAsset Asset { get; set; }
     IOptions<ImageTransformationOptions> ImageTransformationOptions { get; set; }
@@ -15,10 +16,12 @@ public class AssetTagHelper : TagHelper
 
 // Kontent.Ai.AspNetCore.ImageTransformation
 public class ImageTransformationOptions
+    .ctor()
     Int32[] ResponsiveWidths { get; set; }
 
 // Kontent.Ai.AspNetCore.ImageTransformation
 public class MediaConditionTagHelper : TagHelper
+    .ctor()
     Int32 ImageWidth { get; set; }
     Int32 MinWidth { get; set; }
     Nullable<Int32> MaxWidth { get; set; }
@@ -30,6 +33,7 @@ public sealed class RichTextExtensions
 
 // Kontent.Ai.AspNetCore.RichText
 public class RichTextTagHelper : TagHelper
+    .ctor(IHtmlResolver defaultResolver)
     IHtmlResolver Resolver { get; set; }
     IRichTextContent Content { get; set; }
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
@@ -47,15 +51,18 @@ public sealed class ApplicationBuilderExtensions
 
 // Kontent.Ai.AspNetCore.Webhooks
 public class SignatureMiddleware
+    .ctor(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
     IOptions<WebhookOptions> WebhookOptions { get; }
     Task InvokeAsync(HttpContext httpContext)
 
 // Kontent.Ai.AspNetCore.Webhooks
 public class WebhookOptions
+    .ctor()
     String Secret { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class Reference
+    .ctor()
     Nullable<Guid> Id { get; set; }
     String Codename { get; set; }
     String ExternalId { get; set; }
@@ -65,10 +72,12 @@ public class Reference
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class WebhookData
+    .ctor()
     WebhookItem System { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class WebhookItem
+    .ctor()
     DateTime LastModified { get; set; }
     Nullable<Guid> Id { get; set; }
     String Codename { get; set; }
@@ -81,6 +90,7 @@ public class WebhookItem
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class WebhookMessage
+    .ctor()
     Guid EnvironmentId { get; set; }
     String Action { get; set; }
     String DeliverySlot { get; set; }
@@ -88,10 +98,12 @@ public class WebhookMessage
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class WebhookModel
+    .ctor()
     WebhookData Data { get; set; }
     WebhookMessage Message { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public class WebhookNotification
+    .ctor()
     WebhookModel[] Notifications { get; set; }
 

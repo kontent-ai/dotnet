@@ -83,6 +83,7 @@ public interface ISyncType
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncOptions : IValidatableObject
     const String DefaultConfigurationSectionName = SyncOptions
+    .ctor()
     ApiMode ApiMode { get; set; }
     Boolean EnableResilience { get; set; }
     String ApiKey { get; set; }
@@ -98,6 +99,9 @@ public sealed class SyncOptionsExtensions
 
 // Kontent.Ai.Sync.Abstractions
 public sealed class SyncSourceTrackingHeaderAttribute : Attribute
+    .ctor()
+    .ctor(String packageName)
+    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String preReleaseLabel)
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }

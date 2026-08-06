@@ -6,8 +6,9 @@ public sealed class BlockResolver`1<TBlock> : MulticastDelegate
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class CacheEntry`1<T> : IEquatable<CacheEntry<T>>
-    IEnumerable<String> Dependencies { get; set; init; }
-    T Value { get; set; init; }
+    .ctor(T Value, IEnumerable<String> Dependencies)
+    IEnumerable<String> Dependencies { get; init; }
+    T Value { get; init; }
     Boolean Equals(CacheEntry<T> other)
     Boolean Equals(Object obj)
     CacheEntry<T> <Clone>$()
@@ -17,8 +18,9 @@ public sealed class CacheEntry`1<T> : IEquatable<CacheEntry<T>>
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
-    IReadOnlyList<String> DependencyKeys { get; set; init; }
-    T Value { get; set; init; }
+    .ctor(T Value, IReadOnlyList<String> DependencyKeys)
+    IReadOnlyList<String> DependencyKeys { get; init; }
+    T Value { get; init; }
     Boolean Equals(CacheResult<T> other)
     Boolean Equals(Object obj)
     CacheResult<T> <Clone>$()
@@ -39,6 +41,7 @@ public sealed class DeliveryCacheDependencies
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheOptions
+    .ctor()
     Action<Object> ConfigureFusionCacheOptions { get; set; }
     Boolean IsFailSafeEnabled { get; set; }
     Single EagerRefreshThreshold { get; set; }
@@ -51,6 +54,7 @@ public sealed class DeliveryCacheOptions
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptions : IValidatableObject
     const String DefaultConfigurationSectionName = DeliveryOptions
+    .ctor()
     Boolean EnableResilience { get; set; }
     Boolean UsePreviewApi { get; set; }
     Boolean UseSecureAccess { get; set; }
@@ -619,6 +623,7 @@ public enum OrderingMode
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class RequiredIfAttribute : ValidationAttribute
+    .ctor(String propertyName, Object isValue)
     String FormatErrorMessage(String name)
 
 // Kontent.Ai.Delivery.Abstractions

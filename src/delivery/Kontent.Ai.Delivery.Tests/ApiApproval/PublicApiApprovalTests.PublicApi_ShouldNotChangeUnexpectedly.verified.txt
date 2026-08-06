@@ -19,12 +19,16 @@ public sealed class DeliveryClient : IAsyncDisposable, IDeliveryClient, IDisposa
 
 // Kontent.Ai.Delivery
 public sealed class DeliveryClientFactory : IDeliveryClientFactory
+    .ctor(IServiceProvider serviceProvider)
     IDeliveryClient Get()
     IDeliveryClient Get(String name)
     IDeliveryClient TryGet(String name)
 
 // Kontent.Ai.Delivery
 public class DeliverySourceTrackingHeaderAttribute : Attribute
+    .ctor()
+    .ctor(String packageName)
+    .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String preReleaseLabel)
     Boolean LoadFromAssembly { get; }
     Int32 MajorVersion { get; }
     Int32 MinorVersion { get; }
@@ -101,14 +105,15 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class Asset : IAsset, IEquatable<Asset>
-    IReadOnlyDictionary<String, IAssetRendition> Renditions { get; set; init; }
-    Int32 Size { get; set; init; }
-    Nullable<Int32> Height { get; set; init; }
-    Nullable<Int32> Width { get; set; init; }
-    String Description { get; set; init; }
-    String Name { get; set; init; }
-    String Type { get; set; init; }
-    String Url { get; set; init; }
+    .ctor()
+    IReadOnlyDictionary<String, IAssetRendition> Renditions { get; init; }
+    Int32 Size { get; init; }
+    Nullable<Int32> Height { get; init; }
+    Nullable<Int32> Width { get; init; }
+    String Description { get; init; }
+    String Name { get; init; }
+    String Type { get; init; }
+    String Url { get; init; }
     Asset <Clone>$()
     Boolean Equals(Asset other)
     Boolean Equals(Object obj)
@@ -117,11 +122,12 @@ public sealed class Asset : IAsset, IEquatable<Asset>
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class AssetRendition : IAssetRendition, IEquatable<AssetRendition>
-    Int32 Height { get; set; init; }
-    Int32 Width { get; set; init; }
-    String PresetId { get; set; init; }
-    String Query { get; set; init; }
-    String RenditionId { get; set; init; }
+    .ctor()
+    Int32 Height { get; init; }
+    Int32 Width { get; init; }
+    String PresetId { get; init; }
+    String Query { get; init; }
+    String RenditionId { get; init; }
     AssetRendition <Clone>$()
     Boolean Equals(AssetRendition other)
     Boolean Equals(Object obj)
@@ -130,6 +136,7 @@ public sealed class AssetRendition : IAssetRendition, IEquatable<AssetRendition>
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class DynamicElements : ReadOnlyDictionary<String, JsonElement>, IDynamicElements
+    .ctor(IDictionary<String, JsonElement> inner)
 
 // Kontent.Ai.Delivery.ContentItems.RichText
 public sealed class RichTextContent : IEnumerable, IEnumerable<IRichTextBlock>, IReadOnlyCollection<IRichTextBlock>, IReadOnlyList<IRichTextBlock>, IRichTextContent
@@ -145,6 +152,7 @@ public sealed class DefaultResolvers
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
 public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
+    .ctor()
     HtmlResolverBuilder ThrowOnMissingResolver(Boolean enabled)
     IHtmlResolver Build()
     IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
@@ -168,8 +176,9 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
 
 // Kontent.Ai.Delivery.SharedModels
 public sealed class DateTimeContent : IDateTimeContent, IEquatable<DateTimeContent>
-    Nullable<DateTime> Value { get; set; init; }
-    String DisplayTimezone { get; set; init; }
+    .ctor()
+    Nullable<DateTime> Value { get; init; }
+    String DisplayTimezone { get; init; }
     Boolean Equals(DateTimeContent other)
     Boolean Equals(Object obj)
     DateTimeContent <Clone>$()
@@ -178,8 +187,9 @@ public sealed class DateTimeContent : IDateTimeContent, IEquatable<DateTimeConte
 
 // Kontent.Ai.Delivery.SharedModels
 public sealed class MultipleChoiceOption : IEquatable<MultipleChoiceOption>, IMultipleChoiceOption
-    String Codename { get; set; init; }
-    String Name { get; set; init; }
+    .ctor()
+    String Codename { get; init; }
+    String Name { get; init; }
     Boolean Equals(MultipleChoiceOption other)
     Boolean Equals(Object obj)
     Int32 GetHashCode()
@@ -188,8 +198,9 @@ public sealed class MultipleChoiceOption : IEquatable<MultipleChoiceOption>, IMu
 
 // Kontent.Ai.Delivery.SharedModels
 public sealed class TaxonomyTerm : IEquatable<TaxonomyTerm>, ITaxonomyTerm
-    String Codename { get; set; init; }
-    String Name { get; set; init; }
+    .ctor()
+    String Codename { get; init; }
+    String Name { get; init; }
     Boolean Equals(Object obj)
     Boolean Equals(TaxonomyTerm other)
     Int32 GetHashCode()

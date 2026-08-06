@@ -92,8 +92,27 @@ internal static class PublicApiApproval
             return Enum.GetNames(type).OrderBy(name => name, StringComparer.Ordinal);
         }
 
-        return Fields(type).Concat(Properties(type)).Concat(Methods(type));
+        return Fields(type)
+            .Concat(Constructors(type))
+            .Concat(Properties(type))
+            .Concat(Events(type))
+            .Concat(Methods(type));
     }
+
+    /// <summary>
+    /// Constructors are public surface in their own right: adding one removes the implicit parameterless
+    /// constructor, and changing a parameter breaks every caller.
+    /// </summary>
+    /// <remarks>
+    /// Delegates are skipped - every delegate carries the same compiler-generated
+    /// <c>(object, IntPtr)</c> constructor, so it can never differ; the signature that can is
+    /// <c>Invoke</c>, already rendered as a method.
+    /// </remarks>
+    private static IEnumerable<string> Constructors(Type type) => typeof(Delegate).IsAssignableFrom(type)
+        ? []
+        : type.GetConstructors(DeclaredPublic)
+            .Select(constructor => $".ctor({Parameters(constructor)})")
+            .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static IEnumerable<string> Fields(Type type) => type
         .GetFields(DeclaredPublic)
@@ -115,13 +134,29 @@ internal static class PublicApiApproval
         .Select(property =>
         {
             var getter = property.GetMethod?.IsPublic == true ? "get; " : "";
-            var setter = property.SetMethod?.IsPublic == true ? "set; " : "";
-            var init = property.SetMethod?.ReturnParameter.GetRequiredCustomModifiers()
-                .Any(modifier => modifier.Name == "IsExternalInit") == true ? "init; " : "";
+            var setter = property.SetMethod switch
+            {
+                { IsPublic: true } method when IsInitOnly(method) => "init; ",
+                { IsPublic: true } => "set; ",
+                _ => "",
+            };
             var isStatic = property.GetMethod?.IsStatic == true || property.SetMethod?.IsStatic == true;
 
-            return $"{(isStatic ? "static " : "")}{TypeName(property.PropertyType)} {property.Name} {{ {getter}{setter}{init}}}";
+            return $"{(isStatic ? "static " : "")}{TypeName(property.PropertyType)} {property.Name} {{ {getter}{setter}}}";
         })
+        .OrderBy(rendered => rendered, StringComparer.Ordinal);
+
+    /// <summary>
+    /// An init-only setter is a <c>set</c> accessor carrying the <c>IsExternalInit</c> modreq - the only
+    /// place the distinction survives into metadata.
+    /// </summary>
+    private static bool IsInitOnly(MethodInfo setter) => setter.ReturnParameter
+        .GetRequiredCustomModifiers()
+        .Any(modifier => modifier.Name == "IsExternalInit");
+
+    private static IEnumerable<string> Events(Type type) => type
+        .GetEvents(DeclaredPublic)
+        .Select(@event => $"event {TypeName(@event.EventHandlerType!)} {@event.Name}")
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static IEnumerable<string> Methods(Type type) => type
@@ -133,12 +168,12 @@ internal static class PublicApiApproval
             var generic = method.IsGenericMethod
                 ? $"<{string.Join(", ", method.GetGenericArguments().Select(argument => argument.Name))}>"
                 : string.Empty;
-            var parameters = string.Join(", ", method.GetParameters()
-                .Select(parameter => $"{TypeName(parameter.ParameterType)} {parameter.Name}"));
-
-            return $"{staticPrefix}{TypeName(method.ReturnType)} {method.Name}{generic}({parameters})";
+            return $"{staticPrefix}{TypeName(method.ReturnType)} {method.Name}{generic}({Parameters(method)})";
         })
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
+
+    private static string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
+        .Select(parameter => $"{TypeName(parameter.ParameterType)} {parameter.Name}"));
 
     private static string TypeName(Type type)
     {

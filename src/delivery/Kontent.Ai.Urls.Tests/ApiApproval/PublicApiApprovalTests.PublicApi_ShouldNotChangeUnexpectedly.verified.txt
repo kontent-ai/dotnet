@@ -20,6 +20,8 @@ public enum ImageFormat
 
 // Kontent.Ai.Urls.ImageTransformation
 public sealed class ImageUrlBuilder
+    .ctor(String assetUrl)
+    .ctor(Uri assetUrl)
     Uri Url { get; }
     ImageUrlBuilder WithAutomaticFormat()
     ImageUrlBuilder WithAutomaticFormat(ImageFormat backupFormat)
