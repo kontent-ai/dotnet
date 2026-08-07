@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0-rc.1 (2026-08-07)  _(prerelease)_
+
 Targets .NET 10, completing the framework move that the `9.x` line was always heading for, and upgrades Refit across four major versions. The result pattern, transport architecture and model conventions introduced in the earlier betas are unchanged — see the [9.0.0-beta-1 release notes](release-notes-9.0.0-beta-1.md) for that overview.
 
 > [!WARNING]

@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_
+
 Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release rather than a continuation of the `10.3.0` line. Generated output is unchanged.
 
 ### Breaking changes
