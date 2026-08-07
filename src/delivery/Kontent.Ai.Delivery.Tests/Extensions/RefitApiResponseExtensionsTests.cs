@@ -149,6 +149,63 @@ public class RefitApiResponseExtensionsTests
         Assert.IsType<HttpRequestException>(result.Error.Exception?.InnerException);
     }
 
+    [Fact]
+    public async Task ToDeliveryResultAsync_SuccessfulResponse_DisposesTheResponse()
+    {
+        var content = new DisposalTrackingContent();
+        using var httpResponse = CreateHttpResponse(HttpStatusCode.OK);
+        httpResponse.Content = content;
+        httpResponse.Headers.TryAddWithoutValidation("X-Stale-Content", "1");
+        var apiResponse = new ApiResponse<string>(httpResponse, "payload", new RefitSettings());
+
+        var result = await apiResponse.ToDeliveryResultAsync();
+
+        Assert.True(content.Disposed);
+        // Headers survive disposal, which is what lets the result keep carrying them.
+        Assert.True(result.HasStaleContent);
+    }
+
+    [Fact]
+    public async Task ToDeliveryResultAsync_FailedResponse_DisposesTheResponse()
+    {
+        // A transport failure rather than an ApiException: ApiException.Create buffers the body and
+        // disposes the content itself, which would mask whether the mapping disposes the response.
+        var content = new DisposalTrackingContent();
+        using var httpResponse = CreateHttpResponse(HttpStatusCode.OK);
+        httpResponse.Content = content;
+        httpResponse.RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/test");
+        var settings = new RefitSettings();
+        var apiResponse = new ApiResponse<string>(
+            httpResponse,
+            null,
+            settings,
+            new ApiRequestException("request failed", new HttpRequestMessage(), HttpMethod.Get, settings,
+                new HttpRequestException("No such host is known.")));
+
+        await apiResponse.ToDeliveryResultAsync();
+
+        Assert.True(content.Disposed);
+    }
+
+    private sealed class DisposalTrackingContent : HttpContent
+    {
+        public bool Disposed { get; private set; }
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) => Task.CompletedTask;
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return true;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Disposed = true;
+            base.Dispose(disposing);
+        }
+    }
+
     private static ApiResponse<string> CreateTransportFailure(Exception inner)
     {
         var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)

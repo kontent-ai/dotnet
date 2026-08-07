@@ -1,4 +1,3 @@
-using System.Net;
 using Kontent.Ai.Common;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Logging;
@@ -9,6 +8,10 @@ namespace Kontent.Ai.Delivery.Extensions;
 /// <summary>
 /// Extension methods for converting Refit's IApiResponse to DeliveryResult.
 /// </summary>
+// Every path disposes the response. Doing so while the result still carries its headers is safe:
+// HttpResponseMessage.Dispose releases the content, not the header collections, and Refit has already
+// buffered everything else the result needs - the deserialized Content and the ApiException's
+// body-as-string both outlive the message. Without it, every response lingers until finalization.
 internal static class RefitApiResponseExtensions
 {
     private const string ContinuationHeaderName = "X-Continuation";
@@ -27,14 +30,17 @@ internal static class RefitApiResponseExtensions
         // Fast success path: no awaits/allocations
         if (apiResponse.IsSuccessful && apiResponse.Content is not null)
         {
-            return Task.FromResult(DeliveryResult.Success(
-                apiResponse.Content,
-                RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                RefitResponses.StatusOf(apiResponse),
-                ExtractHasStaleContent(apiResponse),
-                apiResponse.Headers,
-                ExtractResponseSource(apiResponse)
-            ));
+            using (apiResponse)
+            {
+                return Task.FromResult(DeliveryResult.Success(
+                    apiResponse.Content,
+                    RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                    RefitResponses.StatusOf(apiResponse),
+                    ExtractHasStaleContent(apiResponse),
+                    apiResponse.Headers,
+                    ExtractResponseSource(apiResponse)
+                ));
+            }
         }
 
         // Defer to the async failure/edge handler
@@ -48,48 +54,40 @@ internal static class RefitApiResponseExtensions
     /// <param name="apiResponse">The API response.</param>
     /// <param name="logger">Optional logger for diagnostic messages.</param>
     /// <returns>A delivery result containing the response data or errors.</returns>
-    private static Task<IDeliveryResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse, ILogger? logger)
+    private static async Task<IDeliveryResult<T>> MapFailureAsync<T>(IApiResponse<T> apiResponse, ILogger? logger)
     {
-        RefitResponses.RethrowIfCanceled(apiResponse.Error);
-
-        var url = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
-        var status = RefitResponses.StatusOf(apiResponse);
-        var headers = apiResponse.Headers;
-        var responseSource = ExtractResponseSource(apiResponse);
-
-        if (apiResponse.Error is not ApiException apiEx)
+        using (apiResponse)
         {
-            var fallback = new Error
+            RefitResponses.RethrowIfCanceled(apiResponse.Error);
+
+            var url = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
+            var status = RefitResponses.StatusOf(apiResponse);
+            var headers = apiResponse.Headers;
+            var responseSource = ExtractResponseSource(apiResponse);
+
+            if (apiResponse.Error is not ApiException apiEx)
             {
-                Message = "Unknown error",
-                Exception = apiResponse.Error
-            };
-            return Task.FromResult(DeliveryResult.Failure<T>(url, status, fallback, headers, responseSource));
-        }
+                var fallback = new Error
+                {
+                    Message = "Unknown error",
+                    Exception = apiResponse.Error
+                };
+                return DeliveryResult.Failure<T>(url, status, fallback, headers, responseSource);
+            }
 
-        return MapApiExceptionAsync(apiEx, url, status, headers, responseSource, logger);
-
-        static async Task<IDeliveryResult<T>> MapApiExceptionAsync(
-            ApiException ex,
-            string url,
-            HttpStatusCode status,
-            System.Net.Http.Headers.HttpResponseHeaders? headers,
-            ResponseSource responseSource,
-            ILogger? logger)
-        {
             Error error;
             try
             {
                 // Try to parse a structured Kontent API error from the body.
-                var parsed = await ex.GetContentAsAsync<Error>().ConfigureAwait(false);
+                var parsed = await apiEx.GetContentAsAsync<Error>().ConfigureAwait(false);
                 if (parsed is not null)
                 {
                     // Preserve the exception in the parsed error
-                    error = parsed with { Exception = ex };
+                    error = parsed with { Exception = apiEx };
                 }
                 else
                 {
-                    error = new Error { Message = ex.Message, Exception = ex };
+                    error = new Error { Message = apiEx.Message, Exception = apiEx };
                 }
             }
             catch (Exception parseEx) when (!FatalExceptions.IsFatal(parseEx))
@@ -97,17 +95,17 @@ internal static class RefitApiResponseExtensions
                 // Log the deserialization failure for diagnostics
                 if (logger is not null)
                 {
-                    LoggerMessages.ApiErrorParsingFailed(logger, url, status, ex.Content?.Length ?? 0, parseEx);
+                    LoggerMessages.ApiErrorParsingFailed(logger, url, status, apiEx.Content?.Length ?? 0, parseEx);
                 }
 
                 // Body isn't JSON or deserialization failed. Use Refit's formatted message as the base
                 // (it includes HTTP context) and append the raw body for debugging if available.
-                var rawBody = ex.Content;
+                var rawBody = apiEx.Content;
                 var message = string.IsNullOrWhiteSpace(rawBody)
-                    ? ex.Message
-                    : $"{ex.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
+                    ? apiEx.Message
+                    : $"{apiEx.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
 
-                error = new Error { Message = message, Exception = ex };
+                error = new Error { Message = message, Exception = apiEx };
             }
 
             return DeliveryResult.Failure<T>(url, status, error, headers, responseSource);
