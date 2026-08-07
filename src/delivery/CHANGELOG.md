@@ -50,6 +50,7 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
 
 ### Fixed
 
+- **An element the model cannot map is now logged as a warning rather than at debug level.** When a value fails to deserialize onto the generated property, the SDK logs and yields `null` — but `null` is also what an empty element gives, so the log is the only thing distinguishing the two. At `Debug` it was absent from any normal production configuration, which made a model that had drifted from the content type look like missing content instead of a mismatch. The behaviour is unchanged; only the level is.
 - **Cache invalidation propagates reliably between nodes once a backplane is registered.** With `AddDeliveryHybridCache`, part of the invalidation state is held per `IDeliveryCacheManager` instance, so whether one node observes another's invalidation depends on the order the two nodes happened to read and invalidate in. In one measured ordering — node A caches an entry, node B reads it, then A invalidates — B keeps serving the evicted content until the entry expires on its own. Register an `IFusionCacheBackplane` and the SDK now wires it up, so invalidations propagate regardless of ordering:
 
   ```csharp

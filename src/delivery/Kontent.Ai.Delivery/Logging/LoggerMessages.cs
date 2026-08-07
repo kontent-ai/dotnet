@@ -201,7 +201,7 @@ internal static partial class LoggerMessages
 
     [LoggerMessage(
         EventId = LogEventIds.PropertyDeserializationFailed,
-        Level = LogLevel.Debug,
+        Level = LogLevel.Warning,
         Message = "Property '{ElementCodename}' deserialization failed for type '{TypeName}'")]
     public static partial void PropertyDeserializationFailed(
         ILogger logger, string elementCodename, string typeName, Exception exception);

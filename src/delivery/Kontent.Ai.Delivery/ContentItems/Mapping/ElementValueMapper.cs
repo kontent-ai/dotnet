@@ -64,6 +64,8 @@ internal sealed class ElementValueMapper(
             return null;
         }
 
+        // A failed mapping and a genuinely empty element both surface as null, so the warning is the only
+        // thing that tells them apart: an element the model cannot represent otherwise reads as no content.
         try
         {
             return JsonSerializer.Deserialize(valueElement, prop.PropertyType, jsonOptions);
