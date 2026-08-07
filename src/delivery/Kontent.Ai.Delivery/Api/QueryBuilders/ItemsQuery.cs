@@ -289,7 +289,13 @@ internal sealed class ItemsQuery<TModel>(
         {
             foreach (var (codename, linkedItem) in resp.ModularContent)
             {
-                dependencyContext.TrackItem(codename);
+                // A component is invalidated through the item that owns it, so a key of its own is dead
+                // weight. Its type still matters: the response does contain an item of that type.
+                if (!ContentItemJsonHelper.IsComponent(linkedItem))
+                {
+                    dependencyContext.TrackItem(codename);
+                }
+
                 dependencyContext.TrackItemType(ContentItemJsonHelper.ExtractContentType(linkedItem));
             }
         }

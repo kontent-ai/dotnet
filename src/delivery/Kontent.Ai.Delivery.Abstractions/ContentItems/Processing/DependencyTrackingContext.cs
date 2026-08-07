@@ -64,16 +64,18 @@ internal sealed class DependencyTrackingContext
     /// <item><description>Rich text inline content items</description></item>
     /// </list>
     /// Codenames are case-insensitive and duplicate calls with the same codename are ignored.
+    /// <para>
+    /// Components carry a generated codename and cannot be invalidated on their own - a webhook names the
+    /// item that owns them - so a key for one is never matched. That is harmless; the caller filters them
+    /// out where it can tell (see the modular-content walk in the item queries). Guessing here from the
+    /// shape of the codename is not worth it: the two mistakes are not equal. A stray component key costs
+    /// one entry nobody looks up, while a missed item key means a webhook evicts nothing and the response
+    /// keeps being served stale.
+    /// </para>
     /// </remarks>
     public void TrackItem(string? codename)
     {
         if (string.IsNullOrWhiteSpace(codename))
-        {
-            return;
-        }
-
-
-        if (IsComponentCodename(codename))
         {
             return;
         }
@@ -88,24 +90,6 @@ internal sealed class DependencyTrackingContext
         {
             _dependencies.Add(dependencyKey);
         }
-    }
-
-    private static bool IsComponentCodename(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        // Component keys are identifiable by the third group (index 2) starting with "01".
-        var parts = value.Split('_');
-        if (parts.Length <= 2)
-        {
-            return false;
-        }
-
-        var thirdGroup = parts[2];
-        return thirdGroup.Length == 4 && thirdGroup.StartsWith("01", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
