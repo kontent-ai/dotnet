@@ -532,7 +532,10 @@ public static class ServiceCollectionExtensions
             sp => new HybridCacheManager(
                 sp.GetRequiredService<IDistributedCache>(),
                 cacheOptionsFactory(sp),
-                logger: sp.GetService<ILogger<HybridCacheManager>>()));
+                logger: sp.GetService<ILogger<HybridCacheManager>>(),
+                // Registered by the consumer the usual FusionCache way, e.g.
+                // services.AddFusionCacheStackExchangeRedisBackplane(...).
+                backplane: sp.GetService<IFusionCacheBackplane>()));
     }
 
     private static IServiceCollection RegisterCacheManager(

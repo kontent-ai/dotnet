@@ -50,6 +50,15 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
 
 ### Fixed
 
+- **Cache invalidation now reaches every node, once a backplane is registered.** With `AddDeliveryHybridCache`, invalidation state is held per `IDeliveryCacheManager` instance, so evicting a dependency key on one node left every other node serving the content a webhook had just invalidated — until the entry expired on its own. Register an `IFusionCacheBackplane` and the SDK now wires it up, so an invalidation propagates:
+
+  ```csharp
+  services.AddStackExchangeRedisCache(o => o.Configuration = "localhost");
+  services.AddFusionCacheStackExchangeRedisBackplane(o => o.Configuration = "localhost");
+  services.AddDeliveryHybridCache();
+  ```
+
+  Nothing changes for a single-instance application, and nothing changes if no backplane is registered — the in-memory tier stays bypassed there, as before. With a backplane it is used as well, since it is then kept in step across nodes.
 - **Cache invalidation no longer skips items whose codename looks like a component's.** Components were told apart by the shape of their generated codename — a `_`-separated group of four characters starting `01`, as in `n373888cc_34e2_01e1_1820_3cb52ab1b2a1`. Authored codenames collide with that: `Product SKU 0123 Blue` becomes `product_sku_0123_blue`, whose third group is `0123`. Such an item was silently given no `item_` dependency key, so a webhook naming it evicted nothing and the cached response kept being served until it expired — the failure was invisible and depended on how content was named.
 
   Components are now recognised from the response instead: the Delivery API gives every content item a `workflow` and `workflow_step` and gives components neither. Where that signal is not available the item is tracked regardless, because the two mistakes are not equal — a dependency key for a component is one entry nobody ever looks up, while a missing key for an item is stale content.

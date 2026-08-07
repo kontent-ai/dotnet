@@ -139,11 +139,22 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             });
     }
 
+    /// <summary>
+    /// Builds a manager over a distributed cache.
+    /// </summary>
+    /// <remarks>
+    /// FusionCache always has a memory tier in front of the distributed one. Invalidation state is held
+    /// per instance, so it reaches other nodes only over a backplane - without one, a second node keeps
+    /// serving content this node has evicted, whether or not the memory tier is in play. A backplane is
+    /// therefore what makes multi-node invalidation work; once one is present the memory tier is kept in
+    /// step and is used, and without one it is bypassed.
+    /// </remarks>
     public static FusionCacheManager CreateHybrid(
         IDistributedCache distributedCache,
         DeliveryCacheOptions cacheOptions,
         JsonSerializerOptions? serializerOptions = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        IFusionCacheBackplane? backplane = null)
     {
         ArgumentNullException.ThrowIfNull(distributedCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
@@ -159,8 +170,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             ReThrowDistributedCacheExceptions = false,
             ReThrowSerializationExceptions = true,
             ReThrowBackplaneExceptions = false,
-            SkipMemoryCacheRead = true,
-            SkipMemoryCacheWrite = true
+            // The memory tier is safe to use only when a backplane keeps the nodes in step.
+            SkipMemoryCacheRead = backplane is null,
+            SkipMemoryCacheWrite = backplane is null
         };
         ApplyCachePolicy(defaultEntryOptions, cacheOptions, effectiveExpiration);
 
@@ -182,6 +194,11 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         var serializer = new FusionCacheSystemTextJsonSerializer(serializerOptions);
         fusion.SetupDistributedCache(distributedCache, serializer);
+
+        if (backplane is not null)
+        {
+            fusion.SetupBackplane(backplane);
+        }
 
         var baseWriteOptions = new FusionCacheEntryOptions
         {
