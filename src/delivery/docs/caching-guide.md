@@ -87,7 +87,15 @@ Kontent.ai enforces rate limits on API requests:
 
 **Note:** The SDK stores raw JSON payloads in hybrid caches and rehydrates on read. This avoids circular reference serialization issues and keeps payloads portable across instances.
 
-Built-in hybrid cache invalidation uses dependency tags through [FusionCache](https://github.com/ZiggyCreatures/FusionCache). If a FusionCache backplane is configured, invalidations are propagated to other nodes to keep local caches coherent.
+Built-in hybrid cache invalidation uses dependency tags through [FusionCache](https://github.com/ZiggyCreatures/FusionCache). Register a FusionCache backplane and the SDK picks it up from the container, propagating invalidations to the other nodes:
+
+```csharp
+services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+services.AddFusionCacheStackExchangeRedisBackplane(o => o.Configuration = "localhost:6379");
+services.AddDeliveryHybridCache();
+```
+
+Without one, part of the invalidation state stays local to each instance, so whether a node observes another's `InvalidateAsync` depends on the order the two read and invalidated in — a node can go on serving content that was already evicted, until the entry expires by itself. A single-instance application needs no backplane.
 
 > [!NOTE]
 > **FusionCache hybrid mode limitation:** When using hybrid caching, FusionCache operates in hybrid (L1+L2) mode but [currently stores the same serialized format in both layers](https://github.com/ZiggyCreatures/FusionCache/issues/321). This means the L1 memory layer also holds raw JSON rather than hydrated objects, so every cache hit goes through rehydration. For most workloads the rehydration cost is negligible. If your scenario demands maximum read throughput, use `AddDeliveryMemoryCache` (pure L1, hydrated objects, no rehydration overhead).
@@ -1141,6 +1149,10 @@ The SDK test project includes an opt-in Redis integration suite (`RedisCacheInte
 - item/type/taxonomy detail invalidation
 - item/type/taxonomy listing scope invalidation
 - cross-instance invalidation visibility using two service providers against the same Redis backend
+- cross-instance invalidation in the ordering that needs a backplane: one instance caches an entry, the
+  other reads it, and the first then invalidates. Without a backplane the second instance can keep
+  serving the evicted entry; the test registers `AddFusionCacheStackExchangeRedisBackplane` and asserts
+  the invalidation lands
 
 Run it locally:
 

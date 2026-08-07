@@ -159,7 +159,51 @@ public class RedisCacheIntegrationTests
         Assert.False(list3.IsCacheHit);
     }
 
-    private ServiceProvider BuildRedisServiceProvider(MockHttpMessageHandler mockHttp, string keyPrefix)
+    // The invalidating instance is not always the one that later reads. Whether the other instance sees
+    // the invalidation without a backplane depends on the order the two happened to read and invalidate
+    // in; with one it does not. This pins the ordering that needs the backplane, against real Redis.
+    [RedisFact]
+    public async Task Redis_InvalidationOnOneInstance_IsSeenByAnother_WithABackplane()
+    {
+        var itemCodename = "coffee_beverages_explained";
+        var itemFixture = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}{itemCodename}.json");
+        var listFixture = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}articles.json");
+        var keyPrefix = $"redis-backplane-{Guid.NewGuid():N}";
+
+        using var providerA = BuildRedisServiceProvider(
+            CreateItemAndListMock(itemCodename, itemFixture, listFixture), keyPrefix, withBackplane: true);
+        using var providerB = BuildRedisServiceProvider(
+            CreateItemAndListMock(itemCodename, itemFixture, listFixture), keyPrefix, withBackplane: true);
+
+        var clientA = providerA.GetRequiredKeyedService<IDeliveryClient>(ClientName);
+        var clientB = providerB.GetRequiredKeyedService<IDeliveryClient>(ClientName);
+        var cacheManagerA = providerA.GetRequiredKeyedService<IDeliveryCacheManager>(ClientName);
+
+        // A populates, then B reads it - so B has already seen the entry when A invalidates.
+        Assert.False((await clientA.GetItem<Article>(itemCodename).ExecuteAsync()).IsCacheHit);
+        Assert.True((await clientB.GetItem<Article>(itemCodename).ExecuteAsync()).IsCacheHit);
+
+        await cacheManagerA.InvalidateAsync([$"item_{itemCodename}"]);
+
+        // The notification is asynchronous, so wait for it rather than for a fixed interval.
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        IDeliveryResult<IContentItem<Article>> fromB;
+        do
+        {
+            fromB = await clientB.GetItem<Article>(itemCodename).ExecuteAsync();
+            if (!fromB.IsCacheHit) break;
+            await Task.Delay(100);
+        }
+        while (DateTime.UtcNow < deadline);
+
+        Assert.True(fromB.IsSuccess);
+        Assert.False(fromB.IsCacheHit);
+    }
+
+    private ServiceProvider BuildRedisServiceProvider(
+        MockHttpMessageHandler mockHttp,
+        string keyPrefix,
+        bool withBackplane = false)
     {
         var services = new ServiceCollection();
 
@@ -168,6 +212,14 @@ public class RedisCacheIntegrationTests
             options.Configuration = GetRedisConnectionString();
             options.InstanceName = string.Empty;
         });
+
+        if (withBackplane)
+        {
+            // The channel is derived from the FusionCache name, which carries the key prefix - unique per
+            // test, so runs do not hear each other's notifications.
+            services.AddFusionCacheStackExchangeRedisBackplane(options =>
+                options.Configuration = GetRedisConnectionString());
+        }
 
         services.AddDeliveryClient(ClientName, options =>
         {
