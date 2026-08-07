@@ -98,9 +98,11 @@ public static class AssetExtensions
         ArgumentNullException.ThrowIfNull(folder);
 
         var segments = new List<string>();
-        if (folder.Parent is not null)
+        // An ancestor with no name contributes no segment, so the path cannot begin with a separator.
+        var parentPath = folder.Parent?.GetFullFolderPath();
+        if (!string.IsNullOrEmpty(parentPath))
         {
-            segments.Add(folder.Parent.GetFullFolderPath());
+            segments.Add(parentPath);
         }
         if (!string.IsNullOrEmpty(folder.Name))
         {
