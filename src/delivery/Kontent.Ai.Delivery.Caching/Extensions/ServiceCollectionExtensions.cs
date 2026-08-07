@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Caching;
-using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems.Processing;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddDeliveryCacheManager(
         this IServiceCollection services,
-        Func<IServiceProvider, IDeliveryCacheManager> createCacheManager) => services.AddDeliveryCacheManager(DeliveryClientNames.Default, createCacheManager);
+        Func<IServiceProvider, IDeliveryCacheManager> createCacheManager) => services.AddDeliveryCacheManager(NamedClients.Default, createCacheManager);
 
     /// <summary>
     /// Registers a custom cache manager for a specific named Delivery client.
@@ -70,7 +70,7 @@ public static class ServiceCollectionExtensions
         TimeSpan? defaultExpiration = null)
     {
         return services.AddDeliveryMemoryCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             options =>
             {
                 if (defaultExpiration.HasValue)
@@ -108,7 +108,7 @@ public static class ServiceCollectionExtensions
         Action<DeliveryCacheOptions> configureCacheOptions)
     {
         return services.AddDeliveryMemoryCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureCacheOptions);
     }
 
@@ -130,7 +130,7 @@ public static class ServiceCollectionExtensions
         Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
     {
         return services.AddDeliveryMemoryCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureCacheOptions);
     }
 
@@ -295,7 +295,7 @@ public static class ServiceCollectionExtensions
         TimeSpan? defaultExpiration = null)
     {
         return services.AddDeliveryHybridCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             options =>
             {
                 if (defaultExpiration.HasValue)
@@ -337,7 +337,7 @@ public static class ServiceCollectionExtensions
         Action<DeliveryCacheOptions> configureCacheOptions)
     {
         return services.AddDeliveryHybridCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureCacheOptions);
     }
 
@@ -361,7 +361,7 @@ public static class ServiceCollectionExtensions
         Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
     {
         return services.AddDeliveryHybridCache(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureCacheOptions);
     }
 
@@ -600,7 +600,7 @@ public static class ServiceCollectionExtensions
             return keyPrefix;
         }
 
-        return clientName == DeliveryClientNames.Default ? string.Empty : clientName;
+        return clientName == NamedClients.Default ? string.Empty : clientName;
     }
 
 }

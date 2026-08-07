@@ -1,11 +1,11 @@
-using Kontent.Ai.Management.Configuration;
+using Kontent.Ai.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kontent.Ai.Management;
 
 internal sealed class ManagementClientFactory(IServiceProvider serviceProvider) : IManagementClientFactory
 {
-    public IManagementClient Get() => Get(ManagementClientNames.Default);
+    public IManagementClient Get() => Get(NamedClients.Default);
 
     public IManagementClient Get(string name)
     {

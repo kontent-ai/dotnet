@@ -1,3 +1,4 @@
+using Kontent.Ai.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -199,7 +200,7 @@ public sealed class DeliveryClientBuilder
         // so disposing this client tears down the provider and everything registered in it.
         return ServiceCollectionExtensions.CreateDeliveryClient(
             serviceProvider,
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             ownedResources: serviceProvider);
     }
 

@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
@@ -53,7 +54,7 @@ public class ServiceCollectionExtensionsTests
         using var provider = services.BuildServiceProvider();
 
         var unkeyed = provider.GetRequiredService<IManagementClient>();
-        var keyed = provider.GetRequiredKeyedService<IManagementClient>(ManagementClientNames.Default);
+        var keyed = provider.GetRequiredKeyedService<IManagementClient>(NamedClients.Default);
         var fromFactory = provider.GetRequiredService<IManagementClientFactory>().Get();
 
         unkeyed.Should().BeSameAs(keyed);
@@ -147,7 +148,7 @@ public class ServiceCollectionExtensionsTests
 
         using var provider = services.BuildServiceProvider();
         var httpClient = provider.GetRequiredService<IHttpClientFactory>()
-            .CreateClient($"Kontent.Ai.Management.HttpClient.{ManagementClientNames.Default}");
+            .CreateClient($"Kontent.Ai.Management.HttpClient.{NamedClients.Default}");
 
         httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(42));
     }
@@ -173,8 +174,8 @@ public class ServiceCollectionExtensionsTests
 
         provider.GetService<IManagementApi>().Should().NotBeNull();
         provider.GetService<ISubscriptionApi>().Should().NotBeNull();
-        provider.GetRequiredKeyedService<IManagementApi>(ManagementClientNames.Default).Should().NotBeNull();
-        provider.GetRequiredKeyedService<ISubscriptionApi>(ManagementClientNames.Default).Should().NotBeNull();
+        provider.GetRequiredKeyedService<IManagementApi>(NamedClients.Default).Should().NotBeNull();
+        provider.GetRequiredKeyedService<ISubscriptionApi>(NamedClients.Default).Should().NotBeNull();
     }
 
     [Fact]

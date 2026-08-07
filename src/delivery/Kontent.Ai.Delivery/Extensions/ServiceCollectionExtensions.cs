@@ -34,7 +34,7 @@ public static partial class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(deliveryOptions);
 
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             deliveryOptions.CopyTo,
             configureHttpClient,
             configureResilience);
@@ -60,7 +60,7 @@ public static partial class ServiceCollectionExtensions
         var options = buildDeliveryOptions(builder);
 
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             options.CopyTo,
             configureHttpClient,
             configureResilience);
@@ -82,7 +82,7 @@ public static partial class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
         => services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configuration,
             configurationSectionName,
             configureHttpClient,
@@ -134,7 +134,7 @@ public static partial class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
         => services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configurationSection,
             configureHttpClient,
             configureResilience);
@@ -178,7 +178,7 @@ public static partial class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureOptions);
     }
 
@@ -205,7 +205,7 @@ public static partial class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(configureOptions);
 
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureOptions);
     }
 
@@ -224,7 +224,7 @@ public static partial class ServiceCollectionExtensions
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureOptions,
             configureHttpClient,
             configureResilience);
@@ -245,7 +245,7 @@ public static partial class ServiceCollectionExtensions
         Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddDeliveryClient(
-            DeliveryClientNames.Default,
+            NamedClients.Default,
             configureOptions,
             configureHttpClient,
             configureResilience);
@@ -340,7 +340,7 @@ public static partial class ServiceCollectionExtensions
             .ValidateOnStart();
 
         // Also configure unnamed options for backward compatibility if this is the default name
-        if (name == DeliveryClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.AddOptions<DeliveryOptions>()
                 .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
@@ -371,7 +371,7 @@ public static partial class ServiceCollectionExtensions
             .ValidateOnStart();
 
         // Also configure unnamed options for backward compatibility if this is the default name.
-        if (name == DeliveryClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.Configure<DeliveryOptions>(configuration);
             services.AddOptions<DeliveryOptions>()
@@ -408,13 +408,13 @@ public static partial class ServiceCollectionExtensions
         services.TryAddSingleton<IDeliveryClientFactory, DeliveryClientFactory>();
 
         // Register default client accessors if this is the default name (backward compatibility)
-        if (name == DeliveryClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<IDeliveryApi>(DeliveryClientNames.Default));
+                sp.GetRequiredKeyedService<IDeliveryApi>(NamedClients.Default));
 
             services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<IDeliveryClient>(DeliveryClientNames.Default));
+                sp.GetRequiredKeyedService<IDeliveryClient>(NamedClients.Default));
         }
 
         return services;

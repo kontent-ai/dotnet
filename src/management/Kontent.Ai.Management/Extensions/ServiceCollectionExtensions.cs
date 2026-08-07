@@ -40,7 +40,7 @@ public static partial class ServiceCollectionExtensions
             ? configuration
             : configuration.GetSection(configurationSectionName);
 
-        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, section, configureHttpClient, configureResilience);
+        return services.AddManagementClientFromConfiguration(NamedClients.Default, section, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public static partial class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configurationSection);
 
-        return services.AddManagementClientFromConfiguration(ManagementClientNames.Default, configurationSection, configureHttpClient, configureResilience);
+        return services.AddManagementClientFromConfiguration(NamedClients.Default, configurationSection, configureHttpClient, configureResilience);
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public static partial class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        return services.AddManagementClient(ManagementClientNames.Default, configureOptions);
+        return services.AddManagementClient(NamedClients.Default, configureOptions);
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ public static partial class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddManagementClient(
-            ManagementClientNames.Default,
+            NamedClients.Default,
             configureOptions,
             configureHttpClient,
             configureResilience);
@@ -165,7 +165,7 @@ public static partial class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (name == ManagementClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.Configure(configureOptions);
             services.AddOptions<ManagementOptions>()
@@ -192,7 +192,7 @@ public static partial class ServiceCollectionExtensions
         Action<IServiceProvider, ManagementOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-        => services.AddManagementClient(ManagementClientNames.Default, configureOptions, configureHttpClient, configureResilience);
+        => services.AddManagementClient(NamedClients.Default, configureOptions, configureHttpClient, configureResilience);
 
     /// <summary>
     /// Registers a named Kontent.ai Management client, configuring options with access to the <see cref="IServiceProvider"/>.
@@ -222,7 +222,7 @@ public static partial class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (name == ManagementClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.AddOptions<ManagementOptions>()
                 .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
@@ -254,7 +254,7 @@ public static partial class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(managementOptions);
 
         return services.AddManagementClient(
-            ManagementClientNames.Default,
+            NamedClients.Default,
             options => OptionsCopier<ManagementOptions>.Copy(managementOptions, options),
             configureHttpClient,
             configureResilience);
@@ -278,7 +278,7 @@ public static partial class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (name == ManagementClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.Configure<ManagementOptions>(configuration);
             services.AddOptions<ManagementOptions>()
@@ -318,11 +318,11 @@ public static partial class ServiceCollectionExtensions
         services.AddKeyedSingleton<IManagementClient>(name, CreateManagementClient);
         services.TryAddSingleton<IManagementClientFactory, ManagementClientFactory>();
 
-        if (name == ManagementClientNames.Default)
+        if (name == NamedClients.Default)
         {
-            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementClient>(ManagementClientNames.Default));
-            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementApi>(ManagementClientNames.Default));
-            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<ISubscriptionApi>(ManagementClientNames.Default));
+            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementClient>(NamedClients.Default));
+            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementApi>(NamedClients.Default));
+            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<ISubscriptionApi>(NamedClients.Default));
         }
 
         return services;

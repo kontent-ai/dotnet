@@ -37,7 +37,7 @@ public static class ServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(syncOptions);
 
         return services.AddSyncClient(
-            SyncClientNames.Default,
+            NamedClients.Default,
             options => OptionsCopier<SyncOptions>.Copy(syncOptions, options),
             configureHttpClient,
             configureResilience);
@@ -63,7 +63,7 @@ public static class ServiceCollectionExtensions
         var options = buildSyncOptions(builder);
 
         return services.AddSyncClient(
-            SyncClientNames.Default,
+            NamedClients.Default,
             opts => OptionsCopier<SyncOptions>.Copy(options, opts),
             configureHttpClient,
             configureResilience);
@@ -85,7 +85,7 @@ public static class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
         => services.AddSyncClient(
-            SyncClientNames.Default,
+            NamedClients.Default,
             configuration,
             configurationSectionName,
             configureHttpClient,
@@ -133,7 +133,7 @@ public static class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
         => services.AddSyncClient(
-            SyncClientNames.Default,
+            NamedClients.Default,
             configurationSection,
             configureHttpClient,
             configureResilience);
@@ -172,7 +172,7 @@ public static class ServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        return services.AddSyncClient(SyncClientNames.Default, configureOptions);
+        return services.AddSyncClient(NamedClients.Default, configureOptions);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public static class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
         return services.AddSyncClient(
-            SyncClientNames.Default,
+            NamedClients.Default,
             configureOptions,
             configureHttpClient,
             configureResilience);
@@ -226,7 +226,7 @@ public static class ServiceCollectionExtensions
 
         // The default client's options are also registered unnamed, so IOptions<SyncOptions> resolves
         // without a name.
-        if (name == SyncClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.Configure(configureOptions);
             services.AddOptions<SyncOptions>()
@@ -253,7 +253,7 @@ public static class ServiceCollectionExtensions
         Action<IServiceProvider, SyncOptions> configureOptions,
         Action<IHttpClientBuilder>? configureHttpClient = null,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-        => services.AddSyncClient(SyncClientNames.Default, configureOptions, configureHttpClient, configureResilience);
+        => services.AddSyncClient(NamedClients.Default, configureOptions, configureHttpClient, configureResilience);
 
     /// <summary>
     /// Registers a named Kontent.ai Sync client, configuring options with access to the <see cref="IServiceProvider"/>.
@@ -283,7 +283,7 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (name == SyncClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.AddOptions<SyncOptions>()
                 .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
@@ -312,7 +312,7 @@ public static class ServiceCollectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        if (name == SyncClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.Configure<SyncOptions>(configuration);
             services.AddOptions<SyncOptions>()
@@ -334,13 +334,13 @@ public static class ServiceCollectionExtensions
         services.AddKeyedSingleton<ISyncClient>(name, CreateSyncClient);
         services.TryAddSingleton<ISyncClientFactory, SyncClientFactory>();
 
-        if (name == SyncClientNames.Default)
+        if (name == NamedClients.Default)
         {
             services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<ISyncApi>(SyncClientNames.Default));
+                sp.GetRequiredKeyedService<ISyncApi>(NamedClients.Default));
 
             services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<ISyncClient>(SyncClientNames.Default));
+                sp.GetRequiredKeyedService<ISyncClient>(NamedClients.Default));
         }
 
         return services;

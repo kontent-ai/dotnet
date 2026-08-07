@@ -1,4 +1,4 @@
-using Kontent.Ai.Sync.Configuration;
+using Kontent.Ai.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kontent.Ai.Sync;
@@ -9,7 +9,7 @@ namespace Kontent.Ai.Sync;
 internal sealed class SyncClientFactory(IServiceProvider serviceProvider) : ISyncClientFactory
 {
     /// <inheritdoc />
-    public ISyncClient Get() => Get(SyncClientNames.Default);
+    public ISyncClient Get() => Get(NamedClients.Default);
 
     /// <inheritdoc />
     public ISyncClient Get(string name)
