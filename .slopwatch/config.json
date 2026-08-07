@@ -4,6 +4,16 @@
       "ruleId": "SW005",
       "pattern": "**/*Tests/**",
       "justification": "Test projects are not part of any public API surface, so CS1591 (missing XML doc on a public member) carries no consumer value. Shipped projects deliberately do not suppress it."
+    },
+    {
+      "ruleId": "SW004",
+      "pattern": "**/Caching/HybridCacheCoherenceTests.cs",
+      "justification": "Waits on a FusionCache backplane notification reaching a second manager. That is asynchronous by design and exposes no completion signal - the manager owns its FusionCache privately - so the test polls to a deadline and returns the moment the value changes, rather than sleeping a fixed interval."
+    },
+    {
+      "ruleId": "SW004",
+      "pattern": "**/Caching/RedisCacheIntegrationTests.cs",
+      "justification": "Same reason as HybridCacheCoherenceTests, against real Redis: the backplane notification is asynchronous and has no awaitable completion, so the assertion polls to a deadline and exits as soon as the invalidation lands."
     }
   ],
   "globalSuppressions": []
