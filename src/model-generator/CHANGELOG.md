@@ -64,6 +64,7 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
 
 Shipped floors moved up:
 
+- `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Urls` and `Kontent.Ai.Delivery.SourceGeneration` **19.4.0** → **20.0.0-rc.1**, and `Kontent.Ai.Management` **9.0.0-beta-5** → **9.0.0-rc.1**. The CLI packages these assemblies inside the tool, so until now a .NET 10 tool carried .NET 8 builds of both SDKs.
 - `Microsoft.CodeAnalysis` **4.13.0** → **5.6.0**, aligning the generator with the Roslyn version the rest of the repo builds against.
 - `Microsoft.Extensions.*` (`Options`, `Configuration.CommandLine`, `Configuration.Json`, `DependencyInjection`) **9.0.15** → **10.0.10**.
 

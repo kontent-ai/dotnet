@@ -33,7 +33,11 @@ stop being public properties.
 
 ### Dependencies
 
-No shipped dependency floors changed. This package has no direct `Microsoft.Extensions.*` references — it declares `<FrameworkReference Include="Microsoft.AspNetCore.App" />`, so those assemblies come from the ASP.NET Core shared framework rather than from a package.
+Shipped floors moved up:
+
+- `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions` and `Kontent.Ai.Urls` **19.4.0** → **20.0.0-rc.1**. The `19.x` line targets `net8.0`, so leaving the floor there would let a `net10.0` package resolve a .NET 8 build of the SDK it is built on. Staying on Delivery `19.x` means staying on `Kontent.Ai.AspNetCore` `0.17.x`.
+
+This package has no direct `Microsoft.Extensions.*` references — it declares `<FrameworkReference Include="Microsoft.AspNetCore.App" />`, so those assemblies come from the ASP.NET Core shared framework rather than from a package.
 
 ## 0.17.0-preview.1 (2026-08-03)
 

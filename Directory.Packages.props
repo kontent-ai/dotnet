@@ -31,9 +31,9 @@
     <!-- Build infrastructure -->
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
     <!-- Core dependencies -->
-    <PackageVersion Include="Kontent.Ai.Delivery" Version="19.4.0" />
-    <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="19.4.0" />
-    <PackageVersion Include="Kontent.Ai.Urls" Version="19.4.0" />
+    <PackageVersion Include="Kontent.Ai.Delivery" Version="20.0.0-rc.1" />
+    <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="20.0.0-rc.1" />
+    <PackageVersion Include="Kontent.Ai.Urls" Version="20.0.0-rc.1" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.10" />
     <!-- Test dependencies -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
@@ -81,8 +81,8 @@
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.6.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.6.0" />
     <!-- Model generator -->
-    <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="19.4.0" />
-    <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-beta-5" />
+    <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="20.0.0-rc.1" />
+    <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-rc.1" />
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.6.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.10" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
