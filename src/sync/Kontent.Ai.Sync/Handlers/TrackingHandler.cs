@@ -50,8 +50,8 @@ internal sealed class TrackingHandler(ILogger<TrackingHandler>? logger = null) :
         else
         {
             packageName = attribute.PackageName;
-            var preRelease = string.IsNullOrEmpty(attribute.PreReleaseLabel) ? "" : $"-{attribute.PreReleaseLabel}";
-            version = $"{attribute.MajorVersion}.{attribute.MinorVersion}.{attribute.PatchVersion}{preRelease}";
+            version = SdkTrackingHeaders.FormatSourceVersion(
+                attribute.MajorVersion, attribute.MinorVersion, attribute.PatchVersion, attribute.PreReleaseLabel);
         }
 
         return $"{packageName};{version}";

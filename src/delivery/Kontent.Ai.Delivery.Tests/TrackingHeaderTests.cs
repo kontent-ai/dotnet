@@ -60,6 +60,18 @@ public class TrackingHeaderTests
         Assert.Equal("CustomModule;2.0.0-beta.1", value);
     }
 
+    [Fact]
+    public void SourceTrackingHeaderWithEmptyPreReleaseLabel_OmitsTheHyphen()
+    {
+        // An empty label is not a prerelease; emitting the separator anyway ships "2.0.0-", which is not
+        // a valid SemVer version.
+        var attr = new DeliverySourceTrackingHeaderAttribute("CustomModule", 2, 0, 0, "");
+
+        var value = HttpRequestHeadersExtensions.GenerateSourceTrackingHeaderValue(GetType().Assembly, attr);
+
+        Assert.Equal("CustomModule;2.0.0", value);
+    }
+
     // A retried request re-dispatches the same HttpRequestMessage, so the handler runs again on headers
     // it already wrote. A plain Add would send one duplicate X-KC-SDKID per attempt.
     [Fact]

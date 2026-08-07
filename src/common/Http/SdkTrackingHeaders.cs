@@ -45,6 +45,16 @@ internal static class SdkTrackingHeaders
     }
 
     /// <summary>
+    /// Formats the version carried by a source-tracking attribute that declares one explicitly. An empty
+    /// pre-release label counts as absent: treating it as present emits a trailing hyphen, which is not a
+    /// valid SemVer version and would go out on the wire as one.
+    /// </summary>
+    internal static string FormatSourceVersion(int major, int minor, int patch, string? preReleaseLabel)
+        => string.IsNullOrEmpty(preReleaseLabel)
+            ? $"{major}.{minor}.{patch}"
+            : $"{major}.{minor}.{patch}-{preReleaseLabel}";
+
+    /// <summary>
     /// Reads the SemVer informational version and drops the build-metadata suffix ('+...'), which
     /// deterministic / SourceLink builds append as the commit hash - it does not belong in a tracking
     /// header. Pre-release suffixes ('-rc.1') are kept. Falls back to "0.0.0" for unversioned builds.

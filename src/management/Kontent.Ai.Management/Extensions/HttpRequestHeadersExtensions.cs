@@ -45,8 +45,9 @@ internal static class HttpRequestHeadersExtensions
             return $"{packageName};{originatingAssembly.GetProductVersion()}";
         }
 
-        var preRelease = attribute.PreReleaseLabel is null ? "" : $"-{attribute.PreReleaseLabel}";
-        return $"{attribute.PackageName};{attribute.MajorVersion}.{attribute.MinorVersion}.{attribute.PatchVersion}{preRelease}";
+        var version = SdkTrackingHeaders.FormatSourceVersion(
+            attribute.MajorVersion, attribute.MinorVersion, attribute.PatchVersion, attribute.PreReleaseLabel);
+        return $"{attribute.PackageName};{version}";
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

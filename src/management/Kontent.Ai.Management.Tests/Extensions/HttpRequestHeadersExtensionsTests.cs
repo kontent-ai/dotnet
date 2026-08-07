@@ -32,4 +32,13 @@ public class HttpRequestHeadersExtensionsTests
             .ContainSingle().Which.Should()
             .Be($"{consumingAssembly.GetName().Name};{consumingAssembly.GetProductVersion()}");
     }
+
+    [Theory]
+    [InlineData(null, "2.0.0")]
+    // An empty label is not a prerelease; emitting the separator anyway ships "2.0.0-", which is not a
+    // valid SemVer version.
+    [InlineData("", "2.0.0")]
+    [InlineData("beta.1", "2.0.0-beta.1")]
+    public void FormatSourceVersion_AppendsThePreReleaseLabelOnlyWhenThereIsOne(string? label, string expected) =>
+        SdkTrackingHeaders.FormatSourceVersion(2, 0, 0, label).Should().Be(expected);
 }
