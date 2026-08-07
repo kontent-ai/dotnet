@@ -48,6 +48,37 @@ public class ConstructorTests
     }
 
     [Theory]
+    [InlineData(0)]      // no time to do anything
+    [InlineData(-1)]     // not a duration
+    public void Ctor_NonPositiveTimeout_ThrowsValidationException(int minutes)
+    {
+        var options = ValidOptions();
+        options.Timeout = TimeSpan.FromMinutes(minutes);
+
+        Action act = () => new ManagementClient(options);
+
+        act.Should().Throw<ValidationException>().WithMessage("*Timeout*");
+    }
+
+    [Fact]
+    public void Ctor_InfiniteTimeout_IsAccepted()
+    {
+        // The one non-positive value that means something: bounded only by the caller's token.
+        var options = ValidOptions();
+        options.Timeout = Timeout.InfiniteTimeSpan;
+
+        using var client = new ManagementClient(options);
+
+        client.Should().NotBeNull();
+    }
+
+    private static ManagementOptions ValidOptions() => new()
+    {
+        EnvironmentId = Guid.NewGuid().ToString(),
+        ApiKey = "key",
+    };
+
+    [Theory]
     [InlineData("not-a-guid")]
     [InlineData("00000000-0000-0000-0000-000000000000")]
     public void Ctor_InvalidSubscriptionId_ThrowsValidationException(string subscriptionId)
