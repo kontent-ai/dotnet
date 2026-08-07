@@ -240,7 +240,7 @@ The upload endpoint needs the file's size up front, so `FileContentSource` accep
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
 | `EnvironmentId` | Yes | — | The GUID of your Kontent.ai environment. |
-| `ApiKey` | Yes | — | A Management API key, or a Subscription API key for subscription-scoped endpoints. |
+| `ApiKey` | Yes | — | A Management API key. Subscription-scoped endpoints take one issued for the subscription — the same kind of key, created elsewhere in the Kontent.ai app. |
 | `SubscriptionId` | No | — | The subscription GUID. Required only for subscription-scoped endpoints (such as user management). |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
 | `Timeout` | No | `30 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Sized against the 2 GB asset limit. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
@@ -861,7 +861,9 @@ await client.CreateLanguageAsync(new LanguageCreateModel
 ```
 
 > [!NOTE]
-> Subscription-scoped endpoints — `ListSubscriptionProjectsAsync`, `ListSubscriptionUsersAsync`, `GetSubscriptionUserAsync`, `ActivateSubscriptionUserAsync`, `DeactivateSubscriptionUserAsync` — require `SubscriptionId` to be set in the options and an API key with subscription scope.
+> Subscription-scoped endpoints — `ListSubscriptionProjectsAsync`, `ListSubscriptionUsersAsync`, `GetSubscriptionUserAsync`, `ActivateSubscriptionUserAsync`, `DeactivateSubscriptionUserAsync` — resolve against `/v2/subscriptions/{id}` instead of the environment, so they need `SubscriptionId` set. Calling one without it throws an `InvalidOperationException` naming the missing option.
+>
+> There is no separate credential type: the key issued for a subscription is a Management API key, created in a different place in the app. `EnvironmentId` stays required either way, even for a client that only calls subscription endpoints.
 
 ## Further Information
 
