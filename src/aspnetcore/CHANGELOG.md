@@ -6,8 +6,6 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-## 1.0.0-rc.1 (2026-08-07)  _(prerelease)_
-
 Targets .NET 10, moving from `net8.0` to `net10.0`. Webhook signature verification is hardened in two ways
 worth reading before you upgrade, and the public surface is tightened while the package is still pre-1.0:
 types are sealed, the webhook payload models become immutable records, and two dependency-injected values
