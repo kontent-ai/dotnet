@@ -4,9 +4,8 @@ using Kontent.Ai.Delivery.ContentItems.Mapping;
 namespace Kontent.Ai.Delivery.Tests.ContentItems.Mapping;
 
 /// <summary>
-/// Components used to be told apart by the shape of their generated codename, which an authored codename
-/// could coincide with - and the item that collided was then never given a dependency key, so a webhook
-/// for it evicted nothing. These pin the structural signal that replaced it.
+/// Pins the signal that separates a component from a content item. Getting it wrong in the direction of
+/// "component" costs an item its dependency key, so a webhook for it evicts nothing.
 /// </summary>
 public class ContentItemJsonHelperTests
 {
@@ -51,7 +50,7 @@ public class ContentItemJsonHelperTests
     [Fact]
     public void IsComponent_AuthoredCodenameShapedLikeAComponent_IsStillAnItem()
     {
-        // "Product SKU 0123 Blue" — the codename the old rule misread, but the workflow is right there.
+        // A codename shaped like a component's, on an item that has a workflow.
         var json = ContentItem
             .Replace("coffee_processing_techniques", "product_sku_0123_blue")
             .Replace("Coffee processing techniques", "Product SKU 0123 Blue");

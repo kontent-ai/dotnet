@@ -49,12 +49,11 @@ public sealed class ManagementOptions : IValidatableObject
     /// bounded only by the caller's <see cref="CancellationToken"/>.
     /// </summary>
     /// <remarks>
-    /// This SDK deliberately sets no per-attempt timeout, because an asset upload is as slow as the file is
-    /// large and the link is slow, and cutting one off mid-transfer helps nobody. That intent needs a ceiling
-    /// well above <see cref="HttpClient"/>'s 100-second default, which applies to the whole call - so it also
-    /// capped the retries and backoff, and killed exactly the uploads the missing per-attempt timeout was
-    /// meant to protect. The default is sized against the documented 2 GB asset limit: 30 minutes carries
-    /// that much over a link of roughly 10 Mbps, where 10 minutes would need nearly 30.
+    /// This SDK sets no per-attempt timeout: an asset upload takes as long as the file is large and the link
+    /// is slow, and cutting one off mid-transfer helps nobody. This ceiling is therefore the only bound, and
+    /// it covers the whole call - every attempt plus the backoff between them - so it has to clear the
+    /// slowest legitimate upload rather than the slowest single attempt. The default is sized against the
+    /// documented 2 GB asset limit: 30 minutes carries that much over a link of roughly 10 Mbps.
     /// </remarks>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(30);
 

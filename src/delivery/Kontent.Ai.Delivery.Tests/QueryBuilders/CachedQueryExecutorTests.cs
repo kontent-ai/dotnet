@@ -6,10 +6,9 @@ using Kontent.Ai.Delivery.SharedModels;
 namespace Kontent.Ai.Delivery.Tests.QueryBuilders;
 
 /// <summary>
-/// Pins how a cached query's result is classified. Every query builder used to infer this from locals
-/// its own cache factory wrote into, which breaks once eager refresh is enabled: the factory then also
-/// runs on a background thread while the stale-but-valid value is returned immediately, so those writes
-/// belong to a different call than the read.
+/// Pins how a cached query's result is classified. Under eager refresh the factory also runs on a
+/// background thread while the stale-but-valid value is returned immediately, so anything it records may
+/// belong to a different call than the one reading it.
 /// </summary>
 public class CachedQueryExecutorTests
 {
@@ -19,8 +18,8 @@ public class CachedQueryExecutorTests
     public async Task ExecuteAsync_BackgroundRefreshWroteAnApiResult_StillReportsACacheHit()
     {
         // The shape of an eager-refresh hit: the cache returns a stored value (FromFactory false) while a
-        // background factory writes into the same captured local this call reads. Reading it here would
-        // report a fresh fetch, or fail-safe, for what was an ordinary cache hit.
+        // background factory writes into the same captured local this call reads. That local says nothing
+        // about the value being returned.
         var manager = new StubCacheManager(failSafeActive: false);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<string, string>(

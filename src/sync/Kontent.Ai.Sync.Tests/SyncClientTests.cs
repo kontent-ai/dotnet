@@ -39,8 +39,7 @@ public class SyncClientTests
         _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-3", Arg.Any<CancellationToken>());
     }
 
-    // The previous implementation stopped as soon as a page came back with fewer than 100 entries,
-    // which would have ended the walk here after one page and silently skipped the rest.
+    // A short page is not the end of the feed - only an empty response is.
     [Fact]
     public async Task EnumerateDeltaAsync_PartialPage_KeepsGoing()
     {

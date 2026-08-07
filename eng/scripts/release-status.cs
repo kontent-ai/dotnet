@@ -23,8 +23,6 @@
 //
 // It lives here rather than in the workflow because the inputs are already open: this script
 // reads eng/products.json and eng/Versions.props, and knows which versions are still pending.
-// Doing the ordering in jq meant serialising all of that to JSON and re-deriving it in a
-// language with no way to name a cycle's members.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -117,8 +115,7 @@ if (asOrder)
 
         if (ready.Count == 0)
         {
-            // The jq this replaced could only report that the sort came up short. Naming the
-            // products leaves someone with the actual edit to make in eng/products.json.
+            // Naming the products leaves someone with the actual edit to make in eng/products.json.
             Console.Error.WriteLine(
                 "release-status: dependsOn in eng/products.json has a cycle - these products cannot be ordered: " +
                 string.Join(", ", remaining.Select(r => r.Product).Order(StringComparer.Ordinal)));

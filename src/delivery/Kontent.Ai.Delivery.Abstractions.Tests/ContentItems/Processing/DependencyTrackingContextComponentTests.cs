@@ -3,12 +3,11 @@ namespace Kontent.Ai.Delivery.Abstractions.Tests.ContentItems.Processing;
 public class DependencyTrackingContextComponentTests
 {
     [Theory]
-    // Generated component codenames. Tracking these is harmless - a webhook names the owning item, so the
-    // key is never matched - and the caller filters them out where the response says which is which.
+    // Generated component codenames. Tracking these is harmless: a webhook names the owning item, so the
+    // key is never matched, and the caller filters them out where the response says which is which.
     [InlineData("n27ec1626_93ac_0129_64e5_1beeda45416c")]
     [InlineData("d7610e80_9a93_01ef_284c_c1dfdbcf43ee")]
-    // Authored codenames that the old shape-matching rule mistook for components, silently dropping their
-    // dependency key so a webhook for the item evicted nothing.
+    // Authored codenames that take the same shape. Nothing here may drop them.
     [InlineData("product_sku_0123_blue")]
     [InlineData("release_notes_0101_draft")]
     [InlineData("coffee_beverages_explained")]

@@ -65,12 +65,11 @@ internal sealed class DependencyTrackingContext
     /// </list>
     /// Codenames are case-insensitive and duplicate calls with the same codename are ignored.
     /// <para>
-    /// Components carry a generated codename and cannot be invalidated on their own - a webhook names the
-    /// item that owns them - so a key for one is never matched. That is harmless; the caller filters them
-    /// out where it can tell (see the modular-content walk in the item queries). Guessing here from the
-    /// shape of the codename is not worth it: the two mistakes are not equal. A stray component key costs
-    /// one entry nobody looks up, while a missed item key means a webhook evicts nothing and the response
-    /// keeps being served stale.
+    /// Every codename given here is tracked, components included. A component cannot be invalidated on its
+    /// own - a webhook names the item that owns it - so its key is never matched, and the caller filters
+    /// components out where the response identifies them. Anything unfiltered is tracked deliberately: a
+    /// stray component key costs one entry nobody looks up, while a missing item key means a webhook
+    /// evicts nothing and the response keeps being served stale.
     /// </para>
     /// </remarks>
     public void TrackItem(string? codename)

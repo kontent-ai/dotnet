@@ -8,10 +8,10 @@ internal static class ContentItemJsonHelper
     /// Whether a modular-content entry is a component rather than a content item.
     /// </summary>
     /// <remarks>
-    /// A component lives inside its owning item's rich text and has no life of its own: no workflow, and a
-    /// generated codename. The Delivery API says so structurally - <c>workflow</c> and <c>workflow_step</c>
-    /// are present on every content item and on no component - which is a contract, unlike the shape of the
-    /// generated codename, which an authored codename can coincide with.
+    /// A component lives inside its owning item's rich text and has no life of its own. The Delivery API
+    /// marks that structurally: <c>workflow</c> and <c>workflow_step</c> are present on every content item
+    /// and on no component. The generated codename is not a reliable signal - an authored codename can take
+    /// the same shape.
     /// </remarks>
     public static bool IsComponent(JsonElement itemElement) =>
         itemElement.TryGetProperty("system", out var system)

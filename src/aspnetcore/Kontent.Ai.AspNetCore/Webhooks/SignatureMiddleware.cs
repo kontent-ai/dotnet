@@ -11,8 +11,8 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 /// </summary>
 /// <param name="next">The next middleware in the pipeline.</param>
 /// <param name="webhookOptions">
-/// A configuration object that allows to adjust the Kontent.ai webhook behavior. Held privately: it
-/// carries the shared secret, and nothing outside this middleware has a reason to read it.
+/// A configuration object that allows to adjust the Kontent.ai webhook behavior. Kept private: it carries
+/// the shared secret, and nothing outside this middleware has a reason to read it.
 /// </param>
 public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
 {

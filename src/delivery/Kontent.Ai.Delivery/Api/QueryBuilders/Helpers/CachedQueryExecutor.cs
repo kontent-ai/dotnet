@@ -38,13 +38,11 @@ internal readonly record struct CachedQueryOutcome<TCached, TApi>(
 /// Runs a query through the cache and decides what came back.
 /// </summary>
 /// <remarks>
-/// Every cached query builder repeated this decision, and each copy inferred it from locals the factory
-/// wrote into. That does not hold once eager refresh is enabled: FusionCache then returns the
-/// stale-but-valid value immediately and runs the factory on a background thread, so those writes belong
-/// to a different call than the read. A normal eager-refresh hit could be reported as fail-safe, or a
-/// cache hit logged as a fresh fetch, depending on how the two threads interleaved. The cache itself is
-/// the only component that knows which value it handed back, so the decision is made from
-/// <see cref="CacheResult{T}.FromFactory"/> and, for staleness, from the manager's own fail-safe state.
+/// Nothing the factory records can be trusted here. With eager refresh enabled, FusionCache returns the
+/// stale-but-valid value immediately and runs the factory on a background thread, so a captured local may
+/// be written by a different call than the one reading it. The cache is the only component that knows
+/// which value it handed back, so the decision comes from <see cref="CacheResult{T}.FromFactory"/> and,
+/// for staleness, from the manager's fail-safe state.
 /// </remarks>
 internal static class CachedQueryExecutor
 {

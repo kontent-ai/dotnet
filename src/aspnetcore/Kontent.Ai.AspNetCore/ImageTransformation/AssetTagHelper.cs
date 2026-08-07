@@ -12,9 +12,8 @@ namespace Kontent.Ai.AspNetCore.ImageTransformation;
 /// A tag helper that generates img elements based on assets stored in Kontent.ai.
 /// </summary>
 /// <param name="imageTransformationOptions">
-/// Global image transformation defaults. Held privately rather than as a property: Razor binds every
-/// public settable property on a tag helper to an HTML attribute unless told otherwise, so exposing it
-/// put an <c>image-transformation-options</c> attribute on the element.
+/// Global image transformation defaults. Kept private: Razor binds every public settable property on a
+/// tag helper to an HTML attribute unless told otherwise, and this is not one consumers set per element.
 /// </param>
 [RestrictChildren("media-condition")]
 [HtmlTargetElement("img-asset", Attributes = "asset")]
