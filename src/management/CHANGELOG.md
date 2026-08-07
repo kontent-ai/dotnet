@@ -6,6 +6,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **The README no longer implies a "Subscription API key" is a separate kind of credential.** It described `ApiKey` as "a Management API key, or a Subscription API key", which reads as two key types and sends anyone configuring subscription endpoints looking for a second one. There is only ever a Management API key; the one that carries subscription scope is issued elsewhere in the Kontent.ai app. The note on subscription-scoped endpoints now also says that `EnvironmentId` stays required even for a client that only calls them.
+
 ## 9.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
 Targets .NET 10, completing the framework move that the `9.x` line was always heading for, and upgrades Refit across four major versions. The result pattern, transport architecture and model conventions introduced in the earlier betas are unchanged — see the [9.0.0-beta-1 release notes](release-notes-9.0.0-beta-1.md) for that overview.
