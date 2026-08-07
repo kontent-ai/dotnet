@@ -5,8 +5,15 @@ using Microsoft.Extensions.Logging;
 namespace Kontent.Ai.Delivery.Caching;
 
 /// <summary>
-/// Hybrid (L1 memory + L2 distributed) implementation of <see cref="IDeliveryCacheManager"/> backed by FusionCache.
+/// Distributed implementation of <see cref="IDeliveryCacheManager"/> backed by FusionCache.
 /// </summary>
+/// <remarks>
+/// FusionCache always has a memory tier in front of the distributed one; there is no distributed-only
+/// mode. This manager sets <c>SkipMemoryCacheRead</c> and <c>SkipMemoryCacheWrite</c> on its default
+/// entry options to keep that tier out of the way, because no backplane is configured: without one an
+/// invalidation reaches only the node that performed it, and a second instance would keep serving content
+/// a webhook had already evicted. Coherence is chosen over the latency the memory tier would save.
+/// </remarks>
 internal sealed class HybridCacheManager(
     IDistributedCache cache,
     DeliveryCacheOptions cacheOptions,
