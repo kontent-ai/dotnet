@@ -8,9 +8,10 @@ using ZiggyCreatures.Caching.Fusion.Backplane.Memory;
 namespace Kontent.Ai.Delivery.Tests.Caching;
 
 /// <summary>
-/// Two managers over one distributed cache stand in for two nodes of the same application. What decides
-/// whether an invalidation on one reaches the other is the backplane, not the memory tier: invalidation
-/// state is held per instance.
+/// Two managers over one distributed cache stand in for two nodes of the same application. Part of the
+/// invalidation state is held per instance, so without a backplane whether one node observes another's
+/// invalidation depends on the order they read and invalidate in - the ordering pinned below is one that
+/// does not propagate. A backplane removes the dependence on ordering.
 /// </summary>
 [CollectionDefinition(nameof(HybridCacheCoherenceTests), DisableParallelization = true)]
 public class HybridCacheCoherenceCollection;
@@ -59,10 +60,11 @@ public class HybridCacheCoherenceTests
     }
 
     [Fact]
-    public async Task Invalidation_WithoutABackplane_DoesNotReachTheOtherNode()
+    public async Task Invalidation_WithoutABackplane_CanFailToReachTheOtherNode()
     {
-        // Pins why a backplane is required: invalidation state is per instance, so node B goes on serving
-        // what node A evicted. Nothing about the memory tier changes this - it is bypassed here.
+        // One ordering that does not propagate: B has already read the entry when A invalidates it. Other
+        // orderings do propagate, which is why this needs a backplane rather than luck. The memory tier is
+        // bypassed here, so it plays no part either way.
         var shared = NewDistributedCache();
         using var nodeA = NewNode(shared, backplane: null);
         using var nodeB = NewNode(shared, backplane: null);

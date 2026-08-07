@@ -1251,6 +1251,21 @@ services.AddDeliveryClient(options =>
 services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
 ```
 
+> [!IMPORTANT]
+> **Running more than one instance? Register a backplane.** Part of the invalidation state lives in each
+> instance rather than in the shared cache, so without a backplane whether one instance observes another's
+> `InvalidateAsync` depends on the order they happened to read and invalidate in — an instance can go on
+> serving content a webhook already evicted, until the entry expires by itself. Registering an
+> `IFusionCacheBackplane` makes propagation reliable; the SDK picks it up from the container automatically.
+>
+> ```csharp
+> services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
+> services.AddFusionCacheStackExchangeRedisBackplane(o => o.Configuration = "localhost:6379");
+> services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
+> ```
+>
+> A single-instance application needs no backplane.
+
 #### Cache Options from Other DI Services
 
 Use the `IServiceProvider` cache overloads when cache settings need to come from other registered services:
@@ -1296,7 +1311,7 @@ var result = await client.GetItem<Article>("my-article")
 The built-in cache registrations (`AddDeliveryMemoryCache` / `AddDeliveryHybridCache`) in the `Kontent.Ai.Delivery.Caching` package use [FusionCache](https://github.com/ZiggyCreatures/FusionCache) internally. `InvalidateAsync` now returns `Task<bool>` (`true` on success, `false` on failure) so callers can detect silent invalidation failures — existing fire-and-forget call sites continue to work without changes.
 
 > [!NOTE]
-> **FusionCache hybrid mode limitation:** When using hybrid caching (`AddDeliveryHybridCache`), FusionCache operates in hybrid (L1+L2) mode, but [currently stores the same serialized format in both layers](https://github.com/ZiggyCreatures/FusionCache/issues/321). This means the L1 memory layer also holds raw JSON rather than hydrated objects, so every cache hit goes through rehydration. For most workloads the rehydration cost is negligible. If your scenario demands maximum read throughput, consider using `AddDeliveryMemoryCache` (pure L1, hydrated objects, no rehydration overhead).
+> **Hybrid caching and the in-memory tier:** FusionCache always has an in-memory tier in front of the distributed one. `AddDeliveryHybridCache` bypasses it unless a backplane is registered, because without one there is nothing to keep the instances in step. Either way, hybrid entries are stored as raw JSON — FusionCache [uses the same serialized format in both tiers](https://github.com/ZiggyCreatures/FusionCache/issues/321) — so a hit goes through rehydration. For most workloads that cost is negligible; if you need maximum read throughput and a single instance is enough, `AddDeliveryMemoryCache` keeps hydrated objects and skips rehydration entirely.
 
 To tune the underlying FusionCache instance, use `ConfigureFusionCacheOptions`:
 
