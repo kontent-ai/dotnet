@@ -12,7 +12,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(space);
 
-        return _managementApi.CreateSpaceInternalAsync(space, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateSpaceInternalAsync(space, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -20,13 +20,13 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetSpaceInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetSpaceInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<SpaceModel>>> ListSpacesAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.ListSpacesInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ListSpacesInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -35,7 +35,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifySpaceInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifySpaceInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -43,6 +43,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteSpaceInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteSpaceInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

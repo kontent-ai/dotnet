@@ -239,14 +239,21 @@ The upload endpoint needs the file's size up front, so `FileContentSource` accep
 
 | Option | Required | Default | Description |
 |--------|----------|---------|-------------|
-| `EnvironmentId` | Yes | — | The GUID of your Kontent.ai environment. |
+| `EnvironmentId` | For environment endpoints | — | The GUID of your Kontent.ai environment. Required for everything except subscription-scoped endpoints. |
 | `ApiKey` | Yes | — | A Management API key for environment-scoped endpoints, or a **Subscription API key** for subscription-scoped ones. They are different keys — see the note on subscription endpoints below. |
-| `SubscriptionId` | No | — | The subscription GUID. Required only for subscription-scoped endpoints (such as user management). |
+| `SubscriptionId` | For subscription endpoints | — | The subscription GUID. Required only for subscription-scoped endpoints (such as user management). |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
 | `Timeout` | No | `30 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Sized against the 2 GB asset limit. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address; the SDK appends the versioned, scoped path. Override only when targeting a non-production endpoint. |
 
-`ManagementOptions` validates on use: a missing or malformed `EnvironmentId`/`ApiKey` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.
+`ManagementOptions` validates on use: a missing `ApiKey`, a malformed identifier, or configuring **neither** `EnvironmentId` nor `SubscriptionId` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.
+
+Configure the scope you actually call. Each is built only when its identifier is present, so a client scoped to one and used for the other fails immediately, naming the missing option, rather than sending a request to a path with an empty segment:
+
+```
+EnvironmentId is not configured. Set ManagementOptions.EnvironmentId to call environment endpoints.
+SubscriptionId is not configured. Set ManagementOptions.SubscriptionId to call subscription endpoints.
+```
 
 ## The Result Pattern
 
@@ -865,14 +872,13 @@ await client.CreateLanguageAsync(new LanguageCreateModel
 >
 > They also take a **Subscription API key**, not the Management API key an environment-scoped call uses. It is minted at `https://app.kontent.ai/subscription/<subscription-id>/api-keys` and only a subscription admin can create one; an environment's Management API key will not authenticate these endpoints.
 >
-> `EnvironmentId` is still required to construct the client, even when every call you make is subscription-scoped. Pass any environment in the subscription — these endpoints never use it.
+> A client that only calls them needs no `EnvironmentId` — set one as well if the same client also calls environment endpoints.
 >
 > ```csharp
 > var client = new ManagementClient(new ManagementOptions
 > {
 >     ApiKey = "<your Subscription API key>",
 >     SubscriptionId = "<your subscription id>",
->     EnvironmentId = "<any environment in the subscription; required, but unused here>",
 > });
 >
 > var projects = await client.ListSubscriptionProjectsAsync();

@@ -285,6 +285,41 @@ public class ServiceCollectionExtensionsTests
         stub.Attempts.Should().HaveCount(1);
     }
 
+    [Fact]
+    public async Task AddManagementClient_SubscriptionIdOnly_ResolvesAndFailsOnlyOnEnvironmentCalls()
+    {
+        var services = new ServiceCollection();
+        services.AddManagementClient(options =>
+        {
+            options.SubscriptionId = Guid.NewGuid().ToString();
+            options.ApiKey = ValidApiKey;
+        });
+        var provider = services.BuildServiceProvider();
+
+        var client = provider.GetRequiredService<IManagementClient>();
+
+        client.Should().NotBeNull();
+
+        // No environment-scoped HttpClient is registered for this client at all, so the failure is local
+        // and names the option rather than reaching the API with an empty path segment.
+        var act = async () => await client.GetEnvironmentInformationAsync();
+
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*EnvironmentId is not configured*");
+    }
+
+    [Fact]
+    public void AddManagementClient_NeitherEnvironmentIdNorSubscriptionId_FailsValidation()
+    {
+        var services = new ServiceCollection();
+        services.AddManagementClient(options => options.ApiKey = ValidApiKey);
+        var provider = services.BuildServiceProvider();
+
+        Action act = () => provider.GetRequiredService<IManagementClient>();
+
+        act.Should().Throw<OptionsValidationException>();
+    }
+
     private static void ConfigureValidOptions(ManagementOptions options)
     {
         options.EnvironmentId = ValidEnvironmentId;

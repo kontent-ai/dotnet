@@ -10,7 +10,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<CustomAppModel>>> ListCustomAppsAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<CustomAppListingResponseServerModel, CustomAppModel>(
-            _managementApi.ListCustomAppsInternalAsync,
+            ManagementApi.ListCustomAppsInternalAsync,
             page => page.CustomApps,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -20,7 +20,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetCustomAppInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetCustomAppInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -28,7 +28,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(customApp);
 
-        return _managementApi.CreateCustomAppInternalAsync(customApp, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateCustomAppInternalAsync(customApp, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -36,7 +36,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteCustomAppInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteCustomAppInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -45,6 +45,6 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyCustomAppInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyCustomAppInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
     }
 }

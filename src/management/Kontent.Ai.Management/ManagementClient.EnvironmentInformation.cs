@@ -8,6 +8,6 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<EnvironmentInformationModel>> GetEnvironmentInformationAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetEnvironmentInformationInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetEnvironmentInformationInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 }

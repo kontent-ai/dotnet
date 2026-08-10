@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<ContentItemModel>>> ListContentItemsAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<ContentItemListingResponseServerModel, ContentItemModel>(
-            _managementApi.ListContentItemsInternalAsync,
+            ManagementApi.ListContentItemsInternalAsync,
             page => page.Items,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -17,7 +17,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.EnumerateAsync<ContentItemListingResponseServerModel, ContentItemModel>(
-            _managementApi.ListContentItemsInternalAsync,
+            ManagementApi.ListContentItemsInternalAsync,
             page => page.Items,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -27,7 +27,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetContentItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetContentItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -35,7 +35,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(contentItem);
 
-        return _managementApi.CreateContentItemInternalAsync(contentItem, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateContentItemInternalAsync(contentItem, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -44,7 +44,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(contentItem);
 
-        return _managementApi.UpsertContentItemInternalAsync(identifier.ToUrlSegment(), contentItem, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpsertContentItemInternalAsync(identifier.ToUrlSegment(), contentItem, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -52,6 +52,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteContentItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteContentItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

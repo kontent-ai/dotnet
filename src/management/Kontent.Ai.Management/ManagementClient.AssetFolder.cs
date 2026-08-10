@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<AssetFoldersModel>> GetAssetFoldersAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetAssetFoldersInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetAssetFoldersInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -17,7 +17,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(folders);
 
-        return _managementApi.CreateAssetFoldersInternalAsync(folders, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateAssetFoldersInternalAsync(folders, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -25,6 +25,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyAssetFoldersInternalAsync(changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyAssetFoldersInternalAsync(changes, cancellationToken).ToManagementResultAsync();
     }
 }

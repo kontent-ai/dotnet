@@ -9,25 +9,25 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<EnvironmentReportModel>> ValidateEnvironmentAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.ValidateEnvironmentInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ValidateEnvironmentInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult<AsyncValidationTaskModel>> InitiateEnvironmentAsyncValidationTaskAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.InitiateEnvironmentAsyncValidationTaskInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.InitiateEnvironmentAsyncValidationTaskInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult<AsyncValidationTaskModel>> GetAsyncValidationTaskAsync(Guid taskId, CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetAsyncValidationTaskInternalAsync(taskId, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetAsyncValidationTaskInternalAsync(taskId, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesAsync(Guid taskId, CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<AsyncValidationTaskIssuesResponseServerModel, AsyncValidationTaskIssueModel>(
-            (token, ct) => _managementApi.ListAsyncValidationTaskIssuesInternalAsync(taskId, token, ct),
+            (token, ct) => ManagementApi.ListAsyncValidationTaskIssuesInternalAsync(taskId, token, ct),
             page => page.Issues,
             page => page.Pagination?.Token,
             cancellationToken);

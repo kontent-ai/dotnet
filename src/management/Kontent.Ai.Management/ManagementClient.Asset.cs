@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<AssetModel>>> ListAssetsAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<AssetListingResponseServerModel, AssetModel>(
-            _managementApi.ListAssetsInternalAsync,
+            ManagementApi.ListAssetsInternalAsync,
             page => page.Assets,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -17,7 +17,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.EnumerateAsync<AssetListingResponseServerModel, AssetModel>(
-            _managementApi.ListAssetsInternalAsync,
+            ManagementApi.ListAssetsInternalAsync,
             page => page.Assets,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -27,7 +27,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetAssetInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetAssetInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -36,7 +36,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(asset);
 
-        return _managementApi.UpsertAssetInternalAsync(identifier.ToUrlSegment(), asset, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpsertAssetInternalAsync(identifier.ToUrlSegment(), asset, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -44,7 +44,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(asset);
 
-        return _managementApi.CreateAssetInternalAsync(asset, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateAssetInternalAsync(asset, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -52,7 +52,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteAssetInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteAssetInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -63,6 +63,6 @@ public partial class ManagementClient
         // Must stay async: `using` in a non-async Task-returning method disposes the content the instant the task is
         // returned, racing the send and defeating the retry-driven re-reads FileUploadContent exists for.
         using var content = new FileUploadContent(fileContent);
-        return await _managementApi.UploadFileInternalAsync(fileContent.FileName, content, cancellationToken).ToManagementResultAsync().ConfigureAwait(false);
+        return await ManagementApi.UploadFileInternalAsync(fileContent.FileName, content, cancellationToken).ToManagementResultAsync().ConfigureAwait(false);
     }
 }

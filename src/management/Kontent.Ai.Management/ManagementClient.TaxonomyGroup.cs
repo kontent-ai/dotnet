@@ -10,7 +10,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<TaxonomyGroupModel>>> ListTaxonomyGroupsAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<TaxonomyGroupListingResponseServerModel, TaxonomyGroupModel>(
-            _managementApi.ListTaxonomyGroupsInternalAsync,
+            ManagementApi.ListTaxonomyGroupsInternalAsync,
             page => page.Taxonomies,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -20,7 +20,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -28,7 +28,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(taxonomyGroup);
 
-        return _managementApi.CreateTaxonomyGroupInternalAsync(taxonomyGroup, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateTaxonomyGroupInternalAsync(taxonomyGroup, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -37,7 +37,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -45,6 +45,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteTaxonomyGroupInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

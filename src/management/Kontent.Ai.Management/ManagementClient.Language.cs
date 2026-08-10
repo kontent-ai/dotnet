@@ -10,7 +10,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<LanguageModel>>> ListLanguagesAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<LanguagesListingResponseServerModel, LanguageModel>(
-            _managementApi.ListLanguagesInternalAsync,
+            ManagementApi.ListLanguagesInternalAsync,
             page => page.Languages,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -20,7 +20,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetLanguageInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetLanguageInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -28,7 +28,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(language);
 
-        return _managementApi.CreateLanguageInternalAsync(language, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateLanguageInternalAsync(language, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -37,6 +37,6 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyLanguageInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyLanguageInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
     }
 }

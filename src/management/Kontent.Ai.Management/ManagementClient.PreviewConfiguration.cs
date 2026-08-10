@@ -8,7 +8,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<PreviewConfigurationModel>> GetPreviewConfigurationAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetPreviewConfigurationInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetPreviewConfigurationInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -16,6 +16,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(previewConfiguration);
 
-        return _managementApi.UpdatePreviewConfigurationInternalAsync(previewConfiguration, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpdatePreviewConfigurationInternalAsync(previewConfiguration, cancellationToken).ToManagementResultAsync();
     }
 }

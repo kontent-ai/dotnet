@@ -301,7 +301,7 @@ public static partial class ServiceCollectionExtensions
             services,
             name,
             $"{ManagementHttpClientPrefix}{name}",
-            o => $"projects/{o.EnvironmentId}",
+            o => o.EnvironmentScopePath(),
             refitSettings,
             configureHttpClient,
             configureResilience);
@@ -331,8 +331,10 @@ public static partial class ServiceCollectionExtensions
     private static IManagementClient CreateManagementClient(IServiceProvider serviceProvider, object? key)
     {
         var name = (string)key!;
-        var managementApi = serviceProvider.GetRequiredKeyedService<IManagementApi>(name);
         var options = serviceProvider.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(name);
+        var managementApi = options.HasEnvironmentId()
+            ? serviceProvider.GetRequiredKeyedService<IManagementApi>(name)
+            : null;
         var subscriptionApi = options.HasSubscriptionId()
             ? serviceProvider.GetRequiredKeyedService<ISubscriptionApi>(name)
             : null;

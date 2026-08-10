@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<EnvironmentRoleModel>>> ListEnvironmentRolesAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.ListEnvironmentRolesInternalAsync(cancellationToken).ToManagementResultAsync(static envelope => envelope.Roles);
+        return ManagementApi.ListEnvironmentRolesInternalAsync(cancellationToken).ToManagementResultAsync(static envelope => envelope.Roles);
     }
 
     /// <inheritdoc />
@@ -17,6 +17,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetEnvironmentRoleInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetEnvironmentRoleInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

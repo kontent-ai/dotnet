@@ -13,7 +13,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.ListLanguageVariantsByItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ListLanguageVariantsByItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -23,7 +23,7 @@ public partial class ManagementClient
 
         var typeSegment = identifier.ToUrlSegment();
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -36,7 +36,7 @@ public partial class ManagementClient
 
         var typeSegment = identifier.ToUrlSegment();
         return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -49,7 +49,7 @@ public partial class ManagementClient
 
         var typeSegment = identifier.ToUrlSegment();
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -62,7 +62,7 @@ public partial class ManagementClient
 
         var typeSegment = identifier.ToUrlSegment();
         return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -75,7 +75,7 @@ public partial class ManagementClient
 
         var collectionSegment = identifier.ToUrlSegment();
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsByCollectionInternalAsync(collectionSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsByCollectionInternalAsync(collectionSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -88,7 +88,7 @@ public partial class ManagementClient
 
         var collectionSegment = identifier.ToUrlSegment();
         return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsByCollectionInternalAsync(collectionSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsByCollectionInternalAsync(collectionSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -101,7 +101,7 @@ public partial class ManagementClient
 
         var spaceSegment = identifier.ToUrlSegment();
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsBySpaceInternalAsync(spaceSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsBySpaceInternalAsync(spaceSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -114,7 +114,7 @@ public partial class ManagementClient
 
         var spaceSegment = identifier.ToUrlSegment();
         return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => _managementApi.ListLanguageVariantsBySpaceInternalAsync(spaceSegment, token, ct),
+            (token, ct) => ManagementApi.ListLanguageVariantsBySpaceInternalAsync(spaceSegment, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -125,7 +125,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -134,7 +134,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
+        return ManagementApi.GetLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
     }
 
     /// <inheritdoc />
@@ -142,7 +142,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetPublishedLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetPublishedLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -151,7 +151,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetPublishedLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
+        return ManagementApi.GetPublishedLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
     }
 
     /// <inheritdoc />
@@ -160,7 +160,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(languageVariantUpsertModel);
 
-        return _managementApi.UpsertLanguageVariantInternalAsync(identifier.ToUrlSegment(), languageVariantUpsertModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpsertLanguageVariantInternalAsync(identifier.ToUrlSegment(), languageVariantUpsertModel, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -180,7 +180,7 @@ public partial class ManagementClient
             Workflow = workflow,
         };
 
-        return _managementApi.UpsertLanguageVariantInternalAsync(identifier.ToUrlSegment(), upsertModel, cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
+        return ManagementApi.UpsertLanguageVariantInternalAsync(identifier.ToUrlSegment(), upsertModel, cancellationToken).ToManagementResultAsync(ToTypedVariant<T>);
     }
 
     /// <inheritdoc />
@@ -188,7 +188,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     // Projects a fetched variant onto the typed wrapper: raw elements become the generated record, the variant
