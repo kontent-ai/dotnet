@@ -11,19 +11,19 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(cloneEnvironmentModel);
 
-        return _managementApi.CloneEnvironmentInternalAsync(cloneEnvironmentModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CloneEnvironmentInternalAsync(cloneEnvironmentModel, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult<EnvironmentCloningStateModel>> GetEnvironmentCloningStateAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetEnvironmentCloningStateInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetEnvironmentCloningStateInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
     public Task<IManagementResult> DeleteEnvironmentAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.DeleteEnvironmentInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteEnvironmentInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -31,7 +31,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(markAsProductionModel);
 
-        return _managementApi.MarkEnvironmentAsProductionInternalAsync(markAsProductionModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.MarkEnvironmentAsProductionInternalAsync(markAsProductionModel, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -39,6 +39,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyEnvironmentInternalAsync(changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyEnvironmentInternalAsync(changes, cancellationToken).ToManagementResultAsync();
     }
 }

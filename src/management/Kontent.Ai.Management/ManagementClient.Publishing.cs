@@ -13,7 +13,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changeModel);
 
-        return _managementApi.ChangeLanguageVariantWorkflowInternalAsync(identifier.ToUrlSegment(), changeModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ChangeLanguageVariantWorkflowInternalAsync(identifier.ToUrlSegment(), changeModel, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -21,7 +21,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.PublishLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.PublishLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -30,7 +30,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(schedule);
 
-        return _managementApi.SchedulePublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.SchedulePublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -39,7 +39,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(schedule);
 
-        return _managementApi.SchedulePublishingAndUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.SchedulePublishingAndUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -47,7 +47,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.CancelPublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CancelPublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -55,7 +55,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.UnpublishLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UnpublishLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -63,7 +63,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.CancelUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CancelUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -72,7 +72,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(schedule);
 
-        return _managementApi.ScheduleUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ScheduleUnpublishingOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), schedule, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -80,6 +80,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.CreateNewVersionOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateNewVersionOfLanguageVariantInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

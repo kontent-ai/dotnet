@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<CollectionsModel>> GetCollectionsAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.GetCollectionsInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetCollectionsInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -17,6 +17,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyCollectionsInternalAsync(changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyCollectionsInternalAsync(changes, cancellationToken).ToManagementResultAsync();
     }
 }

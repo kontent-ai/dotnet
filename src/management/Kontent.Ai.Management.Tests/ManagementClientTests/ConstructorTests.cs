@@ -27,6 +27,66 @@ public class ConstructorTests
         act.Should().Throw<ArgumentNullException>();
     }
 
+    [Fact]
+    public void Ctor_SubscriptionIdWithoutEnvironmentId_DoesNotThrow()
+    {
+        // Subscription endpoints are not scoped to an environment, so a client that only calls them
+        // has no environment to name.
+        var options = new ManagementOptions
+        {
+            SubscriptionId = Guid.NewGuid().ToString(),
+            ApiKey = "valid-key",
+        };
+
+        Action act = () => new ManagementClient(options);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Ctor_NeitherEnvironmentIdNorSubscriptionId_ThrowsValidationException()
+    {
+        // Scoped to nothing, so it could not call anything - worth failing at registration rather than
+        // on the first request.
+        var options = new ManagementOptions { ApiKey = "valid-key" };
+
+        Action act = () => new ManagementClient(options);
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    [Fact]
+    public async Task EnvironmentEndpoint_OnASubscriptionOnlyClient_ThrowsNamingTheMissingOption()
+    {
+        await using var client = new ManagementClient(new ManagementOptions
+        {
+            SubscriptionId = Guid.NewGuid().ToString(),
+            ApiKey = "valid-key",
+        });
+
+        var act = async () => await client.GetEnvironmentInformationAsync();
+
+        // Fails before any request is built: without this the base address carries an empty path segment
+        // and the API answers with a 404 that says nothing about the cause.
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*EnvironmentId is not configured*");
+    }
+
+    [Fact]
+    public async Task SubscriptionEndpoint_OnAnEnvironmentOnlyClient_ThrowsNamingTheMissingOption()
+    {
+        await using var client = new ManagementClient(new ManagementOptions
+        {
+            EnvironmentId = Guid.NewGuid().ToString(),
+            ApiKey = "valid-key",
+        });
+
+        var act = async () => await client.ListSubscriptionProjectsAsync();
+
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*SubscriptionId is not configured*");
+    }
+
     [Theory]
     [InlineData(null, "key")]                                              // missing env id ([Required])
     [InlineData("no-guid", "key")]                                         // non-GUID env id (IValidatableObject)

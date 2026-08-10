@@ -11,7 +11,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(invitation);
 
-        return _managementApi.InviteUserIntoEnvironmentInternalAsync(invitation, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.InviteUserIntoEnvironmentInternalAsync(invitation, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -20,6 +20,6 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(roles);
 
-        return _managementApi.UpdateUserRolesInternalAsync(identifier.ToUrlSegment(), roles, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpdateUserRolesInternalAsync(identifier.ToUrlSegment(), roles, cancellationToken).ToManagementResultAsync();
     }
 }

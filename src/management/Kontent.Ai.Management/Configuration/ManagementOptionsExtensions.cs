@@ -2,6 +2,9 @@ namespace Kontent.Ai.Management.Configuration;
 
 internal static class ManagementOptionsExtensions
 {
+    internal const string EnvironmentIdMissingMessage =
+        "EnvironmentId is not configured. Set ManagementOptions.EnvironmentId to call environment endpoints.";
+
     internal const string SubscriptionIdMissingMessage =
         "SubscriptionId is not configured. Set ManagementOptions.SubscriptionId to call subscription endpoints.";
 
@@ -9,8 +12,17 @@ internal static class ManagementOptionsExtensions
     public static Uri ScopedEndpoint(this ManagementOptions options, string scopePath) =>
         new($"{options.Endpoint.TrimEnd('/')}/v2/{scopePath}", UriKind.Absolute);
 
+    public static bool HasEnvironmentId(this ManagementOptions options) =>
+        !string.IsNullOrWhiteSpace(options.EnvironmentId);
+
     public static bool HasSubscriptionId(this ManagementOptions options) =>
         !string.IsNullOrWhiteSpace(options.SubscriptionId);
+
+    /// <summary>The environment scope path; throws a descriptive error when <see cref="ManagementOptions.EnvironmentId"/> is not configured.</summary>
+    public static string EnvironmentScopePath(this ManagementOptions options) =>
+        options.HasEnvironmentId()
+            ? $"projects/{options.EnvironmentId}"
+            : throw new InvalidOperationException(EnvironmentIdMissingMessage);
 
     /// <summary>The subscription scope path; throws a descriptive error when <see cref="ManagementOptions.SubscriptionId"/> is not configured.</summary>
     public static string SubscriptionScopePath(this ManagementOptions options) =>

@@ -67,17 +67,30 @@ public sealed class ManagementOptions : IValidatableObject
                 [nameof(ApiKey)]);
         }
 
-        if (!Guid.TryParse(EnvironmentId, out var environmentGuid))
+        // A client scoped to neither can call nothing, so that is a configuration mistake worth surfacing
+        // at registration. Configuring one of the two is legitimate: subscription endpoints do not belong
+        // to an environment, and an environment-only client never needs a subscription.
+        if (!this.HasEnvironmentId() && !this.HasSubscriptionId())
         {
             yield return new ValidationResult(
-                $"Provided string is not a valid environment identifier ({EnvironmentId}). Haven't you accidentally passed the API key instead of the environment identifier?",
-                [nameof(EnvironmentId)]);
+                "Set EnvironmentId for environment endpoints, SubscriptionId for subscription endpoints, or both.",
+                [nameof(EnvironmentId), nameof(SubscriptionId)]);
         }
-        else if (environmentGuid == Guid.Empty)
+
+        if (this.HasEnvironmentId())
         {
-            yield return new ValidationResult(
-                "EnvironmentId cannot be an empty GUID.",
-                [nameof(EnvironmentId)]);
+            if (!Guid.TryParse(EnvironmentId, out var environmentGuid))
+            {
+                yield return new ValidationResult(
+                    $"Provided string is not a valid environment identifier ({EnvironmentId}). Haven't you accidentally passed the API key instead of the environment identifier?",
+                    [nameof(EnvironmentId)]);
+            }
+            else if (environmentGuid == Guid.Empty)
+            {
+                yield return new ValidationResult(
+                    "EnvironmentId cannot be an empty GUID.",
+                    [nameof(EnvironmentId)]);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(SubscriptionId)

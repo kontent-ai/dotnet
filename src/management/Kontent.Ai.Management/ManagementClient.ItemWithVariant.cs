@@ -11,7 +11,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(filterRequest);
 
         return PageEnumerator.CollectAsync<ItemWithVariantFilterListingResponseServerModel, ItemWithVariantFilterResultModel>(
-            (token, ct) => _managementApi.FilterItemsWithVariantsInternalAsync(filterRequest, token, ct),
+            (token, ct) => ManagementApi.FilterItemsWithVariantsInternalAsync(filterRequest, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -23,7 +23,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(filterRequest);
 
         return PageEnumerator.EnumerateAsync<ItemWithVariantFilterListingResponseServerModel, ItemWithVariantFilterResultModel>(
-            (token, ct) => _managementApi.FilterItemsWithVariantsInternalAsync(filterRequest, token, ct),
+            (token, ct) => ManagementApi.FilterItemsWithVariantsInternalAsync(filterRequest, token, ct),
             page => page.Variants,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -35,7 +35,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(bulkGetRequest);
 
         return PageEnumerator.CollectAsync<ContentItemsWithVariantsListingResponseServerModel, ContentItemWithVariantModel>(
-            (token, ct) => _managementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, token, ct),
+            (token, ct) => ManagementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, token, ct),
             page => page.Data,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -47,7 +47,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(bulkGetRequest);
 
         return PageEnumerator.EnumerateAsync<ContentItemsWithVariantsListingResponseServerModel, ContentItemWithVariantModel>(
-            (token, ct) => _managementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, token, ct),
+            (token, ct) => ManagementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, token, ct),
             page => page.Data,
             page => page.Pagination?.Token,
             cancellationToken);

@@ -10,7 +10,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<ContentTypeModel>>> ListContentTypesAsync(CancellationToken cancellationToken = default)
         => PageEnumerator.CollectAsync<ContentTypeListingResponseServerModel, ContentTypeModel>(
-            _managementApi.ListContentTypesInternalAsync,
+            ManagementApi.ListContentTypesInternalAsync,
             page => page.Types,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -20,7 +20,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetContentTypeInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetContentTypeInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -28,7 +28,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(contentType);
 
-        return _managementApi.CreateContentTypeInternalAsync(contentType, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateContentTypeInternalAsync(contentType, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -36,7 +36,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteContentTypeInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteContentTypeInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -45,6 +45,6 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(changes);
 
-        return _managementApi.ModifyContentTypeInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ModifyContentTypeInternalAsync(identifier.ToUrlSegment(), changes, cancellationToken).ToManagementResultAsync();
     }
 }

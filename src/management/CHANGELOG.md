@@ -6,9 +6,21 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Changed
+
+- **`EnvironmentId` is no longer required when you only call subscription endpoints.** Subscription-scoped endpoints resolve against `/v2/subscriptions/{id}` and never touch an environment, but validation demanded an `EnvironmentId` regardless — so a subscription admin listing projects had to invent an environment GUID the SDK would never use. Each scope's client is now built only when its identifier is configured, and `EnvironmentId` is validated for format only when supplied, exactly as `SubscriptionId` already was.
+
+  Calling into a scope you did not configure fails immediately, naming the option — before the request is built, so you never see the API's `404` for a path with an empty segment:
+
+  ```
+  EnvironmentId is not configured. Set ManagementOptions.EnvironmentId to call environment endpoints.
+  ```
+
+  Configuring **neither** identifier is still rejected at registration: that client could call nothing at all. Every existing configuration behaves exactly as before — this only accepts input that was previously refused.
+
 ### Fixed
 
-- **The README now says how to configure a subscription-scoped call.** It listed `SubscriptionId` in the options table and mentioned "an API key with subscription scope", but never said the Subscription API key is a different credential from the Management API key, where to get one, or that `EnvironmentId` is required to construct the client even when every call is subscription-scoped. There is now a worked example and a pointer to `https://app.kontent.ai/subscription/<subscription-id>/api-keys`, which only a subscription admin can use.
+- **The README now says how to configure a subscription-scoped call.** It listed `SubscriptionId` in the options table and mentioned "an API key with subscription scope", but never said the Subscription API key is a different credential from the Management API key or where to get one. There is now a worked example and a pointer to `https://app.kontent.ai/subscription/<subscription-id>/api-keys`, which only a subscription admin can use.
 
 ## 9.0.0-rc.1 (2026-08-07)  _(prerelease)_
 

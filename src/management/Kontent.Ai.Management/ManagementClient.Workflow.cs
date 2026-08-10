@@ -9,7 +9,7 @@ public partial class ManagementClient
     /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<WorkflowModel>>> ListWorkflowsAsync(CancellationToken cancellationToken = default)
     {
-        return _managementApi.ListWorkflowsInternalAsync(cancellationToken).ToManagementResultAsync();
+        return ManagementApi.ListWorkflowsInternalAsync(cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -17,7 +17,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(workflow);
 
-        return _managementApi.CreateWorkflowInternalAsync(workflow, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateWorkflowInternalAsync(workflow, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -26,7 +26,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(workflow);
 
-        return _managementApi.UpdateWorkflowInternalAsync(identifier.ToUrlSegment(), workflow, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpdateWorkflowInternalAsync(identifier.ToUrlSegment(), workflow, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -34,6 +34,6 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.DeleteWorkflowInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.DeleteWorkflowInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 }

@@ -16,7 +16,7 @@ internal static class ManagementApiFactory
     public static IManagementApi Create(ManagementOptions options, HttpMessageHandler? innerHandler = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var http = CreateHttpClient(options, $"projects/{options.EnvironmentId}", new SnapshotManagementOptionsAccessor(options), primaryHandler: innerHandler);
+        var http = CreateHttpClient(options, options.EnvironmentScopePath(), new SnapshotManagementOptionsAccessor(options), primaryHandler: innerHandler);
         return RestService.For<IManagementApi>(http, RefitSettingsProvider.CreateDefaultSettings());
     }
 

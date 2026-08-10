@@ -13,7 +13,7 @@ public partial class ManagementClient
 
         var assetSegment = assetIdentifier.ToUrlSegment();
         return PageEnumerator.CollectAsync<AssetRenditionsListingResponseServerModel, AssetRenditionModel>(
-            (token, ct) => _managementApi.ListAssetRenditionsInternalAsync(assetSegment, token, ct),
+            (token, ct) => ManagementApi.ListAssetRenditionsInternalAsync(assetSegment, token, ct),
             page => page.AssetRenditions,
             page => page.Pagination?.Token,
             cancellationToken);
@@ -24,7 +24,7 @@ public partial class ManagementClient
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        return _managementApi.GetAssetRenditionInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
+        return ManagementApi.GetAssetRenditionInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -33,7 +33,7 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(identifier);
         ArgumentNullException.ThrowIfNull(updateModel);
 
-        return _managementApi.UpdateAssetRenditionInternalAsync(identifier.ToUrlSegment(), updateModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.UpdateAssetRenditionInternalAsync(identifier.ToUrlSegment(), updateModel, cancellationToken).ToManagementResultAsync();
     }
 
     /// <inheritdoc />
@@ -42,6 +42,6 @@ public partial class ManagementClient
         ArgumentNullException.ThrowIfNull(assetIdentifier);
         ArgumentNullException.ThrowIfNull(createModel);
 
-        return _managementApi.CreateAssetRenditionInternalAsync(assetIdentifier.ToUrlSegment(), createModel, cancellationToken).ToManagementResultAsync();
+        return ManagementApi.CreateAssetRenditionInternalAsync(assetIdentifier.ToUrlSegment(), createModel, cancellationToken).ToManagementResultAsync();
     }
 }
