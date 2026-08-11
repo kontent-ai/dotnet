@@ -19,11 +19,11 @@ public class ImportContentModel
     [Fact]
     public async Task CreateSnippet()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedSnippet.json");
 
         // DocSection: import_model_create_snippet
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
+        var response = (await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
         {
             Name = "Metadata",
             Codename = "metadata",
@@ -45,18 +45,18 @@ public class ImportContentModel
                     Codename = "description",
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task CreateTaxonomy()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedTaxonomyGroup.json");
 
         // DocSection: import_model_create_taxonomy
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
+        var response = (await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
         {
             Name = "Blogpost topic",
             Codename = "blog_topic",
@@ -109,18 +109,18 @@ public class ImportContentModel
                     ]
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task CreateType()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentType.json");
 
         // DocSection: import_model_create_type
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
+        var response = (await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             Name = "Blogpost",
             Codename = "blogpost",
@@ -173,7 +173,7 @@ public class ImportContentModel
                     ContentGroup = Reference.ByExternalId("topic")
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 }

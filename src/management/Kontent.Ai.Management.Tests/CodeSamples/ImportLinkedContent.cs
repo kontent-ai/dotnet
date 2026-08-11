@@ -17,39 +17,39 @@ public class ImportLinkedContent
     [Fact]
     public async Task CreateItem()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentItem.json");
 
         // DocSection: import_linked_create_item
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        await client.UpsertContentItemAsync(
+        (await client.UpsertContentItemAsync(
             Reference.ByExternalId("123"),
-            new ContentItemUpsertModel { Name = "On Roasts", Type = Reference.ByCodename("article") });
+            new ContentItemUpsertModel { Name = "On Roasts", Type = Reference.ByCodename("article") })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task CreateSecondItem()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentItem.json");
 
         // DocSection: import_linked_create_sec_item
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        await client.UpsertContentItemAsync(
+        (await client.UpsertContentItemAsync(
             Reference.ByExternalId("456"),
-            new ContentItemUpsertModel { Name = "Donate with us", Type = Reference.ByCodename("article") });
+            new ContentItemUpsertModel { Name = "Donate with us", Type = Reference.ByCodename("article") })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UpsertSecondVariant()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedLanguageVariant.json");
 
         // DocSection: import_linked_upsert_Sec_variant
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("456"), Reference.ByCodename("en-US"));
 
-        await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
+        (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {
             Elements =
             [
@@ -60,20 +60,20 @@ public class ImportLinkedContent
                     Value = [Reference.ByExternalId("123")],
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UsertVariant()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedLanguageVariant.json");
 
         // DocSection: import_linked_upsert_variant
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("123"), Reference.ByCodename("en-US"));
 
-        var response = await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
+        var response = (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {
             Elements =
             [
@@ -84,18 +84,18 @@ public class ImportLinkedContent
                     Value = [Reference.ByExternalId("456")],
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task PostValidate()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedValidationReport.json");
 
         // DocSection: import_linked_validate_content
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.ValidateEnvironmentAsync();
+        var response = (await client.ValidateEnvironmentAsync()).EnsureSuccess();
         // EndDocSection
     }
 }

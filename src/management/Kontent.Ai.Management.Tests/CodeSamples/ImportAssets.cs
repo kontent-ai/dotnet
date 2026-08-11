@@ -19,7 +19,7 @@ public class ImportAssets
     [Fact]
     public async Task CreateAsset()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedFile.json", "ImportedAsset.json");
 
         // DocSection: importing_assets_create_asset
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
@@ -27,7 +27,7 @@ public class ImportAssets
         var contentType = "image/jpg";
 
         // Uploads the file and creates or updates the asset that references it in a single call
-        var createdAssetResponse = await client.UpsertAssetAsync(
+        var createdAssetResponse = (await client.UpsertAssetAsync(
             Reference.ByExternalId("which-brewing-fits-you"),
             new FileContentSource(filePath, contentType),
             new AssetUpsertModel
@@ -46,14 +46,14 @@ public class ImportAssets
                         Language = Reference.ByCodename("es-ES")
                     }
                 ]
-            });
+            })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UploadingFiles()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedFile.json");
 
         // DocSection: importing_assets_upload_file
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
@@ -61,20 +61,20 @@ public class ImportAssets
         var contentType = "image/jpg";
 
         // Binary file reference to be used when adding a new asset
-        var response = await client.UploadFileAsync(new FileContentSource(filePath, contentType));
+        var response = (await client.UploadFileAsync(new FileContentSource(filePath, contentType))).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UseAsset()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedLanguageVariant.json");
 
         // DocSection: importing_assets_use_asset
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("ext-cafe-brno"), Reference.ByCodename("en-US"));
 
-        var response = await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
+        var response = (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {
             Elements =
             [
@@ -87,20 +87,20 @@ public class ImportAssets
                     ],
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UseAssetRichText()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedLanguageVariant.json");
 
         // DocSection: importing_assets_use_asset_rich_text
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("new-cafes"), Reference.ByCodename("en-US"));
 
-        var response = await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
+        var response = (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {
             Elements =
             [
@@ -110,7 +110,7 @@ public class ImportAssets
                     Value = "<p>...</p> <figure data-asset-external-id=\"brno-cafe-image\"></figure>",
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 }

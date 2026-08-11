@@ -19,11 +19,11 @@ public class ImportRichText
     [Fact]
     public async Task CreateButtonType()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentType.json");
 
         // DocSection: import_rich_create_button_type
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
+        var response = (await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             ExternalId = "button",
             Name = "Button",
@@ -40,33 +40,33 @@ public class ImportRichText
                     ExternalId = "button-link",
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task CreateItem()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentItem.json");
 
         // DocSection: import_rich_create_item
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        await client.UpsertContentItemAsync(Reference.ByExternalId("simple-example"), new ContentItemUpsertModel
+        (await client.UpsertContentItemAsync(Reference.ByExternalId("simple-example"), new ContentItemUpsertModel
         {
             Name = "Simple example",
             Type = Reference.ByExternalId("simple-rich-text"),
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task CreateCreateSimpleType()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedContentType.json");
 
         // DocSection: import_rich_create_simple_type
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
+        var response = (await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             Name = "Simple Rich Text",
             Codename = "simple-rich-text",
@@ -78,20 +78,20 @@ public class ImportRichText
                     ExternalId = "rich-text",
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
     public async Task UpsertVariant()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedLanguageVariant.json");
 
         // DocSection: import_rich_upsert_variant
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("123"), Reference.ByCodename("en-US"));
 
-        await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
+        (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {
             Elements =
             [
@@ -114,7 +114,7 @@ public class ImportRichText
                     ],
                 },
             ],
-        });
+        })).EnsureSuccess();
         // EndDocSection
     }
 }
