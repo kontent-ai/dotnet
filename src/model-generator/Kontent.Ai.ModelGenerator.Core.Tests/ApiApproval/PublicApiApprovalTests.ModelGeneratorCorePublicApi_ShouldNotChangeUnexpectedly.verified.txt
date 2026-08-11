@@ -39,6 +39,7 @@ public sealed class AttributeSpec
 public class ClassCodeGeneratorFactory : IClassCodeGeneratorFactory
     .ctor()
     ClassCodeGenerator CreateClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
+    ClassCodeGenerator CreateManagementClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
 
 // Kontent.Ai.ModelGenerator.Core.Common
 public class ClassDefinition
@@ -261,6 +262,7 @@ public enum NullabilityMode
 // Kontent.Ai.ModelGenerator.Core.Contract
 public interface IClassCodeGeneratorFactory
     ClassCodeGenerator CreateClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
+    ClassCodeGenerator CreateManagementClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
 
 // Kontent.Ai.ModelGenerator.Core.Contract
 public interface IClassDefinitionFactory

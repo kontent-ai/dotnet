@@ -14,7 +14,7 @@ public class EnvironmentUserTests
         => File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", "ProjectUser", name));
 
     [Fact]
-    public async Task InviteUserIntoProjectAsync_InvitesUser()
+    public async Task InviteUserIntoEnvironmentAsync_InvitesUser()
     {
         var (client, mock) = MockClientFactory.Create();
         var invitation = new UserInviteModel
@@ -48,7 +48,7 @@ public class EnvironmentUserTests
     }
 
     [Fact]
-    public async Task InviteUserIntoProjectAsync_UserInvitationModelIsNull_Throws()
+    public async Task InviteUserIntoEnvironmentAsync_UserInvitationModelIsNull_Throws()
     {
         var (client, _) = MockClientFactory.Create();
 

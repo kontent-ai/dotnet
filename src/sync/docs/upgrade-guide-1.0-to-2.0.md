@@ -2,8 +2,8 @@
 
 This guide covers upgrading from `Kontent.Ai.Sync` **1.0.0** to **2.0.0**.
 
-Coming from the sync functionality that used to live in `Kontent.Ai.Delivery`? Read
-[the standalone-SDK guide](upgrade-guide.md) first — it covers that move, and this guide picks up after it.
+Coming from the sync functionality that used to live in `Kontent.Ai.Delivery`? Move to
+`Kontent.Ai.Sync` 1.0 first — it is the same API under a new package — and then follow this guide.
 
 Two changes account for nearly all the work: the framework moves to .NET 10, and paging through the
 sync feed is now a stream you enumerate rather than a call that returns everything at once. The rest is

@@ -4,8 +4,7 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
 
   <PropertyGroup>
-    <!-- Declared in eng/Versions.props, which the root Directory.Build.props imports.
-         Both Sync packages ship in lockstep on this one number. -->
+    <!-- Declared in eng/Versions.props, which the root Directory.Build.props imports. -->
     <Version>$(SyncVersion)</Version>
     <PackageProjectUrl>https://github.com/kontent-ai/dotnet/tree/main/src/sync</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>

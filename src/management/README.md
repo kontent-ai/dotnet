@@ -122,7 +122,7 @@ A standalone client owns its `HttpClient` instances — dispose it when you are 
 
 ### Fluent Builder
 
-When you are **not** using DI but still need to customize the resilience pipeline or Refit settings, use `ManagementClientBuilder`:
+When you are **not** using DI but still need to customize the resilience pipeline, use `ManagementClientBuilder`:
 
 ```csharp
 await using var client = ManagementClientBuilder

@@ -24,6 +24,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The client factory no longer relabels an exception that came from your own registration.** `Get(name)` caught `InvalidOperationException` and reported it as a missing client — but the registration runs during resolution, so a `configureHttpClient` that rejected its input came back as "No management client registered with name '…'", pointing at the wrong thing entirely. A genuinely missing registration still says so.
+
+- **A doc sample no longer reads a bare timestamp in the machine's time zone.** Three samples fed `DateTime.Parse` into a `DateTimeOffset` scheduling parameter, which is exactly the ambiguity the SDK's date convention exists to prevent — taught in code people copy. They now construct the offset explicitly, as the README sample already did.
+
+- **The README no longer offers a Refit-settings hook that was removed.** `ManagementClientBuilder` customizes the resilience pipeline; the Refit hook it also advertised is gone.
+
 - **The `X-KC-SOURCE` header keeps naming the integration that made the call.** Attribution matched the SDK assembly by full name, which carries the version — and nothing pins `AssemblyVersion`, so the reference an integration recorded when it was built stopped matching on the first SDK release after that. The header then went silently missing for every consumer who had not rebuilt. Matching is now by simple name.
 
 - **The interface says what happens when you call into a scope you did not configure.** Since `EnvironmentId` became optional for subscription-only clients, every environment operation throws `InvalidOperationException` when it is missing — the same guard the subscription operations already documented, but stated nowhere for the ~80 methods on the other side. `IManagementClient`'s own remarks now describe both scopes and the guard once, rather than repeating an `<exception>` tag on every method.

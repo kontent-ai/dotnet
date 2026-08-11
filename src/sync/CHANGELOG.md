@@ -7,6 +7,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **`ChangeType` serializes the value the API sends.** Its own converter took precedence over the SDK's and carried no naming policy, so writing a delta produced `"Changed"` where the wire uses `"changed"` — reading was unaffected, being case-insensitive, so this only surfaced for a consumer re-sending what they had read. Each member now states its wire name.
+
+- **The client factory no longer relabels an exception that came from your own registration.** `Get(name)` caught `InvalidOperationException` and reported it as a missing client, so a `configureHttpClient` that rejected its input came back as "No sync client registered with name '…'". A genuinely missing registration still says so.
+
+- **The 1.0 → 2.0 upgrade guide's first paragraph no longer links to a guide that was retired.**
+
 - **`SyncOptionsBuilder.Build` copies by reflection rather than property by property.** It listed the properties it carried, which keeps compiling when an option is added and silently stops carrying it — a value the caller set that the client never sees.
 
 - **The `X-KC-SOURCE` header keeps naming the integration that made the call.** Attribution matched the SDK assembly by full name, which carries the version — and nothing pins `AssemblyVersion`, so the reference an integration recorded when it was built stopped matching on the first SDK release after that. The header then went silently missing for every consumer who had not rebuilt. Matching is now by simple name.

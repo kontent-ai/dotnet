@@ -84,7 +84,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
         }
 
         var classFilename = classDefinition.ClassName;
-        return new ManagementClassCodeGenerator(classDefinition, classFilename, Options.Namespace);
+        return ClassCodeGeneratorFactory.CreateManagementClassCodeGenerator(Options, classDefinition, classFilename);
     }
 
     private async Task<IReadOnlyList<ContentTypeSnippetModel>> FetchAllSnippets()

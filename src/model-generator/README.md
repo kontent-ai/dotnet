@@ -114,7 +114,10 @@ Short keys such as `-n "MyModels"` are interchangeable with the long keys `--nam
 
 ### Config file
 
-These parameters can also be set via the `appSettings.json` file located in the same directory as the executable file. Command-line parameters always take precedence.
+These parameters can also be set via an `appSettings.json` file in the directory you run the tool from.
+Command-line parameters always take precedence. The file is not installed with the tool — copy
+[the template](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/Kontent.Ai.ModelGenerator/appSettings.json)
+into your working directory and edit it.
 
 ### Advanced configuration (Preview API, Secure API)
 
@@ -125,7 +128,7 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    --DeliveryOptions:UseSecureAccess true --DeliveryOptions:SecureAccessApiKey <SecuredApiKey>
    ```
 
-2. [`appSettings.json`](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/Kontent.Ai.ModelGenerator/appSettings.json) - suitable for the standalone app release
+2. An `appSettings.json` in the directory you run the tool from — see [Config file](#config-file)
 
 ## Generated Model Example (Delivery)
 

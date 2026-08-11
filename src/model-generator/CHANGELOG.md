@@ -11,6 +11,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The startup banner no longer reports success before anything is generated.** A failed run's first line was "Models were generated for …"; it now says what it is about to do.
+
+- **`IClassCodeGeneratorFactory` covers both emitters.** It offered only the Delivery generator while the Management path constructed its own directly — a seam that looked like the way in and was not. It now has a method per emitter, and the Management path goes through it.
+
+- **The config-file documentation matches where the tool actually looks.** The README described `appSettings.json` as living beside the executable; the tool reads it from the working directory, and as a `dotnet tool` it has no executable directory to speak of. The file is also not installed with the tool, so the README now points at it as a template to copy.
+
 - **Management mode no longer skips elements over identifiers it never emits.** Every content type reserved the names the Delivery emitter uses for its codename constants — `{Property}Codename` for each element, plus the type's own `ContentTypeCodename` — regardless of mode. The Management emitter writes none of those, so the reservation only rejected valid input there: a type carrying both `title` and `title_codename` had the second skipped with a collision warning, and an element codenamed `content_type_codename` was renamed for no reason. Constant registration is now the Delivery emitter's, so Management mode has the whole identifier space its own output uses.
 
 - **`--baseRecord` is rejected at startup when it is not a valid C# record name.** `-b "My-Base"` wrote `public partial record My-Base` and an extender deriving every generated model from it, so the whole output failed to compile over one argument. The name is checked before any API call and reported like any other configuration problem.
