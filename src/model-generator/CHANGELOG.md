@@ -9,6 +9,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **`--management` together with `--baseRecord` no longer emits code that cannot compile.** The generated base record and its extender both carried a hardcoded `using Kontent.Ai.Delivery.Abstractions;`. A project generated for the Management SDK has no reason to reference the Delivery SDK, so that line was a `CS0246` in a file the consumer never wrote. Neither it nor the `using System;` beside it was referenced by the emitted code in either mode; both are gone.
+
 ## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
 Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release rather than a continuation of the `10.3.0` line. Generated output is unchanged.
