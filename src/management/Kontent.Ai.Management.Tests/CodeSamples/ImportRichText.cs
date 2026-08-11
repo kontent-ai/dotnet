@@ -16,13 +16,13 @@ public class ImportRichText
 
     private const string SampleFolder = "CodeSamples";
 
-    // DocSection: import_rich_create_button_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateButtonType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_rich_create_button_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             ExternalId = "button",
@@ -41,29 +41,31 @@ public class ImportRichText
                 },
             ]
         });
+        // EndDocSection
     }
 
-    // DocSection: import_rich_create_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_rich_create_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         await client.UpsertContentItemAsync(Reference.ByExternalId("simple-example"), new ContentItemUpsertModel
         {
             Name = "Simple example",
             Type = Reference.ByExternalId("simple-rich-text"),
         });
+        // EndDocSection
     }
 
-    // DocSection: import_rich_create_simple_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateCreateSimpleType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_rich_create_simple_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             Name = "Simple Rich Text",
@@ -77,15 +79,16 @@ public class ImportRichText
                 },
             ]
         });
+        // EndDocSection
     }
 
-    // DocSection: import_rich_upsert_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task UpsertVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_rich_upsert_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("123"), Reference.ByCodename("en-US"));
 
         await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
@@ -112,5 +115,6 @@ public class ImportRichText
                 },
             ],
         });
+        // EndDocSection
     }
 }

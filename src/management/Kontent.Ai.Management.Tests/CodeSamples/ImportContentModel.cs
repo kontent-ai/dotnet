@@ -16,13 +16,13 @@ public class ImportContentModel
 
     private const string SampleFolder = "CodeSamples";
 
-    // DocSection: import_model_create_snippet
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateSnippet()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_model_create_snippet
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
         {
             Name = "Metadata",
@@ -46,15 +46,16 @@ public class ImportContentModel
                 },
             ]
         });
+        // EndDocSection
     }
 
-    // DocSection: import_model_create_taxonomy
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateTaxonomy()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_model_create_taxonomy
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
         {
             Name = "Blogpost topic",
@@ -109,15 +110,16 @@ public class ImportContentModel
                 },
             ]
         });
+        // EndDocSection
     }
 
-    // DocSection: import_model_create_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: import_model_create_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             Name = "Blogpost",
@@ -172,5 +174,6 @@ public class ImportContentModel
                 }
             ]
         });
+        // EndDocSection
     }
 }
