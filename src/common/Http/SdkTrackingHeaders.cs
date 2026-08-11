@@ -87,11 +87,19 @@ internal static class SdkTrackingHeaders
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static Assembly? FindOriginatingAssembly(Assembly sdkAssembly)
-        => new StackTrace().GetFrames()
+    {
+        // Compared by simple name, not by full name: a full name carries the version, and nothing pins
+        // AssemblyVersion, so the reference an integration recorded when it was built stops matching the
+        // SDK it is running against on the first release after that. Attribution would go silently
+        // missing for every consumer who had not rebuilt.
+        var sdkName = sdkAssembly.GetName().Name;
+
+        return new StackTrace().GetFrames()
             .Select(frame => frame.GetMethod()?.ReflectedType?.Assembly)
             .Distinct()
             .OfType<Assembly>()
             .LastOrDefault(assembly => assembly
                 .GetReferencedAssemblies()
-                .Any(referenced => referenced.FullName == sdkAssembly.FullName));
+                .Any(referenced => string.Equals(referenced.Name, sdkName, StringComparison.OrdinalIgnoreCase)));
+    }
 }
