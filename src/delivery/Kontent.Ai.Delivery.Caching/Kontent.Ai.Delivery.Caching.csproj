@@ -16,6 +16,12 @@
     <ProjectReference Include="..\Kontent.Ai.Delivery\Kontent.Ai.Delivery.csproj" />
   </ItemGroup>
 
+  <!-- No $(KontentCommonPath) includes here on purpose. This package sees Kontent.Ai.Delivery's internals
+       through InternalsVisibleTo, which it needs for RefitSettingsProvider anyway, and that brings the
+       shared types with it. Compiling a second copy of one only produces CS0436 ambiguity at every use.
+       The usual cross-package hazard does not apply: the two ship in lockstep on one version, so they
+       cannot drift apart the way separately versioned products can. -->
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Kontent.Ai.Delivery.Tests</_Parameter1>

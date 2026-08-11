@@ -1,13 +1,13 @@
 ﻿// Kontent.Ai.Sync
 public enum ApiMode
-    Preview
-    Public
-    Secure
+    Preview = 1
+    Public = 0
+    Secure = 2
 
 // Kontent.Ai.Sync
 public enum ChangeType
-    Changed
-    Deleted
+    Changed = 0
+    Deleted = 1
 
 // Kontent.Ai.Sync
 public interface IError

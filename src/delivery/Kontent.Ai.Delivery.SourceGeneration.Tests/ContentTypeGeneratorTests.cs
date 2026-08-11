@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using AwesomeAssertions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Xunit;
 
 namespace Kontent.Ai.Delivery.SourceGeneration.Tests;
 

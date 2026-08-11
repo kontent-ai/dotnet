@@ -1,0 +1,5 @@
+﻿// Kontent.Ai.Delivery.SourceGeneration
+public sealed class ContentTypeGenerator : IIncrementalGenerator
+    .ctor()
+    Void Initialize(IncrementalGeneratorInitializationContext context)
+

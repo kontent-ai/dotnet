@@ -1,0 +1,321 @@
+﻿// Kontent.Ai.ModelGenerator.Core
+public class CodeGeneratorBase
+    Task<Int32> RunAsync()
+
+// Kontent.Ai.ModelGenerator.Core
+public class DeliveryCodeGenerator : CodeGeneratorBase
+    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IDeliveryClient deliveryClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IClassDefinitionFactory classDefinitionFactory, IUserMessageLogger logger)
+
+// Kontent.Ai.ModelGenerator.Core
+public class ManagementCodeGenerator : CodeGeneratorBase
+    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IManagementClient managementClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IClassDefinitionFactory classDefinitionFactory, IManagementElementService elementService, IUserMessageLogger logger)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class AssetElementInput : ManagementElementInput, IEquatable<AssetElementInput>
+    .ctor(String Codename, String Id)
+    AssetElementInput <Clone>$()
+    Boolean Equals(AssetElementInput? other)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class AttributeArg
+    .ctor(Object value, String? name)
+    Object Value { get; }
+    String? Name { get; }
+    static AttributeArg Named(String name, Object value)
+    static AttributeArg Positional(Object value)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class AttributeSpec
+    .ctor(String name, IReadOnlyList<AttributeArg>? arguments)
+    IReadOnlyList<AttributeArg> Arguments { get; }
+    String Name { get; }
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class ClassCodeGeneratorFactory : IClassCodeGeneratorFactory
+    .ctor()
+    ClassCodeGenerator CreateClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class ClassDefinition
+    const String ContentTypeCodenameIdentifier = ContentTypeCodename
+    .ctor(String codeName, Boolean emitsCodenameConstants)
+    IReadOnlySet<String> RenamedCodenameConstants { get; }
+    List<EnumDefinition> Enums { get; }
+    List<Property> Properties { get; }
+    List<String> PropertyCodenameConstants { get; }
+    String ClassName { get; }
+    String Codename { get; }
+    String? Id { get; set; }
+    Void AddEnum(EnumDefinition definition)
+    Void AddProperty(Property property)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class ClassDefinitionFactory : IClassDefinitionFactory
+    .ctor()
+    ClassDefinition CreateClassDefinition(String codename)
+    ClassDefinition CreateClassDefinitionWithoutCodenameConstants(String codename)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class CustomElementInput : ManagementElementInput, IEquatable<CustomElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(CustomElementInput? other)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    CustomElementInput <Clone>$()
+    Int32 GetHashCode()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class DateTimeElementInput : ManagementElementInput, IEquatable<DateTimeElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(DateTimeElementInput? other)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    DateTimeElementInput <Clone>$()
+    Int32 GetHashCode()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class EnumDefinition
+    .ctor(String name, IReadOnlyList<EnumMember> members)
+    IReadOnlyList<EnumMember> Members { get; }
+    String Name { get; }
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class EnumMember
+    .ctor(String identifier, IReadOnlyList<AttributeSpec> attributes)
+    IReadOnlyList<AttributeSpec> Attributes { get; }
+    String Identifier { get; }
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class InvalidIdentifierException : Exception
+    .ctor(String message)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class LinkedItemsElementInput : ManagementElementInput, IEquatable<LinkedItemsElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(LinkedItemsElementInput? other)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    LinkedItemsElementInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class ManagementElementInput : IEquatable<ManagementElementInput>
+    String Codename { get; init; }
+    String Id { get; init; }
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    ManagementElementInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class ManagementElementOutput
+    .ctor(ManagementProperty property, IReadOnlyList<EnumDefinition>? enums)
+    IReadOnlyList<EnumDefinition> Enums { get; }
+    ManagementProperty Property { get; }
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class ManagementProperty : Property
+    .ctor(String codename, String typeName, String id, IReadOnlyList<AttributeSpec> attributes)
+    IReadOnlyList<AttributeSpec> Attributes { get; }
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class MultipleChoiceElementInput : ManagementElementInput, IEquatable<MultipleChoiceElementInput>
+    .ctor(String Codename, String Id, String EnumTypeName, IReadOnlyList<MultipleChoiceOptionInput> Options)
+    IReadOnlyList<MultipleChoiceOptionInput> Options { get; init; }
+    String EnumTypeName { get; init; }
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(MultipleChoiceElementInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    MultipleChoiceElementInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id, out String EnumTypeName, out IReadOnlyList<MultipleChoiceOptionInput> Options)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class MultipleChoiceOptionInput : IEquatable<MultipleChoiceOptionInput>
+    .ctor(String Codename, String Id)
+    String Codename { get; init; }
+    String Id { get; init; }
+    Boolean Equals(MultipleChoiceOptionInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    MultipleChoiceOptionInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class NumberElementInput : ManagementElementInput, IEquatable<NumberElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(NumberElementInput? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    NumberElementInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public class Property
+    .ctor(String codename, String typeName, String? id, String? initializer)
+    String Codename { get; }
+    String Identifier { get; }
+    String TypeName { get; }
+    String? Id { get; }
+    String? IdentifierOverride { get; init; }
+    String? Initializer { get; }
+    static Property FromContentTypeElement(String codename, String elementType)
+    static Property FromContentTypeElement(String codename, String elementType, NullabilityMode nullabilityMode)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class RichTextElementInput : ManagementElementInput, IEquatable<RichTextElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(RichTextElementInput? other)
+    Int32 GetHashCode()
+    RichTextElementInput <Clone>$()
+    String ToString()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class SnippetExpander
+    static IEnumerable<ElementMetadataBase> Expand(IEnumerable<ElementMetadataBase> elements, Func<Reference, ContentTypeSnippetModel?> resolveSnippet, Action<String> warn)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class SubpagesElementInput : ManagementElementInput, IEquatable<SubpagesElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(SubpagesElementInput? other)
+    Int32 GetHashCode()
+    String ToString()
+    SubpagesElementInput <Clone>$()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class TaxonomyElementInput : ManagementElementInput, IEquatable<TaxonomyElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TaxonomyElementInput? other)
+    Int32 GetHashCode()
+    String ToString()
+    TaxonomyElementInput <Clone>$()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class TextElementInput : ManagementElementInput, IEquatable<TextElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(TextElementInput? other)
+    Int32 GetHashCode()
+    String ToString()
+    TextElementInput <Clone>$()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Common
+public sealed class UrlSlugElementInput : ManagementElementInput, IEquatable<UrlSlugElementInput>
+    .ctor(String Codename, String Id)
+    Boolean Equals(ManagementElementInput? other)
+    Boolean Equals(Object? obj)
+    Boolean Equals(UrlSlugElementInput? other)
+    Int32 GetHashCode()
+    String ToString()
+    UrlSlugElementInput <Clone>$()
+    Void Deconstruct(out String Codename, out String Id)
+
+// Kontent.Ai.ModelGenerator.Core.Configuration
+public class CodeGeneratorOptions
+    .ctor()
+    DeliveryOptions? DeliveryOptions { get; set; }
+    ManagementOptions? ManagementOptions { get; set; }
+    NullabilityMode Nullability { get; set; }
+    String? BaseClass { get; set; }
+    String? BaseRecord { get; set; }
+    String? Namespace { get; set; }
+    String? OutputDir { get; set; }
+
+// Kontent.Ai.ModelGenerator.Core.Configuration
+public sealed class CodeGeneratorOptionsExtensions
+    static String? GetEnvironmentId(CodeGeneratorOptions options)
+
+// Kontent.Ai.ModelGenerator.Core.Configuration
+public enum NullabilityMode
+    Semantic = 1
+    Strict = 0
+
+// Kontent.Ai.ModelGenerator.Core.Contract
+public interface IClassCodeGeneratorFactory
+    ClassCodeGenerator CreateClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
+
+// Kontent.Ai.ModelGenerator.Core.Contract
+public interface IClassDefinitionFactory
+    ClassDefinition CreateClassDefinition(String codename)
+    ClassDefinition CreateClassDefinitionWithoutCodenameConstants(String codename)
+
+// Kontent.Ai.ModelGenerator.Core.Contract
+public interface IManagementElementService
+    ManagementElementOutput Build(ManagementElementInput input)
+
+// Kontent.Ai.ModelGenerator.Core.Contract
+public interface IOutputProvider
+    Boolean Output(String content, String fileName, Boolean overwriteExisting)
+
+// Kontent.Ai.ModelGenerator.Core.Contract
+public interface IUserMessageLogger
+    Task LogErrorAsync(String message)
+    Void LogInfo(String message)
+    Void LogWarning(String message)
+
+// Kontent.Ai.ModelGenerator.Core.Generators
+public class GeneralGenerator
+    readonly String Namespace
+
+// Kontent.Ai.ModelGenerator.Core.Generators.Class
+public class BaseClassCodeGenerator : GeneralGenerator
+    .ctor(CodeGeneratorOptions options)
+    String ExtenderClassName { get; }
+    String GenerateBaseClassCode()
+    String GenerateExtenderCode()
+    Void AddClassNameToExtend(String className)
+
+// Kontent.Ai.ModelGenerator.Core.Generators.Class
+public class ClassCodeGenerator : GeneralGenerator
+    const String DefaultNamespace = KontentAiModels
+    ClassDefinition ClassDefinition { get; }
+    String ClassFilename { get; }
+    String GenerateCode()
+
+// Kontent.Ai.ModelGenerator.Core.Generators.Class
+public sealed class DeliveryClassCodeGenerator : ClassCodeGenerator
+    .ctor(ClassDefinition classDefinition, String classFilename, String? namespace)
+
+// Kontent.Ai.ModelGenerator.Core.Generators.Class
+public sealed class ManagementClassCodeGenerator : ClassCodeGenerator
+    .ctor(ClassDefinition classDefinition, String classFilename, String? namespace)
+
+// Kontent.Ai.ModelGenerator.Core.Helpers
+public sealed class TextHelpers
+    static String GenerateCommentString(String customComment)
+    static String GetValidPascalCaseIdentifierName(String name)
+    static String NormalizeLineEndings(String text)
+
+// Kontent.Ai.ModelGenerator.Core.Services
+public sealed class ManagementElementService : IManagementElementService
+    .ctor()
+    ManagementElementOutput Build(ManagementElementInput input)
+

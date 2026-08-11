@@ -14,7 +14,7 @@ public sealed class CacheEntry`1<T> : IEquatable<CacheEntry<T>>
     CacheEntry<T> <Clone>$()
     Int32 GetHashCode()
     String ToString()
-    Void Deconstruct(T& Value, IEnumerable`1& Dependencies)
+    Void Deconstruct(out T Value, out IEnumerable<String> Dependencies)
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
@@ -27,12 +27,12 @@ public sealed class CacheResult`1<T> : IEquatable<CacheResult<T>>
     CacheResult<T> <Clone>$()
     Int32 GetHashCode()
     String ToString()
-    Void Deconstruct(T& Value, IReadOnlyList`1& DependencyKeys)
+    Void Deconstruct(out T Value, out IReadOnlyList<String> DependencyKeys)
 
 // Kontent.Ai.Delivery.Abstractions
 public enum CacheStorageMode
-    HydratedObject
-    RawJson
+    HydratedObject = 0
+    RawJson = 1
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheDependencies
@@ -614,13 +614,13 @@ public interface IUsedInItemSystemAttributes : ISystemAttributes, ISystemBaseAtt
 
 // Kontent.Ai.Delivery.Abstractions
 public enum LanguageFallbackMode
-    Disabled
-    Enabled
+    Disabled = 1
+    Enabled = 0
 
 // Kontent.Ai.Delivery.Abstractions
 public enum OrderingMode
-    Ascending
-    Descending
+    Ascending = 0
+    Descending = 1
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class RequiredIfAttribute : ValidationAttribute
@@ -629,8 +629,8 @@ public sealed class RequiredIfAttribute : ValidationAttribute
 
 // Kontent.Ai.Delivery.Abstractions
 public enum ResponseSource
-    Cache
-    Cdn
-    FailSafe
-    Origin
+    Cache = 2
+    Cdn = 1
+    FailSafe = 3
+    Origin = 0
 

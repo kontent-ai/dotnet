@@ -1,3 +1,4 @@
+using System.Globalization;
 // Shared test source, compiled into each test assembly - see src/testing/README.md.
 
 using System.Reflection;
@@ -93,7 +94,14 @@ internal static class PublicApiApproval
     {
         if (type.IsEnum)
         {
-            return Enum.GetNames(type).OrderBy(name => name, StringComparer.Ordinal);
+            // With the value: renumbering a member is a binary- and wire-breaking change that leaves the
+            // names identical, so a name-only snapshot would not show it.
+            var underlying = Enum.GetUnderlyingType(type);
+
+            return Enum.GetNames(type)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .Select(name =>
+                    $"{name} = {Convert.ChangeType(Enum.Parse(type, name), underlying, CultureInfo.InvariantCulture)}");
         }
 
         return Fields(type)
@@ -179,7 +187,21 @@ internal static class PublicApiApproval
         .OrderBy(rendered => rendered, StringComparer.Ordinal);
 
     private static string Parameters(MethodBase method) => string.Join(", ", method.GetParameters()
-        .Select(parameter => $"{TypeName(parameter.ParameterType, Nullability.Create(parameter))} {parameter.Name}"));
+        .Select(parameter =>
+            $"{RefKind(parameter)}{TypeName(parameter.ParameterType, Nullability.Create(parameter))} {parameter.Name}"));
+
+    /// <summary>
+    /// How the argument is passed. Part of the signature a caller has to write, and the three kinds are
+    /// otherwise indistinguishable in the snapshot.
+    /// </summary>
+    private static string RefKind(ParameterInfo parameter) => parameter.ParameterType.IsByRef
+        ? parameter switch
+        {
+            { IsOut: true } => "out ",
+            { IsIn: true } => "in ",
+            _ => "ref ",
+        }
+        : string.Empty;
 
     /// <summary>
     /// A <c>required</c> member is part of the contract: dropping it silently stops obliging callers to
@@ -208,6 +230,10 @@ internal static class PublicApiApproval
 
         var rendered = type switch
         {
+            // A byref type's own Name is the mangled "IEnumerable`1&", which loses the generic arguments -
+            // so changing an out parameter's element type used to leave the snapshot untouched. The ref
+            // kind itself is rendered with the parameter, where in/out/ref can be told apart.
+            { IsByRef: true } => TypeName(type.GetElementType()!, nullability),
             { IsArray: true } => $"{TypeName(type.GetElementType()!, nullability?.ElementType)}[]",
             { IsGenericType: true } => RenderGeneric(type, nullability),
             _ => type.Name,

@@ -66,7 +66,7 @@ So the full release flow is: merge feature PRs (each user-visible change adds to
 
 - Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history. Branch names: `TICKET-ID_Short_description`.
 - Keep each PR scoped: infra separate from per-product work; version bumps come only from the prepare-release workflow; floor raises in their own PR.
-- Public API surface is gated per product by approval snapshots (Verify, printer shared from `src/testing`). Review a `.received.txt` diff line by line before accepting it — only for intended changes.
+- Public API surface is gated per product by approval snapshots (Verify, printer shared from `src/testing`). Review a `.received.txt` diff line by line before accepting it — only for intended changes. Every shipped package has a gate except `Kontent.Ai.ModelGenerator`, which is `PackAsTool`: its contract is the command line, not a managed surface nobody references. Its arguments are covered by `ArgHelpers`/`Program` tests instead.
 
 ## Collaboration stance
 

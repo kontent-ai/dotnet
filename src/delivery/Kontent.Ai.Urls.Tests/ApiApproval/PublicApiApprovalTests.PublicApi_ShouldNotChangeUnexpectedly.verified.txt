@@ -1,22 +1,22 @@
 ﻿// Kontent.Ai.Urls.ImageTransformation
 public enum ImageCompression
-    Lossless
-    Lossy
+    Lossless = 0
+    Lossy = 1
 
 // Kontent.Ai.Urls.ImageTransformation
 public enum ImageFitMode
-    Clip
-    Crop
-    Scale
+    Clip = 0
+    Crop = 2
+    Scale = 1
 
 // Kontent.Ai.Urls.ImageTransformation
 public enum ImageFormat
-    Gif
-    Jpg
-    Pjpg
-    Png
-    Png8
-    Webp
+    Gif = 0
+    Jpg = 3
+    Pjpg = 4
+    Png = 1
+    Png8 = 2
+    Webp = 5
 
 // Kontent.Ai.Urls.ImageTransformation
 public sealed class ImageUrlBuilder
