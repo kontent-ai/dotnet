@@ -34,8 +34,34 @@ internal sealed class ContentElementConverter : JsonConverter<ContentElement>
         };
     }
 
+    /// <remarks>
+    /// Writing the runtime type is what lets a cached content type survive a round trip through a
+    /// distributed cache: every element carries the wire's own "type" field, so <see cref="Read"/> routes
+    /// the payload back to the same class without a synthetic discriminator. Serializing by the declared
+    /// type instead would drop <see cref="TaxonomyElement.TaxonomyGroup"/> and
+    /// <see cref="MultipleChoiceElement.Options"/> silently.
+    /// </remarks>
     public override void Write(Utf8JsonWriter writer, ContentElement value, JsonSerializerOptions options)
-        => throw new NotSupportedException("Serialization of ContentElement is not supported.");
+    {
+        // Derived types are written by their own contract - this converter matches ContentElement exactly,
+        // so handing it the base type back would re-enter here forever.
+        if (value.GetType() == typeof(ContentElement))
+        {
+            WriteBaseElement(writer, value);
+            return;
+        }
+
+        JsonSerializer.Serialize(writer, value, value.GetType(), options);
+    }
+
+    private static void WriteBaseElement(Utf8JsonWriter writer, ContentElement value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("type", value.Type);
+        writer.WriteString("name", value.Name);
+        writer.WriteString("codename", value.Codename);
+        writer.WriteEndObject();
+    }
 
     private static ContentElement DeserializeBaseElement(JsonElement root)
     {
