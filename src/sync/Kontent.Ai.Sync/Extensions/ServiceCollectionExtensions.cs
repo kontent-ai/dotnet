@@ -391,11 +391,17 @@ public static class ServiceCollectionExtensions
                 var options = optionsMonitor.Get(name);
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
 
-                // The resilience pipeline owns timing: it bounds each attempt (see ConfigureDefaultResilience)
-                // and therefore the whole call. HttpClient's own 100-second default applies to the entire
-                // SendAsync - retries and backoff included - so it silently clipped the last attempt of a
-                // pipeline that is allowed to take longer than that.
-                httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+                // Timing is the pipeline's job only when the pipeline is the SDK's own: that one bounds every
+                // attempt (see ConfigureDefaultResilience), while HttpClient's 100-second ceiling covers the
+                // whole SendAsync - retries and backoff included - and so would clip a pipeline legitimately
+                // allowed to run longer. Nothing else bounds a request, so with resilience disabled, or with a
+                // caller-supplied pipeline whose shape we cannot know, that ceiling stays and a black-holed
+                // connection fails rather than hanging the caller forever. A caller who needs longer than the
+                // ceiling raises it through configureHttpClient, which is applied after this.
+                if (options.EnableResilience && configureResilience is null)
+                {
+                    httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+                }
             });
 
         ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);

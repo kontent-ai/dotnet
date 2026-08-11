@@ -1771,6 +1771,12 @@ services.AddDeliveryClient(
     });
 ```
 
+The default pipeline bounds each attempt at 30 seconds and then retries, which can legitimately outlast
+`HttpClient`'s own 100-second ceiling on the whole call - retries and backoff included - so that ceiling
+is lifted while the default pipeline is the one installed. Set `EnableResilience = false`, or replace the
+pipeline through `configureResilience`, and the ceiling applies again: nothing else would bound the
+request. Raise it with `configureHttpClient`, which runs after the SDK's own configuration.
+
 ## Important Considerations
 
 ### API Rate Limits

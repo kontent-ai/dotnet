@@ -18,11 +18,14 @@ internal static class SyncApiFactory
     /// <c>[resilience] → tracking → auth → primary</c> - matching the DI path's ordering so each retry
     /// re-runs tracking and auth fresh. Resilience is included only when <paramref name="resiliencePipeline"/>
     /// is supplied; <paramref name="primaryHandler"/> overrides the default <see cref="HttpClientHandler"/>.
+    /// <paramref name="pipelineBoundsAttempts"/> says whether that pipeline is the SDK's default one, which
+    /// carries the per-attempt timeout - only that one earns the removal of <see cref="HttpClient"/>'s ceiling.
     /// </summary>
     public static HttpClient CreateHttpClient(
         SyncOptions options,
         ISyncOptionsAccessor optionsAccessor,
         ResiliencePipeline<HttpResponseMessage>? resiliencePipeline = null,
+        bool pipelineBoundsAttempts = false,
         ILoggerFactory? loggerFactory = null,
         HttpMessageHandler? primaryHandler = null)
     {
@@ -44,13 +47,19 @@ internal static class SyncApiFactory
             ? tracking
             : new ResilienceHandler(resiliencePipeline) { InnerHandler = tracking };
 
-        return new HttpClient(outermost)
+        var httpClient = new HttpClient(outermost)
         {
             BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute),
-
-            // Matches the DI path: the resilience pipeline bounds each attempt, so HttpClient's own
-            // 100-second ceiling on the whole call would only clip it.
-            Timeout = System.Threading.Timeout.InfiniteTimeSpan,
         };
+
+        // Matches the DI path: HttpClient's 100-second ceiling covers the whole call, retries and backoff
+        // included, so it is lifted only for the default pipeline - the one that bounds each attempt itself.
+        // In every other case it is all that stops a black-holed connection from hanging the caller forever.
+        if (pipelineBoundsAttempts)
+        {
+            httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+        }
+
+        return httpClient;
     }
 }

@@ -53,10 +53,15 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
         Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
 
         _optionsAccessor = new SnapshotSyncOptionsAccessor(options);
+
+        // Only the default pipeline is known to bound each attempt, so only it lifts HttpClient's ceiling.
+        var usesDefaultResilience = options.EnableResilience && configureResilience is null;
+
         _ownedHttpClient = SyncApiFactory.CreateHttpClient(
             options,
             _optionsAccessor,
             BuildResiliencePipeline(options, configureResilience),
+            usesDefaultResilience,
             loggerFactory,
             primaryHandler);
 
