@@ -16,25 +16,26 @@ public class ImportContentItems
 
     private const string SampleFolder = "CodeSamples";
 
-    // DocSection: importing_create_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateContentItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: importing_create_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         await client.UpsertContentItemAsync(
             Reference.ByExternalId("ext-cafe-brno"),
             new ContentItemUpsertModel { Name = "Brno", Type = Reference.ByExternalId("cafe") });
+        // EndDocSection
     }
 
-    // DocSection: importing_create_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task CreateContentType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: importing_create_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             Codename = "cafe",
@@ -94,15 +95,16 @@ public class ImportContentItems
                 }
             ]
         });
+        // EndDocSection
     }
 
-    // DocSection: importing_upsert_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task UpsertLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: importing_upsert_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("ext-cafe-brno"), Reference.ByCodename("en-US"));
 
         var response = await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
@@ -118,5 +120,6 @@ public class ImportContentItems
                 new TextElement { Element = Reference.ByExternalId("email"), Value = "brnocafe@kontent.ai" },
             ]
         });
+        // EndDocSection
     }
 }

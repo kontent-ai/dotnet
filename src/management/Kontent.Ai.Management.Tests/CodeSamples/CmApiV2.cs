@@ -41,461 +41,500 @@ namespace Kontent.Ai.Management.Tests.CodeSamples;
 public class CmApiV2
 {
 
-    // IF YOU MAKE ANY CHANGE TO THIS FILE - ADJUST THE CODE SAMPLES
-    // USE FOLLOWING TEMPLATE
-
-    // DocSection: cm_api_v2_delete_asset
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-    // using Kontent.Ai.Management;
+    // IF YOU MAKE ANY CHANGE TO THIS FILE - ADJUST THE CODE SAMPLES AT
+    // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
     //
-    // var client = new ManagementClient(new ManagementOptions
-    // {
-    //     ApiKey = "<YOUR_API_KEY>",
-    //     EnvironmentId = "<YOUR_ENVIRONMENT_ID>"
-    // });
-    // 
-    // var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
-    // // var identifier = Reference.ByExternalId("which-brewing-fits-you");
-
-    // await client.DeleteAssetAsync(identifier);
-    // EndDocSection
+    // A section is what the docs publish, so it holds the sample and nothing else: the marker pair opens
+    // below the mock client and closes above the assertions, both of which are test scaffolding. Markers
+    // are written out in full, and the id on the opening one is the join key with the file of the same
+    // name in that repository - so it is not renamed casually.
+    // The shape, using the DeleteAsset sample below:
+    //
+    //     [Fact]
+    //     public async Task DeleteAsset()
+    //     {
+    //         var client = MockClientFactory.CreateForSample(SampleFolder);   <- outside the section
+    //
+    //         [open marker with the id]
+    //         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+    //         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
+    //         // var identifier = Reference.ByExternalId("which-brewing-fits-you");
+    //
+    //         await client.DeleteAssetAsync(identifier);
+    //         [close marker]
+    //
+    //         Assert.NotNull(response);                                       <- outside the section
+    //     }
+    //
+    // The published file adds the using and the real ManagementClient construction around that body.
 
     private const string SampleFolder = "CodeSamples";
 
-    // DocSection: cm_api_v2_delete_asset
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_asset
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var identifier = Reference.ByExternalId("which-brewing-fits-you");
 
         await client.DeleteAssetAsync(identifier);
+        // EndDocSection
     }
 
 
-    // DocSection: cm_api_v2_delete_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("59713");
 
         await client.DeleteContentItemAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_snippet
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteSnippet()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_snippet
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("baf884be-531f-441f-ae88-64205efdd0f6"));
         // var identifier = Reference.ByCodename("metadata");
         // var identifier = Reference.ByExternalId("snippet-type-123");
 
         await client.DeleteContentTypeSnippetAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_taxonomy_group
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteTaxonomyGroup()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_taxonomy_group
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("0be13600-e57c-577d-8108-c8d860330985"));
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
 
         await client.DeleteTaxonomyGroupAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("269202ad-1d9d-47fd-b3e8-bdb05b3e3cf0"));
         // var identifier = Reference.ByCodename("hosted_video");
         // var identifier = Reference.ByExternalId("Content-Type-123");
 
         await client.DeleteContentTypeAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
         await client.DeleteLanguageVariantAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_webhook
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteWebhook()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_webhook
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("d53360f7-79e1-42f4-a524-1b53a417d03e"));
 
         await client.DeleteWebhookAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_workflow
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteWorkflow()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_workflow
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("8bfdb62d-7aa1-473b-9d80-311ef93db108"));
         // var identifier = Reference.ByCodename("my_workflow");
 
         await client.DeleteWorkflowAsync(identifier);
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_delete_environment
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task DeleteEnvironment()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_delete_environment
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         await client.DeleteEnvironmentAsync();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_get_asset
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Asset.json");
 
+        // DocSection: cm_api_v2_get_asset
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var identifier = Reference.ByCodename("which-brewing-fits-you");
 
         var response = await client.GetAssetAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_assets
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetAssets()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Assets.json");
 
+        // DocSection: cm_api_v2_get_assets
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         IReadOnlyList<AssetModel> assets = (await client.ListAssetsAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(assets);
     }
 
-    // DocSection: cm_api_v2_get_rendition
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetRendition()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AssetRendition.json");
 
+        // DocSection: cm_api_v2_get_rendition
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = AssetRenditionIdentifier.ByIds(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"), Guid.Parse("ce559491-0fc1-494b-96f3-244bc095de57"));
         // var identifier = new AssetRenditionIdentifier(Reference.ByExternalId("which-brewing-fits-you"), Reference.ByExternalId("hero-image-rendition"));
 
         var response = await client.GetAssetRenditionAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_renditions
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetRenditions()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AssetRenditions.json");
 
+        // DocSection: cm_api_v2_get_renditions
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var assetReference = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var assetReference = Reference.ByExternalId("which-brewing-fits-you");
 
         IReadOnlyList<AssetRenditionModel> renditions = (await client.ListAssetRenditionsAsync(assetReference)).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(renditions);
     }
 
-    // DocSection: cm_api_v2_get_components_of_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetComponentsOfType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ContentItemsWithComponents.json");
 
+        // DocSection: cm_api_v2_get_components_of_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("6434e475-5a29-4866-9fd1-6d1ca873f5be"));
         // var identifier = Reference.ByCodename("article");
         // var identifier = Reference.ByExternalId("my-article-id");
 
         IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsOfContentTypeWithComponentsAsync(identifier)).EnsureSuccess();
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_content_collections
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetContentCollections()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Collections.json");
 
+        // DocSection: cm_api_v2_get_content_collections
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.GetCollectionsAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(2, response.Collections.Count());
     }
 
-    // DocSection: cm_api_v2_get_asset_folders
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetFolders()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AssetFolders.json");
 
+        // DocSection: cm_api_v2_get_asset_folders
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.GetAssetFoldersAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(2, response.Folders.Count());
         Assert.Single(response.Folders.First().Folders!);
     }
 
-    // DocSection: cm_api_v2_get_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ContentItem.json");
 
+        // DocSection: cm_api_v2_get_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("59713");
 
         var response = await client.GetContentItemAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
 
-    // DocSection: cm_api_v2_get_items
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetItems()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ContentItems.json");
 
+        // DocSection: cm_api_v2_get_items
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         IReadOnlyList<ContentItemModel> response = (await client.ListContentItemsAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_language
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetLanguage()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Language.json");
 
+        // DocSection: cm_api_v2_get_language
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("2ea66788-d3b8-5ff5-b37e-258502e4fd5d"));
         // var identifier = Reference.ByCodename("de-DE");
         // var identifier = Reference.ByExternalId("standard-german");
 
         var response = await client.GetLanguageAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_languages
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetLanguages()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Languages.json");
 
+        // DocSection: cm_api_v2_get_languages
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListLanguagesAsync()).EnsureSuccess().Count;
+        // EndDocSection
 
         Assert.Equal(1, count);
     }
 
-    // DocSection: cm_api_v2_get_project_information
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetProjectInformation()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Project.json");
 
+        // DocSection: cm_api_v2_get_project_information
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.GetEnvironmentInformationAsync();
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_snippet
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetSnippet()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Snippet.json");
 
+        // DocSection: cm_api_v2_get_snippet
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("baf884be-531f-441f-ae88-64205efdd0f6"));
         // var identifier = Reference.ByCodename("metadata");
         // var identifier = Reference.ByExternalId("snippet-type-123");
 
         var response = await client.GetContentTypeSnippetAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_snippets
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetSnippets()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Snippets.json");
 
+        // DocSection: cm_api_v2_get_snippets
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         IReadOnlyList<ContentTypeSnippetModel> response = (await client.ListContentTypeSnippetsAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_taxonomy_group
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetTaxonomyGroup()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "TaxonomyGroup.json");
 
+        // DocSection: cm_api_v2_get_taxonomy_group
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("0be13600-e57c-577d-8108-c8d860330985"));
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
 
         var response = await client.GetTaxonomyGroupAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_taxonomy_groups
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetTaxonomyGroups()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "TaxonomyGroups.json");
 
+        // DocSection: cm_api_v2_get_taxonomy_groups
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListTaxonomyGroupsAsync()).EnsureSuccess().Count;
+        // EndDocSection
 
         Assert.Equal(1, count);
     }
 
-    // DocSection: cm_api_v2_get_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetContentType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ContentType.json");
 
+        // DocSection: cm_api_v2_get_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("269202ad-1d9d-47fd-b3e8-bdb05b3e3cf0"));
         // var identifier = Reference.ByCodename("new_article");
         // var identifier = Reference.ByExternalId("article");
 
         var response = await client.GetContentTypeAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_types
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetContentTypes()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ContentTypes.json");
 
+        // DocSection: cm_api_v2_get_types
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
 
         IReadOnlyList<ContentTypeModel> response = (await client.ListContentTypesAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariant.json");
 
+        // DocSection: cm_api_v2_get_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "es-ES");
 
         var response = await client.GetLanguageVariantAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_published_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetPublishedLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariant.json");
 
+        // DocSection: cm_api_v2_get_published_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "es-ES");
 
         var response = await client.GetPublishedLanguageVariantAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_variants
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetLanguageVariants()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariants.json");
 
+        // DocSection: cm_api_v2_get_variants
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var identifier = Reference.ByCodename("on_roasts");
         // var identifier = Reference.ByExternalId("59713");
 
         var response = (await client.ListLanguageVariantsByItemAsync(identifier)).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_variants_of_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetLanguageVariantsByType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariantsOfType.json");
 
+        // DocSection: cm_api_v2_get_variants_of_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("b7aa4a53-d9b1-48cf-b7a6-ed0b182c4b89"));
         // var identifier = Reference.ByCodename("article");
         // var identifier = Reference.ByExternalId("my-article-id");
 
         IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsByTypeAsync(identifier)).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_components_of_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+    // Same endpoint and identifier as GetComponentsOfType, which is the one the docs extract under
+    // cm_api_v2_get_components_of_type; this one stays as a test over a different fixture.
     [Fact]
     public async Task GetVariantsWithComponentsOfType()
     {
@@ -510,153 +549,165 @@ public class CmApiV2
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_webhook
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetWebhook()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Webhook.json");
 
+        // DocSection: cm_api_v2_get_webhook
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990"));
 
         var response = await client.GetWebhookAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_webhooks
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetWebhooks()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Webhooks.json");
 
+        // DocSection: cm_api_v2_get_webhooks
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.ListWebhooksAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Single(response);
     }
 
-    // DocSection: cm_api_v2_get_workflows
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetWorkflows()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Workflows.json");
 
+        // DocSection: cm_api_v2_get_workflows
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.ListWorkflowsAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(2, response.Count);
     }
 
 
-    // DocSection: cm_api_v2_get_role
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetRole()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectRole.json");
 
+        // DocSection: cm_api_v2_get_role
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("a23d3727-3b16-4d94-9eb0-85225d29cfef"));
         //var identifier = Reference.ByCodename("project-manager");
 
         var response = await client.GetEnvironmentRoleAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_roles
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetRoles()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectRoles.json");
 
+        // DocSection: cm_api_v2_get_roles
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.ListEnvironmentRolesAsync()).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(2, response.Count);
     }
 
-    // DocSection: cm_api_v2_get_subscription_user
-    // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
     [Fact]
     public async Task GetSubscriptionUser()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUser.json");
 
+        // DocSection: cm_api_v2_get_subscription_user
+        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
         var identifier = UserIdentifier.ByEmail("Joe.Joe@kontent.ai");
         //var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         var response = await client.GetSubscriptionUserAsync(identifier);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_get_subscription_users
-    // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
     [Fact]
     public async Task GetSubscriptionUsers()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUsers.json");
 
+        // DocSection: cm_api_v2_get_subscription_users
+        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
         var count = (await client.ListSubscriptionUsersAsync()).EnsureSuccess().Count;
+        // EndDocSection
 
         Assert.Equal(2, count);
     }
 
-    // DocSection: cm_api_v2_get_subscription_projects
-    // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
     [Fact]
     public async Task GetSubscriptionProjects()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionProjects.json");
 
+        // DocSection: cm_api_v2_get_subscription_projects
+        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
         var count = (await client.ListSubscriptionProjectsAsync()).EnsureSuccess().Count;
+        // EndDocSection
 
         Assert.Equal(2, count);
     }
 
-    // DocSection: cm_api_v2_get_environment_status
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetEnvironmentCloningState()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "EnvironmentCloningState.json");
 
+        // DocSection: cm_api_v2_get_environment_status
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.GetEnvironmentCloningStateAsync();
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: mapi_v2_get_validation_task
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetValidationTask()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AsyncValidationTask.json");
 
+        // DocSection: mapi_v2_get_validation_task
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.GetAsyncValidationTaskAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"));
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: mapi_v2_get_validation_issues
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task GetValidationIssues()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AsyncValidationTaskIssues.json");
 
+        // DocSection: mapi_v2_get_validation_issues
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var result = await client.ListAsyncValidationTaskIssuesAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"));
+        // EndDocSection
+
         Assert.True(result.IsSuccess);
     }
 
-    // DocSection: cm_api_v2_patch_asset_folders
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchAssetFolders()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchAssetsFolderResponse.json");
 
+        // DocSection: cm_api_v2_patch_asset_folders
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.ModifyAssetFoldersAsync(
         [
             new AssetFolderAddIntoPatchModel
@@ -679,18 +730,19 @@ public class CmApiV2
                 Value = "Legal documents"
             }
         ])).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(3, response.Folders.Count());
         Assert.Single(response.Folders.Skip(1).First().Folders!);
     }
 
-    // DocSection: cm_api_v2_patch_content_collections
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchContentCollections()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Collections.json");
 
+        // DocSection: cm_api_v2_patch_content_collections
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.ModifyCollectionsAsync(
         [
             new CollectionAddIntoPatchModel
@@ -718,17 +770,18 @@ public class CmApiV2
                 Reference = Reference.ByCodename("second_collection")
             }
         ])).EnsureSuccess();
+        // EndDocSection
 
         Assert.Equal(2, response.Collections.Count());
     }
 
-    // DocSection: cm_api_v2_patch_language
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchLanguage()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchLanguageResponse.json");
 
+        // DocSection: cm_api_v2_patch_language
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("2ea66788-d3b8-5ff5-b37e-258502e4fd5d"));
         // var identifier = Reference.ByCodename("de-DE");
         // var identifier = Reference.ByExternalId("standard-german");
@@ -739,17 +792,18 @@ public class CmApiV2
             LanguagePatch.FallbackLanguage(Reference.ByCodename("en-US")),
             LanguagePatch.Name("Deutsch"),
         ]);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_patch_snippet
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchSnippet()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchSnippetResponse.json");
 
+        // DocSection: cm_api_v2_patch_snippet
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("baf884be-531f-441f-ae88-64205efdd0f6"));
         // var identifier = Reference.ByCodename("my_metadata_snippet");
         // var identifier = Reference.ByExternalId("my-metadata-snippet-id");
@@ -778,17 +832,18 @@ public class CmApiV2
                 Reference.ById(Guid.Parse("8e6ec8b1-6510-4b9b-b4be-6c977f4bdfbc")),
                 Reference.ById(Guid.Parse("6bfe5a60-5cc2-4303-8f72-9cc53431046b")))
         ]);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_patch_taxonomy_group
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchTaxonomyGroup()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchTaxonomyGroupResponse.json");
 
+        // DocSection: cm_api_v2_patch_taxonomy_group
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("0be13600-e57c-577d-8108-c8d860330985"));
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
@@ -829,17 +884,18 @@ public class CmApiV2
                 Before = Reference.ByCodename("first_term")
             }
         ]);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_patch_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchContentType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchContentTypeResponse.json");
 
+        // DocSection: cm_api_v2_patch_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("0be13600-e57c-577d-8108-c8d860330985"));
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("my-article-id");
@@ -868,17 +924,18 @@ public class CmApiV2
                 Reference.ById(Guid.Parse("d66ffa49-86ff-eeaa-c33b-e5d9eefe8b81")),
                 Reference.ById(Guid.Parse("523e6231-8d80-a158-3601-dffde4e64a78")))
         ]);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_patch_environment
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PatchEnvironment()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Environment.json");
 
+        // DocSection: cm_api_v2_patch_environment
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.ModifyEnvironmentAsync(
         [
             new EnvironmentRenamePatchModel
@@ -886,17 +943,18 @@ public class CmApiV2
                 Value = "My Little Production"
             }
         ]);
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_asset
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostAssetResponse.json");
 
+        // DocSection: cm_api_v2_post_asset
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateAssetAsync(new AssetCreateModel
         {
             FileReference = new FileReference
@@ -932,17 +990,18 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_asset_folders
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostAssetFolders()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostAssetFoldersResponse.json");
 
+        // DocSection: cm_api_v2_post_asset_folders
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateAssetFoldersAsync(new AssetFolderCreateModel
         {
             Folders =
@@ -962,17 +1021,18 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_rendition
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostAssetRendition()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AssetRendition.json");
 
+        // DocSection: cm_api_v2_post_rendition
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var assetReference = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var assetReference = Reference.ByExternalId("which-brewing-fits-you");
 
@@ -989,33 +1049,35 @@ public class CmApiV2
                 Height = 720,
             }
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_file
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostFile()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostFileResponse.json");
 
+        // DocSection: cm_api_v2_post_file
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var filePath = Path.Combine(Environment.CurrentDirectory, "Data", "which-brewing-fits-you-1080px.jpg");
         var contentType = "image/jpeg";
 
         // Binary file reference to be used when adding a new asset
         var response = await client.UploadFileAsync(new FileContentSource(filePath, contentType));
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostItemResponse.json");
 
+        // DocSection: cm_api_v2_post_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentItemAsync(new ContentItemCreateModel
         {
             Name = "On Roasts",
@@ -1024,18 +1086,19 @@ public class CmApiV2
             Collection = Reference.ByDefaultCodename(),
             ExternalId = "59713",
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
 
-    // DocSection: cm_api_v2_post_language
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostLanguage()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostLanguageResponse.json");
 
+        // DocSection: cm_api_v2_post_language
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateLanguageAsync(new LanguageCreateModel
         {
             Name = "German (Germany)",
@@ -1044,17 +1107,18 @@ public class CmApiV2
             FallbackLanguage = Reference.ByCodename("de-AT"),
             ExternalId = "standard-german"
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_snippet
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostSnippet()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostSnippetResponse.json");
 
+        // DocSection: cm_api_v2_post_snippet
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
         {
             Name = "metadata",
@@ -1078,17 +1142,18 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_taxonomy_group
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostTaxonomyGroup()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostTaxonomyGroupResponse.json");
 
+        // DocSection: cm_api_v2_post_taxonomy_group
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
         {
             Name = "Personas",
@@ -1138,17 +1203,18 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_type
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostType()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostTypeResponse.json");
 
+        // DocSection: cm_api_v2_post_type
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             ExternalId = "article",
@@ -1191,29 +1257,31 @@ public class CmApiV2
                 },
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_validate
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostValidate()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostValidateResponse.json");
 
+        // DocSection: cm_api_v2_post_validate
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.ValidateEnvironmentAsync();
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_webhook
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostWebhook()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostWebhookResponse.json");
 
+        // DocSection: cm_api_v2_post_webhook
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateWebhookAsync(new WebhookCreateModel
         {
             Name = "Example webhook",
@@ -1309,17 +1377,18 @@ public class CmApiV2
                 Events =  WebhookEvents.Specific
             }
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_workflow
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostWorkflow()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Workflow.json");
 
+        // DocSection: cm_api_v2_post_workflow
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CreateWorkflowAsync(new WorkflowUpsertModel
         {
             Name = "My workflow",
@@ -1367,17 +1436,18 @@ public class CmApiV2
             },
             ArchivedStep = new WorkflowArchivedStepUpsertModel()
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_post_user
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostUser()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectUser.json");
 
+        // DocSection: cm_api_v2_post_user
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.InviteUserIntoEnvironmentAsync(new UserInviteModel
         {
             Email = "user@example.com",
@@ -1401,17 +1471,18 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_clone_environment
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostCloneEnvironment()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ClonedEnvironment.json");
 
+        // DocSection: cm_api_v2_clone_environment
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.CloneEnvironmentAsync(new EnvironmentCloneModel
         {
             Name = "New environment",
@@ -1422,29 +1493,31 @@ public class CmApiV2
                 ContentItemVersionHistory = false
             }
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: mapi_v2_post_validate_async
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PostValidateEnvironment()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AsyncValidationTask.json");
 
+        // DocSection: mapi_v2_post_validate_async
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = await client.InitiateEnvironmentAsyncValidationTaskAsync();
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_put_asset
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PutAssetResponse.json");
 
+        // DocSection: cm_api_v2_put_asset
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ByExternalId("which-brewing-fits-you");
         // var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
 
@@ -1515,18 +1588,19 @@ public class CmApiV2
                 }
             ]
         });
+        // EndDocSection
 
         Assert.NotNull(createdAssetResponse);
         Assert.NotNull(updatedAssetResponse);
     }
 
-    // DocSection: cm_api_v2_put_rendition
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutAssetRendition()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "AssetRendition.json");
 
+        // DocSection: cm_api_v2_put_rendition
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = AssetRenditionIdentifier.ByIds(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"), Guid.Parse("ce559491-0fc1-494b-96f3-244bc095de57"));
         // var identifier = new AssetRenditionIdentifier(Reference.ByExternalId("which-brewing-fits-you"), Reference.ByExternalId("hero-image-rendition"));
 
@@ -1542,17 +1616,18 @@ public class CmApiV2
                 Height = 720,
             }
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_put_item
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutItem()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PutItemResponse.json");
 
+        // DocSection: cm_api_v2_put_item
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ByExternalId("59713");
         // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var identifier = Reference.ByCodename("my_article");
@@ -1565,17 +1640,18 @@ public class CmApiV2
             // 'Type' is only required when creating a new content item
             Type = Reference.ByCodename("article"),
         });
+        // EndDocSection
 
         Assert.NotNull(upsertedItemResponse);
     }
 
-    // DocSection: cm_api_v2_put_variant
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PutLanguageVariantResponse.json");
 
+        // DocSection: cm_api_v2_put_variant
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
@@ -1628,109 +1704,104 @@ public class CmApiV2
                 },
                 Workflow = new WorkflowStepIdentifier(Reference.ByDefaultCodename(), Reference.ByCodename("review"))
             });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_put_variant_cancel_schedule
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutLanguageVariantCancelSchedule()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_variant_cancel_schedule
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
-        var exception = await Record.ExceptionAsync(async () => await client.CancelPublishingOfLanguageVariantAsync(identifier));
-
-        Assert.Null(exception);
+        (await client.CancelPublishingOfLanguageVariantAsync(identifier)).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_var_cancel_sched_unpublish
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutCancelUnpublishingOfLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_var_cancel_sched_unpublish
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
-        var exception = await Record.ExceptionAsync(async () => await client.CancelUnpublishingOfLanguageVariantAsync(identifier));
-
-        Assert.Null(exception);
+        (await client.CancelUnpublishingOfLanguageVariantAsync(identifier)).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_variant_create_new_version
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutLanguageVariantNewVersion()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_variant_create_new_version
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
-        var exception = await Record.ExceptionAsync(async () => await client.CreateNewVersionOfLanguageVariantAsync(identifier));
-        Assert.Null(exception);
+        (await client.CreateNewVersionOfLanguageVariantAsync(identifier)).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_variant_publish_or_schedule
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutPublishLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_variant_publish_or_schedule
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
         // Immediate publish
-        var immediateException = await Record.ExceptionAsync(async () => await client.PublishLanguageVariantAsync(identifier));
+        (await client.PublishLanguageVariantAsync(identifier)).EnsureSuccess();
 
         // Scheduled publish
-        var scheduledPublishException = await Record.ExceptionAsync(async () => await client.SchedulePublishingOfLanguageVariantAsync(identifier, new ScheduleModel
+        (await client.SchedulePublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
-            ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
-            DisplayTimeZone = "Europe/London"
-        }));
-
-        Assert.Null(immediateException);
-        Assert.Null(scheduledPublishException);
+        ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
+        DisplayTimeZone = "Europe/London"
+        })).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_variant_unpublish_archive
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutUnpublishLanguageVariant()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_variant_unpublish_archive
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
         // Immediate unpublish
-        var immediateException = await Record.ExceptionAsync(async () => await client.UnpublishLanguageVariantAsync(identifier));
+        (await client.UnpublishLanguageVariantAsync(identifier)).EnsureSuccess();
 
         // Scheduled unpublish
-        var scheduledUnpublishException = await Record.ExceptionAsync(async () => await client.ScheduleUnpublishingOfLanguageVariantAsync(identifier, new ScheduleModel
+        (await client.ScheduleUnpublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
-            ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
-            DisplayTimeZone = "Europe/London"
-        }));
-
-        Assert.Null(immediateException);
-        Assert.Null(scheduledUnpublishException);
+        ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
+        DisplayTimeZone = "Europe/London"
+        })).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_variant_workflow
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutVariantWorkflow()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
+        // DocSection: cm_api_v2_put_variant_workflow
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var itemIdentifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var itemIdentifier = Reference.ByCodename("my_article");
         // var itemIdentifier = Reference.ByExternalId("59713");
@@ -1740,53 +1811,50 @@ public class CmApiV2
 
         var workflowStepIdentifier = Reference.ById(Guid.Parse("16221cc2-bd22-4414-a513-f3e555c0fc93"));
 
-        var exception = await Record.ExceptionAsync(async () =>
-                await client.ChangeLanguageVariantWorkflowAsync(
-                    new LanguageVariantIdentifier(itemIdentifier, languageIdentifier),
-                    new ChangeLanguageVariantWorkflowModel(Reference.ByDefaultId(), workflowStepIdentifier)
+        (await client.ChangeLanguageVariantWorkflowAsync(
+                new LanguageVariantIdentifier(itemIdentifier, languageIdentifier),
+                new ChangeLanguageVariantWorkflowModel(Reference.ByDefaultId(), workflowStepIdentifier)
+                {
+                    DueDate = new DueDateModel
                     {
-                        DueDate = new DueDateModel
-                        {
-                            Value = DateTime.UtcNow.AddDays(42)
-                        },
-                        Contributors = [UserIdentifier.ByEmail("user@kontent.ai")],
-                        Note = "Moving this to the next workflow step."
-                    }
-                    ));
-        Assert.Null(exception);
+                        Value = DateTime.UtcNow.AddDays(42)
+                    },
+                    Contributors = [UserIdentifier.ByEmail("user@kontent.ai")],
+                    Note = "Moving this to the next workflow step."
+                }
+                )).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: mapi_v2_disable_webhook
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutDisableWebhook()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
-        var exception = await Record.ExceptionAsync(async () =>
-            await client.DisableWebhookAsync(Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990"))));
-        Assert.Null(exception);
+        // DocSection: mapi_v2_disable_webhook
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        (await client.DisableWebhookAsync(Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990")))).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: mapi_v2_enable_webhook
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutEnableWebhook()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
-        var exception = await Record.ExceptionAsync(async () =>
-            await client.EnableWebhookAsync(Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990"))));
-        Assert.Null(exception);
+        // DocSection: mapi_v2_enable_webhook
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        (await client.EnableWebhookAsync(Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990")))).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_workflow
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutWorkflow()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Workflow.json");
 
+        // DocSection: cm_api_v2_put_workflow
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ByCodename("my_workflow");
         // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
 
@@ -1837,17 +1905,18 @@ public class CmApiV2
             },
             ArchivedStep = new WorkflowArchivedStepUpsertModel()
         });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_put_user
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutUser()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectUser.json");
 
+        // DocSection: cm_api_v2_put_user
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
         //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
 
@@ -1871,55 +1940,50 @@ public class CmApiV2
                     }
                 ]
             });
+        // EndDocSection
 
         Assert.NotNull(response);
     }
 
-    // DocSection: cm_api_v2_put_subscription_user_activate
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutSubscriptionUserActivate()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_put_subscription_user_activate
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
         //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
 
-        var exception = await Record.ExceptionAsync(
-            async () => await client.ActivateSubscriptionUserAsync(identifier));
-
-        Assert.Null(exception);
+        (await client.ActivateSubscriptionUserAsync(identifier)).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_put_subscription_user_deactivate
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutSubscriptionUserDeactivate()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
+        // DocSection: cm_api_v2_put_subscription_user_deactivate
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
         //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
 
-        var exception = await Record.ExceptionAsync(
-            async () => await client.DeactivateSubscriptionUserAsync(identifier));
-
-        Assert.Null(exception);
+        (await client.DeactivateSubscriptionUserAsync(identifier)).EnsureSuccess();
+        // EndDocSection
     }
 
-    // DocSection: cm_api_v2_mark_environment_as_production
-    // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
     [Fact]
     public async Task PutMarkEnvironmentAsProduction()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
-        var exception = await Record.ExceptionAsync(
-            async () => await client.MarkEnvironmentAsProductionAsync(new MarkAsProductionModel
-            {
-                EnableWebhooks = true
-            }));
-
-        Assert.Null(exception);
+        // DocSection: cm_api_v2_mark_environment_as_production
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        (await client.MarkEnvironmentAsProductionAsync(new MarkAsProductionModel
+        {
+            EnableWebhooks = true
+        })).EnsureSuccess();
+        // EndDocSection
     }
 }
