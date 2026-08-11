@@ -137,4 +137,38 @@ public class ValidationExtensionsTests
         call.Should().Throw<InvalidOperationException>()
             .Which.Message.Should().Contain("EnvironmentId").And.Contain("ApiKey");
     }
+
+    [Theory]
+    [InlineData("My-Base")]
+    [InlineData("1Base")]
+    [InlineData("My Base")]
+    public void Validate_InvalidBaseRecordName_Throws(string baseRecord)
+    {
+        // Written into the generated code verbatim, so anything that is not an identifier produces a file
+        // that cannot compile - and an extender deriving every model from it.
+        var options = new CodeGeneratorOptions
+        {
+            DeliveryOptions = new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString() },
+            BaseRecord = baseRecord
+        };
+
+        var act = () => options.Validate();
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*not a valid C# record name*");
+    }
+
+    [Theory]
+    [InlineData("MyBase")]
+    [InlineData("_Base")]
+    [InlineData(null)]
+    public void Validate_ValidOrAbsentBaseRecordName_DoesNotThrow(string? baseRecord)
+    {
+        var options = new CodeGeneratorOptions
+        {
+            DeliveryOptions = new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString() },
+            BaseRecord = baseRecord
+        };
+
+        options.Invoking(o => o.Validate()).Should().NotThrow();
+    }
 }

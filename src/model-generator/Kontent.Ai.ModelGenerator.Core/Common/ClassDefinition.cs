@@ -2,7 +2,14 @@ using Kontent.Ai.ModelGenerator.Core.Helpers;
 
 namespace Kontent.Ai.ModelGenerator.Core.Common;
 
-public class ClassDefinition(string codeName)
+/// <param name="codeName">The content type's codename.</param>
+/// <param name="emitsCodenameConstants">
+/// Whether the generated record will carry the <c>{Property}Codename</c> constants and the type's own
+/// <see cref="ContentTypeCodenameIdentifier"/>. Only the Delivery emitter writes those, so only it can
+/// collide over them - reserving the names in Management mode rejected element pairs that would have
+/// generated perfectly well, and renamed a <c>content_type_codename</c> element for no reason.
+/// </param>
+public class ClassDefinition(string codeName, bool emitsCodenameConstants = true)
 {
     public const string ContentTypeCodenameIdentifier = "ContentTypeCodename";
 
@@ -18,10 +25,9 @@ public class ClassDefinition(string codeName)
     /// and <c>my__element</c>, or <c>title</c> against <c>title_codename</c> - through into generated
     /// code that does not compile.
     /// </remarks>
-    private readonly Dictionary<string, string> _identifierOwners = new(StringComparer.Ordinal)
-    {
-        [ContentTypeCodenameIdentifier] = codeName,
-    };
+    private readonly Dictionary<string, string> _identifierOwners = emitsCodenameConstants
+        ? new(StringComparer.Ordinal) { [ContentTypeCodenameIdentifier] = codeName }
+        : new(StringComparer.Ordinal);
 
     private readonly HashSet<string> _renamedCodenameConstants = [];
 
@@ -63,6 +69,15 @@ public class ClassDefinition(string codeName)
     public void AddProperty(Property property)
     {
         ArgumentNullException.ThrowIfNull(property);
+
+        if (!emitsCodenameConstants)
+        {
+            EnsureAvailable(property.Identifier, property.Codename);
+            _identifierOwners[property.Identifier] = property.Codename;
+            Properties.Add(property);
+
+            return;
+        }
 
         if (property.Identifier == ContentTypeCodenameIdentifier)
         {

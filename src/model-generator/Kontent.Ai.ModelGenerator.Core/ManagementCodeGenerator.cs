@@ -65,7 +65,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
         ContentTypeModel contentType,
         Func<Reference, ContentTypeSnippetModel?> resolveSnippet)
     {
-        var classDefinition = ClassDefinitionFactory.CreateClassDefinition(contentType.Codename);
+        var classDefinition = ClassDefinitionFactory.CreateClassDefinitionWithoutCodenameConstants(contentType.Codename);
         if (contentType.Id != Guid.Empty)
         {
             classDefinition.Id = contentType.Id.ToString();
