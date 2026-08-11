@@ -24,6 +24,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The doc samples for importing content check their results.** Every one of the nineteen discarded the `IManagementResult` it received, so a failed call passed the test and the published sample taught ignoring the result pattern the SDK is built around. They now use `EnsureSuccess()`, which is both a real assertion and the idiomatic sample code — and each sample is backed by a response fixture that actually deserializes, so the assertion has something to check rather than passing on an empty body.
+
 - **The client factory no longer relabels an exception that came from your own registration.** `Get(name)` caught `InvalidOperationException` and reported it as a missing client — but the registration runs during resolution, so a `configureHttpClient` that rejected its input came back as "No management client registered with name '…'", pointing at the wrong thing entirely. A genuinely missing registration still says so.
 
 - **A doc sample no longer reads a bare timestamp in the machine's time zone.** Three samples fed `DateTime.Parse` into a `DateTimeOffset` scheduling parameter, which is exactly the ambiguity the SDK's date convention exists to prevent — taught in code people copy. They now construct the offset explicitly, as the README sample already did.
