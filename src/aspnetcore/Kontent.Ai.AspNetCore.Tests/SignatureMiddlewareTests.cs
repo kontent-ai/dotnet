@@ -123,7 +123,8 @@ public class SignatureMiddlewareTests
     [Fact]
     public async Task ModernSignatureHeaderTakesPrecedenceOverLegacy()
     {
-        // Middleware prefers X-KC-Signature if present; X-Kontent-ai-Signature is the fallback.
+        // The modern header is read when both are present; the legacy one is only a fallback. A valid
+        // signature in the legacy header must not rescue a request whose modern header is wrong.
         var nextCalled = false;
         RequestDelegate next = _ =>
         {
@@ -135,13 +136,36 @@ public class SignatureMiddlewareTests
         var validSignature = ComputeHmacSha256(body, Secret);
 
         var ctx = CreateHttpContext(body);
-        ctx.Request.Headers.Append("X-KC-Signature", validSignature);
-        ctx.Request.Headers.Append("X-Kontent-ai-Signature", "invalid-fallback");
+        ctx.Request.Headers.Append("X-Kontent-ai-Signature", validSignature);
+        ctx.Request.Headers.Append("X-KC-Signature", "invalid-legacy");
 
         var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
         await middleware.InvokeAsync(ctx);
 
         Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task LegacySignatureHeader_DoesNotRescueAnInvalidModernHeader()
+    {
+        var nextCalled = false;
+        RequestDelegate next = _ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        };
+
+        const string body = "payload";
+
+        var ctx = CreateHttpContext(body);
+        ctx.Request.Headers.Append("X-Kontent-ai-Signature", "invalid-modern");
+        ctx.Request.Headers.Append("X-KC-Signature", ComputeHmacSha256(body, Secret));
+
+        var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
+        await middleware.InvokeAsync(ctx);
+
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     private static DefaultHttpContext CreateHttpContext(string body, string? headerName = null, string? headerValue = null)

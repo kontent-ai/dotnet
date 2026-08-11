@@ -12,7 +12,7 @@ public sealed record WebhookNotification
     /// A collection of webhook notifications for each modified object.
     /// </summary>
     [JsonPropertyName("notifications"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public WebhookModel[]? Notifications { get; init; }
+    public IReadOnlyList<WebhookModel>? Notifications { get; init; }
 }
 
 /// <summary>
