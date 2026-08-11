@@ -144,11 +144,11 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// Builds a manager over a distributed cache.
     /// </summary>
     /// <remarks>
-    /// FusionCache always has a memory tier in front of the distributed one. Invalidation state is held
-    /// per instance, so it reaches other nodes only over a backplane - without one, a second node keeps
-    /// serving content this node has evicted, whether or not the memory tier is in play. A backplane is
-    /// therefore what makes multi-node invalidation work; once one is present the memory tier is kept in
-    /// step and is used, and without one it is bypassed.
+    /// FusionCache always has a memory tier in front of the distributed one, and it is used either way -
+    /// there is no distributed-only mode. Invalidation state is held per instance, so it reaches other
+    /// nodes only over a backplane; without one, a second node keeps serving content this node has
+    /// evicted until the entry expires. A backplane is therefore what makes multi-node invalidation work,
+    /// and what keeps the memory tiers in step.
     /// </remarks>
     public static FusionCacheManager CreateHybrid(
         IDistributedCache distributedCache,
@@ -170,10 +170,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             AllowBackgroundBackplaneOperations = false,
             ReThrowDistributedCacheExceptions = false,
             ReThrowSerializationExceptions = true,
-            ReThrowBackplaneExceptions = false,
-            // The memory tier is safe to use only when a backplane keeps the nodes in step.
-            SkipMemoryCacheRead = backplane is null,
-            SkipMemoryCacheWrite = backplane is null
+            ReThrowBackplaneExceptions = false
         };
         ApplyCachePolicy(defaultEntryOptions, cacheOptions, effectiveExpiration);
 
