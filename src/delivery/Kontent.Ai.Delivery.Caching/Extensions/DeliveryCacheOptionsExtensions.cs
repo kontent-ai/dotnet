@@ -1,4 +1,3 @@
-using Kontent.Ai.Delivery.Abstractions;
 using ZiggyCreatures.Caching.Fusion;
 
 namespace Kontent.Ai.Delivery;

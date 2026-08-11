@@ -246,10 +246,13 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         ArgumentException.ThrowIfNullOrWhiteSpace(tagName);
         ArgumentNullException.ThrowIfNull(resolver);
 
-        return WithHtmlNodeResolver(
+        _conditionalHtmlNodeResolvers.Add(new ConditionalHtmlNodeResolver(
             node => node.TagName.Equals(tagName, StringComparison.OrdinalIgnoreCase),
             resolver,
-            $"Tag={tagName}");
+            Description: $"Tag={tagName}",
+            TagName: tagName));
+
+        return this;
     }
 
     /// <inheritdoc />

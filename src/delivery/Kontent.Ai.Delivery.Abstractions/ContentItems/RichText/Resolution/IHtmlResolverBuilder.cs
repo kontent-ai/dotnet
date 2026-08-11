@@ -161,7 +161,7 @@ public interface IHtmlResolverBuilder
     /// </summary>
     /// <param name="predicate">Predicate to determine if this resolver applies to a node.</param>
     /// <param name="resolver">The resolver function for matching nodes.</param>
-    /// <param name="description">Optional description for debugging purposes.</param>
+    /// <param name="description">Optional label, used for debugging only - it does not affect matching.</param>
     /// <returns>This builder for method chaining.</returns>
     IHtmlResolverBuilder WithHtmlNodeResolver(
         HtmlNodePredicate predicate,
@@ -172,6 +172,11 @@ public interface IHtmlResolverBuilder
     /// Convenience method to register a resolver for HTML nodes with a specific tag name.
     /// Tag name matching is case-insensitive.
     /// </summary>
+    /// <remarks>
+    /// A tag registration takes its place in the same order as every other conditional resolver, so an
+    /// earlier predicate that also matches the node wins, and registering the same tag twice leaves the
+    /// first one in effect.
+    /// </remarks>
     /// <param name="tagName">The HTML tag name to match (e.g., "h1", "p", "div").</param>
     /// <param name="resolver">The resolver function for matching nodes.</param>
     /// <returns>This builder for method chaining.</returns>
