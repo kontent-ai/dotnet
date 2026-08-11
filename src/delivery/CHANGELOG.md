@@ -69,7 +69,7 @@ Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`,
   services.AddDeliveryHybridCache();
   ```
 
-  Nothing changes for a single-instance application, and nothing changes if no backplane is registered — the in-memory tier stays bypassed there, as before. With a backplane it is used as well, since it is then kept in step across nodes.
+  Nothing changes for a single-instance application, which needs no backplane. FusionCache keeps an in-memory tier in front of the distributed one and uses it either way; the backplane is what keeps those tiers in step across nodes, so without one an invalidation still reaches only the node that performed it.
 - **Cache invalidation no longer skips items whose codename looks like a component's.** Components were told apart by the shape of their generated codename — a `_`-separated group of four characters starting `01`, as in `n373888cc_34e2_01e1_1820_3cb52ab1b2a1`. Authored codenames collide with that: `Product SKU 0123 Blue` becomes `product_sku_0123_blue`, whose third group is `0123`. Such an item was silently given no `item_` dependency key, so a webhook naming it evicted nothing and the cached response kept being served until it expired — the failure was invisible and depended on how content was named.
 
   Components are now recognised from the response instead: the Delivery API gives every content item a `workflow` and `workflow_step` and gives components neither. Where that signal is not available the item is tracked regardless, because the two mistakes are not equal — a dependency key for a component is one entry nobody ever looks up, while a missing key for an item is stale content.
