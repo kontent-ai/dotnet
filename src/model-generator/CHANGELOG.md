@@ -11,6 +11,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Generated members are ordered ordinally rather than by the current culture**, so the same content model produces the same file on every machine.
+
+- **`appSettings.json` names the option the tool actually reads.** It still listed `BaseClass`, which was renamed to `BaseRecord`.
+
 - **The startup banner no longer reports success before anything is generated.** A failed run's first line was "Models were generated for …"; it now says what it is about to do.
 
 - **`IClassCodeGeneratorFactory` covers both emitters.** It offered only the Delivery generator while the Management path constructed its own directly — a seam that looked like the way in and was not. It now has a method per emitter, and the Management path goes through it.

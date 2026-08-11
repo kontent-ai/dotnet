@@ -16,11 +16,12 @@ internal static class RefitSettingsProvider
     {
         var jsonSerializerOptions = CreateDefaultJsonSerializerOptions();
 
+        // Only the serializer: ISyncApi sends nothing in a query string - the environment travels in the
+        // path and the continuation token in a header - so the collection format and key formatter that
+        // the Delivery settings carry would configure something that never happens.
         return new RefitSettings
         {
             ContentSerializer = new SystemTextJsonContentSerializer(jsonSerializerOptions),
-            CollectionFormat = CollectionFormat.Multi,
-            UrlParameterKeyFormatter = new CamelCaseUrlParameterKeyFormatter()
         };
     }
 

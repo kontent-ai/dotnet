@@ -8,8 +8,9 @@ namespace Kontent.Ai.Sync.Configuration;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The built client owns its underlying <see cref="HttpClient"/> and is returned as a plain
-/// <see cref="ISyncClient"/> - there is no container to reach into. Dispose it when you are done.
+/// The built client owns its underlying <see cref="HttpClient"/> - there is no container to reach into -
+/// so <see cref="Build"/> returns the concrete <see cref="SyncClient"/>, which is disposable. Dispose it
+/// when you are done.
 /// </para>
 /// <para>
 /// For applications using dependency injection, prefer <c>services.AddSyncClient(...)</c>, which hands

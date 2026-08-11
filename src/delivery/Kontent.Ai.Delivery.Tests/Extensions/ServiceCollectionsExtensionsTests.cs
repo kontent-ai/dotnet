@@ -411,8 +411,21 @@ public class ServiceCollectionsExtensionsTests
         var exception = Assert.Throws<ArgumentException>(() =>
             _serviceCollection.AddDeliveryClient("name with spaces", o => o.EnvironmentId = EnvironmentId));
 
-        Assert.Contains("Client name cannot contain leading/trailing whitespace, or contain spaces", exception.Message);
+        Assert.Contains("Client name cannot contain whitespace", exception.Message);
         Assert.Contains("Use underscores or hyphens instead", exception.Message);
+    }
+
+    // A tab is as invisible at the point of failure as a space, and the previous rule - trim plus a
+    // space check - let it through, so the name silently differed from the one used at resolution.
+    [Theory]
+    [InlineData("name\twith\ttabs")]
+    [InlineData("name\nwith\nnewlines")]
+    public void AddDeliveryClient_WithNameContainingOtherWhitespace_ThrowsArgumentException(string name)
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _serviceCollection.AddDeliveryClient(name, o => o.EnvironmentId = EnvironmentId));
+
+        Assert.Contains("Client name cannot contain whitespace", exception.Message);
     }
 
     [Fact]
@@ -421,7 +434,7 @@ public class ServiceCollectionsExtensionsTests
         var exception = Assert.Throws<ArgumentException>(() =>
             _serviceCollection.AddDeliveryClient(" leading-space", o => o.EnvironmentId = EnvironmentId));
 
-        Assert.Contains("Client name cannot contain leading/trailing whitespace, or contain spaces", exception.Message);
+        Assert.Contains("Client name cannot contain whitespace", exception.Message);
     }
 
     [Fact]

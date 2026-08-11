@@ -22,7 +22,6 @@ internal sealed class ItemQuery<TModel>(
     ILogger? logger = null) : IItemQuery<TModel>, ICacheExpirationConfigurable
 {
     private readonly QueryLoggingHelper _log = new(logger, "Item", codename);
-    private readonly SerializedFilterCollection _serializedFilters = [];
     private SingleItemParams _params = new();
     private bool _waitForLoadingNewContent;
     public TimeSpan? CacheExpiration { get; set; }
@@ -221,7 +220,8 @@ internal sealed class ItemQuery<TModel>(
         var rawResponse = await api.GetItemInternalAsync<TModel>(
                 codename,
                 _params,
-                FilterQueryString.Render(_serializedFilters),
+                // A single-item query carries no filters; the parameter exists for the listing endpoints.
+                filters: null,
                 waitForLoadingNewContent,
                 cancellationToken)
             .ConfigureAwait(false);

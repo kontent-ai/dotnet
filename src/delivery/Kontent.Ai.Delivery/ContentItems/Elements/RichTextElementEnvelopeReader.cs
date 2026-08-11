@@ -83,8 +83,7 @@ internal static class RichTextElementEnvelopeReader
                 continue;
             }
 
-            link.Id = id;
-            result[id] = link;
+            result[id] = link with { Id = id };
         }
 
         return result;

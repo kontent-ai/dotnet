@@ -124,7 +124,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
                 context.Items.Add(SizesCollection, sizes);
                 await output.GetChildContentAsync();
 
-                var s = string.Join(", ", sizes.Concat(new[] { $"{DefaultWidth}px" }));
+                var s = string.Join(", ", sizes.Concat([$"{DefaultWidth}px"]));
                 image.MergeAttribute("sizes", s);
 
                 // Fallback src for clients that don't honor srcset — use the largest declared width.

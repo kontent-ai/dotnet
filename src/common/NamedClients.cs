@@ -22,10 +22,10 @@ internal static class NamedClients
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        if (name.Trim() != name || name.Contains(' '))
+        if (name.Any(char.IsWhiteSpace))
         {
             throw new ArgumentException(
-                "Client name cannot contain leading/trailing whitespace, or contain spaces. Use underscores or hyphens instead.",
+                "Client name cannot contain whitespace. Use underscores or hyphens instead.",
                 nameof(name));
         }
     }

@@ -61,7 +61,7 @@ public sealed class DeliveryClassCodeGenerator(ClassDefinition classDefinition, 
 
     private MemberDeclarationSyntax[] GetPropertyCodenameConstants()
         => ClassDefinition.PropertyCodenameConstants
-            .OrderBy(p => p)
+            .OrderBy(p => p, StringComparer.Ordinal)
             .Select(codename =>
             {
                 var identifier = $"{TextHelpers.GetValidPascalCaseIdentifierName(codename)}Codename";

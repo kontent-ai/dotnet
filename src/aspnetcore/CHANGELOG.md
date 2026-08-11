@@ -16,6 +16,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **A null `predicate` passed to `UseWebhookSignatureValidator` is rejected at registration.** Every other argument on those overloads was guarded; this one was dereferenced later by `UseWhen`, so the mistake surfaced away from the call that made it.
+
 - **The webhook signature is computed over the bytes as received.** The body was decoded to a string and re-encoded before hashing. The decoder substitutes replacement characters for malformed input rather than failing, so that round trip could map two different request bodies onto the same bytes — and a comment claimed the opposite property, that a body which is not valid UTF-8 could not hash like one that is. Verification is fail-closed either way, so no invalid signature was ever accepted; the round trip and the comment are both gone.
 
 

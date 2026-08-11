@@ -12,7 +12,7 @@ internal sealed record ContentLink : IContentLink
     /// Populated from the dictionary key when deserializing rich text links.
     /// </summary>
     [JsonIgnore]
-    public Guid Id { get; set; }
+    public Guid Id { get; init; }
 
     /// <inheritdoc/>
     [JsonPropertyName("codename")]

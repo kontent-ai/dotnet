@@ -30,7 +30,7 @@ internal sealed class RichTextParser(
         if (contentElement is not IRichTextElementValue element)
             return null;
 
-        var document = await parser.ParseDocumentAsync(element.Value, cancellationToken).ConfigureAwait(false);
+        using var document = await parser.ParseDocumentAsync(element.Value, cancellationToken).ConfigureAwait(false);
 
         if (document.Body is null)
         {

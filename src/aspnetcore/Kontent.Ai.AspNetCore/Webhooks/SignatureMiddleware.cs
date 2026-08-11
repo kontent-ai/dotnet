@@ -22,7 +22,7 @@ public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOp
     /// Processes the request to validate the webhook signature.
     /// </summary>
     /// <param name="httpContext">HTTP context whose request to inspect.</param>
-    /// <returns></returns>
+    /// <returns>A task that completes when the request has been handled or rejected.</returns>
     /// <exception cref="InvalidOperationException">
     /// <see cref="Webhooks.WebhookOptions.Secret"/> is not configured. Without it no signature can be
     /// verified, and continuing would admit unsigned requests.
