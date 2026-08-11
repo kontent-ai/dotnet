@@ -61,7 +61,7 @@ public partial record {_options.BaseRecord}
     /// </summary>
     public string GenerateExtenderCode()
     {
-        var extenders = _classesToExtend.OrderBy(c => c)
+        var extenders = _classesToExtend.OrderBy(c => c, StringComparer.Ordinal)
             .Select((c) => $"public partial record {c} : {_options.BaseRecord} {{ }}")
             .Aggregate((p, n) => p + Environment.NewLine + n);
 

@@ -324,7 +324,7 @@ public interface IManagementClient
     Task<IManagementResult<CustomAppModel>> GetCustomAppAsync(Reference identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Creates the custom apps.
+    /// Creates the custom app.
     /// </summary>
     /// <param name="customApp">Represents the custom app that will be created.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
@@ -332,7 +332,7 @@ public interface IManagementClient
     Task<IManagementResult<CustomAppModel>> CreateCustomAppAsync(CustomAppCreateModel customApp, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Modifies the custom apps.
+    /// Modifies the custom app.
     /// </summary>
     /// <param name="identifier">The identifier of the custom app.</param>
     /// <param name="changes">Represents changes that will be applied to the custom app.</param>
@@ -341,7 +341,7 @@ public interface IManagementClient
     Task<IManagementResult<CustomAppModel>> ModifyCustomAppAsync(Reference identifier, IEnumerable<CustomAppOperationBaseModel> changes, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes the custom apps.
+    /// Deletes the custom app.
     /// </summary>
     /// <param name="identifier">The identifier of the custom app.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
@@ -689,9 +689,9 @@ public interface IManagementClient
     Task<IManagementResult<PreviewConfigurationModel>> GetPreviewConfigurationAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Modify the preview configuration.
+    /// Replaces the preview configuration.
     /// </summary>
-    /// <param name="previewConfiguration">Represents configuration that will be used for project.</param>
+    /// <param name="previewConfiguration">The preview configuration to store for the environment.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping the <see cref="PreviewConfigurationModel"/> on success, or the failure detail.</returns>
     Task<IManagementResult<PreviewConfigurationModel>> UpdatePreviewConfigurationAsync(PreviewConfigurationModel previewConfiguration, CancellationToken cancellationToken = default);
@@ -830,7 +830,7 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<SubscriptionUserModel>>> ListSubscriptionUsersAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieve a user metadata from under the specified subscription.
+    /// Retrieves a user's metadata from under the specified subscription.
     /// The metadata include information about the user's access to projects and environments,
     /// and content in specific collections, roles, and languages.
     /// </summary>

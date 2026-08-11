@@ -20,6 +20,7 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate)
     {
         ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         app.UseWhen(predicate, appBuilder => appBuilder.UseMiddleware<SignatureMiddleware>());
 
@@ -36,6 +37,7 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseWebhookSignatureValidator(this IApplicationBuilder app, Func<HttpContext, bool> predicate, WebhookOptions options)
     {
         ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(options);
 
         app.UseWhen(predicate, appBuilder => appBuilder.UseMiddleware<SignatureMiddleware>(Options.Create(options)));

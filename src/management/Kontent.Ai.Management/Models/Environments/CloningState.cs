@@ -19,7 +19,7 @@ public enum CloningState
     Failed,
 
     /// <summary>
-    /// Environment cloning is succesfully done.
+    /// Environment cloning is successfully done.
     /// </summary>
     [JsonStringEnumMemberName("done")]
     Done

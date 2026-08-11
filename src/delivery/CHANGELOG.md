@@ -27,6 +27,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **A rich-text document is disposed once parsed.** The AngleSharp document was left to finalization on every rich-text element mapped; the parsed blocks hold plain strings and lists rather than document nodes, so nothing needed it to stay alive.
+
+- **A client name containing a tab or newline is rejected like one containing a space.** The rule trimmed and then looked for spaces, so other whitespace passed validation and left a name that is invisible at the point of failure. The caching package also carried its own copy of the rule, which is now the shared one.
+
 - **Dynamic queries carry their dependency keys.** `GetItem`/`GetItems` without a typed model returned results whose `DependencyKeys` were `null`, while the typed queries forwarded them — so output-cache tagging, which those keys exist for, had nothing to tag with on the dynamic path.
 
 - **`ImageUrlBuilder` keeps a query the asset URL already carries.** Transformations were applied as a relative reference with its own query, which replaces the base URL's query outright. An asset URL produced by a default rendition preset therefore lost its rendition the moment any transformation was added. The two are merged now, with an explicit transformation winning where both set the same key.

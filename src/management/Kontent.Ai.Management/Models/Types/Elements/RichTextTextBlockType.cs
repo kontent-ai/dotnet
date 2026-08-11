@@ -7,7 +7,7 @@ namespace Kontent.Ai.Management.Models.Types.Elements;
 public enum RichTextTextBlockType
 {
     /// <summary>
-    /// OrderList
+    /// Ordered list
     /// </summary>
     [JsonStringEnumMemberName("ordered-list")]
     OrderedList,

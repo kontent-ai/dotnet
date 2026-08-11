@@ -45,7 +45,7 @@ public static class DeliveryCacheServiceCollectionExtensions
         Func<IServiceProvider, IDeliveryCacheManager> createCacheManager)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(clientName);
+        NamedClients.ValidateName(clientName);
         ArgumentNullException.ThrowIfNull(createCacheManager);
 
         return RegisterCacheManager(services, clientName, createCacheManager);
@@ -221,7 +221,7 @@ public static class DeliveryCacheServiceCollectionExtensions
         Action<DeliveryCacheOptions> configureCacheOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(clientName);
+        NamedClients.ValidateName(clientName);
         ArgumentNullException.ThrowIfNull(configureCacheOptions);
 
         var cacheOptions = CreateCacheOptions(clientName, configureCacheOptions);
@@ -258,7 +258,7 @@ public static class DeliveryCacheServiceCollectionExtensions
         Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(clientName);
+        NamedClients.ValidateName(clientName);
         ArgumentNullException.ThrowIfNull(configureCacheOptions);
 
         return AddDeliveryMemoryCacheCore(
@@ -463,7 +463,7 @@ public static class DeliveryCacheServiceCollectionExtensions
         Action<DeliveryCacheOptions> configureCacheOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(clientName);
+        NamedClients.ValidateName(clientName);
         ArgumentNullException.ThrowIfNull(configureCacheOptions);
 
         var cacheOptions = CreateCacheOptions(clientName, configureCacheOptions);
@@ -502,7 +502,7 @@ public static class DeliveryCacheServiceCollectionExtensions
         Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
     {
         ArgumentNullException.ThrowIfNull(services);
-        ValidateClientName(clientName);
+        NamedClients.ValidateName(clientName);
         ArgumentNullException.ThrowIfNull(configureCacheOptions);
 
         return AddDeliveryHybridCacheCore(
@@ -568,18 +568,6 @@ public static class DeliveryCacheServiceCollectionExtensions
             {
                 services.RemoveAt(i);
             }
-        }
-    }
-
-    private static void ValidateClientName(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        if (name.Trim() != name || name.Contains(' '))
-        {
-            throw new ArgumentException(
-                "Client name cannot contain leading/trailing whitespace, or contain spaces. Use underscores or hyphens instead.",
-                nameof(name));
         }
     }
 
