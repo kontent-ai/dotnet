@@ -1,6 +1,7 @@
 // Shared source, compiled into each SDK assembly - see src/common/README.md.
 
 using System.Net;
+using Polly.Timeout;
 
 namespace Kontent.Ai.Common.Http;
 
@@ -26,6 +27,10 @@ internal static class HttpRetryPredicates
             // TaskCanceledException or wrapping a TimeoutException) is.
             OperationCanceledException when requestCancellationToken.IsCancellationRequested => false,
             OperationCanceledException => exception is TaskCanceledException || exception.InnerException is TimeoutException,
+            // The pipeline's own per-attempt timeout. Retry sits outside timeout, so this is what a hung
+            // attempt looks like to ShouldHandle - and retrying it on a fresh connection is the entire
+            // reason that timeout is there. Treating it as terminal would fail the call after one attempt.
+            TimeoutRejectedException => true,
             HttpRequestException or TimeoutException => true,
             _ => false,
         };
