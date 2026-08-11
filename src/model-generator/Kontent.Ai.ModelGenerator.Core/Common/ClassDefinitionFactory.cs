@@ -10,4 +10,12 @@ public class ClassDefinitionFactory : IClassDefinitionFactory
 
         return new ClassDefinition(codename);
     }
+
+    /// <inheritdoc />
+    public ClassDefinition CreateClassDefinitionWithoutCodenameConstants(string codename)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(codename);
+
+        return new ClassDefinition(codename, emitsCodenameConstants: false);
+    }
 }

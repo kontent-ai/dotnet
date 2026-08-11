@@ -11,6 +11,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Management mode no longer skips elements over identifiers it never emits.** Every content type reserved the names the Delivery emitter uses for its codename constants — `{Property}Codename` for each element, plus the type's own `ContentTypeCodename` — regardless of mode. The Management emitter writes none of those, so the reservation only rejected valid input there: a type carrying both `title` and `title_codename` had the second skipped with a collision warning, and an element codenamed `content_type_codename` was renamed for no reason. Constant registration is now the Delivery emitter's, so Management mode has the whole identifier space its own output uses.
+
+- **`--baseRecord` is rejected at startup when it is not a valid C# record name.** `-b "My-Base"` wrote `public partial record My-Base` and an extender deriving every generated model from it, so the whole output failed to compile over one argument. The name is checked before any API call and reported like any other configuration problem.
+
 - **Forgetting `--management` now fails instead of generating Delivery models.** Validation accepted the union of both modes' parameters while binding only ever applied the active mode's, so `-k` (or `--apiKey`) without `-m` was accepted, dropped, and the run continued as a full Delivery generation - writing Delivery models over whatever was in the output directory and exiting `0`. The reverse dropped the Delivery-only `-p` / `--projectid` in Management mode and then failed with a message about an empty `EnvironmentId`, which read as a configuration problem rather than a wrong flag. Each argument is now checked against the mode that is actually running, and one that belongs to the other mode names the mode switch:
 
   ```

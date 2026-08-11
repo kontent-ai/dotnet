@@ -117,4 +117,40 @@ public class ClassDefinitionTests
 
         classDefinition.RenamedCodenameConstants.Should().BeEmpty();
     }
+
+    // The Delivery emitter writes a {Property}Codename constant per element plus the type's own
+    // ContentTypeCodename; the Management emitter writes neither. Reserving those names in Management mode
+    // rejected element pairs that would have generated fine.
+    [Fact]
+    public void AddProperty_WithoutCodenameConstants_AcceptsAnElementNamedAfterAnothersConstant()
+    {
+        var classDefinition = new ClassDefinition("article", emitsCodenameConstants: false);
+
+        classDefinition.AddProperty(new Property("title", "string"));
+        var act = () => classDefinition.AddProperty(new Property("title_codename", "string"));
+
+        act.Should().NotThrow();
+        classDefinition.Properties.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void AddProperty_WithoutCodenameConstants_LeavesContentTypeCodenameAvailable()
+    {
+        var classDefinition = new ClassDefinition("article", emitsCodenameConstants: false);
+
+        classDefinition.AddProperty(new Property("content_type_codename", "string"));
+
+        classDefinition.Properties.Single().Identifier.Should().Be(ClassDefinition.ContentTypeCodenameIdentifier);
+    }
+
+    [Fact]
+    public void AddProperty_WithCodenameConstants_StillGuardsTheCollision()
+    {
+        var classDefinition = new ClassDefinition("article");
+
+        classDefinition.AddProperty(new Property("title", "string"));
+        var act = () => classDefinition.AddProperty(new Property("title_codename", "string"));
+
+        act.Should().Throw<InvalidOperationException>();
+    }
 }

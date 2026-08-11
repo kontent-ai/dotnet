@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Kontent.Ai.ModelGenerator.CommandLine;
 
@@ -33,6 +34,7 @@ public static class ValidationExtensions
             throw MissingEnvironmentId(nameof(DeliveryOptions.EnvironmentId));
         }
 
+        ValidateBaseRecord(codeGeneratorOptions);
         ValidateOptions(codeGeneratorOptions.DeliveryOptions, "delivery");
     }
 
@@ -51,7 +53,26 @@ public static class ValidationExtensions
             throw MissingEnvironmentId(nameof(ManagementOptions.EnvironmentId));
         }
 
+        ValidateBaseRecord(codeGeneratorOptions);
         ValidateOptions(codeGeneratorOptions.ManagementOptions, "management");
+    }
+
+    /// <summary>
+    /// The base record name is written into the generated code verbatim, so anything that is not a C#
+    /// identifier produces a file that cannot compile - <c>-b "My-Base"</c> emitted
+    /// <c>public partial record My-Base</c> and an extender deriving every model from it.
+    /// </summary>
+    private static void ValidateBaseRecord(CodeGeneratorOptions codeGeneratorOptions)
+    {
+        var baseRecord = codeGeneratorOptions.BaseRecord;
+        if (string.IsNullOrEmpty(baseRecord) || SyntaxFacts.IsValidIdentifier(baseRecord))
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"'{baseRecord}' is not a valid C# record name, so the generated base record would not compile. " +
+            "Use a name that is a valid C# identifier - letters, digits and underscores, not starting with a digit.");
     }
 
     private static InvalidOperationException MissingEnvironmentId(string memberName) =>
