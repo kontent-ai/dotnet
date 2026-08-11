@@ -8,6 +8,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **An attempt the resilience pipeline timed out is now retried instead of failing the whole call.** The default pipeline wraps retry around a 30-second per-attempt timeout, so a hung attempt reaches the retry as Polly's `TimeoutRejectedException` - a type the SDK's transient classifier did not recognise. The single situation that per-attempt timeout exists for, a connection that stops responding and that a fresh attempt would recover from, therefore failed the whole call after 30 seconds with no retries at all.
+
 ## 20.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
 Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`, which is why this is a major release, and Refit's transport is upgraded across four major versions. Beyond the target framework the public API is almost untouched — one configuration hook is removed, and two request-building details change in ways that are visible in logs but not in results.

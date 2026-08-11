@@ -3,6 +3,7 @@ using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
+using Polly.Timeout;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -97,6 +98,15 @@ public class ResiliencePipelineTests
     public void IsTransientException_InvalidOperationException_ReturnsFalse()
     {
         HttpRetryPredicates.IsTransientException(new InvalidOperationException(), CancellationToken.None).Should().BeFalse();
+    }
+
+    // The management pipeline adds no per-attempt timeout, so this case cannot arise here. The predicate is
+    // shared source though, and it is pinned identically in all three suites so a change to it cannot pass
+    // one product's tests while breaking another's.
+    [Fact]
+    public void IsTransientException_TimeoutRejectedException_ReturnsTrue()
+    {
+        HttpRetryPredicates.IsTransientException(new TimeoutRejectedException(), CancellationToken.None).Should().BeTrue();
     }
 
     // Retry-After handling is deliberately left to HttpRetryStrategyOptions' built-in ShouldRetryAfterHeader default

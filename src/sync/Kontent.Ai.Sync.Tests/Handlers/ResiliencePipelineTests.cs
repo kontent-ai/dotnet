@@ -5,6 +5,7 @@ using AwesomeAssertions;
 using Kontent.Ai.Common.Http;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace Kontent.Ai.Sync.Tests.Handlers;
 
@@ -168,6 +169,34 @@ public class ResiliencePipelineTests
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         attempts.Should().Be(1);
+    }
+
+    [Fact]
+    public void IsTransientException_TimeoutRejectedException_ReturnsTrue()
+    {
+        HttpRetryPredicates.IsTransientException(new TimeoutRejectedException(), CancellationToken.None)
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ConfigureDefaultResilience_RetriesAnAttemptTheTimeoutRejected()
+    {
+        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
+        ServiceCollectionExtensions.ConfigureDefaultResilience(builder);
+        var pipeline = builder.Build();
+
+        var attempts = 0;
+        var response = await pipeline.ExecuteAsync<HttpResponseMessage>(_ =>
+        {
+            attempts++;
+            // What the inner timeout strategy surfaces to the retry when an attempt hangs.
+            return attempts < 2
+                ? throw new TimeoutRejectedException()
+                : ValueTask.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        attempts.Should().Be(2);
     }
 
     private static HttpResponseMessage WithRetryAfter(HttpResponseMessage response, TimeSpan delta)
