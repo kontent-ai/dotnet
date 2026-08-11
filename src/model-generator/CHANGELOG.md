@@ -17,6 +17,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   -k configures the Management API. Add --management (or -m) to generate from it.
   ```
 
+  The same check now covers the section-qualified form (`--ManagementOptions:ApiKey` without `--management`, and `--DeliveryOptions:*` with it), which bound straight into configuration without needing a switch mapping and so slipped past the mode entirely. Only command-line arguments are checked - an `appSettings.json` carrying both sections is unaffected, and the section belonging to the mode you run is the one that is read.
+
+- **`--nullability` is refused in Management mode instead of accepted and ignored.** It selects how generated *Delivery* models express nullability. Management models are uniformly nullable by contract - a `null` property is omitted from the upsert payload, which is how you leave an element untouched - so there was never anything for the flag to select there. The parameter table already documented it as Delivery-only; now the tool enforces it.
+
 - **`--management` together with `--baseRecord` no longer emits code that cannot compile.** The generated base record and its extender both carried a hardcoded `using Kontent.Ai.Delivery.Abstractions;`. A project generated for the Management SDK has no reason to reference the Delivery SDK, so that line was a `CS0246` in a file the consumer never wrote. Neither it nor the `using System;` beside it was referenced by the emitted code in either mode; both are gone.
 
 ## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_

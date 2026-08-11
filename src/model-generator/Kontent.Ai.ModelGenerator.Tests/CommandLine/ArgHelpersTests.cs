@@ -152,10 +152,40 @@ public class ArgHelpersTests
     }
 
     [Fact]
-    public void FindInvalidArgs_ManagementOptionsLongForm_Accepted()
+    public void FindInvalidArgs_ManagementOptionsLongForm_AcceptedInManagementMode()
     {
-        ArgHelpers.FindInvalidArgs(["--ManagementOptions:EnvironmentId=abc"]).Should().BeEmpty();
-        ArgHelpers.FindInvalidArgs(["--ManagementOptions:ApiKey=xyz"]).Should().BeEmpty();
+        ArgHelpers.FindInvalidArgs(["-m", "--ManagementOptions:EnvironmentId=abc"]).Should().BeEmpty();
+        ArgHelpers.FindInvalidArgs(["-m", "--ManagementOptions:ApiKey=xyz"]).Should().BeEmpty();
+    }
+
+    // The section-qualified form binds without a switch mapping, so it survived the mode check that the
+    // short flags go through: `-i <guid> --ManagementOptions:ApiKey=xyz` generated Delivery models, exit 0.
+    [Theory]
+    [InlineData("--ManagementOptions:ApiKey=xyz")]
+    [InlineData("--ManagementOptions:EnvironmentId=abc")]
+    public void FindInvalidArgs_ManagementOptionsLongForm_RejectedWithoutTheModeSwitch(string argument)
+    {
+        var result = ArgHelpers.FindInvalidArgs(["-i", "abc-123", argument]);
+
+        result.Should().ContainSingle().Which.Should().Contain("--management");
+    }
+
+    [Fact]
+    public void FindInvalidArgs_DeliveryOptionsLongForm_RejectedInManagementMode()
+    {
+        var result = ArgHelpers.FindInvalidArgs(["-m", "--DeliveryOptions:EnvironmentId=abc"]);
+
+        result.Should().ContainSingle().Which.Should().Contain("Delivery API");
+    }
+
+    [Fact]
+    public void FindInvalidArgs_Nullability_RejectedInManagementMode()
+    {
+        // Management models are uniformly nullable by contract, so there is nothing for this to select -
+        // it used to be accepted and then quietly do nothing.
+        var result = ArgHelpers.FindInvalidArgs(["-m", "--nullability=semantic"]);
+
+        result.Should().ContainSingle().Which.Should().Contain("Delivery models only");
     }
 
     [Fact]

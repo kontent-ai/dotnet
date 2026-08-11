@@ -102,7 +102,11 @@ Latest release: [Download](https://github.com/kontent-ai/dotnet/releases)
 | | `--nullability` | No | `strict` | Either `strict` or `semantic`. Delivery mode only. See [Nullability mode](#nullability-mode). |
 
 A parameter that belongs to the mode you did not ask for is an error, not a silently ignored argument:
-`-k` without `-m` fails rather than quietly generating Delivery models over your output directory.
+`-k` without `-m` fails rather than quietly generating Delivery models over your output directory, and
+`--nullability` is refused with `-m` rather than accepted and ignored. This covers the section-qualified
+form too, so `--ManagementOptions:ApiKey` without `-m` is rejected the same way `-k` is. Options supplied
+through `appSettings.json` are not affected - a config file may carry both sections, and only the section
+belonging to the mode you run is read.
 
 ### CLI Syntax
 
