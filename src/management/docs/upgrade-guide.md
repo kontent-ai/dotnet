@@ -142,7 +142,7 @@ The endpoint override was renamed **`EndpointV2` → `Endpoint`** (the SDK appen
 
 ## 2. Response Handling: Exceptions → Result Pattern
 
-This is the single largest break. The SDK **no longer throws** on Management API errors (`4xx`/`5xx`). Every method returns a result you inspect. Network-level and serialization failures still propagate as exceptions.
+This is the single largest break. The SDK **no longer throws** when a call fails. Every method returns a result you inspect — and that covers Management API errors (`4xx`/`5xx`), a transport failure that never reached the server, and a response whose body could not be read. If you are porting a `catch` block, the replacement is an `IsSuccess` check, not a narrower `catch`.
 
 **Legacy:**
 ```csharp
@@ -215,7 +215,9 @@ if (!result.IsSuccess && result.Error?.ErrorCode == ManagementErrorCodes.Publish
 > The codes are **not unique** — the API reuses some across unrelated conditions — so inspect `Message` as well when the distinction matters.
 
 > [!IMPORTANT]
-> Exceptions are now reserved for **programmer errors** (e.g. a `null` argument), **invalid configuration**, and **network/serialization failures** — not for API errors. A `404` or an API validation rejection comes back as `IsSuccess == false`, never as a thrown exception.
+> A failed call is a result, not an exception — a `404`, an API validation rejection, an unreachable host and an unreadable response body all come back as `IsSuccess == false`, with `Error.Exception` carrying the exception where there was one.
+>
+> What still throws: **cancellation** (`OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers keep working — an expired timeout is not cancellation and comes back as a result), **programmer errors** such as a `null` argument, **invalid configuration**, and `EnsureSuccess()` when you opt into throwing. The strongly-typed language-variant overloads add one: projecting a response onto a generated record that no longer matches the content type throws.
 
 ---
 

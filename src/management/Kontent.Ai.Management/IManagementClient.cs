@@ -584,8 +584,10 @@ public interface IManagementClient
 
     /// <summary>
     /// Retrieves a language variant and projects its elements onto the generated content-type record
-    /// <typeparamref name="T"/>. Failures (HTTP 4xx/5xx) are surfaced through the returned result rather than thrown;
-    /// network-level and serialization failures still propagate as exceptions.
+    /// <typeparamref name="T"/>. Call failures are surfaced through the returned result rather than thrown — see
+    /// <see cref="IManagementResult"/>. The projection itself is the exception: a <typeparamref name="T"/> that no
+    /// longer matches the content type throws rather than returning a failed result, because it is a mismatch
+    /// between your model and the environment rather than an outcome of the call.
     /// </summary>
     /// <remarks>
     /// Typed read is environment-bound: the projection matches the response's element and rich-text-component ids
@@ -635,8 +637,9 @@ public interface IManagementClient
 
     /// <summary>
     /// Inserts or updates a language variant from the generated content-type record <typeparamref name="T"/>.
-    /// <c>null</c> properties are omitted from the payload (partial update). HTTP 4xx/5xx failures are surfaced
-    /// through the returned result rather than thrown; network-level and serialization failures still propagate as exceptions.
+    /// <c>null</c> properties are omitted from the payload (partial update). Call failures are surfaced through the
+    /// returned result rather than thrown — see <see cref="IManagementResult"/>. Projecting the response back onto
+    /// <typeparamref name="T"/> is the exception: a model that no longer matches the content type throws.
     /// </summary>
     /// <remarks>
     /// The write keys off codenames and stays portable across environments, but the typed response projection is
