@@ -465,20 +465,21 @@ public static partial class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Returns the shared <see cref="JsonSerializerOptions"/> instance already registered in
-    /// the service collection, or creates and registers a new one. This ensures Refit and
-    /// internal SDK mappers operate on the same options instance.
+    /// Returns the options a previously registered client already shares, or creates the SDK's own, so
+    /// that Refit and the internal mappers read the wire through one instance.
     /// </summary>
+    /// <remarks>
+    /// Keyed on <see cref="DeliveryJsonOptions"/> rather than on <see cref="JsonSerializerOptions"/>: the
+    /// bare type belongs to the application, and adopting whatever it had registered there gave the SDK a
+    /// serializer without its own converters - see <see cref="DeliveryJsonOptions"/>.
+    /// </remarks>
     private static JsonSerializerOptions GetOrCreateSharedJsonOptions(IServiceCollection services)
     {
-        var existing = services.FirstOrDefault(d =>
-            d.ServiceType == typeof(JsonSerializerOptions) &&
-            d.Lifetime == ServiceLifetime.Singleton);
+        var existing = services.FirstOrDefault(d => d.ServiceType == typeof(DeliveryJsonOptions));
 
-        if (existing?.ImplementationInstance is JsonSerializerOptions opts)
-            return opts;
-
-        return RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
+        return existing?.ImplementationInstance is DeliveryJsonOptions registered
+            ? registered.Value
+            : RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
