@@ -25,6 +25,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Rich-text tag resolvers keep their place in registration order, and the description is no longer dispatch.** `WithHtmlNodeResolver(tagName, ...)` registrations were lifted into a lookup consulted before any predicate resolver, so a tag resolver won however late it was registered — against the documented "evaluated in registration order, first match wins". Membership of that lookup was decided by whether the resolver's *description* started with `Tag=`, so a predicate resolver a caller happened to describe that way was silently promoted into it. Registering the same tag twice threw an `ArgumentException` from `Build()`, where every other registration is resolved by order. All three now follow the one documented rule: one ordered pass, first match wins, tag registrations included. The public builder API is unchanged.
+
 - **Cache keys are scoped to the environment they were fetched from.** A key was built from the query alone, so "the item `article`" produced the same key in every environment. Two applications sharing one distributed cache and pointing at different environments served each other's content, silently and in both directions. The environment id is now part of the key prefix, ahead of which an explicit `KeyPrefix` still separates clients within one environment. Existing distributed cache entries are not readable under the new keys and are simply missed once, then rewritten — nothing to migrate, but expect one cold start after upgrading.
 
 ### Fixed

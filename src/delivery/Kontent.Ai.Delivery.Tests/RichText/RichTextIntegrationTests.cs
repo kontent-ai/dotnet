@@ -638,6 +638,60 @@ public class RichTextIntegrationTests
     #region Predicate-Based HTML Node Resolver Tests
 
     [Fact]
+    public async Task IntegrationTest_HtmlNodeResolver_PredicateRegisteredFirst_BeatsALaterTagResolver()
+    {
+        // Tag registrations used to be lifted into a lookup consulted before any predicate, so a tag
+        // resolver won however late it was registered - the opposite of the documented order.
+        var client = await CreateDeliveryClientAsync("on_roasts.json");
+
+        var resolver = new HtmlResolverBuilder()
+            .WithHtmlNodeResolver(
+                predicate: node => node.TagName == "h3",
+                resolver: async (node, resolveChildren) => $"<h3 class=\"predicate\">{await resolveChildren(node.Children)}</h3>")
+            .WithHtmlNodeResolver("h3", async (node, resolveChildren) => $"<h3 class=\"tag\">{await resolveChildren(node.Children)}</h3>")
+            .Build();
+
+        var result = await client.GetItem<Article>("on_roasts").ExecuteAsync();
+        var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
+
+        Assert.Contains("<h3 class=\"predicate\">", html);
+        Assert.DoesNotContain("class=\"tag\"", html);
+    }
+
+    [Fact]
+    public async Task IntegrationTest_HtmlNodeResolver_DescriptionIsNotDispatch()
+    {
+        // The description is caller-supplied text. Dispatch used to be read out of it, so a predicate
+        // resolver described as "Tag=h3" was silently promoted into the tag lookup and jumped the queue.
+        var client = await CreateDeliveryClientAsync("on_roasts.json");
+
+        var resolver = new HtmlResolverBuilder()
+            .WithHtmlNodeResolver(
+                predicate: node => node.TagName == "h1",
+                resolver: async (node, resolveChildren) => $"<h1>{await resolveChildren(node.Children)}</h1>",
+                description: "Tag=h3")
+            .WithHtmlNodeResolver("h3", async (node, resolveChildren) => $"<h3 class=\"tag\">{await resolveChildren(node.Children)}</h3>")
+            .Build();
+
+        var result = await client.GetItem<Article>("on_roasts").ExecuteAsync();
+        var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
+
+        Assert.Contains("<h3 class=\"tag\">", html);
+    }
+
+    [Fact]
+    public void HtmlResolver_DuplicateTagRegistration_DoesNotThrowAtBuild()
+    {
+        // Building threw an ArgumentException from the tag lookup, where every other registration is
+        // simply resolved by order. Duplicates now behave like any other conditional pair: first wins.
+        var builder = new HtmlResolverBuilder()
+            .WithHtmlNodeResolver("h3", (node, resolveChildren) => new ValueTask<string>("first"))
+            .WithHtmlNodeResolver("h3", (node, resolveChildren) => new ValueTask<string>("second"));
+
+        Assert.Null(Record.Exception(() => builder.Build()));
+    }
+
+    [Fact]
     public async Task IntegrationTest_HtmlNodeResolver_WithMultiplePredicates_FirstMatchWins()
     {
         var client = await CreateDeliveryClientAsync("on_roasts.json");

@@ -10,7 +10,6 @@ internal sealed class HtmlResolver : IHtmlResolver
     private readonly HtmlResolverOptions _options;
 
     // Performance cache: maps tag names to their dedicated resolvers for O(1) lookup
-    private readonly FrozenDictionary<string, BlockResolver<IHtmlNode>> _tagResolverCache;
 
     // Codename-based resolvers for embedded content (components/linked items)
     private readonly FrozenDictionary<string, Func<IEmbeddedContent, ValueTask<string>>> _embeddedContentResolvers;
@@ -31,14 +30,6 @@ internal sealed class HtmlResolver : IHtmlResolver
     {
         _resolvers = resolvers ?? throw new ArgumentNullException(nameof(resolvers));
         _options = options ?? throw new ArgumentNullException(nameof(options));
-
-        // Build immutable tag resolver cache
-        _tagResolverCache = _options.ConditionalHtmlNodeResolvers
-            .Where(c => c.Description?.StartsWith("Tag=") == true)
-            .ToFrozenDictionary(
-                c => c.Description![4..],  // Extract tag name from "Tag=..." description
-                c => c.Resolver,
-                StringComparer.OrdinalIgnoreCase);
 
         // Build immutable embedded content resolver cache (codename-based dispatch)
         _embeddedContentResolvers = options.EmbeddedContentResolvers?.ToFrozenDictionary(
@@ -147,28 +138,27 @@ internal sealed class HtmlResolver : IHtmlResolver
 
     private async ValueTask<string> ResolveHtmlNodeAsync(IHtmlNode node)
     {
-        // Step 1: Check tag resolver cache for O(1) lookup
-        if (_tagResolverCache.TryGetValue(node.TagName, out var cachedResolver))
-        {
-            return await cachedResolver(node, ResolveChildrenAsync).ConfigureAwait(false);
-        }
-
-        // Step 2: Evaluate conditional resolvers in registration order (first match wins)
-        var matchingResolver = _options.ConditionalHtmlNodeResolvers
-            .FirstOrDefault(c => c.Predicate(node));
+        // Step 1: conditional resolvers in registration order - first match wins, tag registrations
+        // included. A tag match is a name comparison rather than a predicate call, which is what the
+        // separate lookup was for; keeping them in one pass is what makes the documented order true.
+        var matchingResolver = _options.ConditionalHtmlNodeResolvers.FirstOrDefault(Matches);
         if (matchingResolver is not null)
         {
             return await matchingResolver.Resolver(node, ResolveChildrenAsync).ConfigureAwait(false);
         }
 
-        // Step 3: Use default HTML node resolver if configured
+        // Step 2: Use default HTML node resolver if configured
         if (_options.DefaultHtmlNodeResolver is not null)
         {
             return await _options.DefaultHtmlNodeResolver(node, ResolveChildrenAsync).ConfigureAwait(false);
         }
 
-        // Step 4: Ultimate fallback - built-in default
+        // Step 3: Ultimate fallback - built-in default
         return await DefaultResolvers.HtmlElementResolver()(node, ResolveChildrenAsync).ConfigureAwait(false);
+
+        bool Matches(ConditionalHtmlNodeResolver candidate) => candidate.TagName is { } tag
+            ? node.TagName.Equals(tag, StringComparison.OrdinalIgnoreCase)
+            : candidate.Predicate(node);
     }
 
     private async ValueTask<string> ResolveChildrenAsync(IEnumerable<IRichTextBlock> children)
