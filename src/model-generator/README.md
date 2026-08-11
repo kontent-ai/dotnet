@@ -101,6 +101,9 @@ Latest release: [Download](https://github.com/kontent-ai/dotnet/releases)
 | `-b`, `-r` | `--baseRecord` | No | `null` | If provided, a base record will be created and all generated records will derive from it via partial extender records |
 | | `--nullability` | No | `strict` | Either `strict` or `semantic`. Delivery mode only. See [Nullability mode](#nullability-mode). |
 
+A parameter that belongs to the mode you did not ask for is an error, not a silently ignored argument:
+`-k` without `-m` fails rather than quietly generating Delivery models over your output directory.
+
 ### CLI Syntax
 
 Short keys such as `-n "MyModels"` are interchangeable with the long keys `--namespace "MyModels"`. Other possible syntax is `-n=MyModels` or `--namespace=MyModels`. Parameter values are case-insensitive. To see all aspects of the syntax, see the [MS docs](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.commandlineconfigurationextensions.addcommandline).

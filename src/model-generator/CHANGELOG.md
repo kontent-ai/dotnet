@@ -11,6 +11,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Forgetting `--management` now fails instead of generating Delivery models.** Validation accepted the union of both modes' parameters while binding only ever applied the active mode's, so `-k` (or `--apiKey`) without `-m` was accepted, dropped, and the run continued as a full Delivery generation - writing Delivery models over whatever was in the output directory and exiting `0`. The reverse dropped the Delivery-only `-p` / `--projectid` in Management mode and then failed with a message about an empty `EnvironmentId`, which read as a configuration problem rather than a wrong flag. Each argument is now checked against the mode that is actually running, and one that belongs to the other mode names the mode switch:
+
+  ```
+  -k configures the Management API. Add --management (or -m) to generate from it.
+  ```
+
 - **`--management` together with `--baseRecord` no longer emits code that cannot compile.** The generated base record and its extender both carried a hardcoded `using Kontent.Ai.Delivery.Abstractions;`. A project generated for the Management SDK has no reason to reference the Delivery SDK, so that line was a `CS0246` in a file the consumer never wrote. Neither it nor the `using System;` beside it was referenced by the emitted code in either mode; both are gone.
 
 ## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_

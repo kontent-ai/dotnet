@@ -41,14 +41,11 @@ internal static class ArgMappingsRegister
     };
 
     /// <summary>
-    /// All recognized argument keys across both modes plus the mode-switch flags themselves
-    /// (which don't bind to a config property but are still legal). Used by
-    /// <see cref="ArgHelpers.FindInvalidArgs"/> to reject typos early.
+    /// The mode-specific mappings in effect for <paramref name="managementMode"/>. The two tables are not
+    /// interchangeable - <c>-i</c> targets a different options section in each, and each carries flags the
+    /// other has no use for - so validation and binding both have to ask for one mode or the other rather
+    /// than accepting the union.
     /// </summary>
-    public static readonly ISet<string> AllMappingsKeys = new HashSet<string>(
-        GeneralMappings.Keys
-            .Union(DeliveryEnvironmentIdMappings.Keys)
-            .Union(ManagementMappings.Keys)
-            .Union([ManagementShortFlag, ManagementLongFlag]),
-        StringComparer.OrdinalIgnoreCase);
+    public static IDictionary<string, string> ModeMappings(bool managementMode) =>
+        managementMode ? ManagementMappings : DeliveryEnvironmentIdMappings;
 }
