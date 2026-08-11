@@ -69,17 +69,34 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         SubscribeFailSafeStateEvents();
     }
 
+    /// <summary>
+    /// Builds the segment every cache key and dependency tag is prefixed with.
+    /// </summary>
+    /// <remarks>
+    /// The environment id is part of it because a cache store can outlive the process and be shared: two
+    /// applications pointing at different environments and sharing one Redis would otherwise compute the
+    /// same key for "the item <c>article</c>" and serve each other's content. <c>KeyPrefix</c> stays in
+    /// front of it, so an explicit prefix still separates clients within one environment.
+    /// </remarks>
+    private static string ComposeKeyPrefix(string? keyPrefix, string? environmentId)
+    {
+        var parts = new[] { keyPrefix, environmentId }.Where(part => !string.IsNullOrEmpty(part));
+
+        return parts.Any() ? $"{string.Join(':', parts)}:" : string.Empty;
+    }
+
     public static FusionCacheManager CreateMemory(
         IMemoryCache memoryCache,
         DeliveryCacheOptions cacheOptions,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        string? environmentId = null)
     {
         ArgumentNullException.ThrowIfNull(memoryCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
         var effectiveExpiration = cacheOptions.DefaultExpiration;
         var keyPrefix = cacheOptions.KeyPrefix;
-        var prefixSegment = string.IsNullOrEmpty(keyPrefix) ? "" : $"{keyPrefix}:";
+        var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
 
         var defaultEntryOptions = new FusionCacheEntryOptions
         {
@@ -155,14 +172,15 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         DeliveryCacheOptions cacheOptions,
         JsonSerializerOptions? serializerOptions = null,
         ILogger? logger = null,
-        IFusionCacheBackplane? backplane = null)
+        IFusionCacheBackplane? backplane = null,
+        string? environmentId = null)
     {
         ArgumentNullException.ThrowIfNull(distributedCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
         var effectiveExpiration = cacheOptions.DefaultExpiration;
         var keyPrefix = cacheOptions.KeyPrefix;
-        var prefixSegment = string.IsNullOrEmpty(keyPrefix) ? "" : $"{keyPrefix}:";
+        var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
 
         var defaultEntryOptions = new FusionCacheEntryOptions
         {

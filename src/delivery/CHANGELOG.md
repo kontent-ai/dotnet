@@ -8,6 +8,25 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **The source generator emits its marker attribute as `internal`.** `ContentTypeCodenameAttribute` is generated into each referencing compilation, so a `public` one put the same type name into every assembly that uses the generator. Two such projects referencing each other stopped compiling with `CS0436`/`CS0433`, and the only fix available to the consumer was to drop a project reference. Emitting it `internal` — standard practice for generated marker attributes — gives each assembly its own copy. Code that only applies the attribute to its own models is unaffected; code that exposed it across an assembly boundary was in the broken configuration already.
+
+### Added
+
+- **`ConfigureFusionCache`** on `DeliveryCacheOptions`, from `Kontent.Ai.Delivery.Caching`, configures the underlying cache with `FusionCacheOptions` typed:
+
+  ```csharp
+  services.AddDeliveryMemoryCache(opts => opts
+      .ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = 0.8f));
+  ```
+
+  The `ConfigureFusionCacheOptions` property it sets stays as it was, `Action<object>?`, because it is declared in `Kontent.Ai.Delivery.Abstractions` and that package deliberately references nothing. The extension lives where FusionCache is already referenced, so the cast happens once here instead of in every caller.
+
+### Fixed
+
+- **Cache keys are scoped to the environment they were fetched from.** A key was built from the query alone, so "the item `article`" produced the same key in every environment. Two applications sharing one distributed cache and pointing at different environments served each other's content, silently and in both directions. The environment id is now part of the key prefix, ahead of which an explicit `KeyPrefix` still separates clients within one environment. Existing distributed cache entries are not readable under the new keys and are simply missed once, then rewritten — nothing to migrate, but expect one cold start after upgrading.
+
 ### Fixed
 
 - **An application's own `JsonSerializerOptions` registration is no longer taken over as the SDK's wire serializer.** `AddDeliveryClient` looked for a singleton registered under `JsonSerializerOptions` and, finding one, used it to read every API response. Registering that type is an ordinary thing for an application to do, and the options it registers do not carry `ContentItemConverterFactory` - without which no raw item JSON is captured, hydration has nothing to map from, and typed models come back empty. Nothing threw and nothing was logged. The SDK now keeps its serializer under a type only it names, so an application's registration stays the application's, and a registration made through a factory or under a service key no longer splits Refit and the mappers onto different serializers.

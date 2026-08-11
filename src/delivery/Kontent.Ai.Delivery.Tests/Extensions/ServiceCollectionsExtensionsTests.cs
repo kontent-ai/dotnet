@@ -671,7 +671,7 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public async Task AddDeliveryMemoryCache_DefaultClient_AdvancedOverload_UsesUnprefixedNamespace()
+    public async Task AddDeliveryMemoryCache_DefaultClient_AddsNoClientNameToTheKeys()
     {
         _serviceCollection.AddDeliveryClient(o =>
         {
@@ -686,13 +686,16 @@ public class ServiceCollectionsExtensionsTests
         var provider = _serviceCollection.BuildServiceProvider();
         var manager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("Default");
         var sharedMemoryCache = provider.GetRequiredService<IMemoryCache>();
+        // Same environment, no client name: the default client adds nothing of its own, so this manager
+        // sees its entries. A named client would prefix them and this would miss.
         using var unprefixedManager = new MemoryCacheManager(
             sharedMemoryCache,
             new DeliveryCacheOptions
             {
                 KeyPrefix = string.Empty,
                 DefaultExpiration = TimeSpan.FromMinutes(5)
-            });
+            },
+            environmentId: EnvironmentId);
 
         await manager.GetOrSetAsync(
             "prefix-check",

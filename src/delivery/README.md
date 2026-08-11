@@ -1313,19 +1313,21 @@ The built-in cache registrations (`AddDeliveryMemoryCache` / `AddDeliveryHybridC
 > [!NOTE]
 > **Hybrid caching and the in-memory tier:** FusionCache always has an in-memory tier in front of the distributed one. `AddDeliveryHybridCache` uses it, and a backplane is what keeps it in step across instances - without one, an invalidation reaches only the instance that performed it (see the note above). Either way, hybrid entries are stored as raw JSON — FusionCache [uses the same serialized format in both tiers](https://github.com/ZiggyCreatures/FusionCache/issues/321) — so a hit goes through rehydration. For most workloads that cost is negligible; if you need maximum read throughput and a single instance is enough, `AddDeliveryMemoryCache` keeps hydrated objects and skips rehydration entirely.
 
-To tune the underlying FusionCache instance, use `ConfigureFusionCacheOptions`:
+To tune the underlying FusionCache instance, use `ConfigureFusionCache`:
 
 ```csharp
 services.AddDeliveryMemoryCache("production", opts =>
 {
     opts.DefaultExpiration = TimeSpan.FromMinutes(30);
-    opts.ConfigureFusionCacheOptions = fusionOpts =>
-    {
-        var fco = (ZiggyCreatures.Caching.Fusion.FusionCacheOptions)fusionOpts;
-        fco.DefaultEntryOptions.EagerRefreshThreshold = 0.8f;
-    };
+    opts.ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = 0.8f);
 });
 ```
+
+`ConfigureFusionCache` comes from `Kontent.Ai.Delivery.Caching`, which already references FusionCache, so
+the options arrive typed. The `ConfigureFusionCacheOptions` property it sets is typed as `object` because it
+is declared in `Kontent.Ai.Delivery.Abstractions`, a package that deliberately references nothing — assign it
+directly only if you are configuring the cache from somewhere that cannot see this package, and cast to
+`FusionCacheOptions` yourself.
 
 If you implement a custom cache manager that stores raw payloads (typical for distributed caches), override the `StorageMode` property to return `CacheStorageMode.RawJson` so the SDK uses the raw JSON caching path.
 

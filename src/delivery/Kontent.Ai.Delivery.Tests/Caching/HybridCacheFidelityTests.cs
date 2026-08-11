@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Caching;
 using Kontent.Ai.Delivery.ContentTypes;
@@ -107,4 +108,27 @@ public class HybridCacheFidelityTests
             }
         ]
     };
+
+    [Fact]
+    public async Task TwoEnvironmentsSharingOneCache_DoNotSeeEachOthersEntries()
+    {
+        // The key is built from query parameters, so "the item article" hashes the same for every
+        // environment. Sharing one Redis between apps pointing at different environments then serves one
+        // app the other's content - the environment has to be part of the key, not just the query.
+        var options = new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) };
+        using var production = new HybridCacheManager(_distributedCache, options, environmentId: "11111111-1111-1111-1111-111111111111");
+        using var staging = new HybridCacheManager(_distributedCache, options, environmentId: "22222222-2222-2222-2222-222222222222");
+
+        var fromProduction = await production.GetOrSetAsync(
+            "items:article",
+            _ => Task.FromResult<CacheEntry<string>?>(new CacheEntry<string>("production copy", [])));
+
+        var fromStaging = await staging.GetOrSetAsync(
+            "items:article",
+            _ => Task.FromResult<CacheEntry<string>?>(new CacheEntry<string>("staging copy", [])));
+
+        fromProduction!.Value.Should().Be("production copy");
+        fromStaging!.Value.Should().Be("staging copy");
+        fromStaging.FromFactory.Should().BeTrue("staging must miss rather than read production's entry");
+    }
 }
