@@ -37,9 +37,20 @@ namespace Kontent.Ai.Management;
 /// <see cref="IManagementResult"/> instead of throwing on API errors.
 /// </summary>
 /// <remarks>
+/// <para>
+/// The operations here span two scopes. Most resolve against an environment and need
+/// <see cref="Configuration.ManagementOptions.EnvironmentId"/>; the subscription-level ones
+/// (<c>*SubscriptionUser*</c>, <c>ListSubscriptionProjects*</c>) resolve against
+/// <see cref="Configuration.ManagementOptions.SubscriptionId"/> and never touch an environment. Only the
+/// identifiers you configure are validated, so a client set up for one scope is legitimate — calling into
+/// the scope you did not configure throws <see cref="InvalidOperationException"/> naming the missing
+/// option, before the request is built.
+/// </para>
+/// <para>
 /// This contract carries no disposal. A client resolved from a container is owned by the container,
 /// which releases it; a client built standalone owns its <see cref="HttpClient"/>s and is returned as
 /// the concrete <see cref="ManagementClient"/>, which is disposable.
+/// </para>
 /// </remarks>
 public interface IManagementClient
 {

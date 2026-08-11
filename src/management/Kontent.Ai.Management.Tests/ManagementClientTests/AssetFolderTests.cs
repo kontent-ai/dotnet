@@ -112,8 +112,12 @@ public class AssetFolderTests
         },
         new AssetFolderRenamePatchModel
         {
+            Reference = Reference.ByCodename("codename"),
             Value = "new folder name",
         },
-        new AssetFolderRemovePatchModel()
+        new AssetFolderRemovePatchModel
+        {
+            Reference = Reference.ByCodename("codename")
+        }
     };
 }

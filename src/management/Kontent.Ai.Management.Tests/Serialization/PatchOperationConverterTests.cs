@@ -21,8 +21,8 @@ public class PatchOperationConverterTests
         var operations = new List<AssetFolderOperationBaseModel>
         {
             new AssetFolderAddIntoPatchModel { Value = new AssetFolderHierarchy { Name = "new-folder" } },
-            new AssetFolderRemovePatchModel(),
-            new AssetFolderRenamePatchModel { Value = "renamed" },
+            new AssetFolderRemovePatchModel { Reference = Reference.ByCodename("folder") },
+            new AssetFolderRenamePatchModel { Reference = Reference.ByCodename("folder"), Value = "renamed" },
         };
 
         var array = JsonNode.Parse(JsonSerializer.Serialize(operations, Options))!.AsArray();

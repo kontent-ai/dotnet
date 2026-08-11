@@ -9,4 +9,10 @@ public sealed record AssetFolderRemovePatchModel : AssetFolderOperationBaseModel
     /// Represents remove operation.
     /// </summary>
     public override string Op => "remove";
+
+    /// <summary>
+    /// Reference to the folder to remove.
+    /// </summary>
+    [JsonPropertyName("reference")]
+    public required Reference Reference { get; init; }
 }

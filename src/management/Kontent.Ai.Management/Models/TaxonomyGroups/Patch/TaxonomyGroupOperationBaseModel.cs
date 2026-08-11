@@ -10,10 +10,4 @@ public abstract record TaxonomyGroupOperationBaseModel
     /// </summary>
     [JsonPropertyName("op")]
     public abstract string Op { get; }
-
-    /// <summary>
-    /// Reference to the target. Required for <c>replace</c>, <c>move</c>, and <c>remove</c>. On <c>addInto</c> it points at the parent term that should receive the new child; omit it to add at the root of the taxonomy group.
-    /// </summary>
-    [JsonPropertyName("reference")]
-    public Reference? Reference { get; init; }
 }
