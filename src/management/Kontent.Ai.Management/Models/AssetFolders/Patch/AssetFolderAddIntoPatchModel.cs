@@ -12,6 +12,12 @@ public sealed record AssetFolderAddIntoPatchModel : AssetFolderOperationBaseMode
     public override string Op => "addInto";
 
     /// <summary>
+    /// Reference to the parent folder to add into; omit to add at the root.
+    /// </summary>
+    [JsonPropertyName("reference")]
+    public Reference? Reference { get; init; }
+
+    /// <summary>
     /// The folder to add. Required.
     /// </summary>
     [JsonPropertyName("value")]

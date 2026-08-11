@@ -1,12 +1,18 @@
 namespace Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
 
 /// <summary>
-/// <c>move</c> operation. Moves the taxonomy term identified by <see cref="TaxonomyGroupOperationBaseModel.Reference"/> to a new position. The API requires exactly one of <see cref="Before"/>, <see cref="After"/>, or <see cref="Under"/>; sending none (or more than one) returns 400. <see cref="Under"/> re-parents the term to a new container.
+/// <c>move</c> operation. Moves the taxonomy term identified by <see cref="Reference"/> to a new position. The API requires exactly one of <see cref="Before"/>, <see cref="After"/>, or <see cref="Under"/>; sending none (or more than one) returns 400. <see cref="Under"/> re-parents the term to a new container.
 /// </summary>
 public sealed record TaxonomyGroupMovePatchModel : TaxonomyGroupOperationBaseModel
 {
     /// <inheritdoc/>
     public override string Op => "move";
+
+    /// <summary>
+    /// Reference to the taxonomy term to move.
+    /// </summary>
+    [JsonPropertyName("reference")]
+    public required Reference Reference { get; init; }
 
     /// <summary>
     /// Position the moved term before this sibling. Mutually exclusive with <see cref="After"/> and <see cref="Under"/>.

@@ -459,6 +459,7 @@ public sealed class AssetFolderAddIntoPatchModel : AssetFolderOperationBaseModel
     .ctor()
     Reference? After { get; init; }
     Reference? Before { get; init; }
+    Reference? Reference { get; init; }
     String Op { get; }
     required AssetFolderHierarchy Value { get; init; }
     AssetFolderAddIntoPatchModel <Clone>$()
@@ -470,7 +471,6 @@ public sealed class AssetFolderAddIntoPatchModel : AssetFolderOperationBaseModel
 
 // Kontent.Ai.Management.Models.AssetFolders.Patch
 public class AssetFolderOperationBaseModel : IEquatable<AssetFolderOperationBaseModel>
-    Reference? Reference { get; init; }
     String Op { get; }
     AssetFolderOperationBaseModel <Clone>$()
     Boolean Equals(AssetFolderOperationBaseModel? other)
@@ -482,6 +482,7 @@ public class AssetFolderOperationBaseModel : IEquatable<AssetFolderOperationBase
 public sealed class AssetFolderRemovePatchModel : AssetFolderOperationBaseModel, IEquatable<AssetFolderRemovePatchModel>
     .ctor()
     String Op { get; }
+    required Reference Reference { get; init; }
     AssetFolderRemovePatchModel <Clone>$()
     Boolean Equals(AssetFolderOperationBaseModel? other)
     Boolean Equals(AssetFolderRemovePatchModel? other)
@@ -493,6 +494,7 @@ public sealed class AssetFolderRemovePatchModel : AssetFolderOperationBaseModel,
 public sealed class AssetFolderRenamePatchModel : AssetFolderOperationBaseModel, IEquatable<AssetFolderRenamePatchModel>
     .ctor()
     String Op { get; }
+    required Reference Reference { get; init; }
     required String Value { get; init; }
     AssetFolderRenamePatchModel <Clone>$()
     Boolean Equals(AssetFolderOperationBaseModel? other)
@@ -2093,6 +2095,7 @@ public sealed class TaxonomyGroupAddIntoPatchModel : TaxonomyGroupOperationBaseM
     .ctor()
     Reference? After { get; init; }
     Reference? Before { get; init; }
+    Reference? Reference { get; init; }
     String Op { get; }
     required TaxonomyTermCreateModel Value { get; init; }
     Boolean Equals(Object? obj)
@@ -2109,6 +2112,7 @@ public sealed class TaxonomyGroupMovePatchModel : TaxonomyGroupOperationBaseMode
     Reference? Before { get; init; }
     Reference? Under { get; init; }
     String Op { get; }
+    required Reference Reference { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(TaxonomyGroupMovePatchModel? other)
     Boolean Equals(TaxonomyGroupOperationBaseModel? other)
@@ -2118,7 +2122,6 @@ public sealed class TaxonomyGroupMovePatchModel : TaxonomyGroupOperationBaseMode
 
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
 public class TaxonomyGroupOperationBaseModel : IEquatable<TaxonomyGroupOperationBaseModel>
-    Reference? Reference { get; init; }
     String Op { get; }
     Boolean Equals(Object? obj)
     Boolean Equals(TaxonomyGroupOperationBaseModel? other)
@@ -2142,6 +2145,7 @@ public enum TaxonomyGroupPropertyName
 public sealed class TaxonomyGroupRemovePatchModel : TaxonomyGroupOperationBaseModel, IEquatable<TaxonomyGroupRemovePatchModel>
     .ctor()
     String Op { get; }
+    required Reference Reference { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(TaxonomyGroupOperationBaseModel? other)
     Boolean Equals(TaxonomyGroupRemovePatchModel? other)
@@ -2154,6 +2158,7 @@ public sealed class TaxonomyGroupReplacePatchModel : TaxonomyGroupOperationBaseM
     .ctor()
     String Op { get; }
     required Object Value { get; init; }
+    required Reference Reference { get; init; }
     required TaxonomyGroupPropertyName PropertyName { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(TaxonomyGroupOperationBaseModel? other)

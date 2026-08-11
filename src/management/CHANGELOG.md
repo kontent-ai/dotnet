@@ -6,6 +6,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **`Reference` moved from the asset-folder and taxonomy-group PATCH bases onto the operations that need it, where it is `required`.** Both bases declared a nullable `Reference`, so a `remove`, `rename`, `move` or `replace` operation could be constructed without the reference the API demands — the compiler was fine with it and the request failed at the server. Each operation now declares its own: `required` on the ones that target something (`AssetFolderRemovePatchModel`, `AssetFolderRenamePatchModel`, `TaxonomyGroupRemovePatchModel`, `TaxonomyGroupMovePatchModel`, `TaxonomyGroupReplacePatchModel`), and still optional on `addInto`, where it names the parent to add into and its absence means the root. This matches the collection patch models, which were already shaped this way. The wire format is unchanged; code that already set `Reference` on these operations still compiles, and code that did not now fails to compile instead of failing at the API.
+
 ### Changed
 
 - **`EnvironmentId` is no longer required when you only call subscription endpoints.** Subscription-scoped endpoints resolve against `/v2/subscriptions/{id}` and never touch an environment, but validation demanded an `EnvironmentId` regardless — so a subscription admin listing projects had to invent an environment GUID the SDK would never use. Each scope's client is now built only when its identifier is configured, and `EnvironmentId` is validated for format only when supplied, exactly as `SubscriptionId` already was.
@@ -19,6 +23,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   Configuring **neither** identifier is still rejected at registration: that client could call nothing at all. Every existing configuration behaves exactly as before — this only accepts input that was previously refused.
 
 ### Fixed
+
+- **The interface says what happens when you call into a scope you did not configure.** Since `EnvironmentId` became optional for subscription-only clients, every environment operation throws `InvalidOperationException` when it is missing — the same guard the subscription operations already documented, but stated nowhere for the ~80 methods on the other side. `IManagementClient`'s own remarks now describe both scopes and the guard once, rather than repeating an `<exception>` tag on every method.
 
 - **The documented error-handling model matches what the SDK does.** The README, the upgrade guide and the `IManagementResult` / typed-variant IntelliSense all said network-level and serialization failures "still propagate as exceptions". They do not, and have not since the result pattern landed: a transport failure that never reached the server and a response whose body could not be read are both failed results, carrying the exception in `Error.Exception`. A consumer following the old text wrote a `catch` that never fires and skipped the `IsSuccess` check that would have caught the failure. The docs now state what actually throws — cancellation, argument and configuration validation, `EnsureSuccess()`, and a typed-variant projection onto a record that no longer matches the content type — and the behaviour is pinned by tests.
 

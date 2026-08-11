@@ -12,6 +12,12 @@ public sealed record AssetFolderRenamePatchModel : AssetFolderOperationBaseModel
     public override string Op => "rename";
 
     /// <summary>
+    /// Reference to the folder to rename.
+    /// </summary>
+    [JsonPropertyName("reference")]
+    public required Reference Reference { get; init; }
+
+    /// <summary>
     /// New folder name.
     /// </summary>
     [JsonPropertyName("value")]
