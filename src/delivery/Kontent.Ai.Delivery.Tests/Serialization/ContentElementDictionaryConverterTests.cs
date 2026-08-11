@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Kontent.Ai.Delivery.ContentTypes.Element;
 using Kontent.Ai.Delivery.Serialization.Converters;
+using Kontent.Ai.Delivery.SharedModels;
 
 namespace Kontent.Ai.Delivery.Tests.Serialization;
 
@@ -34,13 +35,37 @@ public class ContentElementDictionaryConverterTests
         Assert.Equal("body", result["body"].Codename);
     }
 
+    // Writing exists for the distributed cache, which stores and re-reads these dictionaries. Anything the
+    // write drops is data a second node silently loses, so the assertion is on the round trip, not the call.
     [Fact]
-    public void Write_ThrowsNotSupportedException()
+    public void Write_RoundTripsEveryElementKind()
     {
-        var dict = new Dictionary<string, ContentElement>() as IReadOnlyDictionary<string, ContentElement>;
+        var dict = new Dictionary<string, ContentElement>
+        {
+            ["title"] = new ContentElement { Type = "text", Name = "Title", Codename = "title" },
+            ["category"] = new TaxonomyElement
+            {
+                Type = "taxonomy",
+                Name = "Category",
+                Codename = "category",
+                TaxonomyGroup = "categories"
+            },
+            ["rating"] = new MultipleChoiceElement
+            {
+                Type = "multiple_choice",
+                Name = "Rating",
+                Codename = "rating",
+                Options = [new MultipleChoiceOption { Name = "Good", Codename = "good" }]
+            }
+        } as IReadOnlyDictionary<string, ContentElement>;
 
-        Assert.Throws<NotSupportedException>(() =>
-            JsonSerializer.Serialize(dict, Options));
+        var json = JsonSerializer.Serialize(dict, Options);
+        var result = JsonSerializer.Deserialize<IReadOnlyDictionary<string, ContentElement>>(json, Options)!;
+
+        Assert.Equal("text", result["title"].Type);
+        Assert.Equal("title", result["title"].Codename);
+        Assert.Equal("categories", Assert.IsType<TaxonomyElement>(result["category"]).TaxonomyGroup);
+        Assert.Equal("good", Assert.IsType<MultipleChoiceElement>(result["rating"]).Options[0].Codename);
     }
 
     private static JsonSerializerOptions CreateOptions()

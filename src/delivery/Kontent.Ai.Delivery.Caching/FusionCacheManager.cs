@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -192,7 +193,12 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             memoryCache: null,
             logger: null);
 
-        var serializer = new FusionCacheSystemTextJsonSerializer(serializerOptions);
+        // Falls back to the SDK's own serializer rather than plain defaults. What this tier stores is wire
+        // types, and content type elements are polymorphic: without ContentElementConverter the L2 payload
+        // is written by the declared type, silently dropping TaxonomyElement.TaxonomyGroup and
+        // MultipleChoiceElement.Options, and every hit comes back as a base ContentElement.
+        var serializer = new FusionCacheSystemTextJsonSerializer(
+            serializerOptions ?? RefitSettingsProvider.CreateDefaultJsonSerializerOptions());
         fusion.SetupDistributedCache(distributedCache, serializer);
 
         if (backplane is not null)

@@ -51,5 +51,17 @@ internal sealed class ContentElementDictionaryConverter : JsonConverter<IReadOnl
         Utf8JsonWriter writer,
         IReadOnlyDictionary<string, ContentElement> value,
         JsonSerializerOptions options)
-        => throw new NotSupportedException("Serialization of ContentElement dictionary is not supported.");
+    {
+        writer.WriteStartObject();
+
+        foreach (var (codename, element) in value)
+        {
+            writer.WritePropertyName(codename);
+            // Static type ContentElement, so this routes through ContentElementConverter and keeps the
+            // element's runtime shape - the key still wins on the way back in.
+            JsonSerializer.Serialize(writer, element, options);
+        }
+
+        writer.WriteEndObject();
+    }
 }
