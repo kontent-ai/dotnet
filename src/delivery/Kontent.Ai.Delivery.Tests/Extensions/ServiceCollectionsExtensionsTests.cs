@@ -9,6 +9,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 
 namespace Kontent.Ai.Delivery.Tests.Extensions;
 
@@ -1278,5 +1280,55 @@ public class ServiceCollectionsExtensionsTests
         return _serviceCollection.Count(d =>
             d.ServiceType == typeof(IDeliveryCacheManager) &&
             Equals(d.ServiceKey, clientName));
+    }
+
+    // The HttpClient ceiling is the only thing bounding a request when the default resilience pipeline -
+    // which carries the per-attempt timeout - is not the one installed.
+
+    [Fact]
+    public void AddDeliveryClient_DefaultResilience_LiftsTheHttpClientCeiling()
+    {
+        _serviceCollection.AddDeliveryClient("production", o => o.EnvironmentId = EnvironmentId);
+
+        Assert.Equal(Timeout.InfiniteTimeSpan, ResolveHttpClientTimeout("production"));
+    }
+
+    [Fact]
+    public void AddDeliveryClient_ResilienceDisabled_StillBoundsTheRequest()
+    {
+        _serviceCollection.AddDeliveryClient("production", o =>
+        {
+            o.EnvironmentId = EnvironmentId;
+            o.EnableResilience = false;
+        });
+
+        var timeout = ResolveHttpClientTimeout("production");
+
+        Assert.NotEqual(Timeout.InfiniteTimeSpan, timeout);
+        Assert.True(timeout > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void AddDeliveryClient_CustomResilience_StillBoundsTheRequest()
+    {
+        _serviceCollection.AddDeliveryClient(
+            "production",
+            o => o.EnvironmentId = EnvironmentId,
+            configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>()));
+
+        var timeout = ResolveHttpClientTimeout("production");
+
+        Assert.NotEqual(Timeout.InfiniteTimeSpan, timeout);
+        Assert.True(timeout > TimeSpan.Zero);
+    }
+
+    private TimeSpan ResolveHttpClientTimeout(string clientName)
+    {
+        var provider = _serviceCollection.BuildServiceProvider();
+
+        using var httpClient = provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient($"Kontent.Ai.Delivery.HttpClient.{clientName}");
+
+        return httpClient.Timeout;
     }
 }

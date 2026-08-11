@@ -1,4 +1,6 @@
 using AwesomeAssertions;
+using Polly;
+using Polly.Retry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -205,5 +207,56 @@ public class ServiceCollectionExtensionsTests
 
         options2.ApiMode.Should().Be(ApiMode.Preview);
         options2.ApiKey.Should().Be("new-preview-key");
+    }
+
+    // The HttpClient ceiling is the only thing bounding a request when the default resilience pipeline -
+    // which carries the per-attempt timeout - is not the one installed.
+
+    [Fact]
+    public void AddSyncClient_DefaultResilience_LiftsTheHttpClientCeiling()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient("production", options => options.EnvironmentId = EnvironmentId));
+
+        timeout.Should().Be(Timeout.InfiniteTimeSpan);
+    }
+
+    [Fact]
+    public void AddSyncClient_ResilienceDisabled_StillBoundsTheRequest()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient("production", options =>
+            {
+                options.EnvironmentId = EnvironmentId;
+                options.EnableResilience = false;
+            }));
+
+        timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
+        timeout.Should().BeGreaterThan(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void AddSyncClient_CustomResilience_StillBoundsTheRequest()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient(
+                "production",
+                options => options.EnvironmentId = EnvironmentId,
+                configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>())));
+
+        timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
+        timeout.Should().BeGreaterThan(TimeSpan.Zero);
+    }
+
+    private static TimeSpan ResolveHttpClientTimeout(Action<IServiceCollection> register)
+    {
+        var services = new ServiceCollection();
+        register(services);
+
+        using var provider = services.BuildServiceProvider();
+        using var httpClient = provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient("Kontent.Ai.Sync.HttpClient.production");
+
+        return httpClient.Timeout;
     }
 }

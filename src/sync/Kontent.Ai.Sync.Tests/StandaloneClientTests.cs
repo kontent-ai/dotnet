@@ -1,5 +1,7 @@
 using System.Net;
 using AwesomeAssertions;
+using Kontent.Ai.Sync.Api;
+using Kontent.Ai.Sync.Configuration;
 using Polly;
 using Polly.Retry;
 using RichardSzalay.MockHttp;
@@ -186,5 +188,35 @@ public sealed class StandaloneClientTests : IDisposable
         var act = () => new SyncClient(new SyncOptions { EnvironmentId = "not-a-guid" });
 
         act.Should().Throw<System.ComponentModel.DataAnnotations.ValidationException>();
+    }
+
+    // The container-free client owns its HttpClient, so the ceiling that bounds a request is set here.
+    // Only the default pipeline, which times out each attempt itself, earns having it lifted.
+
+    [Fact]
+    public void CreateHttpClient_DefaultResilience_LiftsTheHttpClientCeiling()
+    {
+        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: true);
+
+        httpClient.Timeout.Should().Be(Timeout.InfiniteTimeSpan);
+    }
+
+    [Fact]
+    public void CreateHttpClient_WithoutTheDefaultPipeline_StillBoundsTheRequest()
+    {
+        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: false);
+
+        httpClient.Timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
+        httpClient.Timeout.Should().BeGreaterThan(TimeSpan.Zero);
+    }
+
+    private static HttpClient BuildHttpClient(bool pipelineBoundsAttempts)
+    {
+        var options = Options();
+
+        return SyncApiFactory.CreateHttpClient(
+            options,
+            new SnapshotSyncOptionsAccessor(options),
+            pipelineBoundsAttempts: pipelineBoundsAttempts);
     }
 }
