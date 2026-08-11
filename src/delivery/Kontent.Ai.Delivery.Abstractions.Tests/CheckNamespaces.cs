@@ -26,7 +26,11 @@ public class CheckNamespaces(ITestOutputHelper output)
             // Coverage instrumentation weaves a tracker type into the assembly when the build
             // collects coverage. Like the compiler-generated types above it is a build artifact,
             // not part of the shipped surface.
-            .Where(t => !t.Namespace!.StartsWith("Coverlet.", StringComparison.Ordinal));
+            .Where(t => !t.Namespace!.StartsWith("Coverlet.", StringComparison.Ordinal))
+            // Shared source from src/common is compiled in as internal types (see src/common/README.md).
+            // Like the instrumentation above it is a build-time inclusion rather than part of the contract
+            // this rule protects - a consumer never sees it, whatever namespace it declares.
+            .Where(t => !t.Namespace!.StartsWith("Kontent.Ai.Common", StringComparison.Ordinal));
 
         Assert.All(
             typesToCheck,

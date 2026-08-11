@@ -1,3 +1,5 @@
+using Kontent.Ai.Common;
+
 namespace Kontent.Ai.Sync.Configuration;
 
 /// <summary>
@@ -85,13 +87,15 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     }
 
     /// <inheritdoc/>
-    public SyncOptions Build() => new()
+    /// <remarks>
+    /// Reflected rather than listed property by property: a hand-written list keeps compiling when a new
+    /// option is added and silently stops carrying it, so a value the caller set never reaches the client.
+    /// </remarks>
+    public SyncOptions Build()
     {
-        EnvironmentId = _options.EnvironmentId,
-        EnableResilience = _options.EnableResilience,
-        ProductionEndpoint = _options.ProductionEndpoint,
-        PreviewEndpoint = _options.PreviewEndpoint,
-        ApiKey = _options.ApiKey,
-        ApiMode = _options.ApiMode
-    };
+        var built = new SyncOptions();
+        OptionsCopier<SyncOptions>.Copy(_options, built);
+
+        return built;
+    }
 }

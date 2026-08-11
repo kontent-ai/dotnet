@@ -7,6 +7,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **`SyncOptionsBuilder.Build` copies by reflection rather than property by property.** It listed the properties it carried, which keeps compiling when an option is added and silently stops carrying it — a value the caller set that the client never sees.
+
 - **The `X-KC-SOURCE` header keeps naming the integration that made the call.** Attribution matched the SDK assembly by full name, which carries the version — and nothing pins `AssemblyVersion`, so the reference an integration recorded when it was built stopped matching on the first SDK release after that. The header then went silently missing for every consumer who had not rebuilt. Matching is now by simple name.
 
 - **A request is bounded again when the SDK's own resilience pipeline is not the one installed.** `HttpClient.Timeout` was set to `Timeout.InfiniteTimeSpan` unconditionally, on the premise that the resilience pipeline owns timing - but the 30-second per-attempt timeout that premise rests on exists only while `EnableResilience` is left on and no `configureResilience` hook replaces the default pipeline. Setting `EnableResilience = false`, or supplying a pipeline that adds no timeout of its own, therefore left a call with no attempt timeout, no overall timeout and no ceiling of any kind, so a connection that stopped responding hung the caller indefinitely. This affected both the container-registered client and the container-free one, which builds its own transport. The ceiling is now lifted only for the default pipeline; otherwise `HttpClient`'s 100-second default applies, as it did in 1.0. A custom pipeline that legitimately needs longer can raise it through `configureHttpClient`.

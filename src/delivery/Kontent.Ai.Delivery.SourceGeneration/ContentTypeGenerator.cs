@@ -75,7 +75,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             codename = arg.Value as string;
         }
 
-        // Get location for diagnostics
+        // Taken apart rather than carried whole: see ContentTypeInfo.
         var location = attributeData.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation()
             ?? context.TargetNode.GetLocation();
 
@@ -83,7 +83,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             codename: codename,
             fullyQualifiedTypeName: typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             typeName: typeSymbol.Name,
-            location: location,
+            filePath: location.SourceTree?.FilePath ?? string.Empty,
+            textSpan: location.SourceSpan,
+            lineSpan: location.GetLineSpan().Span,
             isInterface: typeSymbol.TypeKind == TypeKind.Interface,
             isAbstract: typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class);
     }
@@ -220,21 +222,33 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
 
     /// <summary>
     /// Lightweight data carrier for the incremental pipeline.
-    /// Implements <see cref="IEquatable{T}"/> excluding <see cref="Location"/>
+    /// Implements <see cref="IEquatable{T}"/> excluding the position
     /// so the pipeline can skip regeneration when content types haven't changed.
     /// </summary>
+    /// <remarks>
+    /// The position is held as a path and spans rather than as a <see cref="Location"/>. A Location keeps
+    /// its <c>SourceTree</c> alive, and everything a pipeline value holds stays in the incremental cache
+    /// for as long as the generator is loaded - so carrying one pins a syntax tree, and with it the
+    /// compilation it came from, for every edit the IDE makes. The Location is rebuilt only when a
+    /// diagnostic is actually reported.
+    /// </remarks>
     private readonly struct ContentTypeInfo(
         string? codename,
         string fullyQualifiedTypeName,
         string typeName,
-        Location location,
+        string filePath,
+        TextSpan textSpan,
+        LinePositionSpan lineSpan,
         bool isInterface,
         bool isAbstract) : IEquatable<ContentTypeInfo>
     {
         public string? Codename { get; } = codename;
         public string FullyQualifiedTypeName { get; } = fullyQualifiedTypeName;
         public string TypeName { get; } = typeName;
-        public Location Location { get; } = location;
+        public string FilePath { get; } = filePath;
+        public TextSpan TextSpan { get; } = textSpan;
+        public LinePositionSpan LineSpan { get; } = lineSpan;
+        public Location Location => Location.Create(FilePath, TextSpan, LineSpan);
         public bool IsInterface { get; } = isInterface;
         public bool IsAbstract { get; } = isAbstract;
 

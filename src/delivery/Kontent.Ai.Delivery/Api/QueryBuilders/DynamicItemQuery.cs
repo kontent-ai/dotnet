@@ -82,7 +82,9 @@ internal sealed class DynamicItemQuery(
 
             if (runtimeItem is not null)
             {
-                return DeliveryResult.SuccessFrom(runtimeItem, deliveryResult);
+                // Carried across explicitly: SuccessFrom projects the source's metadata but defaults the
+                // dependency keys to null, and these are what output-cache tagging is documented to use.
+                return DeliveryResult.SuccessFrom(runtimeItem, deliveryResult, deliveryResult.DependencyKeys);
             }
         }
 

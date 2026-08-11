@@ -25,6 +25,16 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Dynamic queries carry their dependency keys.** `GetItem`/`GetItems` without a typed model returned results whose `DependencyKeys` were `null`, while the typed queries forwarded them — so output-cache tagging, which those keys exist for, had nothing to tag with on the dynamic path.
+
+- **`ImageUrlBuilder` keeps a query the asset URL already carries.** Transformations were applied as a relative reference with its own query, which replaces the base URL's query outright. An asset URL produced by a default rendition preset therefore lost its rendition the moment any transformation was added. The two are merged now, with an explicit transformation winning where both set the same key.
+
+- **A cache miss in raw-JSON mode hydrates once instead of twice.** The factory already builds the value to collect its dependency keys, and the payload it stored was then parsed and mapped a second time to answer the same call. The call that produced the value now reuses it; a cache hit or a background refresh still rehydrates, as it must.
+
+- **The source generator no longer pins compilations in the IDE's incremental cache.** Its pipeline model carried a `Location`, which holds its `SourceTree` alive — and pipeline values are retained for as long as the generator is loaded, so every edit accumulated another rooted syntax tree and the compilation behind it. The position is stored as a path and spans, and the `Location` is rebuilt only when a diagnostic is reported.
+
+- **Options handed to the SDK prebuilt are copied by reflection rather than property by property.** `DeliveryOptions.CopyTo` listed the properties it carried, which keeps compiling when an option is added and silently stops carrying it — a value the caller set that the client never sees. It now uses the same copier the other SDKs do.
+
 - **The `X-KC-SOURCE` header keeps naming the integration that made the call.** Attribution matched the SDK assembly by full name, which carries the version — and nothing pins `AssemblyVersion`, so the reference an integration recorded when it was built stopped matching on the first SDK release after that. The header then went silently missing for every consumer who had not rebuilt. Matching is now by simple name.
 
 - **Rich-text tag resolvers keep their place in registration order, and the description is no longer dispatch.** `WithHtmlNodeResolver(tagName, ...)` registrations were lifted into a lookup consulted before any predicate resolver, so a tag resolver won however late it was registered — against the documented "evaluated in registration order, first match wins". Membership of that lookup was decided by whether the resolver's *description* started with `Tag=`, so a predicate resolver a caller happened to describe that way was silently promoted into it. Registering the same tag twice threw an `ArgumentException` from `Build()`, where every other registration is resolved by order. All three now follow the one documented rule: one ordered pass, first match wins, tag registrations included. The public builder API is unchanged.

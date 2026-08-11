@@ -122,6 +122,8 @@ internal sealed class ItemQuery<TModel>(
         Action<IDeliveryResult<DeliveryItemResponse<TModel>>> captureApiResult,
         CancellationToken cancellationToken)
     {
+        IContentItem<TModel>? hydratedHere = null;
+
         var cached = await cacheManager.GetOrSetAsync(
             cacheKey,
             async ct =>
@@ -132,6 +134,7 @@ internal sealed class ItemQuery<TModel>(
                     return null;
 
                 var (item, deps) = await ProcessItemAsync(result.Value, ct).ConfigureAwait(false);
+                hydratedHere = item;
                 var rawPayload = CachedRawItemsPayload.FromItem(item, result.Value.ModularContent);
                 return new CacheEntry<CachedRawItemsPayload>(rawPayload, deps);
             },
@@ -140,6 +143,15 @@ internal sealed class ItemQuery<TModel>(
 
         if (cached is null)
             return null;
+
+        // Hydrating a miss twice is what this avoids: the factory already built the value in order to
+        // collect the dependency keys, and rehydrating parses and maps the very same payload again. Only
+        // this call's own factory result can be reused - FromFactory is false for a cache hit and for a
+        // background refresh, both of which still rehydrate.
+        if (cached.FromFactory && hydratedHere is not null)
+        {
+            return new CacheResult<IContentItem<TModel>>(hydratedHere, cached.DependencyKeys) { FromFactory = true };
+        }
 
         var item = await CachePayloadHelper.RehydrateItemAsync<TModel>(
             cached.Value,
