@@ -40,11 +40,15 @@ public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOp
         var request = httpContext.Request;
         request.EnableBuffering();
 
-        string content;
+        // The signature covers the bytes the sender signed, so they are hashed as received. Decoding to a
+        // string and re-encoding would put a lossy step in the middle: the decoder substitutes replacement
+        // characters for malformed input, so two different bodies can re-encode to the same bytes.
+        byte[] content;
         try
         {
-            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-            content = await reader.ReadToEndAsync(httpContext.RequestAborted);
+            using var buffer = new MemoryStream();
+            await request.Body.CopyToAsync(buffer, httpContext.RequestAborted);
+            content = buffer.ToArray();
         }
         finally
         {
@@ -56,8 +60,11 @@ public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOp
             }
         }
 
-        var providedSignature = request.Headers["X-KC-Signature"].FirstOrDefault()
-            ?? request.Headers["X-Kontent-ai-Signature"].FirstOrDefault();
+        // Modern header first; the legacy one is the fallback for webhooks configured before the rename.
+        // Both are verified against the same secret, so precedence only decides which is read when a
+        // request carries both - but it is observable, so it is stated rather than incidental.
+        var providedSignature = request.Headers["X-Kontent-ai-Signature"].FirstOrDefault()
+            ?? request.Headers["X-KC-Signature"].FirstOrDefault();
 
         if (!SignatureMatches(content, secret, providedSignature))
         {
@@ -78,7 +85,7 @@ public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOp
     /// time. Length carries no secret here: an HMAC-SHA256 digest is always the same size, so a signature
     /// that does not decode to exactly that many bytes is rejected outright.
     /// </remarks>
-    private static bool SignatureMatches(string content, string secret, string? providedSignature)
+    private static bool SignatureMatches(ReadOnlySpan<byte> content, string secret, string? providedSignature)
     {
         if (providedSignature is null)
         {
@@ -92,12 +99,8 @@ public sealed class SignatureMiddleware(RequestDelegate next, IOptions<WebhookOp
             return false;
         }
 
-        // Throws on malformed input rather than substituting replacement characters, so a body that is
-        // not valid UTF-8 cannot hash to the same value as one that is.
-        var encoding = new UTF8Encoding(false, true);
-
         Span<byte> expected = stackalloc byte[HMACSHA256.HashSizeInBytes];
-        HMACSHA256.HashData(encoding.GetBytes(secret), encoding.GetBytes(content), expected);
+        HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), content, expected);
 
         return CryptographicOperations.FixedTimeEquals(expected, provided);
     }

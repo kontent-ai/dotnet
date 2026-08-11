@@ -114,7 +114,7 @@ public sealed class WebhookModel : IEquatable<WebhookModel>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookNotification : IEquatable<WebhookNotification>
     .ctor()
-    WebhookModel[]? Notifications { get; init; }
+    IReadOnlyList<WebhookModel>? Notifications { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookNotification? other)
     Int32 GetHashCode()

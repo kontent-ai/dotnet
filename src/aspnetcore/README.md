@@ -172,7 +172,7 @@ Package provides a model for webhook deserialization: `WebhookNotification`.
 
 ### Webhook signature verification middleware
 
-This middleware verifies the `X-Kontent-ai-Signature` header (and the legacy `X-KC-Signature` header). Returns `401 Unauthorized` when the signature is missing or invalid.
+This middleware verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-Signature` header when the modern one is absent. A request carrying both is verified against the modern one. Returns `401 Unauthorized` when the signature is missing or invalid.
 
 `appsettings.json`:
 
