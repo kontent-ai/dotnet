@@ -175,4 +175,39 @@ public class ArgHelpersTests
         // -i in management mode should NOT also populate DeliveryOptions.
         options.DeliveryOptions?.EnvironmentId.Should().BeNullOrEmpty();
     }
+
+    [Theory]
+    [InlineData("-k")]
+    [InlineData("--apiKey")]
+    public void FindInvalidArgs_ManagementArgWithoutTheModeSwitch_PointsAtTheModeSwitch(string argument)
+    {
+        var result = ArgHelpers.FindInvalidArgs([argument, "secret"]);
+
+        result.Should().ContainSingle().Which.Should().Contain("--management");
+    }
+
+    [Theory]
+    [InlineData("-p")]
+    [InlineData("--projectid")]
+    public void FindInvalidArgs_DeliveryArgInManagementMode_SaysItIsNotUsedThere(string argument)
+    {
+        var result = ArgHelpers.FindInvalidArgs(["-m", argument, "abc-123"]);
+
+        result.Should().ContainSingle().Which.Should().Contain("Delivery API");
+    }
+
+    public static TheoryData<string[]> ArgsBelongingToTheActiveMode => new()
+    {
+        new[] { "-m", "-k", "secret" },
+        new[] { "-m", "-i", "abc-123" },
+        new[] { "-i", "abc-123" },
+        new[] { "-p", "abc-123" },
+    };
+
+    [Theory]
+    [MemberData(nameof(ArgsBelongingToTheActiveMode))]
+    public void FindInvalidArgs_ArgumentBelongingToTheActiveMode_ReturnsNoProblems(string[] args)
+    {
+        ArgHelpers.FindInvalidArgs(args).Should().BeEmpty();
+    }
 }

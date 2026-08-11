@@ -38,16 +38,10 @@ internal static class ArgHelpers
         string.Equals(arg, ArgMappingsRegister.ManagementShortFlag, StringComparison.OrdinalIgnoreCase) ||
         string.Equals(arg, ArgMappingsRegister.ManagementLongFlag, StringComparison.OrdinalIgnoreCase);
 
-    public static IDictionary<string, string> GetSwitchMappings(string[] args)
-    {
-        var modeMappings = IsManagementMode(args)
-            ? ArgMappingsRegister.ManagementMappings
-            : ArgMappingsRegister.DeliveryEnvironmentIdMappings;
-
-        return ArgMappingsRegister.GeneralMappings
-            .Union(modeMappings)
+    public static IDictionary<string, string> GetSwitchMappings(string[] args) =>
+        ArgMappingsRegister.GeneralMappings
+            .Union(ArgMappingsRegister.ModeMappings(IsManagementMode(args)))
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);
-    }
 
     /// <summary>
     /// Returns every problem with the supplied arguments; an empty list means they are usable.
@@ -60,27 +54,58 @@ internal static class ArgHelpers
     public static IReadOnlyList<string> FindInvalidArgs(string[] args)
     {
         var problems = new List<string>();
+        var managementMode = IsManagementMode(args);
         var codeGeneratorOptionsProperties = typeof(CodeGeneratorOptions).GetProperties()
             .Where(p => p.PropertyType != DeliveryProgramOptionsData.Type
                         && p.PropertyType != ManagementProgramOptionsData.Type)
             .Select(p => p.Name)
             .ToList();
 
-        var brokenArgs = args.Where(a =>
+        foreach (var arg in args.Where(StartsWithArgumentName))
         {
-            if (!StartsWithArgumentName(a)) return false;
+            var argumentName = SplitArgument(arg).FirstOrDefault() ?? string.Empty;
 
-            var argumentName = SplitArgument(a).FirstOrDefault() ?? string.Empty;
-            return !ArgMappingsRegister.AllMappingsKeys.Contains(argumentName) &&
-                   !IsOptionPropertyValid(DeliveryProgramOptionsData, argumentName) &&
-                   !IsOptionPropertyValid(ManagementProgramOptionsData, argumentName) &&
-                   !IsOptionPropertyValid(codeGeneratorOptionsProperties, argumentName);
-        });
+            if (IsKnownInMode(argumentName, managementMode) ||
+                IsOptionPropertyValid(DeliveryProgramOptionsData, argumentName) ||
+                IsOptionPropertyValid(ManagementProgramOptionsData, argumentName) ||
+                IsOptionPropertyValid(codeGeneratorOptionsProperties, argumentName))
+            {
+                continue;
+            }
 
-        problems.AddRange(brokenArgs.Select(arg => $"Unsupported parameter: {arg}"));
+            problems.Add(WrongModeProblem(argumentName, managementMode) ?? $"Unsupported parameter: {arg}");
+        }
+
         problems.AddRange(ValidateEnumArgValues(args));
 
         return problems;
+    }
+
+    private static bool IsKnownInMode(string argumentName, bool managementMode) =>
+        IsModeSwitch(argumentName) ||
+        ArgMappingsRegister.GeneralMappings.ContainsKey(argumentName) ||
+        ArgMappingsRegister.ModeMappings(managementMode).ContainsKey(argumentName);
+
+    /// <summary>
+    /// The message for an argument that is real but belongs to the mode that is not running, or
+    /// <c>null</c> when the argument is not a mode question at all.
+    /// </summary>
+    /// <remarks>
+    /// Binding drops such an argument, so without this it takes effect nowhere and says nothing: omitting
+    /// <c>--management</c> generated a full set of Delivery models over the output directory and exited 0.
+    /// </remarks>
+    private static string? WrongModeProblem(string argumentName, bool managementMode)
+    {
+        if (managementMode)
+        {
+            return ArgMappingsRegister.DeliveryEnvironmentIdMappings.ContainsKey(argumentName)
+                ? $"{argumentName} configures the Delivery API, which --management does not use."
+                : null;
+        }
+
+        return ArgMappingsRegister.ManagementMappings.ContainsKey(argumentName)
+            ? $"{argumentName} configures the Management API. Add --management (or -m) to generate from it."
+            : null;
     }
 
     private static IEnumerable<string> ValidateEnumArgValues(string[] args)
