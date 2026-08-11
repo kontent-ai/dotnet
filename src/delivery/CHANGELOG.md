@@ -10,6 +10,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
+- **The caching package's registration class is renamed to `DeliveryCacheServiceCollectionExtensions`.** It and the Delivery SDK both declared `Kontent.Ai.Delivery.ServiceCollectionExtensions`, so two packages owned one full type name — and since `Kontent.Ai.Delivery.Caching` depends on `Kontent.Ai.Delivery`, every consumer has both and could name neither: referring to it was `CS0433`, with no way to disambiguate. Nothing that compiled before stops compiling. The namespace is unchanged, so `using Kontent.Ai.Delivery;` and every `services.AddDeliveryMemoryCache(...)` / `AddDeliveryHybridCache(...)` / `AddDeliveryCacheManager(...)` call is exactly as it was; only code that named the type explicitly is affected, and that could not have built.
+
 - **The source generator emits its marker attribute as `internal`.** `ContentTypeCodenameAttribute` is generated into each referencing compilation, so a `public` one put the same type name into every assembly that uses the generator. Two such projects referencing each other stopped compiling with `CS0436`/`CS0433`, and the only fix available to the consumer was to drop a project reference. Emitting it `internal` — standard practice for generated marker attributes — gives each assembly its own copy. Code that only applies the attribute to its own models is unaffected; code that exposed it across an assembly boundary was in the broken configuration already.
 
 ### Added
