@@ -42,10 +42,7 @@ public class BaseClassCodeGenerator(CodeGeneratorOptions options) : GeneralGener
     public string GenerateBaseClassCode()
     {
         var tree = CSharpSyntaxTree.ParseText(
-            $@"using System;
-using Kontent.Ai.Delivery.Abstractions;
-
-namespace {Namespace};
+            $@"namespace {Namespace};
 
 public partial record {_options.BaseRecord}
 {{
@@ -69,10 +66,7 @@ public partial record {_options.BaseRecord}
             .Aggregate((p, n) => p + Environment.NewLine + n);
 
         var tree = CSharpSyntaxTree.ParseText(
-            $@"using System;
-using Kontent.Ai.Delivery.Abstractions;
-
-namespace {Namespace};
+            $@"namespace {Namespace};
 
 // These records extend the generated models to all inherit from the common basetype {_options.BaseRecord}.
 
