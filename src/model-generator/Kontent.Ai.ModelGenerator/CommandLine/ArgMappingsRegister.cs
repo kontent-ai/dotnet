@@ -21,15 +21,17 @@ internal static class ArgMappingsRegister
         { "-o", nameof(CodeGeneratorOptions.OutputDir) },
         { "-b", nameof(CodeGeneratorOptions.BaseRecord) },
         { "-r", nameof(CodeGeneratorOptions.BaseRecord) },
-        { "--nullability", nameof(CodeGeneratorOptions.Nullability) },
     };
 
-    public static readonly IDictionary<string, string> DeliveryEnvironmentIdMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    public static readonly IDictionary<string, string> DeliveryMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         { "-i", $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}" },
         { "--environmentId", $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}" },
         { "-p", $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}" }, // Backwards compatibility
-        {"--projectid", $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}" } // Backwards compatibility
+        {"--projectid", $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}" }, // Backwards compatibility
+        // Read-side nullability. Management models are uniformly nullable by contract - null means "leave
+        // this element alone" on upsert - so there is nothing for this to select there.
+        { "--nullability", nameof(CodeGeneratorOptions.Nullability) },
     };
 
     public static readonly IDictionary<string, string> ManagementMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -47,5 +49,5 @@ internal static class ArgMappingsRegister
     /// than accepting the union.
     /// </summary>
     public static IDictionary<string, string> ModeMappings(bool managementMode) =>
-        managementMode ? ManagementMappings : DeliveryEnvironmentIdMappings;
+        managementMode ? ManagementMappings : DeliveryMappings;
 }

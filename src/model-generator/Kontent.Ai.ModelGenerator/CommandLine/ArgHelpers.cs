@@ -22,6 +22,20 @@ internal static class ArgHelpers
         new(typeof(ManagementOptions), "management-sdk-net");
 
     /// <summary>
+    /// Generator options only one mode reads, so the generic <c>--&lt;PropertyName&gt;</c> form has to be
+    /// mode-scoped as well. <see cref="CodeGeneratorOptions.Nullability"/> selects how Delivery read models
+    /// express nullability; management models are uniformly nullable because <c>null</c> means "leave this
+    /// element alone" on upsert, so there is nothing there for it to select.
+    /// </summary>
+    private static readonly IReadOnlySet<string> DeliveryOnlyGeneratorOptions =
+        new HashSet<string>([nameof(CodeGeneratorOptions.Nullability)], StringComparer.OrdinalIgnoreCase);
+
+    // The section-qualified form of every option, e.g. ManagementOptions:ApiKey. Mode-scoped for the same
+    // reason the mapping tables are: only the running mode's section is ever read.
+    private static readonly IReadOnlyList<string> DeliveryOptionKeys = SectionKeysOf(DeliveryProgramOptionsData);
+    private static readonly IReadOnlyList<string> ManagementOptionKeys = SectionKeysOf(ManagementProgramOptionsData);
+
+    /// <summary>
     /// Returns true if <c>-m</c> or <c>--management</c> appears anywhere in <paramref name="args"/>.
     /// </summary>
     public static bool IsManagementMode(string[] args) => args.Any(IsModeSwitch);
@@ -59,6 +73,7 @@ internal static class ArgHelpers
             .Where(p => p.PropertyType != DeliveryProgramOptionsData.Type
                         && p.PropertyType != ManagementProgramOptionsData.Type)
             .Select(p => p.Name)
+            .Where(name => !managementMode || !DeliveryOnlyGeneratorOptions.Contains(name))
             .ToList();
 
         foreach (var arg in args.Where(StartsWithArgumentName))
@@ -66,8 +81,7 @@ internal static class ArgHelpers
             var argumentName = SplitArgument(arg).FirstOrDefault() ?? string.Empty;
 
             if (IsKnownInMode(argumentName, managementMode) ||
-                IsOptionPropertyValid(DeliveryProgramOptionsData, argumentName) ||
-                IsOptionPropertyValid(ManagementProgramOptionsData, argumentName) ||
+                IsOptionPropertyValid(ModeOptionKeys(managementMode), argumentName) ||
                 IsOptionPropertyValid(codeGeneratorOptionsProperties, argumentName))
             {
                 continue;
@@ -86,6 +100,9 @@ internal static class ArgHelpers
         ArgMappingsRegister.GeneralMappings.ContainsKey(argumentName) ||
         ArgMappingsRegister.ModeMappings(managementMode).ContainsKey(argumentName);
 
+    private static IReadOnlyList<string> ModeOptionKeys(bool managementMode) =>
+        managementMode ? ManagementOptionKeys : DeliveryOptionKeys;
+
     /// <summary>
     /// The message for an argument that is real but belongs to the mode that is not running, or
     /// <c>null</c> when the argument is not a mode question at all.
@@ -98,15 +115,27 @@ internal static class ArgHelpers
     {
         if (managementMode)
         {
-            return ArgMappingsRegister.DeliveryEnvironmentIdMappings.ContainsKey(argumentName)
+            if (IsOptionPropertyValid(DeliveryOnlyGeneratorOptions, argumentName))
+            {
+                return $"{argumentName} applies to Delivery models only. Management models are always " +
+                       "nullable, because a null element is left untouched on upsert.";
+            }
+
+            return ArgMappingsRegister.DeliveryMappings.ContainsKey(argumentName) ||
+                   IsOptionPropertyValid(DeliveryOptionKeys, argumentName)
                 ? $"{argumentName} configures the Delivery API, which --management does not use."
                 : null;
         }
 
-        return ArgMappingsRegister.ManagementMappings.ContainsKey(argumentName)
+        return ArgMappingsRegister.ManagementMappings.ContainsKey(argumentName) ||
+               IsOptionPropertyValid(ManagementOptionKeys, argumentName)
             ? $"{argumentName} configures the Management API. Add --management (or -m) to generate from it."
             : null;
     }
+
+    private static IReadOnlyList<string> SectionKeysOf<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
+        (ProgramOptionsData<T> programOptionsData) =>
+            [.. programOptionsData.OptionProperties.Select(prop => $"{programOptionsData.OptionsName}:{prop.Name}")];
 
     private static IEnumerable<string> ValidateEnumArgValues(string[] args)
     {
@@ -175,10 +204,6 @@ internal static class ArgHelpers
 
     public static UsedSdkInfo GetUsedSdkInfo(bool managementMode = false) =>
         managementMode ? ManagementProgramOptionsData.UsedSdkInfo : DeliveryProgramOptionsData.UsedSdkInfo;
-
-    private static bool IsOptionPropertyValid<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
-        (ProgramOptionsData<T> programOptionsData, string arg) =>
-            IsOptionPropertyValid(programOptionsData.OptionProperties.Select(prop => $"{programOptionsData.OptionsName}:{prop.Name}"), arg);
 
     private static bool IsOptionPropertyValid(IEnumerable<string> optionProperties, string arg) =>
         optionProperties.Any(prop =>
