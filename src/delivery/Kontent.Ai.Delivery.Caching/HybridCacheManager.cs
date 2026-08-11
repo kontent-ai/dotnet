@@ -9,10 +9,10 @@ namespace Kontent.Ai.Delivery.Caching;
 /// </summary>
 /// <remarks>
 /// FusionCache always has a memory tier in front of the distributed one; there is no distributed-only
-/// mode. This manager sets <c>SkipMemoryCacheRead</c> and <c>SkipMemoryCacheWrite</c> on its default
-/// entry options to keep that tier out of the way, because no backplane is configured: without one an
-/// invalidation reaches only the node that performed it, and a second instance would keep serving content
-/// a webhook had already evicted. Coherence is chosen over the latency the memory tier would save.
+/// mode, and this manager uses both tiers. The distributed one is what another node reads from, and a
+/// backplane is what keeps the memory tiers in step: without one an invalidation reaches only the node
+/// that performed it, so a second instance can go on serving content a webhook already evicted until the
+/// entry expires. Multi-node deployments therefore need an <see cref="IFusionCacheBackplane"/>.
 /// </remarks>
 internal sealed class HybridCacheManager(
     IDistributedCache cache,
