@@ -17,10 +17,19 @@
   </ItemGroup>
 
   <!-- No $(KontentCommonPath) includes here on purpose. This package sees Kontent.Ai.Delivery's internals
-       through InternalsVisibleTo, which it needs for RefitSettingsProvider anyway, and that brings the
-       shared types with it. Compiling a second copy of one only produces CS0436 ambiguity at every use.
-       The usual cross-package hazard does not apply: the two ship in lockstep on one version, so they
-       cannot drift apart the way separately versioned products can. -->
+       through InternalsVisibleTo - it needs them for RefitSettingsProvider, LoggerMessages and
+       ContentDependencyExtractor - and that already brings the shared types with it. Compiling a second
+       copy of one produces CS0436 ambiguity at every use, so the two patterns are mutually exclusive here
+       and the InternalsVisibleTo one wins by necessity.
+
+       The accepted trade-off: the dependency on Kontent.Ai.Delivery packs as a floor, not an exact
+       version, so a consumer can resolve a newer Delivery against this package - most plausibly by
+       transitive unification through Kontent.Ai.AspNetCore's own floor. Compiled-against internals that
+       have since changed would then fail at runtime. All five Delivery packages release together from one
+       DeliveryVersion, so this needs a consumer to hold this package back while moving Delivery forward,
+       and it surfaces as a MissingMethodException at the first cache call rather than as bad data.
+       Pinning the dependency to an exact version would close it, at the cost of changing resolution for
+       every consumer and of a matching change to the dependency check in release.yml. -->
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
