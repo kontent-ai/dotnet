@@ -14,7 +14,13 @@ namespace Kontent.Ai.Delivery;
 /// <summary>
 /// Extension methods for registering Kontent.ai Delivery SDK caching services.
 /// </summary>
-public static class ServiceCollectionExtensions
+/// <remarks>
+/// Named for the package rather than the generic <c>ServiceCollectionExtensions</c>: the Delivery SDK
+/// declares a class of that name in this same namespace, and two packages cannot both own one full type
+/// name - a consumer, who always has both since this package depends on that one, could not name either.
+/// The namespace is unchanged, so every <c>using</c> and every call site is unaffected.
+/// </remarks>
+public static class DeliveryCacheServiceCollectionExtensions
 {
     /// <summary>
     /// Registers a custom cache manager for the default Delivery client.
