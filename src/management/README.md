@@ -257,7 +257,10 @@ SubscriptionId is not configured. Set ManagementOptions.SubscriptionId to call s
 
 ## The Result Pattern
 
-Every `IManagementClient` method returns an `IManagementResult` (for void operations) or an `IManagementResult<T>` (for operations that yield a value). The SDK **does not throw** on Management API `4xx`/`5xx` responses — inspect the result instead. Network-level and serialization failures still propagate as exceptions.
+Every `IManagementClient` method returns an `IManagementResult` (for void operations) or an `IManagementResult<T>` (for operations that yield a value). The SDK **does not throw** when a call fails — inspect the result instead. That covers Management API `4xx`/`5xx` responses, a transport failure that never reached the server, and a response whose body could not be read; where an exception caused the failure, `Error.Exception` carries it.
+
+> [!IMPORTANT]
+> Do not write `try`/`catch` around a call expecting to catch a failed request — it will not fire. `IsSuccess` is the check.
 
 ```csharp
 var result = await client.CreateContentItemAsync(new ContentItemCreateModel
@@ -349,7 +352,16 @@ if (!result.IsSuccess && result.Error?.ErrorCode == ManagementErrorCodes.Publish
 `ManagementErrorCodes` is a curated set of the codes callers commonly act on — variant workflow-state conflicts, duplicate external IDs, concurrency, and rate limits. The codes are not unique (the API reuses some across unrelated conditions), so inspect `Message` as well when the distinction matters.
 
 > [!IMPORTANT]
-> Exceptions are reserved for **programmer errors** (for example, a `null` argument), **invalid configuration**, and **network/serialization failures** — not for API errors. A `404` or an API validation rejection comes back as `IsSuccess == false`, never as a thrown exception.
+> A failed call is a result, not an exception. A `404`, an API validation rejection, an unreachable host and an unreadable response body all come back as `IsSuccess == false`.
+>
+> Four things still throw:
+>
+> - **Cancellation** — a cancelled call throws `OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers behave normally. (An expired timeout is *not* cancellation: the request was sent and may have been applied, so it comes back as a failed result.)
+> - **Programmer errors** — a `null` argument throws `ArgumentNullException`.
+> - **Invalid configuration** — validated when the client is built or registered.
+> - **`EnsureSuccess()`** — the opt-in conversion of a failed result into a `ManagementException`.
+>
+> The strongly-typed language-variant overloads add one more: projecting a response onto a generated record that no longer matches the content type throws, because that is a mismatch between your model and the environment rather than an outcome of the call.
 
 ## Identifiers
 

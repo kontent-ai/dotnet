@@ -3,9 +3,16 @@ using System.Net;
 namespace Kontent.Ai.Management;
 
 /// <summary>
-/// The outcome of a Management SDK operation. Management API responses — including validation failures and other
-/// 4xx/5xx errors — are surfaced here without throwing; inspect <see cref="IsSuccess"/> rather than catching.
-/// Transport-level failures, where no HTTP response is received, still surface as exceptions.
+/// The outcome of a Management SDK operation. Every failure of the call itself is surfaced here without
+/// throwing — API validation failures and other 4xx/5xx errors, a transport failure that never reached the
+/// server, and a response whose body could not be read. Inspect <see cref="IsSuccess"/> rather than catching;
+/// where an exception caused the failure, <see cref="IError.Exception"/> carries it.
+/// <para>
+/// Cancellation is the exception: a cancelled call throws <see cref="OperationCanceledException"/>, so
+/// <see cref="System.Threading.Tasks.Task.IsCanceled"/> and cancellation handlers behave normally. Argument
+/// and configuration validation throw as well, and <c>EnsureSuccess()</c> converts a failed result into a
+/// throw on request.
+/// </para>
 /// </summary>
 public interface IManagementResult
 {
