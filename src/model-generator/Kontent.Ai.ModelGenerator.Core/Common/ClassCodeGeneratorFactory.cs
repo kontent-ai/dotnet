@@ -17,4 +17,17 @@ public class ClassCodeGeneratorFactory : IClassCodeGeneratorFactory
 
         return new DeliveryClassCodeGenerator(classDefinition, classFilename, options.Namespace);
     }
+
+    /// <inheritdoc />
+    public ClassCodeGenerator CreateManagementClassCodeGenerator(
+        CodeGeneratorOptions options,
+        ClassDefinition classDefinition,
+        string classFilename)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(classDefinition);
+        ArgumentNullException.ThrowIfNull(classFilename);
+
+        return new ManagementClassCodeGenerator(classDefinition, classFilename, options.Namespace);
+    }
 }

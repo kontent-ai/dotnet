@@ -105,6 +105,6 @@ internal static class Program
     private static void PrintSdkVersion(bool managementMode)
     {
         var usedSdkInfo = ArgHelpers.GetUsedSdkInfo(managementMode);
-        Messages.LogInfo($"Models were generated for {usedSdkInfo.Name} version {usedSdkInfo.Version}");
+        Messages.LogInfo($"Generating models for {usedSdkInfo.Name} version {usedSdkInfo.Version}");
     }
 }

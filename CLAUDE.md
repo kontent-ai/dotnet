@@ -10,7 +10,7 @@ The Kontent.ai **.NET monorepo** — every official Kontent.ai .NET tool lives h
 |---|---|---|
 | Delivery SDK | `src/delivery` | `Kontent.Ai.Delivery` + Abstractions, Caching, SourceGeneration, Urls |
 | Management SDK | `src/management` | `Kontent.Ai.Management` |
-| Sync SDK | `src/sync` | `Kontent.Ai.Sync` + Abstractions |
+| Sync SDK | `src/sync` | `Kontent.Ai.Sync` |
 | ASP.NET Core extensions | `src/aspnetcore` | `Kontent.Ai.AspNetCore` (depends on Delivery) |
 | Model generator | `src/model-generator` | `Kontent.Ai.ModelGenerator` + Core (depends on Delivery and Management) |
 
