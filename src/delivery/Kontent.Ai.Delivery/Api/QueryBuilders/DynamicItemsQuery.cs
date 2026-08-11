@@ -101,7 +101,10 @@ internal sealed class DynamicItemsQuery(
 
         var response = await ConvertResponseAsync(deliveryResult.Value, cancellationToken).ConfigureAwait(false);
 
-        return DeliveryResult.SuccessFrom<IDeliveryItemListingResponse, IDeliveryItemListingResponse<IDynamicElements>>(response, deliveryResult);
+        // Carried across explicitly: SuccessFrom projects the source's metadata but defaults the dependency
+        // keys to null, and these are what output-cache tagging is documented to use.
+        return DeliveryResult.SuccessFrom<IDeliveryItemListingResponse, IDeliveryItemListingResponse<IDynamicElements>>(
+            response, deliveryResult, deliveryResult.DependencyKeys);
     }
 
     private async Task<DynamicDeliveryItemListingResponse> ConvertResponseAsync(

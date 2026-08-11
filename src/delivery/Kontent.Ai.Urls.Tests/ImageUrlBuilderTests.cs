@@ -253,4 +253,37 @@ public class ImageUrlBuilderTests
 
         Assert.Equal(expectedQuery, builder.Url.Query);
     }
+
+    // An asset URL that already carries a query is what a default rendition preset produces. Applying a
+    // relative reference with its own query replaces the base one wholesale, so the rendition silently
+    // disappeared the moment any transformation was added.
+    [Fact]
+    public void Url_AssetUrlWithExistingQuery_KeepsItAlongsideTheTransformation()
+    {
+        var builder = new ImageUrlBuilder("https://assets.kontent.ai/env/id/photo.jpg?w=800&fm=webp");
+
+        var url = builder.WithHeight(200).Url.ToString();
+
+        Assert.Contains("fm=webp", url);
+        Assert.Contains("h=200", url);
+    }
+
+    [Fact]
+    public void Url_TransformationSharingAKeyWithTheAssetUrl_Wins()
+    {
+        var builder = new ImageUrlBuilder("https://assets.kontent.ai/env/id/photo.jpg?w=800");
+
+        var url = builder.WithWidth(200).Url.ToString();
+
+        Assert.Contains("w=200", url);
+        Assert.DoesNotContain("w=800", url);
+    }
+
+    [Fact]
+    public void Url_NoTransformations_LeavesTheAssetUrlAsItWas()
+    {
+        var builder = new ImageUrlBuilder("https://assets.kontent.ai/env/id/photo.jpg?w=800&fm=webp");
+
+        Assert.Equal("https://assets.kontent.ai/env/id/photo.jpg?w=800&fm=webp", builder.Url.ToString());
+    }
 }

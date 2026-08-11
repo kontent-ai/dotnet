@@ -16,7 +16,36 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
 {
     private readonly Uri _assetUrl = assetUrl ?? throw new ArgumentNullException(nameof(assetUrl));
     private readonly Dictionary<string, StringValues> _queryParameters = [];
-    private string Query => _queryParameters.Any() ? $"?{string.Join("&", _queryParameters.Select(x => $"{x.Key}={x.Value}"))}" : "";
+
+    /// <summary>
+    /// The asset URL's own query merged with the transformations, the latter winning on a shared key.
+    /// </summary>
+    /// <remarks>
+    /// Merged rather than replaced because a relative reference carrying a query replaces the base URL's
+    /// query wholesale. An asset URL that already carries one - which is what a rendition preset produces -
+    /// therefore lost it the moment any transformation was applied. Values are moved across as they were
+    /// found, so nothing is decoded and re-encoded on the way.
+    /// </remarks>
+    private string Query
+    {
+        get
+        {
+            var merged = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var pair in _assetUrl.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var separator = pair.IndexOf('=');
+                merged[separator < 0 ? pair : pair[..separator]] = separator < 0 ? StringValues.Empty : pair[(separator + 1)..];
+            }
+
+            foreach (var (key, value) in _queryParameters)
+            {
+                merged[key] = value;
+            }
+
+            return merged.Count > 0 ? $"?{string.Join("&", merged.Select(x => $"{x.Key}={x.Value}"))}" : "";
+        }
+    }
 
     /// <summary>
     /// Gets the <see cref="T:System.Uri"/> instance with applied transformations.

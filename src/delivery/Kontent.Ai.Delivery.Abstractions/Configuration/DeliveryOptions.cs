@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Kontent.Ai.Common;
 
 namespace Kontent.Ai.Delivery.Abstractions;
 
@@ -89,16 +90,10 @@ public sealed class DeliveryOptions : IValidatableObject
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        destination.EnvironmentId = EnvironmentId;
-        destination.EnableResilience = EnableResilience;
-        destination.ProductionEndpoint = ProductionEndpoint;
-        destination.PreviewEndpoint = PreviewEndpoint;
-        destination.PreviewApiKey = PreviewApiKey;
-        destination.UsePreviewApi = UsePreviewApi;
-        destination.UseSecureAccess = UseSecureAccess;
-        destination.SecureAccessApiKey = SecureAccessApiKey;
-        destination.DefaultRenditionPreset = DefaultRenditionPreset;
-        destination.CustomAssetDomain = CustomAssetDomain;
+        // Reflected rather than assigned property by property: a hand-written list keeps compiling when a
+        // new option is added and silently stops carrying it, which is a value the caller set and the
+        // client never sees.
+        OptionsCopier<DeliveryOptions>.Copy(this, destination);
     }
 
     /// <summary>
