@@ -575,7 +575,7 @@ The legacy `DeliveryCacheOptions` (with `CacheType`, `StaleContentExpiration`, `
 | `FailSafeThrottleDuration` | `30s` | Minimum delay between background refresh attempts while fail-safe is active. |
 | `JitterMaxDuration` | `0` | Random jitter added to expirations to spread load and prevent thundering-herd. |
 | `EagerRefreshThreshold` | `0` | Fraction of TTL (0–1). When set, FusionCache refreshes entries in the background once this fraction has elapsed. |
-| `ConfigureFusionCacheOptions` | `null` | Escape hatch — receives the underlying `FusionCacheOptions` for advanced FusionCache features (backplane, background ops, etc.). |
+| `ConfigureFusionCacheOptions` | `null` | Escape hatch for advanced FusionCache features (backplane, background ops, etc.). Set it through the typed `ConfigureFusionCache` extension in `Kontent.Ai.Delivery.Caching`; the property itself is `object` because Abstractions references no FusionCache types. |
 
 ```csharp
 services.AddDeliveryMemoryCache(opts =>

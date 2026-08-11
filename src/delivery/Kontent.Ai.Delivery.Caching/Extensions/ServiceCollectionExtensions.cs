@@ -7,6 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Delivery;
 
@@ -518,7 +519,8 @@ public static class ServiceCollectionExtensions
             sp => new MemoryCacheManager(
                 sp.GetRequiredService<IMemoryCache>(),
                 cacheOptionsFactory(sp),
-                sp.GetService<ILogger<MemoryCacheManager>>()));
+                sp.GetService<ILogger<MemoryCacheManager>>(),
+                EnvironmentIdOf(sp, clientName)));
     }
 
     private static IServiceCollection AddDeliveryHybridCacheCore(
@@ -535,7 +537,8 @@ public static class ServiceCollectionExtensions
                 logger: sp.GetService<ILogger<HybridCacheManager>>(),
                 // Registered by the consumer the usual FusionCache way, e.g.
                 // services.AddFusionCacheStackExchangeRedisBackplane(...).
-                backplane: sp.GetService<IFusionCacheBackplane>()));
+                backplane: sp.GetService<IFusionCacheBackplane>(),
+                environmentId: EnvironmentIdOf(sp, clientName)));
     }
 
     private static IServiceCollection RegisterCacheManager(
@@ -592,6 +595,11 @@ public static class ServiceCollectionExtensions
 
         return cacheOptions;
     }
+
+    // The environment the cached content actually came from, so entries cannot be served to a client
+    // pointing somewhere else - see FusionCacheManager.ComposeKeyPrefix.
+    private static string EnvironmentIdOf(IServiceProvider sp, string clientName) =>
+        sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>().Get(clientName).EnvironmentId;
 
     private static string ResolveCacheKeyPrefix(string clientName, string? keyPrefix)
     {

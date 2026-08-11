@@ -19,7 +19,8 @@ internal sealed class HybridCacheManager(
     DeliveryCacheOptions cacheOptions,
     JsonSerializerOptions? jsonSerializerOptions = null,
     ILogger<HybridCacheManager>? logger = null,
-    IFusionCacheBackplane? backplane = null)
+    IFusionCacheBackplane? backplane = null,
+    string? environmentId = null)
     : IDeliveryCacheManager, IDeliveryCachePurger, IFailSafeStateProvider, IDisposable
 {
     private readonly FusionCacheManager _inner = FusionCacheManager.CreateHybrid(
@@ -27,7 +28,8 @@ internal sealed class HybridCacheManager(
         cacheOptions,
         jsonSerializerOptions,
         logger,
-        backplane);
+        backplane,
+        environmentId);
 
     /// <inheritdoc />
     public CacheStorageMode StorageMode => _inner.StorageMode;

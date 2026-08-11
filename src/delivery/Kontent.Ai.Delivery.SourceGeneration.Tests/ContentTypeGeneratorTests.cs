@@ -8,6 +8,22 @@ namespace Kontent.Ai.Delivery.SourceGeneration.Tests;
 
 public class ContentTypeGeneratorTests
 {
+    private static IReadOnlyList<string> LastRunTrees { get; set; } = [];
+
+    [Fact]
+    public void Generator_EmitsTheMarkerAttributeAsInternal()
+    {
+        // Every referencing assembly gets its own copy of this attribute. A public one puts the same
+        // type name in each of them, so two such projects referencing each other stop compiling with
+        // CS0436/CS0433 - and the fix would be for the consumer to drop a project reference.
+        RunGenerator("namespace TestApp.Models;");
+
+        var attribute = LastRunTrees.Single(tree => tree.Contains("class ContentTypeCodenameAttribute", StringComparison.Ordinal));
+
+        attribute.Should().Contain("internal sealed class ContentTypeCodenameAttribute");
+        attribute.Should().NotContain("public sealed class ContentTypeCodenameAttribute");
+    }
+
     [Fact]
     public void Generator_WithValidContentTypes_GeneratesRegistry()
     {
@@ -311,6 +327,7 @@ public class ContentTypeGeneratorTests
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
 
         var runResult = driver.GetRunResult();
+        LastRunTrees = [.. runResult.GeneratedTrees.Select(tree => tree.GetText().ToString())];
         var generatedSource = runResult.GeneratedTrees
             .Select(tree => tree.GetText().ToString())
             .FirstOrDefault(text => text.Contains("class GeneratedTypeProvider", StringComparison.Ordinal))

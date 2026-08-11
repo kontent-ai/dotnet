@@ -1,4 +1,8 @@
 ﻿// Kontent.Ai.Delivery
+public sealed class DeliveryCacheOptionsExtensions
+    static DeliveryCacheOptions ConfigureFusionCache(DeliveryCacheOptions options, Action<FusionCacheOptions> configure)
+
+// Kontent.Ai.Delivery
 public sealed class DeliveryClientBuilderExtensions
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<DeliveryCacheOptions> configureCacheOptions)
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)

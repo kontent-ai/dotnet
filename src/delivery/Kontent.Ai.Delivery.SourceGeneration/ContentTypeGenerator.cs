@@ -21,7 +21,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         namespace Kontent.Ai.Delivery.Attributes;
 
         [global::System.AttributeUsage(global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
-        public sealed class ContentTypeCodenameAttribute : global::System.Attribute
+        internal sealed class ContentTypeCodenameAttribute : global::System.Attribute
         {
             public ContentTypeCodenameAttribute(string codename)
             {
@@ -34,8 +34,10 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Emit the marker attribute into the consuming compilation so users do not
-        // need a separate Attributes package/reference.
+        // Emit the marker attribute into the consuming compilation so users do not need a separate
+        // Attributes package/reference. Internal, per standard generator practice: every referencing
+        // assembly gets its own copy, and a public one would put the same type name in two of them -
+        // two such projects referencing each other stop compiling with CS0436/CS0433.
         context.RegisterPostInitializationOutput(static pic =>
         {
             pic.AddSource("ContentTypeCodenameAttribute.g.cs", SourceText.From(ContentTypeCodenameAttributeSource, Encoding.UTF8));

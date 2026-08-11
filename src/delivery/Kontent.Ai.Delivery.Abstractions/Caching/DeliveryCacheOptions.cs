@@ -96,7 +96,9 @@ public sealed class DeliveryCacheOptions
     /// override or extend any setting.
     /// </para>
     /// <para>
-    /// Example usage:
+    /// Prefer the <c>ConfigureFusionCache</c> extension from <c>Kontent.Ai.Delivery.Caching</c>, which takes
+    /// the options typed; this property is <see cref="object"/> only because this package references no
+    /// FusionCache types. Assigning it directly means casting:
     /// <code>
     /// cacheOptions.ConfigureFusionCacheOptions = options =>
     /// {
