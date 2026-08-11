@@ -868,8 +868,9 @@ Timing: for `AddDeliveryClient`, the callback runs when `IOptions<DeliveryOption
 ```csharp
 private static void RegisterDependencies(IServiceCollection services)
 {
-    // JSON serialization options
-    services.TryAddSingleton(RefitSettingsProvider.CreateDefaultJsonSerializerOptions());
+    // JSON serialization options, held under an SDK-private type so that an application's own
+    // JsonSerializerOptions registration cannot become the serializer the SDK reads the wire with.
+    services.TryAddSingleton(new DeliveryJsonOptions(RefitSettingsProvider.CreateDefaultJsonSerializerOptions()));
 
     // Type system
     services.TryAddSingleton<ITypeProvider, TypeProvider>();
