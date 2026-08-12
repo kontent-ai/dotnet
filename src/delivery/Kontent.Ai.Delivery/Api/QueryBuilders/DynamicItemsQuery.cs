@@ -143,7 +143,8 @@ internal sealed class DynamicItemsQuery(
 
         var response = await ConvertResponseAsync(nextPageResult.Value, cancellationToken).ConfigureAwait(false);
 
-        return DeliveryResult.SuccessFrom<IDeliveryItemListingResponse, IDeliveryItemListingResponse<IDynamicElements>>(response, nextPageResult);
+        return DeliveryResult.SuccessFrom<IDeliveryItemListingResponse, IDeliveryItemListingResponse<IDynamicElements>>(
+            response, nextPageResult, nextPageResult.DependencyKeys);
     }
 
     private static Pagination ToPagination(IPagination pagination) => new()
