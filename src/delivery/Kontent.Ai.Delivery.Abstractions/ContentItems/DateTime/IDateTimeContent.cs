@@ -6,12 +6,14 @@ namespace Kontent.Ai.Delivery.Abstractions;
 public interface IDateTimeContent
 {
     /// <summary>
-    /// Gets the value of DateTime element
+    /// The instant the element holds, as the UTC value the API stores. Null when the element is empty.
     /// </summary>
     DateTime? Value { get; }
 
     /// <summary>
-    /// Gets the Timezone of DateTime element
+    /// IANA zone name the UI displays <see cref="Value"/> in (e.g. <c>Europe/Prague</c>); null when unset.
+    /// It never shifts the instant — pass it to <see cref="TimeZoneInfo.FindSystemTimeZoneById(string)"/> to
+    /// render local wall time.
     /// </summary>
     string? DisplayTimezone { get; }
 }
