@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Fixed
 
 - **The tool no longer ships the Visual Basic compiler.** `Microsoft.CodeAnalysis` is the meta-package; only the C# syntax and workspace formatting APIs are used, so it now references `Microsoft.CodeAnalysis.CSharp.Workspaces` directly.
