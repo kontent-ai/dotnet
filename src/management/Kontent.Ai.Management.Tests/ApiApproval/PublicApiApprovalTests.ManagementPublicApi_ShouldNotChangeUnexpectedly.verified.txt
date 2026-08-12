@@ -257,7 +257,7 @@ public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagemen
     Void Dispose()
 
 // Kontent.Ai.Management
-public sealed class ManagementErrorCodes
+public static class ManagementErrorCodes
     const Int32 ArchivedVariantCannotBeUpdated = 223
     const Int32 DuplicateAssetExternalId = 208
     const Int32 DuplicateAssetRenditionExternalId = 234
@@ -281,7 +281,7 @@ public sealed class ManagementException : Exception
     String? RequestUrl { get; }
 
 // Kontent.Ai.Management
-public sealed class ManagementResultExtensions
+public static class ManagementResultExtensions
     static Boolean TryGetValue<T>(IManagementResult<T> result, out T? value)
     static IManagementResult EnsureSuccess(IManagementResult result)
     static IManagementResult<T> AsFailure<T>(IManagementResult result)
@@ -350,7 +350,7 @@ public sealed class ManagementOptions : IValidatableObject
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Management.Extensions
-public sealed class AssetExtensions
+public static class AssetExtensions
     static AssetFolderHierarchy? GetFolderHierarchyByCodename(IEnumerable<AssetFolderHierarchy> folders, String codename)
     static AssetFolderHierarchy? GetFolderHierarchyByExternalId(IEnumerable<AssetFolderHierarchy> folders, String externalId)
     static AssetFolderHierarchy? GetFolderHierarchyById(IEnumerable<AssetFolderHierarchy> folders, Guid folderId)
@@ -361,15 +361,15 @@ public sealed class AssetExtensions
     static String GetFullFolderPath(AssetFolderLinkingHierarchy folder)
 
 // Kontent.Ai.Management.Extensions
-public sealed class ContentModelExtensions
+public static class ContentModelExtensions
     static Task<IManagementResult<ContentModelSnapshot>> ExportContentModelAsync(IManagementClient client, CancellationToken cancellationToken)
 
 // Kontent.Ai.Management.Extensions
-public sealed class ElementMetadataExtensions
+public static class ElementMetadataExtensions
     static T ToElement<T>(ElementMetadataBase source)
 
 // Kontent.Ai.Management.Extensions
-public sealed class ManagementClientExtensions
+public static class ManagementClientExtensions
     static Task<IManagementResult<AssetModel>> CreateAssetAsync(IManagementClient client, FileContentSource fileContent, Func<FileReference, AssetCreateModel> createModel, CancellationToken cancellationToken)
     static Task<IManagementResult<AssetModel>> UpsertAssetAsync(IManagementClient client, Reference identifier, FileContentSource fileContent, AssetUpsertModel upsertModel, CancellationToken cancellationToken)
     static Task<IManagementResult<ContentItemModel>> UpsertContentItemAsync(IManagementClient client, Reference identifier, ContentItemModel contentItem, CancellationToken cancellationToken)
@@ -378,7 +378,7 @@ public sealed class ManagementClientExtensions
     static Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(IManagementClient client, LanguageVariantIdentifier identifier, LanguageVariantModel languageVariant, CancellationToken cancellationToken)
 
 // Kontent.Ai.Management.Extensions
-public sealed class ModelReferenceExtensions
+public static class ModelReferenceExtensions
     static Reference ToReference(AssetModel asset)
     static Reference ToReference(CollectionModel collection)
     static Reference ToReference(ContentItemModel item)
@@ -391,7 +391,7 @@ public sealed class ModelReferenceExtensions
     static Reference ToReference(WorkflowModel workflow)
 
 // Kontent.Ai.Management.Extensions
-public sealed class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions)
     static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
@@ -404,7 +404,7 @@ public sealed class ServiceCollectionExtensions
     static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
 
 // Kontent.Ai.Management.Extensions
-public sealed class VariantIdentifierExtensions
+public static class VariantIdentifierExtensions
     static LanguageVariantIdentifier ToIdentifier(ItemWithVariantFilterResultModel model)
     static LanguageVariantIdentifier ToIdentifier(LanguageVariantMetadata variant)
     static VariantIdentifierModel ToVariantIdentifier(ItemWithVariantFilterResultModel model)
@@ -470,7 +470,7 @@ public sealed class AssetFolderAddIntoPatchModel : AssetFolderOperationBaseModel
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetFolders.Patch
-public class AssetFolderOperationBaseModel : IEquatable<AssetFolderOperationBaseModel>
+public abstract class AssetFolderOperationBaseModel : IEquatable<AssetFolderOperationBaseModel>
     String Op { get; }
     AssetFolderOperationBaseModel <Clone>$()
     Boolean Equals(AssetFolderOperationBaseModel? other)
@@ -551,7 +551,7 @@ public sealed class AssetRenditionUpdateModel : IEquatable<AssetRenditionUpdateM
     String ToString()
 
 // Kontent.Ai.Management.Models.AssetRenditions
-public class ImageTransformation : IEquatable<ImageTransformation>
+public abstract class ImageTransformation : IEquatable<ImageTransformation>
     ImageTransformationMode Mode { get; }
     Boolean Equals(ImageTransformation? other)
     Boolean Equals(Object? obj)
@@ -764,7 +764,7 @@ public sealed class CollectionMovePatchModel : CollectionOperationBaseModel, IEq
     String ToString()
 
 // Kontent.Ai.Management.Models.Collections.Patch
-public class CollectionOperationBaseModel : IEquatable<CollectionOperationBaseModel>
+public abstract class CollectionOperationBaseModel : IEquatable<CollectionOperationBaseModel>
     String Op { get; }
     Boolean Equals(CollectionOperationBaseModel? other)
     Boolean Equals(Object? obj)
@@ -939,7 +939,7 @@ public sealed class ContentModelMovePatchModel : ContentModelOperationBaseModel,
     String ToString()
 
 // Kontent.Ai.Management.Models.ContentModel.Patch
-public class ContentModelOperationBaseModel : IEquatable<ContentModelOperationBaseModel>
+public abstract class ContentModelOperationBaseModel : IEquatable<ContentModelOperationBaseModel>
     String Op { get; }
     required String Path { get; init; }
     Boolean Equals(ContentModelOperationBaseModel? other)
@@ -949,7 +949,7 @@ public class ContentModelOperationBaseModel : IEquatable<ContentModelOperationBa
     String ToString()
 
 // Kontent.Ai.Management.Models.ContentModel.Patch
-public class ContentModelPatchBase
+public abstract class ContentModelPatchBase
     static ContentModelOperationBaseModel AddAllowedBlock(Reference element, RichTextBlockType block)
     static ContentModelOperationBaseModel AddAllowedContentType(Reference element, Reference type)
     static ContentModelOperationBaseModel AddAllowedElement(Reference element, Reference allowedElement)
@@ -1062,7 +1062,7 @@ public sealed class CustomAppAddIntoPatchModel : CustomAppOperationBaseModel, IE
     String ToString()
 
 // Kontent.Ai.Management.Models.CustomApps.Patch
-public class CustomAppOperationBaseModel : IEquatable<CustomAppOperationBaseModel>
+public abstract class CustomAppOperationBaseModel : IEquatable<CustomAppOperationBaseModel>
     String Op { get; }
     required CustomAppPropertyName PropertyName { get; init; }
     required Object? Value { get; init; }
@@ -1073,7 +1073,7 @@ public class CustomAppOperationBaseModel : IEquatable<CustomAppOperationBaseMode
     String ToString()
 
 // Kontent.Ai.Management.Models.CustomApps.Patch
-public sealed class CustomAppPatch
+public static class CustomAppPatch
     static CustomAppAddIntoPatchModel AddAllowedRole(Reference role)
     static CustomAppRemovePatchModel RemoveAllowedRole(Reference role)
     static CustomAppReplacePatchModel ReplaceAllowedRoles(Reference[] roles)
@@ -1150,7 +1150,7 @@ public sealed class VariantIssue : IEquatable<VariantIssue>
     VariantIssue <Clone>$()
 
 // Kontent.Ai.Management.Models.EnvironmentValidation
-public class AsyncValidationTaskIssueModel : IEquatable<AsyncValidationTaskIssueModel>
+public abstract class AsyncValidationTaskIssueModel : IEquatable<AsyncValidationTaskIssueModel>
     required AsyncValidationTaskIssueType IssueType { get; init; }
     required IReadOnlyList<ElementIssue> Issues { get; init; }
     AsyncValidationTaskIssueModel <Clone>$()
@@ -1298,7 +1298,7 @@ public sealed class MarkAsProductionModel : IEquatable<MarkAsProductionModel>
     String ToString()
 
 // Kontent.Ai.Management.Models.Environments.Patch
-public class EnvironmentOperationBaseModel : IEquatable<EnvironmentOperationBaseModel>
+public abstract class EnvironmentOperationBaseModel : IEquatable<EnvironmentOperationBaseModel>
     String Op { get; }
     Boolean Equals(EnvironmentOperationBaseModel? other)
     Boolean Equals(Object? obj)
@@ -1469,7 +1469,7 @@ public sealed class LanguageVariantIdentifier : IEquatable<LanguageVariantIdenti
     static LanguageVariantIdentifier ByIds(Guid itemId, Guid languageId)
 
 // Kontent.Ai.Management.Models.LanguageVariants
-public class LanguageVariantMetadata : IEquatable<LanguageVariantMetadata>
+public abstract class LanguageVariantMetadata : IEquatable<LanguageVariantMetadata>
     String? Note { get; init; }
     required DateTime LastModified { get; init; }
     required DueDateModel DueDate { get; init; }
@@ -1532,7 +1532,7 @@ public sealed class AssetElement : BaseElement, IEquatable<AssetElement>
     String ToString()
 
 // Kontent.Ai.Management.Models.LanguageVariants.Elements
-public class BaseElement : IEquatable<BaseElement>
+public abstract class BaseElement : IEquatable<BaseElement>
     required Reference Element { get; init; }
     BaseElement <Clone>$()
     Boolean Equals(BaseElement? other)
@@ -1697,7 +1697,7 @@ public sealed class LanguageModel : IEquatable<LanguageModel>
     String ToString()
 
 // Kontent.Ai.Management.Models.Languages.Patch
-public sealed class LanguagePatch
+public static class LanguagePatch
     static LanguagePatchModel Codename(String codename)
     static LanguagePatchModel FallbackLanguage(Reference language)
     static LanguagePatchModel IsActive(Boolean isActive)
@@ -1904,7 +1904,7 @@ public sealed class SpaceModel : IEquatable<SpaceModel>
     String ToString()
 
 // Kontent.Ai.Management.Models.Spaces.Patch
-public sealed class SpacePatch
+public static class SpacePatch
     static SpaceReplacePatchModel Codename(String codename)
     static SpaceReplacePatchModel Collections(Reference[] collections)
     static SpaceReplacePatchModel Name(String name)
@@ -2033,7 +2033,7 @@ public sealed class SubscriptionUserRoleModel : IEquatable<SubscriptionUserRoleM
     SubscriptionUserRoleModel <Clone>$()
 
 // Kontent.Ai.Management.Models.TaxonomyGroups
-public class TaxonomyBaseModel : IEquatable<TaxonomyBaseModel>
+public abstract class TaxonomyBaseModel : IEquatable<TaxonomyBaseModel>
     String? Codename { get; init; }
     String? ExternalId { get; init; }
     required String Name { get; init; }
@@ -2121,7 +2121,7 @@ public sealed class TaxonomyGroupMovePatchModel : TaxonomyGroupOperationBaseMode
     TaxonomyGroupMovePatchModel <Clone>$()
 
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
-public class TaxonomyGroupOperationBaseModel : IEquatable<TaxonomyGroupOperationBaseModel>
+public abstract class TaxonomyGroupOperationBaseModel : IEquatable<TaxonomyGroupOperationBaseModel>
     String Op { get; }
     Boolean Equals(Object? obj)
     Boolean Equals(TaxonomyGroupOperationBaseModel? other)
@@ -2130,7 +2130,7 @@ public class TaxonomyGroupOperationBaseModel : IEquatable<TaxonomyGroupOperation
     TaxonomyGroupOperationBaseModel <Clone>$()
 
 // Kontent.Ai.Management.Models.TaxonomyGroups.Patch
-public sealed class TaxonomyGroupPatch
+public static class TaxonomyGroupPatch
     static TaxonomyGroupReplacePatchModel ReplaceCodename(Reference target, String codename)
     static TaxonomyGroupReplacePatchModel ReplaceName(Reference target, String name)
     static TaxonomyGroupReplacePatchModel ReplaceTerms(Reference target, TaxonomyTermCreateModel[] terms)
@@ -2277,7 +2277,7 @@ public sealed class AssetElementMetadataModel : ContentElementMetadataBase, IEqu
     String ToString()
 
 // Kontent.Ai.Management.Models.Types.Elements
-public class ContentElementMetadataBase : ElementMetadataBase, IEquatable<ContentElementMetadataBase>
+public abstract class ContentElementMetadataBase : ElementMetadataBase, IEquatable<ContentElementMetadataBase>
     Boolean IsNonLocalizable { get; init; }
     Boolean IsRequired { get; init; }
     String? Guidelines { get; init; }
@@ -2329,7 +2329,7 @@ public sealed class DateTimeElementMetadataModel : ContentElementMetadataBase, I
     String ToString()
 
 // Kontent.Ai.Management.Models.Types.Elements
-public class ElementMetadataBase : IEquatable<ElementMetadataBase>
+public abstract class ElementMetadataBase : IEquatable<ElementMetadataBase>
     ElementMetadataType Type { get; }
     Guid? Id { get; init; }
     Reference? ContentGroup { get; init; }
@@ -2625,7 +2625,7 @@ public sealed class ElementDefaultValueEnvelope`1<TValue> : IEquatable<ElementDe
     String ToString()
 
 // Kontent.Ai.Management.Models.Types.Elements.DefaultValues
-public class ElementDefaultValue`1<TValue> : IEquatable<ElementDefaultValue<TValue>>
+public abstract class ElementDefaultValue`1<TValue> : IEquatable<ElementDefaultValue<TValue>>
     required ElementDefaultValueEnvelope<TValue> Global { get; init; }
     Boolean Equals(ElementDefaultValue<TValue>? other)
     Boolean Equals(Object? obj)

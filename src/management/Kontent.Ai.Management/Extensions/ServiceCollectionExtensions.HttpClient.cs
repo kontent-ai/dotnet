@@ -44,12 +44,6 @@ public static partial class ServiceCollectionExtensions
         });
     }
 
-    private static RefitSettings CreateRefitSettings()
-    {
-        var settings = RefitSettingsProvider.CreateDefaultSettings();
-        return settings;
-    }
-
     /// <summary>
     /// Gives the client's connections a bounded lifetime so DNS changes are picked up.
     /// </summary>

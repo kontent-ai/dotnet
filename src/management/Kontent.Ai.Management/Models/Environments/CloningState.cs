@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Environments;
+﻿namespace Kontent.Ai.Management.Models.Environments;
 
 /// <summary>
 /// Represents the state on environment cloning.

@@ -1,27 +1,37 @@
 {
-  "descriptions": [
+  "elements": [
     {
-      "language": {
-        "id": "00000000-0000-0000-0000-000000000000"
-      },
-      "description": "The asset's alt text for the default language."
+      "element": { "id": "7ef2ebb4-c480-42b7-ba35-a3078d6cce3f" },
+      "value": [
+        { "id": "4a4f8cb0-e7fe-40ad-9943-66f395e58571" },
+        { "id": "96e493ab-45c4-4505-a3d0-b46192dd179e" }
+      ]
+    },
+    {
+      "element": { "id": "70dfa72d-4599-40cb-aa27-7597470d5e2e" },
+      "value": [
+        { "id": "16d27bf1-e0f4-8646-0e54-1b71efc6947f" }
+      ]
     }
   ],
-  "external_id": "custom-asset-identifier",
-  "file_name": "file_name.png",
+  "id": "222310d5-a416-4fc1-a4c5-b8c77062987d",
+  "codename": "chemex_paper_filters",
+  "file_name": "chemex-filters.jpg",
+  "title": "Chemex Paper Filters",
+  "size": 36927,
+  "type": "image/jpeg",
+  "url": "https://assets-us-01.kc-usercontent.com/cec32064-07dd-00ff-2101-5bde13c9e30c/222310d5-a416-4fc1-a4c5-b8c77062987d/chemex-filters.jpg",
+  "image_width": 1080,
+  "image_height": 1080,
   "file_reference": {
-    "id": "806ec84e-7c71-4856-9519-ee3dd3558583",
+    "id": "222310d5-a416-4fc1-a4c5-b8c77062987d",
     "type": "internal"
   },
-  "folder": {
-    "id": "8fe4ff47-0ca8-449d-bc63-c280efee44ea"
-  },
-  "id": "fcbb12e6-66a3-4672-85d9-d502d16b8d9c",
-  "image_height": 548,
-  "image_width": 1280,
-  "last_modified": "2019-09-12T08:29:36.1645977Z",
-  "size": 148636,
-  "title": "Makes the asset easier to find when you need it",
-  "type": "image/png",
-  "url": "https://assets-us-01.kc-usercontent.com/8d20758c-d74c-4f59-ae04-ee928c0816b7/adf26cd2-1acb-403f-9d1e-6d04e46c39f1/file_name.png"
+  "descriptions": [
+    { "language": { "id": "00000000-0000-0000-0000-000000000000" }, "description": "Chemex Paper Filters" },
+    { "language": { "id": "d1f95fde-af02-b3b5-bd9e-f232311ccab8" }, "description": "Filtros de papel Chemex" },
+    { "language": { "id": "228f96a1-05ba-4dd6-a1ac-d0fe4ef25470" }, "description": null },
+    { "language": { "id": "be484cf2-67f6-410e-8620-f07bf264debc" }, "description": null }
+  ],
+  "last_modified": "2026-05-21T12:33:03.9926347Z"
 }

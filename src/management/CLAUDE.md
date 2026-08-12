@@ -43,6 +43,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 
 - Sealed, immutable `record`s; `required` for what the API always returns/demands; nullability mirrors the wire contract exactly ("encode API learnings in the type system, not in prose").
 - Explicit `[JsonPropertyName]` on **every** property — the serializer options deliberately have no naming policy.
+- **One documented exception to the date rule**: `ScheduleResponseModel` exposes its timestamps as `DateTimeOffset` even though the server sends them. The API returns them alongside a separate `display_timezone`, and the pair is what a caller reschedules with, so the offset is carried rather than discarded. Test-pinned; do not "align" it with the rule below.
 - **Dates split by direction, and this is settled** — see the root `CLAUDE.md`. What the server sends (`LastModified`) is `DateTime`; what the caller supplies (`ScheduledTo`, `DateTimeValue`, `DueDate`) is `DateTimeOffset`. Do not "unify" them.
 - **All collection properties are `IReadOnlyList<T>`** (never `IEnumerable`, `ISet`, or concrete types). Method *parameters* may accept `IEnumerable<T>`.
 - Names mirror Kontent.ai API terminology; request and response shapes are separate records when the wire shapes differ (a response model with a fake-`required` field forced into a request body is a defect — see `UserRolesUpdateModel`).

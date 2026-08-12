@@ -1,58 +1,69 @@
 {
-  "id": "8bfdb62d-7aa1-473b-9d80-311ef93db108",
-  "name": "My workflow",
-  "codename": "my_workflow",
+  "id": "9f74c888-a49a-44e3-8526-d2a3fab50041",
+  "name": "Marketing",
+  "codename": "marketing",
   "scopes": [
     {
+      "id": "f5937d83-e5ca-4021-bf9f-821109d52a37",
       "collections": [
         {
-          "id": "1aeb9220-f167-4f8e-a7db-1bfec365fa80"
+          "id": "bbab58d7-5f33-4741-a71d-f5435586519c"
         }
       ],
       "content_types": [
         {
-          "id": "1aeb9220-f167-4f8e-a7db-1bfec365fa80"
+          "id": "b33a98e8-2d0b-409a-a601-3df59edd82be"
         }
       ]
     }
   ],
   "steps": [
     {
-      "name": "First step",
-      "codename": "first_step",
-      "color": "sky-blue",
+      "id": "64eea830-bf59-4534-bb97-3861a74ea7f1",
+      "name": "Draft",
+      "codename": "draft_2",
+      "color": "red",
       "transitions_to": [
         {
           "step": {
-            "codename": "second_step"
+             "id": "c199950d-99f0-4983-b711-6c4c91624b22"
           }
-        }
-      ],
-      "role_ids": []
-    },
-    {
-      "name": "Second step",
-      "codename": "second_step",
-      "color": "rose",
-      "transitions_to": [
+        },
         {
           "step": {
-            "codename": "published"
+            "id": "7a535a69-ad34-47f8-806a-def1fdf4d391"
           }
         }
       ],
       "role_ids": [
-        "e796887c-38a1-4ab2-a999-c40861bb7a4b"
+        "b28a237e-e821-4d7d-a5bd-e69e158887d6"
       ]
     }
   ],
   "published_step": {
+    "id": "c199950d-99f0-4983-b711-6c4c91624b22",
+    "name": "Published",
+    "codename": "published",
+    "transitions_to": [],
     "unpublish_role_ids": [
-      "e796887c-38a1-4ab2-a999-c40861bb7a4b"
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
     ],
-    "create_new_version_role_ids": []
+    "create_new_version_role_ids": [
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+    ]
+  },
+  "scheduled_step": {
+    "id": "9d2b0228-4d0d-4c23-8b49-01a698857709",
+    "name": "Scheduled",
+    "codename": "scheduled"
   },
   "archived_step": {
-    "role_ids": []
+    "id": "7a535a69-ad34-47f8-806a-def1fdf4d391",
+    "name": "Archived",
+    "codename": "archived",
+    "transitions_to": [],
+    "role_ids": [
+      "b28a237e-e821-4d7d-a5bd-e69e158887d6"
+    ]
   }
 }

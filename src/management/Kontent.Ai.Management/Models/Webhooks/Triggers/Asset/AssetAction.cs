@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks.Triggers.Asset;
+﻿namespace Kontent.Ai.Management.Models.Webhooks.Triggers.Asset;
 
 /// <summary>
 /// Represents asset actions.

@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks.Triggers.ContentType;
+﻿namespace Kontent.Ai.Management.Models.Webhooks.Triggers.ContentType;
 
 /// <summary>
 /// Represents content type actions.

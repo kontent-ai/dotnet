@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Types.Elements;
+﻿namespace Kontent.Ai.Management.Models.Types.Elements;
 
 /// <summary>
 /// Enum of all possible element types in content types.

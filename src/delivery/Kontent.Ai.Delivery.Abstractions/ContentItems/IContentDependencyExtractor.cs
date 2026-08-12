@@ -11,9 +11,6 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// Implementations analyze element values to identify dependencies on assets, taxonomies,
 /// and linked items, which are tracked in a <see cref="DependencyTrackingContext"/> for cache invalidation.
 /// </para>
-/// <para>
-/// A no-op implementation is used when caching is disabled.
-/// </para>
 /// </remarks>
 internal interface IContentDependencyExtractor
 {

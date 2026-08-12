@@ -25,7 +25,7 @@ public sealed class DeliveryClientFactory : IDeliveryClientFactory
     IDeliveryClient? TryGet(String name)
 
 // Kontent.Ai.Delivery
-public class DeliverySourceTrackingHeaderAttribute : Attribute
+public sealed class DeliverySourceTrackingHeaderAttribute : Attribute
     .ctor()
     .ctor(String packageName)
     .ctor(String packageName, Int32 majorVersion, Int32 minorVersion, Int32 patchVersion, String? preReleaseLabel)
@@ -37,7 +37,7 @@ public class DeliverySourceTrackingHeaderAttribute : Attribute
     String? PreReleaseLabel { get; }
 
 // Kontent.Ai.Delivery
-public sealed class QueryCacheExtensions
+public static class QueryCacheExtensions
     static IItemQuery<TModel> WithCacheExpiration<TModel>(IItemQuery<TModel> query, TimeSpan? expiration)
     static IItemsQuery<TModel> WithCacheExpiration<TModel>(IItemsQuery<TModel> query, TimeSpan? expiration)
     static ITaxonomiesQuery WithCacheExpiration(ITaxonomiesQuery query, TimeSpan? expiration)
@@ -46,14 +46,14 @@ public sealed class QueryCacheExtensions
     static ITypesQuery WithCacheExpiration(ITypesQuery query, TimeSpan? expiration)
 
 // Kontent.Ai.Delivery
-public sealed class QueryEnumerationExtensions
+public static class QueryEnumerationExtensions
     static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> EnumerateItemsWithStatusAsync<TModel>(IEnumerateItemsQuery<TModel> query, CancellationToken cancellationToken)
     static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse>> EnumerateItemsWithStatusAsync(IDynamicEnumerateItemsQuery query, CancellationToken cancellationToken)
     static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IAssetUsedInQuery query, CancellationToken cancellationToken)
     static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IItemUsedInQuery query, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery
-public sealed class RichTextExtensions
+public static class RichTextExtensions
     static IEnumerable<IContentItemLink> GetContentItemLinks(IRichTextContent richText)
     static IEnumerable<IEmbeddedContent<TModel>> GetEmbeddedContent<TModel>(IRichTextContent richText)
     static IEnumerable<IEmbeddedContent<TModel>> GetEmbeddedContentOfType<TModel>(IEnumerable<IRichTextBlock> blocks)
@@ -65,7 +65,7 @@ public sealed class RichTextExtensions
     static ValueTask<String> ToHtmlAsync(IRichTextContent richText, IHtmlResolver? resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery
-public sealed class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions)
@@ -146,7 +146,7 @@ public sealed class RichTextContent : IEnumerable, IEnumerable<IRichTextBlock>, 
     IEnumerator<IRichTextBlock> GetEnumerator()
 
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
-public sealed class DefaultResolvers
+public static class DefaultResolvers
     static BlockResolver<IContentItemLink> UrlPatternResolver(IReadOnlyDictionary<String, String> typePatterns, String? fallbackPattern)
     static BlockResolver<IHtmlNode> HtmlElementResolver()
 

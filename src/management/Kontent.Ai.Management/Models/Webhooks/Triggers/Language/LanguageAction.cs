@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks.Triggers.Language;
+﻿namespace Kontent.Ai.Management.Models.Webhooks.Triggers.Language;
 
 /// <summary>
 /// Represents a language action.

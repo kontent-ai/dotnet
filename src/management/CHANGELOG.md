@@ -24,6 +24,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The doc samples assert success rather than that a result object exists.** Forty of them ended in `Assert.NotNull(response)` against an `IManagementResult`, which is never null — so a failed call passed. Replacing that with `EnsureSuccess()` immediately surfaced five sample fixtures that had drifted out of step with their models and could no longer deserialize; those are refreshed from the fixtures the domain tests use.
+
+- **The pass-through `CreateRefitSettings` wrapper is gone**, and the deliberate `ScheduleResponseModel` date divergence is now recorded so it is not "corrected" later.
+
 - **IntelliSense wording corrections.** The single-item custom-app operations described themselves in the plural, `UpdatePreviewConfigurationAsync` was documented as a "Modify" (this SDK's word for `PATCH`, which it is not) with a parameter described as project-scoped, and a subscription-user method read "Retrieve a user metadata". Two enum members had typos in their summaries.
 
 - **The unused `Microsoft.Extensions.Logging.Abstractions` reference is gone**, so it no longer lands in the published package as a dependency nobody needs.

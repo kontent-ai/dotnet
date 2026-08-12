@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Collections.Patch;
+﻿namespace Kontent.Ai.Management.Models.Collections.Patch;
 
 /// <summary>
 /// Patch operation that updates a property on an existing collection (today, only the name).

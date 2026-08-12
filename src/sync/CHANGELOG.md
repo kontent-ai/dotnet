@@ -7,6 +7,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The pass-through `CreateRefitSettings` wrapper is gone**, along with its summary describing a customization hook that had been removed.
+
 - **The Refit settings no longer configure a query string this API does not have.** A collection format and URL key formatter were carried over from the Delivery SDK, but the sync endpoints send the environment in the path and the continuation token in a header — there is no query parameter for either setting to apply to.
 
 - **`SyncClientBuilder`'s remark matches its signature**, which returns the concrete `SyncClient` — that is what makes the client it hands back disposable.

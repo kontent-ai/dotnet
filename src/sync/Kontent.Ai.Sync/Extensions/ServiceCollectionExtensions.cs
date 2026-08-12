@@ -380,7 +380,7 @@ public static class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var refitSettings = CreateRefitSettings();
+        var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
 
         var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
@@ -434,14 +434,6 @@ public static class ServiceCollectionExtensions
             PooledConnectionLifetime = TimeSpan.FromMinutes(2),
         });
 
-    /// <summary>
-    /// Creates and configures Refit settings with optional customization.
-    /// </summary>
-    private static RefitSettings CreateRefitSettings()
-    {
-        var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
-        return refitSettings;
-    }
 
     /// <summary>
     /// Configures the resilience handler for an HTTP client.

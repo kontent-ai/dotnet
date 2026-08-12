@@ -156,8 +156,10 @@ public sealed class DeliveryClientBuilder
     /// Builds and returns a configured <see cref="IDeliveryClient"/> instance.
     /// </summary>
     /// <returns>A fully configured <see cref="IDeliveryClient"/> that should be disposed when no longer needed.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when validation fails (e.g., missing environment ID or API key).
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">
+    /// The configured options are invalid - a missing or malformed environment ID, a preview or secure
+    /// access key that does not match its flag. The validation runs in the options pipeline, so this is
+    /// what surfaces rather than an exception from the builder itself.
     /// </exception>
     /// <remarks>
     /// <para>
@@ -192,7 +194,8 @@ public sealed class DeliveryClientBuilder
         var services = new ServiceCollection();
         BuildServices(services);
 
-        // Validate options and build dependencies (options validation happens during provider build due to ValidateOnStart)
+        // ValidateOnBuild resolves every registered service, which runs the options validation with it.
+        // ValidateOnStart would not fire here - that needs a host, and this path builds a bare provider.
         var serviceProvider = services.BuildServiceProvider(
             new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 

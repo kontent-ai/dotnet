@@ -5,7 +5,7 @@ namespace Kontent.Ai.Delivery;
 /// See https://kontent-ai.github.io/articles/Guidelines-for-Kontent.ai-related-tools.html#analytics for more info.
 /// </summary>
 [AttributeUsage(AttributeTargets.Assembly)]
-public class DeliverySourceTrackingHeaderAttribute : Attribute
+public sealed class DeliverySourceTrackingHeaderAttribute : Attribute
 {
     /// <summary>
     /// Name of the package (e.g. Acme.Kontent.Ai.AwesomeTool)

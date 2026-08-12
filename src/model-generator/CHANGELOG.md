@@ -11,6 +11,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The tool no longer ships the Visual Basic compiler.** `Microsoft.CodeAnalysis` is the meta-package; only the C# syntax and workspace formatting APIs are used, so it now references `Microsoft.CodeAnalysis.CSharp.Workspaces` directly.
+
+- **A blank comment argument reports `ArgumentException` rather than `ArgumentNullException`.** The value is present, just empty — the two are different mistakes, and the tests had frozen the wrong one.
+
 - **Generated members are ordered ordinally rather than by the current culture**, so the same content model produces the same file on every machine.
 
 - **`appSettings.json` names the option the tool actually reads.** It still listed `BaseClass`, which was renamed to `BaseRecord`.
@@ -86,7 +90,7 @@ Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why thi
   A rejected element no longer half-registers either — the constant used to be recorded before the property could be refused, so skipping one element still corrupted the output.
 - **An element that fails for an unanticipated reason is now reported instead of vanishing.** Per-element failures were classified by a `switch` with arms for the three expected exception types and no default, so anything else was caught, matched nothing, and left the element out of the generated model with nothing written to the console.
 - **The tool no longer claims to have created a base record it did not write.** `--baserecord` deliberately does not overwrite an existing file, so hand-written additions survive a rerun — but the run printed "`<name>` class was successfully created" either way. It now says the file was kept, and `IOutputProvider.Output` returns whether it wrote (see Breaking changes).
-- **The "no content type available" message names the environment in management mode.** It read the Delivery options only, so a `--managementapi` run against an empty environment reported the id as blank.
+- **The "no content type available" message names the environment in management mode.** It read the Delivery options only, so a `--management` run against an empty environment reported the id as blank.
 - **A failure with more than one inner exception no longer exits silently.** `Main` had a special case for `AggregateException` that printed the message only when there was exactly one inner exception and otherwise returned exit code 1 with no output at all. `await` unwraps these anyway, so the case was vestigial; it is removed and the general handler reports every failure.
 - **Two content types that map to the same file no longer silently overwrite each other.** Type codenames sanitize to a class name the same way element codenames do, so `my_type` and `my__type` both wrote `MyType.cs` — the second overwrote the first, and the run reported both as created. The duplicate is now skipped with a warning, and the "N content type models were successfully created" count reflects what was actually written.
 

@@ -27,6 +27,14 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **`DeliveryClientBuilder.Build()` documents the exception it actually throws.** It promised `InvalidOperationException` for invalid configuration; the validation runs in the options pipeline, so what surfaces is `OptionsValidationException`. Now pinned by a test, and the inline note about *why* it fires during the build is corrected too.
+
+- **The caching package no longer re-registers the dependency extractor the SDK already registers**, and the interface no longer describes a no-op implementation that does not exist — there is one implementation.
+
+- **`IDeliveryClient` says which queries are cached.** Languages, single content elements and used-in queries always reach the API; that was a decision nowhere written down.
+
+- **`DeliverySourceTrackingHeaderAttribute` is sealed**, and both `WithEnvironmentId` overloads describe setting the environment rather than constructing the builder.
+
 - **A rich-text document is disposed once parsed.** The AngleSharp document was left to finalization on every rich-text element mapped; the parsed blocks hold plain strings and lists rather than document nodes, so nothing needed it to stay alive.
 
 - **A client name containing a tab or newline is rejected like one containing a space.** The rule trimmed and then looked for spaces, so other whitespace passed validation and left a name that is invisible at the point of failure. The caching package also carried its own copy of the rule, which is now the shared one.

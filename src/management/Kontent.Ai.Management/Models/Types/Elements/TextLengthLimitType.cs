@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Types.Elements;
+﻿namespace Kontent.Ai.Management.Models.Types.Elements;
 
 /// <summary>
 /// Determines whether the maximum_text_length applies to characters or words.

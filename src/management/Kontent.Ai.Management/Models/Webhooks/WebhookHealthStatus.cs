@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks;
+﻿namespace Kontent.Ai.Management.Models.Webhooks;
 
 /// <summary>
 /// Webhook health status.

@@ -27,7 +27,7 @@ public sealed class MediaConditionTagHelper : TagHelper
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.RichText
-public sealed class RichTextExtensions
+public static class RichTextExtensions
     static Task<IHtmlContent> ToHtmlContentAsync(IRichTextContent richText, IHtmlResolver? resolver, CancellationToken cancellationToken)
 
 // Kontent.Ai.AspNetCore.RichText
@@ -38,12 +38,12 @@ public sealed class RichTextTagHelper : TagHelper
     Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
 
 // Kontent.Ai.AspNetCore.RichText
-public sealed class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
     static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IHtmlResolverBuilder>? configure)
     static IServiceCollection AddKontentRichText(IServiceCollection services, Action<IServiceProvider, IHtmlResolverBuilder>? configure)
 
 // Kontent.Ai.AspNetCore.Webhooks
-public sealed class ApplicationBuilderExtensions
+public static class ApplicationBuilderExtensions
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate)
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, Action<WebhookOptions> configureOptions)
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, IConfigurationSection configurationSection)

@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Collections.Patch;
+﻿namespace Kontent.Ai.Management.Models.Collections.Patch;
 
 /// <summary>
 /// Patch operation that adds a new collection to the environment.

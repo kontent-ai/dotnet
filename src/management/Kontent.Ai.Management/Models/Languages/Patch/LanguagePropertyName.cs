@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Languages.Patch;
+﻿namespace Kontent.Ai.Management.Models.Languages.Patch;
 
 /// <summary>
 /// Represents properties that can be modified on the content language.

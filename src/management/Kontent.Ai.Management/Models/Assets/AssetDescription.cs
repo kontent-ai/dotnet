@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Assets;
+﻿namespace Kontent.Ai.Management.Models.Assets;
 
 /// <summary>
 /// Language-specific alt-text description for an asset.

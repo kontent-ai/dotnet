@@ -1,4 +1,3 @@
-
 namespace Kontent.Ai.Management.Models.AssetFolders.Patch;
 
 /// <summary>

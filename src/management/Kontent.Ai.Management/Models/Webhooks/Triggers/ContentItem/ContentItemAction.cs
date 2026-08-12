@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem;
+﻿namespace Kontent.Ai.Management.Models.Webhooks.Triggers.ContentItem;
 
 /// <summary>
 /// Represents content item actions.

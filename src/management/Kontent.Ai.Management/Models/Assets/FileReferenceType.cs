@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Assets;
+﻿namespace Kontent.Ai.Management.Models.Assets;
 
 /// <summary>
 /// Type of a file reference. Currently the API only uses <see cref="Internal"/>.

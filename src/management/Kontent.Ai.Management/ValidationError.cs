@@ -1,4 +1,3 @@
-
 namespace Kontent.Ai.Management;
 
 /// <summary>
