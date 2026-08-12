@@ -1,18 +1,12 @@
 name: Publish to NuGet
 
-# Fires when a GitHub Release is published. The tag decides which product ships:
-#   aspnetcore-v0.17.0  ->  packs only src/aspnetcore, publishes Kontent.Ai.AspNetCore
-# Everything else in the repo is untouched.
+# The tag decides what ships: aspnetcore-v0.17.0 packs only src/aspnetcore.
 on:
   release:
     types: [published]
 
-# Scoped to the tag, NOT shared across releases. A repo-wide group would serialize releases,
-# which sounds desirable for a batch - but GitHub keeps only one PENDING run per group and
-# cancels older pending ones, so creating five releases at once would silently drop the middle
-# three. Sequencing a batch is the dispatcher's job (publish-batch.yml), which waits for each
-# release to finish before creating the next. Here the group only prevents the same tag from
-# publishing twice concurrently, e.g. if a release is edited and re-published.
+# Per tag, not repo-wide: GitHub keeps one pending run per group and cancels the rest, so a
+# shared group would drop releases created together. publish-batch.yml sequences a batch.
 concurrency:
   group: release-${{ github.event.release.tag_name }}
   cancel-in-progress: false
@@ -25,8 +19,8 @@ jobs:
     name: Pack and publish
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # Required for OIDC token issuance
-      contents: write   # Required for uploading release assets
+      id-token: write   # OIDC
+      contents: write   # upload release assets
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,26 +30,18 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Resolves the tag into a product + project list, and refuses to continue if
-      # the tag disagrees with eng/Versions.props or the changelog has no entry.
+      # Refuses to continue if the tag disagrees with eng/Versions.props or the changelog is empty.
       - name: Resolve release plan
         id: plan
         run: dotnet run eng/scripts/release-plan.cs -- "$GITHUB_REF_NAME"
 
-      # UseProjectReferences=false is passed explicitly, not inherited from the default in
-      # Directory.Build.targets. This is the job that decides what the world installs: in
-      # source mode the generated nuspec would take sibling versions from eng/Versions.props
-      # instead of the declared floors in Directory.Packages.props, publishing a dependency
-      # range nobody asked for. Directory.Build.targets refuses to pack in source mode at
-      # all; this makes the intent explicit here rather than relying on that refusal.
+      # Explicit, not inherited: in source mode the nuspec would take sibling versions from
+      # eng/Versions.props instead of the declared floors.
       - name: Restore dependencies
         run: dotnet restore /p:UseProjectReferences=false
       - name: Build
-        # No /p:Version here. It is a GLOBAL property, so it would stamp the releasing
-        # product's version onto every project in the repo - and, once in-repo dependencies
-        # are ProjectReferences, onto sibling dependency versions in the generated nuspec.
-        # eng/Versions.props already carries the right version per product, and the
-        # "Resolve release plan" step above refuses to continue if it disagrees with the tag.
+        # No /p:Version - it is global and would stamp every project in the repo.
+        # eng/Versions.props already carries the right version per product.
         run: dotnet build --no-restore --configuration Release /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
 
       - name: Pack
@@ -88,15 +74,8 @@ jobs:
             echo "Produced instead:"; ls -la "$PACK_OUTPUT"; exit 1
           fi
 
-      # Backstop for a mis-declared internal dependency: a package that depends on a
-      # Kontent.Ai.* version not yet on nuget.org would install for nobody.
-      #
-      # Packages within one product reference each other as ProjectReferences, so they pack as
-      # same-version dependencies (Kontent.Ai.Delivery 19.5.0 -> Kontent.Ai.Delivery.Abstractions
-      # 19.5.0). Those siblings are pushed by THIS run a step later, so asking nuget.org about
-      # them here would always fail. They are exempted; everything else must already be live.
-      # (nuget.org accepts a package whose dependencies are not yet indexed - dependencies are
-      # resolved at restore time - so publishing the batch together is safe.)
+      # A package depending on a Kontent.Ai.* version not yet on nuget.org installs for nobody.
+      # Same-version siblings are exempt: this run pushes them a step later.
       - name: Verify internal dependencies are published
         shell: bash
         env:
@@ -105,7 +84,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Is this dependency one of the packages this very run is about to publish?
           ships_in_this_release() {
             local id="$1" ver="$2" p
             [ "$ver" = "$RELEASE_VERSION" ] || return 1
@@ -115,8 +93,7 @@ jobs:
             return 1
           }
 
-          # nuget.org indexing lags a little behind a push, so a correctly ordered
-          # dependency-first release can still look unpublished for a minute or two.
+          # nuget.org indexing lags a push by a minute or two.
           is_published() {
             local id="$1" ver="$2" url attempt
             url="https://api.nuget.org/v3-flatcontainer/$(echo "$id" | tr 'A-Z' 'a-z')/index.json"
@@ -132,10 +109,8 @@ jobs:
           missing=0
           for nupkg in "$PACK_OUTPUT"/*.nupkg; do
             echo "::group::$(basename "$nupkg")"
-            # `|| true` because grep exits 1 when a package declares no internal dependencies.
-            # That is the normal case for a base SDK (Kontent.Ai.Management, Kontent.Ai.Urls,
-            # both Abstractions packages, ...), not an error - and under `pipefail` it would
-            # otherwise fail the whole step.
+            # `|| true`: grep exits 1 when a package has no internal dependencies - the normal
+            # case for a base SDK, and fatal under `pipefail`.
             deps=$(unzip -p "$nupkg" '*.nuspec' \
               | grep -oE '<dependency id="Kontent\.Ai\.[^"]+" version="[^"]+"' \
               | sed -E 's/.*id="([^"]+)" version="\[?([^",]+).*/\1 \2/' \
@@ -147,8 +122,7 @@ jobs:
               continue
             fi
 
-            # Fed by here-string rather than a pipe: a piped `while` runs in a subshell, so
-            # assignments to $missing inside it would be discarded.
+            # Here-string, not a pipe: a piped `while` runs in a subshell and would discard $missing.
             while read -r id ver; do
               if ships_in_this_release "$id" "$ver"; then
                 echo "ships in this release: $id $ver"

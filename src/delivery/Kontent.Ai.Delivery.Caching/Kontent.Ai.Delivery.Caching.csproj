@@ -16,20 +16,13 @@
     <ProjectReference Include="..\Kontent.Ai.Delivery\Kontent.Ai.Delivery.csproj" />
   </ItemGroup>
 
-  <!-- No $(KontentCommonPath) includes here on purpose. This package sees Kontent.Ai.Delivery's internals
-       through InternalsVisibleTo - it needs them for RefitSettingsProvider, LoggerMessages and
-       ContentDependencyExtractor - and that already brings the shared types with it. Compiling a second
-       copy of one produces CS0436 ambiguity at every use, so the two patterns are mutually exclusive here
-       and the InternalsVisibleTo one wins by necessity.
+  <!-- No $(KontentCommonPath) includes on purpose: this package already sees Kontent.Ai.Delivery's
+       internals through InternalsVisibleTo, which brings the shared types with it, and a second copy
+       would be CS0436-ambiguous at every use.
 
-       The accepted trade-off: the dependency on Kontent.Ai.Delivery packs as a floor, not an exact
-       version, so a consumer can resolve a newer Delivery against this package - most plausibly by
-       transitive unification through Kontent.Ai.AspNetCore's own floor. Compiled-against internals that
-       have since changed would then fail at runtime. All five Delivery packages release together from one
-       DeliveryVersion, so this needs a consumer to hold this package back while moving Delivery forward,
-       and it surfaces as a MissingMethodException at the first cache call rather than as bad data.
-       Pinning the dependency to an exact version would close it, at the cost of changing resolution for
-       every consumer and of a matching change to the dependency check in release.yml. -->
+       Accepted trade-off: Delivery packs as a floor, so a consumer holding this package back while
+       moving Delivery forward gets a MissingMethodException at the first cache call. All five
+       Delivery packages ship together from one DeliveryVersion, so it takes deliberate effort. -->
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">

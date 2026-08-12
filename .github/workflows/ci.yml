@@ -11,7 +11,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-
 jobs:
   build:
     name: Build & test (${{ matrix.os }})
@@ -28,24 +27,14 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      # UseProjectReferences is passed explicitly on every leg rather than inherited from the
-      # default in Directory.Build.targets, so that changing that default can never silently
-      # change what any job builds.
+      # Explicit on every leg, so the default in Directory.Build.targets cannot silently
+      # change what a job builds.
       - name: Restore dependencies
         run: dotnet restore /p:UseProjectReferences=false
       - name: Build
         run: dotnet build --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
-      # Coverage is collected and ENFORCED here: each test project sets its own
-      # Threshold/ThresholdType and coverlet fails the run if coverage drops below it.
-      # A repo-wide number is not possible - coverage legitimately differs by an order
-      # of magnitude between a thin CLI entry point and a library.
-      #
-      # Linux only: the Codecov uploads below are Linux-only, so Windows coverage was
-      # computed and discarded - while coverlet.msbuild's GenerateCoverageResult has a
-      # timing race on Windows (it can read the hits file before the exiting test host
-      # finishes flushing it, failing the build with "Unable to read beyond the end of
-      # the stream" even though every test passed). The Windows leg's job is proving
-      # build + tests on Windows, so it runs without instrumentation.
+      # Coverage is enforced per test project via its own coverlet threshold. Linux only: the
+      # uploads below are Linux-only, and coverlet races the exiting test host on Windows.
       - name: Test
         if: runner.os == 'Linux'
         run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=false /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
@@ -53,9 +42,8 @@ jobs:
         if: runner.os == 'Windows'
         run: dotnet test --no-build --verbosity normal /p:UseProjectReferences=false
 
-      # Uploaded per product with its own flag. Without flags every product's coverage
-      # would merge into one repo-wide percentage, which is meaningless across a client
-      # library and a CLI. Each product added to the repo needs its own step here.
+      # One flag per product - a merged repo-wide percentage across a library and a CLI
+      # would be meaningless. A new product needs its own step here.
       - name: Codecov (aspnetcore)
         if: runner.os == 'Linux'
         uses: codecov/codecov-action@v7
@@ -106,15 +94,9 @@ jobs:
   project-references:
     name: Build against repo source
     runs-on: ubuntu-latest
-    # Early-warning leg (§7). The default `build` job compiles every product against the
-    # PUBLISHED Kontent.Ai.* packages, which is what consumers actually get. This one flips
-    # those to ProjectReferences so a breaking change in one product fails in the PR that
-    # makes it, rather than months later when a consumer next updates.
-    #
-    # Blocking. It ran non-blocking through the migration of all five products and stayed
-    # green, so it now fails the build like any other leg. Mark it required in branch
-    # protection too - removing continue-on-error fails the RUN, but only a required
-    # check blocks the MERGE.
+    # Early-warning leg: the `build` job compiles against published packages, this one against
+    # in-repo sources, so a sibling breaking change fails in the PR that makes it. Blocking -
+    # mark it required in branch protection, since only a required check blocks the merge.
     steps:
       - uses: actions/checkout@v7
         with:
@@ -145,16 +127,12 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-      # Explicitly package mode: this job packs, and packing is only ever valid against the
-      # dependency floors in Directory.Packages.props. Directory.Build.targets refuses to pack
-      # in source mode outright; this keeps the job from depending on that refusal.
+      # Explicit package mode: packing is only ever valid against the declared floors.
       - name: Restore dependencies
         run: dotnet restore /p:UseProjectReferences=false
       - name: Build
         run: dotnet build --configuration Release --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
-      # Packs every product listed in eng/products.json and asserts each one produced
-      # the packages it claims to. Adding a product to products.json is enough; this
-      # step needs no edit.
+      # Driven by eng/products.json, so a new product needs no edit here.
       - name: Pack and validate every product
         shell: bash
         run: |
@@ -223,8 +201,7 @@ jobs:
         run: dotnet restore /p:UseProjectReferences=false
       - name: Build
         run: dotnet build --no-restore /p:UseProjectReferences=false /p:ContinuousIntegrationBuild=true
-      # These tests are skipped in the normal run unless KONTENT_SDK_RUN_REDIS_TESTS is set,
-      # so this job is the only thing that exercises them.
+      # Skipped everywhere else unless KONTENT_SDK_RUN_REDIS_TESTS is set.
       - name: Redis integration tests
         run: dotnet test src/delivery/Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj --no-build --filter "FullyQualifiedName~RedisCacheIntegrationTests" /p:UseProjectReferences=false
         env:
@@ -235,11 +212,8 @@ jobs:
     name: Package smoke tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Pack validation proves the .nupkg files exist and contain the expected paths. This job proves a
-    # consumer can actually install and use them, which is a different question: it packs into a local
-    # feed and restores from it, so a broken nuspec dependency, a missing target framework, an analyzer
-    # packed to the wrong path or a .NET tool with no working entry point fails here rather than after
-    # publishing. Each fixture covers a different PACKAGE SHAPE, because they fail in different ways.
+    # Pack validation proves the packages exist; this proves a consumer can install and use them,
+    # by restoring from a local feed. One fixture per package shape - they fail in different ways.
     env:
       SMOKE_VERSION: 0.0.0-smoke.${{ github.run_number }}
       SMOKE_FEED: ${{ github.workspace }}/artifacts/smoke-feed
@@ -257,7 +231,6 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore /p:UseProjectReferences=false
 
-      # Same product list as pack validation, so a new product is covered by editing products.json only.
       - name: Pack into a local feed
         shell: bash
         run: |
@@ -269,26 +242,24 @@ jobs:
           done
           ls -1 "$SMOKE_FEED"
 
-      # Plain class libraries: restore from the nuspec, then resolve each client through DI.
+      # Resolves each client through DI.
       - name: Library consumer
         working-directory: eng/smoke/library
         run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
 
-      # Analyzer package. Roslyn silently skips a generator packed to the wrong path or built against a
-      # newer compiler than the SDK provides, so this fixture only compiles if the generator ran.
+      # Roslyn silently skips a generator packed to the wrong path, so this fixture only
+      # compiles if the generator actually ran.
       - name: Source generator consumer
         working-directory: eng/smoke/sourcegen
         run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
 
-      # Web SDK package: starts a real host rather than just compiling.
+      # Starts a real host rather than just compiling.
       - name: ASP.NET Core consumer
         working-directory: eng/smoke/aspnetcore
         run: dotnet run --configuration Release /p:KontentVersion=${{ env.SMOKE_VERSION }}
 
-      # .NET tool: install it the way a user would, then run it. The tool exits non-zero without an
-      # environment id, so success is asserted on its OWN validation message appearing - that only
-      # happens if the package layout, entry point and runtime resolution all worked. A tool that
-      # failed to install or launch produces a host error instead.
+      # Success is asserted on the tool's own validation message: a package that failed to
+      # install or launch produces a host error instead.
       - name: Model generator tool
         shell: bash
         run: |

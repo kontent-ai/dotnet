@@ -1,26 +1,14 @@
-// Reports how far each cross-product dependency floor in Directory.Packages.props has fallen
-// behind what is actually published on nuget.org.
+// Reports how far each cross-product floor in Directory.Packages.props lags nuget.org.
 //
-//   dotnet run eng/scripts/dependency-floors.cs
-//   dotnet run eng/scripts/dependency-floors.cs -- --json
+//   dotnet run eng/scripts/dependency-floors.cs [-- --json]
 //
-// Why this exists: releasing a product does not touch the version its siblings depend on.
-// Those floors are raised deliberately, in their own PR, after the dependency is published -
-// see CONTRIBUTING.md, "Changing an API that another product consumes". Nothing else in the
-// repo notices when one goes stale, so without this the gap is invisible until someone
-// happens to look.
+// Lagging is NOT an error - a floor is a minimum, and raising it forces every downstream
+// consumer to upgrade, so this reports and leaves the decision to a human. Exits non-zero only
+// when a floor names a version not on nuget.org at all, which breaks every restore in the repo.
 //
-// Lagging is NOT an error. A floor is the minimum version a published package promises to
-// work with, and raising it forces every downstream consumer to upgrade too. This reports the
-// gap and leaves the decision to a human. It exits non-zero only when a floor names a version
-// that is not on nuget.org at all - that one is a genuine breakage, because every restore in
-// the repo resolves it, including the root restore in release.yml.
-//
-// Ordering is nuget.org's own: the flat-container index lists versions in SemVer order, so
-// "newer" here means "listed after the floor". One caveat that scheme carries - a prerelease
-// label like `beta-5` is a single alphanumeric SemVer identifier, compared lexically rather
-// than numerically, so `9.0.0-beta-10` sorts BEFORE `9.0.0-beta-5`. The out-of-order pass
-// below catches that case rather than silently under-reporting it.
+// Ordering is nuget.org's own SemVer order, in which `beta-5` is a single alphanumeric
+// identifier compared as text - so `9.0.0-beta-10` sorts BEFORE `9.0.0-beta-5`. The
+// out-of-order pass below catches that rather than under-reporting it.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;

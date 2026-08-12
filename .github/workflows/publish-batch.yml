@@ -1,26 +1,8 @@
 name: Publish batch
 
-# Creates a GitHub Release for every product whose version is prepared but not yet on NuGet,
-# in dependency order, waiting for each to actually publish before starting the next.
-#
-# The ordering is a backstop, not the usual path. Cross-product floors in Directory.Packages.props
-# are raised only after the dependency has shipped, so by the time a batch runs, every floor
-# already names a version on nuget.org and release.yml's check would pass whatever order the
-# products went in. The ordering earns its keep only if a floor names a version that is being
-# released in this same batch - which the floor rule forbids and prepare-release makes awkward,
-# since the version number is not known when the floor is raised. Treat it as insurance: it also
-# fails the batch on a dependsOn cycle and stops on the first failed release rather than
-# publishing dependents against a product that never shipped. Do NOT raise a floor to an
-# unreleased version on the assumption that the batch will sort it out - nothing checks that at
-# PR time, and if the two are not in the same batch the release simply fails.
-#
-# Run it after merging a "Prepare release" PR. It is the counterpart to that workflow: one
-# opens a single PR for many products, this one turns the merged result into many releases.
-#
-# It does not decide anything - the state of eng/Versions.props does. A product is released
-# here only if its declared version is missing from nuget.org, so re-running is safe: already
-# published products are skipped, and a product whose release exists but never published has
-# that release recreated rather than colliding with it.
+# Creates a GitHub Release for every product whose declared version is missing from nuget.org,
+# in dependency order, waiting for each to publish before starting the next. Run it after
+# merging a "Prepare release" PR. Re-running is safe - published products are skipped.
 on:
   workflow_dispatch:
     inputs:
@@ -47,17 +29,8 @@ jobs:
         with:
           global-json-file: global.json
 
-      # A release created with the default GITHUB_TOKEN does NOT start release.yml: GitHub
-      # deliberately does not trigger workflows from events raised by that token, to stop
-      # workflows recursing. The release appears, nothing publishes, and this job would sit
-      # waiting for a package that is never pushed.
-      #
-      # An installation token from a GitHub App does trigger workflows, and unlike a personal
-      # access token it is short-lived and not tied to anyone's account. Requires a GitHub App
-      # with `contents: write` on this repository, installed on it, with its id and private key
-      # stored as the secrets below.
-      #
-      # Skipped on a dry run, so exploring the plan needs no credentials at all.
+      # GITHUB_TOKEN cannot raise workflow events, so a release it creates never starts
+      # release.yml. An app installation token does. Needs `contents: write` on this repo.
       - name: Mint a token that can trigger the release workflow
         id: app-token
         if: ${{ !inputs.dry_run }}
@@ -71,22 +44,15 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The batch, dependency-first, one product per line:
+          # Dependency-first, one product per line:
           #   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
-          # Ordering, cycle detection and the per-product lookups live in the script because it
-          # already has eng/products.json and eng/Versions.props open; doing them here meant
-          # serialising all of that to JSON and re-deriving it in jq. The script exits non-zero
-          # on a dependsOn cycle, naming the products involved.
-          #
-          # Kept out of a pipeline so a cycle (exit 1) fails the run, while an empty batch does not.
+          # Kept out of a pipeline so a dependsOn cycle (exit 1) fails the run, unlike an empty batch.
           if ! dotnet run eng/scripts/release-status.cs -- --order > /tmp/order.raw; then
             echo "::error::could not work out a release order - see the message above"
             exit 1
           fi
 
           # `dotnet run` writes build diagnostics to stdout, so keep only well-formed rows.
-          # eng/scripts/Directory.Build.props keeps the scripts warning-free, but a workflow that
-          # publishes packages should not depend on that staying true.
           awk -F'\t' 'NF == 5' /tmp/order.raw > /tmp/order.tsv
 
           if [ ! -s /tmp/order.tsv ]; then
@@ -106,12 +72,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Wait for a product's packages to appear on nuget.org before starting the next release.
-          # In the normal case nothing downstream needs this - floors already name published
-          # versions - but release.yml refuses to publish against an unpublished cross-product
-          # dependency, so this is what makes the batch survive a floor that names a version
-          # shipping alongside it. It is also what keeps a failed release from being followed by
-          # its dependents.
+          # release.yml refuses to publish against an unpublished cross-product dependency, and
+          # waiting also stops a failed release from being followed by its dependents.
           wait_for_publish() {
             product="$1"
             for _ in $(seq 1 60); do
@@ -125,11 +87,8 @@ jobs:
             return 1
           }
 
-          # Build release-notes.cs once, discarding the output. `dotnet run` prints build
-          # diagnostics to stdout only on a cold build, and unlike the JSON above these notes
-          # have no marker to filter on - contamination would be published into the release
-          # body rather than failing loudly. The warm-up run absorbs it; the real runs below
-          # reuse the cached build and emit nothing but the notes.
+          # Absorbs the cold build, whose stdout diagnostics would otherwise be published
+          # into a release body - these notes have no marker to filter on.
           dotnet run eng/scripts/release-notes.cs -- --warmup >/dev/null 2>&1 || true
 
           while IFS=$'\t' read -r product version tag title prerelease; do
@@ -147,18 +106,9 @@ jobs:
               continue
             fi
 
-            # Reaching here means the product is pending, i.e. its packages are missing from NuGet.
-            # That is also exactly the state a failed release.yml leaves behind: release and tag
-            # created, nothing published. Calling `gh release create` again fails on the existing
-            # tag and, under `set -e`, takes the rest of the batch down with it - so "re-running is
-            # safe" was only true as long as nothing had gone wrong.
-            #
-            # The release is recreated rather than edited, because release.yml listens for
-            # `release: published` and only a draft becoming published raises it; editing a live
-            # release raises `edited` and would publish nothing, leaving the wait below to time
-            # out. Deleting the release leaves the tag alone, so the new one reuses it, and the
-            # notes are regenerated from the changelog either way. A partially published product
-            # is safe to retry: the push step passes --skip-duplicate.
+            # An existing release here means a previous release.yml failed. Recreated rather than
+            # edited, because release.yml only fires on `release: published`. Deleting keeps the
+            # tag, and retrying is safe - the push step passes --skip-duplicate.
             if gh release view "$tag" >/dev/null 2>&1; then
               echo "  $tag exists but its packages are not on NuGet - recreating it to retry the publish"
               gh release delete "$tag" --yes
