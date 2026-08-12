@@ -8,6 +8,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 20.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Breaking changes
 
 - **The caching package's registration class is renamed to `DeliveryCacheServiceCollectionExtensions`.** It and the Delivery SDK both declared `Kontent.Ai.Delivery.ServiceCollectionExtensions`, so two packages owned one full type name — and since `Kontent.Ai.Delivery.Caching` depends on `Kontent.Ai.Delivery`, every consumer has both and could name neither: referring to it was `CS0433`, with no way to disambiguate. Nothing that compiled before stops compiling. The namespace is unchanged, so `using Kontent.Ai.Delivery;` and every `services.AddDeliveryMemoryCache(...)` / `AddDeliveryHybridCache(...)` / `AddDeliveryCacheManager(...)` call is exactly as it was; only code that named the type explicitly is affected, and that could not have built.
