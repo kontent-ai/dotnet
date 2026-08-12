@@ -1,18 +1,11 @@
-// Resolves a release tag into a concrete publish plan, and refuses to proceed if the
-// repository disagrees with the tag.
+// Resolves a release tag into a publish plan, failing the release rather than publishing
+// something wrong if the product is unknown, the version disagrees with eng/Versions.props, or
+// the changelog has no "## <version>" heading.
 //
 //   dotnet run eng/scripts/release-plan.cs -- aspnetcore-v0.17.0
 //
-// Tag format is <product>-v<version>. The "-v" separator is required, not cosmetic:
-// product names and prerelease versions both contain hyphens (model-generator,
-// 9.0.0-beta-4), so a bare "-" cannot be split back into product and version.
-//
-// Checks, all of which fail the release rather than publish something wrong:
-//   1. tag parses, and the product exists in eng/products.json
-//   2. the version in the tag equals the product's property in eng/Versions.props
-//   3. the product's CHANGELOG.md has a "## <version>" heading
-//
-// Writes product/version/projects/packages to $GITHUB_OUTPUT when running in Actions.
+// The "-v" separator is required, not cosmetic: product names and prerelease versions both
+// contain hyphens (model-generator, 9.0.0-beta-4). Writes outputs to $GITHUB_OUTPUT in Actions.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;

@@ -43,29 +43,10 @@ public class CmApiV2
     // IF YOU MAKE ANY CHANGE TO THIS FILE - ADJUST THE CODE SAMPLES AT
     // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
     //
-    // A section is what the docs publish, so it holds the sample and nothing else: the marker pair opens
-    // below the mock client and closes above the assertions, both of which are test scaffolding. Markers
-    // are written out in full, and the id on the opening one is the join key with the file of the same
-    // name in that repository - so it is not renamed casually.
-    // The shape, using the DeleteAsset sample below:
-    //
-    //     [Fact]
-    //     public async Task DeleteAsset()
-    //     {
-    //         var client = MockClientFactory.CreateForSample(SampleFolder);   <- outside the section
-    //
-    //         [open marker with the id]
-    //         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-    //         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
-    //         // var identifier = Reference.ByExternalId("which-brewing-fits-you");
-    //
-    //         await client.DeleteAssetAsync(identifier);
-    //         [close marker]
-    //
-    //         Assert.NotNull(response);                                       <- outside the section
-    //     }
-    //
-    // The published file adds the using and the real ManagementClient construction around that body.
+    // A section is published verbatim, so it must hold the sample and nothing else: it opens below the
+    // mock client and closes above the assertions, both of which are test scaffolding. The id on the
+    // opening marker is the join key with the file of the same name in that repository - do not rename
+    // it casually.
 
     private const string SampleFolder = "CodeSamples";
 

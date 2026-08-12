@@ -1,14 +1,7 @@
 name: Prepare release
 
-# Bumps one or more products' versions and promotes their changelogs, then opens a single PR.
-# Run it from Actions -> Prepare release -> Run workflow.
-#
-# Every product has its own dropdown, defaulting to `none`. Pick a bump for each product you
-# want in this batch and leave the rest alone; one PR covers all of them.
-#
-# This does NOT publish anything. Merging the PR, then creating one GitHub Release per product
-# tagged <product>-v<version>, is what triggers release.yml. Releases stay separate so a
-# product can be published or abandoned without affecting the others.
+# Bumps the selected products' versions and promotes their changelogs, then opens one PR.
+# Publishes nothing - Publish batch does that once this PR is merged.
 on:
   workflow_dispatch:
     inputs:
@@ -58,8 +51,7 @@ on:
         type: string
         required: false
 
-# Two concurrent runs would open competing version PRs from the same base. Queue rather than
-# cancel: a cancelled run can leave a pushed branch behind with no PR.
+# Queue rather than cancel: a cancelled run can leave a pushed branch behind with no PR.
 concurrency:
   group: prepare-release
   cancel-in-progress: false
@@ -79,8 +71,7 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Inputs are user-supplied strings, so they are passed as environment variables and
-      # quoted - never interpolated into the shell command itself.
+      # Inputs are user-supplied: passed as quoted env vars, never interpolated into the shell.
       - name: Bump versions and promote changelogs
         id: bump
         env:
@@ -141,11 +132,8 @@ jobs:
           echo "Prepared:"
           cat /tmp/summary.txt
 
-      # Folded into the PR body below. Preparing a release is the moment someone is already
-      # deciding what version each product should be on, so it is the one place a stale
-      # cross-product floor is actually actionable. Never fatal here: a floor is meant to lag,
-      # and the scheduled Dependency floors workflow is what fails loudly if one names a
-      # version that is not on NuGet at all.
+      # Folded into the PR body - the one place a stale floor is actionable. Never fatal:
+      # the scheduled Dependency floors workflow is what fails on a truly broken floor.
       - name: Report cross-product dependency floors
         run: |
           set -uo pipefail
@@ -160,8 +148,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # One branch per batch. Dated rather than versioned: a batch has no single version,
-          # and the run number keeps same-day batches distinct.
+          # Dated rather than versioned: a batch has no single version.
           BRANCH="release/batch-$(date -u +%Y-%m-%d)-${GITHUB_RUN_NUMBER}"
 
           git config user.name  "github-actions[bot]"

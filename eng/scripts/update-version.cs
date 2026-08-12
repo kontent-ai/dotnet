@@ -1,14 +1,8 @@
 // Bumps a product's version in eng/Versions.props and promotes its changelog's
-// "## Unreleased" section to the new version.
+// "## Unreleased" section to the new version. Stages everything; commits nothing.
 //
 //   dotnet run eng/scripts/update-version.cs -- <product> <major|minor|patch|x.y.z>
-//
-// Examples:
-//   dotnet run eng/scripts/update-version.cs -- aspnetcore minor
 //   dotnet run eng/scripts/update-version.cs -- aspnetcore 1.0.0-preview.1
-//
-// Leaves everything staged for review; commits nothing. A file-based app (.NET 10)
-// so there is no project to maintain and no extra toolchain to install.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -226,19 +220,13 @@ static int CompareSemVer(string a, string b)
     }
 }
 
-// SemVer compares a prerelease label as dot-separated identifiers: numeric ones numerically,
-// everything else as text. `beta-5` is ONE alphanumeric identifier, so it is compared as text -
-// 9.0.0-beta-10 sorts BEFORE 9.0.0-beta-5, and nuget.org stops offering the newer prerelease as
-// the latest. `preview.1` splits into `preview` + `1` and compares numerically, so it is safe.
+// `beta-5` is ONE alphanumeric SemVer identifier, compared as text - so 9.0.0-beta-10 sorts
+// BEFORE 9.0.0-beta-5 and nuget.org stops offering the newer prerelease. `preview.1` splits into
+// `preview` + `1` and compares numerically, so it is safe.
 //
-// `warnFrom` is 1 when the label is being chosen fresh and 9 when an existing sequence is being
-// continued. Continuing is the case where the advice is nearly useless - a product already on
-// `-N` labels cannot switch mid-line, because 9.0.0-rc.1 would sort BEFORE 9.0.0-beta-5 - so
-// there is no point saying anything at beta-2 and every point in saying it at beta-9. Choosing a
-// label is the opposite: that is the one moment the shape is still free, so say it immediately.
-//
-// A warning rather than an error throughout: the labels already shipped are valid, and the
-// escape (a new label, or GA) is a judgement call about the release, not about this command.
+// warnFrom is 1 when a label is being chosen fresh - the one moment the shape is still free -
+// and 9 when a sequence is being continued, where the advice is nearly useless. A warning rather
+// than an error: the escape is a judgement call about the release, not about this command.
 static void WarnIfPrereleaseWillMisSort(string version, int warnFrom)
 {
     var dash = version.IndexOf('-');

@@ -1,16 +1,9 @@
-// Prints the GitHub Release notes for a tag, taken from that product's CHANGELOG.md.
+// Reshapes one CHANGELOG.md entry into GitHub Release notes: drops the version heading,
+// promotes the entry's "###" sections to "##", appends an install snippet.
 //
 //   dotnet run eng/scripts/release-notes.cs -- management-v9.0.0-beta-5
-//   dotnet run eng/scripts/release-notes.cs -- delivery-v19.5.0 > notes.md
 //
-// The changelog is the source of truth; this just reshapes one entry for the release page:
-//
-//   * drops the "## <version> (<date>)" heading - the release page already shows title and tag
-//   * promotes the entry's own "###" sections to "##" so they read as top level
-//   * appends an install snippet, with --prerelease when the version is a prerelease
-//
-// Exits non-zero if the tag does not parse, the product is unknown, or the changelog has no
-// entry for that version - the same conditions release-plan.cs refuses to publish on.
+// Exits non-zero on the same conditions release-plan.cs refuses to publish on.
 
 using System.Text;
 using System.Text.Json;

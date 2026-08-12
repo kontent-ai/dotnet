@@ -57,12 +57,10 @@ internal sealed class TypeProvider : ITypeProvider
             }
         }
 
-        // 3. Fallback: check calling assembly (for test scenarios where entry assembly may be test runner).
-        // Note: Assembly.GetCallingAssembly() inside a Lazy<T> callback resolves the call stack at
-        // Lazy evaluation time, which goes through the Lazy infrastructure rather than user code.
-        // In practice this still works because steps 1-2 (entry assembly + references) handle
-        // production scenarios, and step 3 is a fallback that happens to work in most xUnit setups.
-        // Users can always override by registering their own ITypeProvider in the DI container.
+        // 3. Fallback: the calling assembly, for tests where the entry assembly is the test runner.
+        // GetCallingAssembly inside a Lazy<T> callback resolves through the Lazy infrastructure
+        // rather than user code, so this is best-effort; steps 1-2 cover production, and
+        // registering an ITypeProvider in DI overrides all of it.
         var callingAssembly = Assembly.GetCallingAssembly();
         if (callingAssembly is not null && callingAssembly != entryAssembly)
         {
@@ -92,17 +90,10 @@ internal sealed class TypeProvider : ITypeProvider
                 return (ITypeProvider?)Activator.CreateInstance(providerType);
             }
         }
-        // Deliberately broad. "No generated provider" is a supported state, not a failure - the
-        // caller falls back to dynamic types - so every way this can fail means the same thing:
-        // nothing usable in this assembly. Scanning arbitrary loaded assemblies can fail in many
-        // ways (unreflectable images, missing transitive dependencies, a provider constructor that
-        // throws), and enumerating them would only decide which failures degrade gracefully and
-        // which do not.
-        //
-        // Narrowing it would be actively harmful here: this runs inside a Lazy<T> factory, which
-        // CACHES a thrown exception and rethrows it on every later access. An unlisted exception
-        // would therefore not surface once - it would break every subsequent item mapping for the
-        // lifetime of the process, instead of falling back to dynamic types.
+        // Deliberately broad: "no generated provider" is a supported state, so every way this can
+        // fail means the same thing - nothing usable here. Narrowing would be harmful, because a
+        // Lazy<T> factory CACHES a thrown exception and rethrows it on every later access, breaking
+        // every subsequent item mapping instead of falling back to dynamic types.
         catch
         {
             return null;

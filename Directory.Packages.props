@@ -1,29 +1,19 @@
 <Project>
   <!-- Central package management for the whole repo.
 
-       For the Kontent.Ai.* entries this is not merely a version pin - it is the DECLARED
-       DEPENDENCY FLOOR of the packages this repo publishes. A cross-product
-       PackageReference resolves to the version here, and that version lands in the
-       generated .nuspec as the minimum a consumer may resolve. NuGet picks the lowest
-       applicable version by default, so a floor the code does not actually compile
-       against is a package that installs and then fails at runtime. The default build
-       leg exists to prove it does compile against it, which is why it is blocking.
+       For the Kontent.Ai.* entries this is not merely a pin - it is the DECLARED DEPENDENCY
+       FLOOR of the packages this repo publishes, landing in the .nuspec as the minimum a
+       consumer may resolve. NuGet picks lowest-applicable, so a floor the code does not compile
+       against installs and then fails at runtime; the default build leg proves that it does.
 
-       Two rules follow:
+       1. A Kontent.Ai.* version here MUST already be on nuget.org - every restore in the repo
+          resolves it, including the root restore in release.yml. Pointing a floor at a merely
+          prepared version makes the whole repo unrestorable.
+       2. So floors are raised in their own PR, after the dependency ships, never in the batch
+          that bumps it. CONTRIBUTING.md has the full sequence.
 
-       1. A Kontent.Ai.* version here MUST already be on nuget.org. Every restore in the
-          repo resolves it, including the root restore in release.yml. Pointing a floor at
-          a version that is only PREPARED - bumped in eng/Versions.props but not yet
-          released - makes the whole repo unrestorable, including the very release that
-          would have published it.
-
-       2. So floors are raised in their own PR, after the dependency is published, never
-          in the batch that bumps it. CONTRIBUTING.md has the full sequence.
-
-       Lagging behind the newest published sibling is normal and intended: a floor is a
-       promise about the minimum supported version, not a statement about what is latest.
-       Raise one only when the consuming code actually requires the newer API - raising it
-       otherwise forces every downstream consumer to upgrade for nothing. -->
+       Lagging is normal and intended: raise a floor only when the consuming code needs the
+       newer API, since raising it forces every downstream consumer to upgrade. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>

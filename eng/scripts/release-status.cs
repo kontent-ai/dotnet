@@ -1,28 +1,12 @@
-// Reports, per product, whether the version currently declared in eng/Versions.props has
-// actually been published to nuget.org.
+// Reports, per product, whether the version declared in eng/Versions.props is on nuget.org.
 //
-//   dotnet run eng/scripts/release-status.cs
-//   dotnet run eng/scripts/release-status.cs -- --json
-//   dotnet run eng/scripts/release-status.cs -- --order
-//   dotnet run eng/scripts/release-status.cs -- --is-published <product>
+//   dotnet run eng/scripts/release-status.cs [-- --json | --order | --is-published <product>]
 //
-// Why this exists: preparing a release and publishing it are two separate steps. A batch can
-// bump three products and then only two get released, leaving the third with a bumped version
-// property and a dated changelog entry but nothing on NuGet. That state is legitimate - it just
-// means "not yet" - but it is invisible, and preparing again would silently skip the version.
+// Prepared-but-unpublished is a legitimate but invisible state, so the reporting modes exit 0
+// unless they cannot do the job. --order is the exception: it fails on a dependsOn cycle.
 //
-// Informational by design: the reporting modes always exit 0 unless they cannot do the job (bad
-// repo, network failure). A prepared-but-unpublished version is a normal intermediate state, not
-// an error. --order is the exception: it fails on a dependsOn cycle, because a batch it cannot
-// order is a batch that must not run.
-//
-// --order emits the batch publish-batch.yml works through, one product per line, dependencies
-// first, tab-separated:
-//
+// --order emits the batch publish-batch.yml works through, dependencies first, tab-separated:
 //   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
-//
-// It lives here rather than in the workflow because the inputs are already open: this script
-// reads eng/products.json and eng/Versions.props, and knows which versions are still pending.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;

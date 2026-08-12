@@ -10,29 +10,21 @@ on:
   schedule:
     - cron: '0 18 * * 1'
 
-
 jobs:
   analyze:
     name: Analyze C#
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
       with:
         persist-credentials: false
         fetch-depth: 0
-      
-    # Initializes the CodeQL tools for scanning.
-    #
-    # build-mode: none extracts C# straight from source, so this workflow no longer compiles
-    # the repo - ci.yml already builds it on two legs, and a third full build bought nothing.
-    # It is also what makes the run eligible for an overlay-base database, which is CodeQL's
-    # incremental cache for pull-request scans; without it every run built a full database.
-    #
-    # Trade-off: buildless extraction does not see generated code, so the output of
-    # Kontent.Ai.Delivery.SourceGeneration is not analyzed. That output is generated model
-    # records - no I/O, no user input, nothing the security queries would flag.
+
+    # build-mode: none - ci.yml already builds the repo, and buildless extraction is what makes
+    # a run eligible for incremental overlay-base databases. It does not see generated code;
+    # the source generator only emits model records.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
