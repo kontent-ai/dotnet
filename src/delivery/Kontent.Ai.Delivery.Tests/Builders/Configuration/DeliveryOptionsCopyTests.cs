@@ -1,13 +1,15 @@
 using System.Reflection;
 using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Configuration;
 
 namespace Kontent.Ai.Delivery.Tests.Builders.Configuration;
 
 /// <summary>
-/// The copy is what carries a prebuilt options instance into the DI options pattern. It used to assign
-/// property by property, which keeps compiling when an option is added and silently stops carrying it —
-/// the caller sets a value and the client never sees it. Reflected here for the same reason the copy is:
-/// naming the properties would leave a new one uncovered in exactly the case that matters.
+/// The copy is what carries a prebuilt options instance into the DI options pattern, and the build is what
+/// produces one. Both used to assign property by property, which keeps compiling when an option is added and
+/// silently stops carrying it — the caller sets a value and the client never sees it. The copy is reflected
+/// here for the same reason it is reflected in the source: naming the properties would leave a new one
+/// uncovered in exactly the case that matters.
 /// </summary>
 public class DeliveryOptionsCopyTests
 {
@@ -33,6 +35,27 @@ public class DeliveryOptionsCopyTests
         {
             Assert.Equal(property.GetValue(source), property.GetValue(destination));
         }
+    }
+
+    [Fact]
+    public void Build_CarriesWhatTheBuilderWasTold()
+    {
+        var built = DeliveryOptionsBuilder.CreateInstance()
+            .WithEnvironmentId("11111111-1111-1111-1111-111111111111")
+            .UsePreviewApi("preview-key")
+            .WithCustomEndpoint("https://preview.example.com/{0}")
+            .WithDefaultRenditionPreset("mobile")
+            .WithCustomAssetDomain("assets.example.com")
+            .DisableRetryPolicy()
+            .Build();
+
+        Assert.Equal("11111111-1111-1111-1111-111111111111", built.EnvironmentId);
+        Assert.Equal("preview-key", built.PreviewApiKey);
+        Assert.True(built.UsePreviewApi);
+        Assert.Equal("https://preview.example.com/{0}", built.PreviewEndpoint);
+        Assert.Equal("mobile", built.DefaultRenditionPreset);
+        Assert.Equal("assets.example.com", built.CustomAssetDomain);
+        Assert.False(built.EnableResilience);
     }
 
     // A value that differs from the property's default, so a property the copy skips fails the comparison.
