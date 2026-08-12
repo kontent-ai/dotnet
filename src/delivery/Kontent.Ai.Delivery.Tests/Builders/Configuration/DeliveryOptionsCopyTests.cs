@@ -5,11 +5,11 @@ using Kontent.Ai.Delivery.Configuration;
 namespace Kontent.Ai.Delivery.Tests.Builders.Configuration;
 
 /// <summary>
-/// The copy is what carries a prebuilt options instance into the DI options pattern, and the build is what
-/// produces one. Both used to assign property by property, which keeps compiling when an option is added and
-/// silently stops carrying it — the caller sets a value and the client never sees it. The copy is reflected
-/// here for the same reason it is reflected in the source: naming the properties would leave a new one
-/// uncovered in exactly the case that matters.
+/// The copy carries a prebuilt options instance into the DI options pattern, and the build produces one.
+/// Naming the properties in either would keep compiling when an option is added and silently stop carrying
+/// it — the caller sets a value and the client never sees it. The copy is reflected here for the same reason
+/// it is reflected in the source: naming the properties would leave a new one uncovered in exactly the case
+/// that matters.
 /// </summary>
 public class DeliveryOptionsCopyTests
 {
