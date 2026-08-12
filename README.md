@@ -49,8 +49,8 @@ Currently migrated:
 | Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | `src/model-generator` | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
 | Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | `src/sync` | `Kontent.Ai.Sync` |
 
-The badge tracks each product's flagship package on nuget.org — the latest stable release, which is
-what `dotnet add package` resolves to without `--prerelease`.
+The badge tracks each product's flagship package on nuget.org, prereleases included, so it shows the
+release candidates ahead of a GA rather than the stable line they supersede.
 
 ## Building
 
@@ -168,13 +168,13 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 [license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet.svg?style=for-the-badge
 [license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
 
-[aspnetcore-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore
+[aspnetcore-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.AspNetCore
 [aspnetcore-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.AspNetCore
-[delivery-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Delivery
+[delivery-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Delivery
 [delivery-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Delivery
-[management-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Management
+[management-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Management
 [management-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
-[model-generator-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator
+[model-generator-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.ModelGenerator
 [model-generator-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.ModelGenerator
-[sync-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Sync
+[sync-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Sync
 [sync-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Sync
