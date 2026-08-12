@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Breaking changes
 
 - **`WebhookNotification.Notifications` is `IReadOnlyList<WebhookModel>?` instead of `WebhookModel[]?`.** `WebhookNotification` is a record, so it compares by value — except that an array member compares by reference, which meant two notifications carrying identical payloads were never equal. The array was also handed out mutable, so a caller could rewrite a deserialized payload in place. Reading the collection is unaffected: indexing, `foreach`, `Count` (rather than `Length`) and LINQ all work as before. Code that assigned an array to the property still compiles; code that declared the receiving variable as `WebhookModel[]` needs `IReadOnlyList<WebhookModel>` or `var`.
