@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Breaking changes
 
 - **`Reference` moved from the asset-folder and taxonomy-group PATCH bases onto the operations that need it, where it is `required`.** Both bases declared a nullable `Reference`, so a `remove`, `rename`, `move` or `replace` operation could be constructed without the reference the API demands — the compiler was fine with it and the request failed at the server. Each operation now declares its own: `required` on the ones that target something (`AssetFolderRemovePatchModel`, `AssetFolderRenamePatchModel`, `TaxonomyGroupRemovePatchModel`, `TaxonomyGroupMovePatchModel`, `TaxonomyGroupReplacePatchModel`), and still optional on `addInto`, where it names the parent to add into and its absence means the root. This matches the collection patch models, which were already shaped this way. The wire format is unchanged; code that already set `Reference` on these operations still compiles, and code that did not now fails to compile instead of failing at the API.

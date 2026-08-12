@@ -5,6 +5,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Fixed
 
 - **The named-options accessor requires the client name it reads.** It accepted a null name and fell back to the unnamed registration, which only exists when a default client was registered — so on a named-only setup that path would have resolved a `SyncOptions` nobody configured and built requests against a blank environment rather than failing. No caller passed null; the parameter is now non-nullable, matching the Delivery SDK's equivalent.
