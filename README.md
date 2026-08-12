@@ -41,13 +41,16 @@ eng/               version source of truth, release routing, build scripts
 
 Currently migrated:
 
-| Product | Path | Packages |
-|---|---|---|
-| ASP.NET Core extensions | `src/aspnetcore` | `Kontent.Ai.AspNetCore` |
-| Delivery SDK | `src/delivery` | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
-| Management SDK | `src/management` | `Kontent.Ai.Management` |
-| Model generator | `src/model-generator` | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
-| Sync SDK | `src/sync` | `Kontent.Ai.Sync` |
+| Product | Version | Path | Packages |
+|---|---|---|---|
+| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | `src/aspnetcore` | `Kontent.Ai.AspNetCore` |
+| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | `src/delivery` | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
+| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | `src/management` | `Kontent.Ai.Management` |
+| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | `src/model-generator` | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
+| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | `src/sync` | `Kontent.Ai.Sync` |
+
+The badge tracks each product's flagship package on nuget.org — the latest stable release, which is
+what `dotnet add package` resolves to without `--prerelease`.
 
 ## Building
 
@@ -164,3 +167,14 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 [issues-url]: https://github.com/kontent-ai/dotnet/issues
 [license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet.svg?style=for-the-badge
 [license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
+
+[aspnetcore-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore
+[aspnetcore-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.AspNetCore
+[delivery-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Delivery
+[delivery-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Delivery
+[management-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Management
+[management-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
+[model-generator-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator
+[model-generator-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.ModelGenerator
+[sync-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Sync
+[sync-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Sync
