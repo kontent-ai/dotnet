@@ -31,7 +31,6 @@ using Kontent.Ai.Management.Models.Webhooks.Triggers.Language;
 using Kontent.Ai.Management.Models.Webhooks.Triggers.Taxonomy;
 using Kontent.Ai.Management.Models.Workflow;
 using Kontent.Ai.Management.Tests.Base;
-using System.Globalization;
 
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
@@ -1626,7 +1625,7 @@ public class CmApiV2
                 ],
                 DueDate = new DueDateModel
                 {
-                    Value = DateTime.Parse("2092-01-07T06:04:00.7069564Z", CultureInfo.InvariantCulture)
+                    Value = new DateTimeOffset(2092, 1, 7, 6, 4, 0, TimeSpan.Zero)
                 },
                 Workflow = new WorkflowStepIdentifier(Reference.ByDefaultCodename(), Reference.ByCodename("review"))
             })).EnsureSuccess();
@@ -1691,8 +1690,8 @@ public class CmApiV2
         // Scheduled publish
         (await client.SchedulePublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
-        ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
-        DisplayTimeZone = "Europe/London"
+            ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
+            DisplayTimeZone = "Europe/London"
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -1713,8 +1712,8 @@ public class CmApiV2
         // Scheduled unpublish
         (await client.ScheduleUnpublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
-        ScheduledTo = DateTime.Parse("2038-01-19T04:14:08", CultureInfo.InvariantCulture),
-        DisplayTimeZone = "Europe/London"
+            ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
+            DisplayTimeZone = "Europe/London"
         })).EnsureSuccess();
         // EndDocSection
     }
