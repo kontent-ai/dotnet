@@ -20,10 +20,16 @@ internal interface ISyncOptionsAccessor
 /// Reads named options from an <see cref="IOptionsMonitor{TOptions}"/>, so configuration changes take
 /// effect without rebuilding the client.
 /// </summary>
-internal sealed class MonitorBackedSyncOptionsAccessor(IOptionsMonitor<SyncOptions> monitor, string? optionsName)
+/// <remarks>
+/// The name is required. A null one would have read the unnamed registration, which exists only when a
+/// default client was registered - so for a named-only setup it would have resolved a <see cref="SyncOptions"/>
+/// nobody configured, and the handler chain would have built requests against a blank environment instead
+/// of failing. Every caller already knows its client name.
+/// </remarks>
+internal sealed class MonitorBackedSyncOptionsAccessor(IOptionsMonitor<SyncOptions> monitor, string optionsName)
     : ISyncOptionsAccessor
 {
-    public SyncOptions Current => optionsName is null ? monitor.CurrentValue : monitor.Get(optionsName);
+    public SyncOptions Current => monitor.Get(optionsName);
 }
 
 /// <summary>
