@@ -39,7 +39,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **A client name containing a tab or newline is rejected like one containing a space.** The rule trimmed and then looked for spaces, so other whitespace passed validation and left a name that is invisible at the point of failure. The caching package also carried its own copy of the rule, which is now the shared one.
 
-- **Dynamic queries carry their dependency keys.** `GetItem`/`GetItems` without a typed model returned results whose `DependencyKeys` were `null`, while the typed queries forwarded them — so output-cache tagging, which those keys exist for, had nothing to tag with on the dynamic path.
+- **Dynamic queries carry their dependency keys, on every page.** `GetItem`/`GetItems` without a typed model returned results whose `DependencyKeys` were `null`, while the typed queries forwarded them — so output-cache tagging, which those keys exist for, had nothing to tag with on the dynamic path. Paging through a dynamic listing dropped them the same way from the second page on.
 
 - **`ImageUrlBuilder` keeps a query the asset URL already carries.** Transformations were applied as a relative reference with its own query, which replaces the base URL's query outright. An asset URL produced by a default rendition preset therefore lost its rendition the moment any transformation was added. The two are merged now, with an explicit transformation winning where both set the same key.
 

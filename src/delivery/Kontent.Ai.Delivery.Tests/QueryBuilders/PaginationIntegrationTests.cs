@@ -134,6 +134,39 @@ public sealed class PaginationIntegrationTests
     }
 
     [Fact]
+    public async Task ItemListing_DynamicQuery_FetchNextPage_CarriesDependencyKeys()
+    {
+        var env = Guid.NewGuid().ToString();
+        var itemsUrl = $"https://deliver.kontent.ai/{env}/items";
+
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.Expect(itemsUrl)
+            .WithQueryString("limit", "1")
+            .Respond("application/json", BuildItemsListingJson(skip: 0, limit: 1, totalCount: 2, codenames: ["dyn_first"], hasNextPage: true));
+        mockHttp.Expect(itemsUrl)
+            .WithQueryString("skip", "1")
+            .WithQueryString("limit", "1")
+            .Respond("application/json", BuildItemsListingJson(skip: 1, limit: 1, totalCount: 2, codenames: ["dyn_second"]));
+
+        var client = BuildClient(env, mockHttp);
+
+        var firstPage = await client.GetItems().Limit(1).ExecuteAsync();
+        Assert.True(firstPage.IsSuccess);
+        Assert.NotNull(firstPage.DependencyKeys);
+        Assert.Contains("item_dyn_first", firstPage.DependencyKeys);
+
+        var secondPage = await firstPage.Value.FetchNextPageAsync();
+        Assert.NotNull(secondPage);
+        Assert.True(secondPage.IsSuccess);
+
+        Assert.NotNull(secondPage.DependencyKeys);
+        Assert.Contains(DeliveryCacheDependencies.ItemsListScope, secondPage.DependencyKeys);
+        Assert.Contains("item_dyn_second", secondPage.DependencyKeys);
+
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
     public async Task ItemListing_SingleItem_HasNextPage_IsFalse()
     {
         var env = Guid.NewGuid().ToString();
