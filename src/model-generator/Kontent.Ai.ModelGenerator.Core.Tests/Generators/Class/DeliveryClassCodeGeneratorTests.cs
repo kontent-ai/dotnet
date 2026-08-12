@@ -138,18 +138,32 @@ public class DeliveryClassCodeGeneratorTests : ClassCodeGeneratorTestsBase
         AssertCompiledCode(CreateCompilation(compiledCode));
     }
 
+    // The source generator emits this into whatever compilation references it, as an internal type - so a
+    // consumer's generated models and the attribute they carry always land in one assembly. This test
+    // compiles generated models on their own, so it has to supply the attribute the same way rather than
+    // referencing the assembly that happens to hold this test project's copy.
+    private const string ContentTypeCodenameAttributeSource = """
+        namespace Kontent.Ai.Delivery.Attributes;
+
+        [global::System.AttributeUsage(global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+        internal sealed class ContentTypeCodenameAttribute(string codename) : global::System.Attribute
+        {
+            public string Codename { get; } = codename;
+        }
+        """;
+
     private static CSharpCompilation CreateCompilation(string code) =>
         CSharpCompilation.Create(
             assemblyName: Path.GetRandomFileName(),
             syntaxTrees:
             [
-                CSharpSyntaxTree.ParseText(code)
+                CSharpSyntaxTree.ParseText(code),
+                CSharpSyntaxTree.ParseText(ContentTypeCodenameAttributeSource)
             ],
             references: [
                 MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Delivery.Abstractions.IEmbeddedContent).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(Assembly.Load("Kontent.Ai.Delivery").Location),
-                MetadataReference.CreateFromFile(typeof(Delivery.Attributes.ContentTypeCodenameAttribute).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(DateTime).GetTypeInfo().Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(IEnumerable<>).GetTypeInfo().Assembly.Location),
