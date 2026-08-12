@@ -7,50 +7,40 @@
 
 # Kontent.ai .NET
 
-> [!IMPORTANT]
-> **This is the home of the Kontent.ai .NET SDKs.** All five products have moved here with
-> their full history, and packages are published from this repository.
->
-> The former per-product repositories are **frozen** — they are kept for reference and for
-> the release history of versions published before the move. Open issues and pull requests
-> here instead:
->
-> | Former repository | Now at |
-> |---|---|
-> | [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net) | [`src/delivery`](./src/delivery) |
-> | [management-sdk-net](https://github.com/kontent-ai/management-sdk-net) | [`src/management`](./src/management) |
-> | [sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net) | [`src/sync`](./src/sync) |
-> | [aspnetcore-extensions](https://github.com/kontent-ai/aspnetcore-extensions) | [`src/aspnetcore`](./src/aspnetcore) |
-> | [model-generator-net](https://github.com/kontent-ai/model-generator-net) | [`src/model-generator`](./src/model-generator) |
->
-> Package IDs and public APIs are unchanged by the move.
+A monorepo for the Kontent.ai .NET SDKs and tooling — the Delivery, Management and Sync
+clients, the ASP.NET Core extensions and the model generator. Each keeps its own version,
+changelog and release cadence, so a change touching several of them is one pull request
+rather than a coordinated release across five repositories.
 
-## About
+| Product | Version | Readme | Packages |
+|---|---|---|---|
+| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) | `Kontent.Ai.AspNetCore` |
+| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
+| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) | `Kontent.Ai.Management` |
+| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
+| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) | `Kontent.Ai.Sync` |
 
-A monorepo for the Kontent.ai .NET SDKs and tooling — one place for the client libraries,
-the model generator, integrations and samples, so that a change touching several of them
-is one pull request rather than a coordinated release across five repositories.
+The badge tracks each product's flagship package on nuget.org, prereleases included, so it
+shows the release candidates ahead of a GA rather than the stable line they supersede.
+
+> [!NOTE]
+> This repository is where every Kontent.ai .NET SDK and tool is developed and published from.
+> The former per-product repositories — [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net),
+> [management-sdk-net](https://github.com/kontent-ai/management-sdk-net),
+> [sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net),
+> [aspnetcore-extensions](https://github.com/kontent-ai/aspnetcore-extensions) and
+> [model-generator-net](https://github.com/kontent-ai/model-generator-net) — are frozen and kept
+> only for their earlier release history, so open issues and pull requests here.
 
 ## Layout
 
 ```
 src/<product>/     each product, with its own CHANGELOG.md and package metadata
+src/common/        source compiled into the SDKs rather than shipped as a package
+src/testing/       test infrastructure shared across products; ships nothing
 eng/               version source of truth, release routing, build scripts
 .github/workflows/ CI and the tag-routed release pipeline
 ```
-
-Currently migrated:
-
-| Product | Version | Path | Packages |
-|---|---|---|---|
-| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | `src/aspnetcore` | `Kontent.Ai.AspNetCore` |
-| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | `src/delivery` | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
-| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | `src/management` | `Kontent.Ai.Management` |
-| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | `src/model-generator` | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
-| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | `src/sync` | `Kontent.Ai.Sync` |
-
-The badge tracks each product's flagship package on nuget.org, prereleases included, so it shows the
-release candidates ahead of a GA rather than the stable line they supersede.
 
 ## Building
 
