@@ -14,7 +14,7 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     public static IDeliveryOptionsBuilder CreateInstance() => new DeliveryOptionsBuilder();
 
     /// <summary>
-    /// Creates a new instance of the <see cref="DeliveryOptionsBuilder"/> class with the specified environment ID.
+    /// Sets the Kontent.ai environment the client reads from.
     /// </summary>
     /// <param name="environmentId">The identifier of a Kontent.ai environment.</param>
     public IDeliveryOptionsBuilder WithEnvironmentId(string environmentId)
@@ -24,7 +24,7 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     }
 
     /// <summary>
-    /// Creates a new instance of the <see cref="DeliveryOptionsBuilder"/> class with the specified environment ID.
+    /// Sets the Kontent.ai environment the client reads from.
     /// </summary>
     /// <param name="environmentId">The identifier of a Kontent.ai environment.</param>
     public IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)

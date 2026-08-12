@@ -633,4 +633,17 @@ public class DeliveryClientBuilderTests
             return Task.CompletedTask;
         }
     }
+
+    // The type the caller has to catch, which the Build() docs used to state incorrectly. It comes out of
+    // the options pipeline, not from the builder, so it is not an InvalidOperationException.
+    [Fact]
+    public void Build_InvalidOptions_ThrowsOptionsValidationException()
+    {
+        var act = () => DeliveryClientBuilder
+            .WithOptions(o => o.WithEnvironmentId("not-a-guid").Build())
+            .Build();
+
+        var exception = Assert.Throws<OptionsValidationException>(act);
+        Assert.Contains("EnvironmentId", exception.Message);
+    }
 }

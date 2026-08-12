@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Types.Elements;
+﻿namespace Kontent.Ai.Management.Models.Types.Elements;
 
 /// <summary>
 /// Specifies which blocks are allowed inside your rich text element.

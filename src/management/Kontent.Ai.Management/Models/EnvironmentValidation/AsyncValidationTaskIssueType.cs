@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.EnvironmentValidation;
+﻿namespace Kontent.Ai.Management.Models.EnvironmentValidation;
 
 /// <summary>
 /// The type of the async validation task issue.

@@ -554,7 +554,6 @@ public static class DeliveryCacheServiceCollectionExtensions
     {
         RemoveExistingCacheManagerRegistration(services, clientName);
         services.AddKeyedSingleton<IDeliveryCacheManager>(clientName, (sp, _) => createCacheManager(sp));
-        services.Replace(ServiceDescriptor.Singleton<IContentDependencyExtractor, ContentDependencyExtractor>());
         return services;
     }
 

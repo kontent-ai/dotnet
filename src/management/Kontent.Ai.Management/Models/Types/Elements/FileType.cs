@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Types.Elements;
+﻿namespace Kontent.Ai.Management.Models.Types.Elements;
 
 /// <summary>
 /// Represents the allowed file types for the asset element in content types.

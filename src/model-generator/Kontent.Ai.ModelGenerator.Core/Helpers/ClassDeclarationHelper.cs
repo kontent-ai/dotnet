@@ -7,10 +7,7 @@ internal static class ClassDeclarationHelper
 {
     public static SyntaxTrivia GenerateSyntaxTrivia(string customComment)
     {
-        if (string.IsNullOrWhiteSpace(customComment))
-        {
-            throw new ArgumentNullException(nameof(customComment));
-        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(customComment);
 
         if (!customComment.StartsWith("// "))
         {

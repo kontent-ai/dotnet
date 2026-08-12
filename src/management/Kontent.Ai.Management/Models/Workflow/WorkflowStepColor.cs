@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Workflow;
+﻿namespace Kontent.Ai.Management.Models.Workflow;
 
 /// <summary>
 /// Workflow step colors.

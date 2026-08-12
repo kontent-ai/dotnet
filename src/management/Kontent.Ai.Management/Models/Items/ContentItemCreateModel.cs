@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Items;
+﻿namespace Kontent.Ai.Management.Models.Items;
 
 /// <summary>
 /// Request payload for creating a new content item via <c>POST /items</c>.

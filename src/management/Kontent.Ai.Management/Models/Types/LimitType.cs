@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Types;
+﻿namespace Kontent.Ai.Management.Models.Types;
 
 /// <summary>
 /// Defines how to apply the limitation.

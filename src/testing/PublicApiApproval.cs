@@ -52,12 +52,36 @@ internal static class PublicApiApproval
 
     private static string TypeSignature(Type type)
     {
-        var modifiers = type.IsSealed && !type.IsValueType ? "sealed " : "";
+        var modifiers = TypeModifiers(type);
         var generic = type.IsGenericType
             ? $"<{string.Join(", ", type.GetGenericArguments().Select(argument => argument.Name))}>"
             : string.Empty;
 
         return $"public {modifiers}{Kind(type)} {type.Name}{generic}{BaseTypes(type)}";
+    }
+
+    /// <summary>
+    /// Whether the type can be instantiated, derived from, or neither.
+    /// </summary>
+    /// <remarks>
+    /// A static class is <c>abstract</c> and <c>sealed</c> in metadata, so a plain sealed check rendered it
+    /// as a sealed class - indistinguishable from one a caller can hold an instance of. Making a type
+    /// static, or abstract, or dropping either, changes what a consumer may write.
+    /// </remarks>
+    private static string TypeModifiers(Type type)
+    {
+        if (type.IsValueType || type.IsInterface || type.IsEnum)
+        {
+            return string.Empty;
+        }
+
+        return type switch
+        {
+            { IsAbstract: true, IsSealed: true } => "static ",
+            { IsAbstract: true } => "abstract ",
+            { IsSealed: true } => "sealed ",
+            _ => string.Empty,
+        };
     }
 
     private static string Kind(Type type) => type switch

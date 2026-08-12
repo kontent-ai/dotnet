@@ -17,9 +17,9 @@ namespace Kontent.Ai.AspNetCore.RichText;
 /// The <c>&lt;rich-text&gt;</c> element itself is not emitted — the resolver's HTML is rendered in its place.
 /// </remarks>
 [HtmlTargetElement("rich-text", Attributes = "content")]
-public sealed class RichTextTagHelper : TagHelper
+/// <param name="defaultResolver">Optional resolver injected from the DI container via <c>AddKontentRichText</c>.</param>
+public sealed class RichTextTagHelper(IHtmlResolver? defaultResolver = null) : TagHelper
 {
-    private readonly IHtmlResolver? _defaultResolver;
 
     /// <summary>
     /// The structured rich-text content to render.
@@ -33,15 +33,6 @@ public sealed class RichTextTagHelper : TagHelper
     [HtmlAttributeName("resolver")]
     public IHtmlResolver? Resolver { get; set; }
 
-    /// <summary>
-    /// Creates an instance of the <see cref="RichTextTagHelper"/>.
-    /// </summary>
-    /// <param name="defaultResolver">Optional resolver injected from the DI container via <c>AddKontentRichText</c>.</param>
-    public RichTextTagHelper(IHtmlResolver? defaultResolver = null)
-    {
-        _defaultResolver = defaultResolver;
-    }
-
     /// <inheritdoc/>
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
@@ -52,7 +43,7 @@ public sealed class RichTextTagHelper : TagHelper
             return;
         }
 
-        var resolver = Resolver ?? _defaultResolver ?? new HtmlResolverBuilder().Build();
+        var resolver = Resolver ?? defaultResolver ?? new HtmlResolverBuilder().Build();
         var html = await resolver.ResolveAsync(Content);
         output.Content.SetHtmlContent(html);
     }

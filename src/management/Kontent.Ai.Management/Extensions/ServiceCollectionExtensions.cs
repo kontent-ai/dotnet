@@ -295,7 +295,7 @@ public static partial class ServiceCollectionExtensions
         Action<IHttpClientBuilder>? configureHttpClient,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     {
-        var refitSettings = CreateRefitSettings();
+        var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
 
         RegisterRefitClient<IManagementApi>(
             services,

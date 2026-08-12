@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Webhooks.Triggers;
+﻿namespace Kontent.Ai.Management.Models.Webhooks.Triggers;
 
 /// <summary>
 /// Represents the delivery slot.

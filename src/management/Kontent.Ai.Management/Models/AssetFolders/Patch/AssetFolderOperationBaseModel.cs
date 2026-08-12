@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.AssetFolders.Patch;
+﻿namespace Kontent.Ai.Management.Models.AssetFolders.Patch;
 
 /// <summary>
 /// Represents the operation on folders.

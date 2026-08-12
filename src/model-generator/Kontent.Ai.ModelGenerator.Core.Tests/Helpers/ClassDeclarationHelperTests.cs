@@ -5,16 +5,24 @@ namespace Kontent.Ai.ModelGenerator.Core.Tests.Helpers;
 
 public class ClassDeclarationHelperTests
 {
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("  ")]
-    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Throws(string? customComment)
+    // A missing argument and a blank one are different mistakes: null is ArgumentNullException, a value
+    // that is present but empty is ArgumentException. The guard used to report both as the former.
+    [Fact]
+    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Null_ThrowsArgumentNullException()
     {
-        var call = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment!);
+        var act = () => ClassDeclarationHelper.GenerateSyntaxTrivia(null!);
 
-        call.Should().Throw<ArgumentNullException>()
-            .And.ParamName.Should().Be(nameof(customComment));
+        act.Should().ThrowExactly<ArgumentNullException>();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Blank_ThrowsArgumentException(string customComment)
+    {
+        var act = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment!);
+
+        act.Should().ThrowExactly<ArgumentException>();
     }
 
     [Theory]

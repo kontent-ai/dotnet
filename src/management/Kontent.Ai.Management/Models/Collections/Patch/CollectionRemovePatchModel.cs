@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Collections.Patch;
+﻿namespace Kontent.Ai.Management.Models.Collections.Patch;
 
 /// <summary>
 /// Patch operation that deletes an existing collection. The collection must contain no items, and the default collection cannot be deleted.

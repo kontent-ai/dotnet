@@ -207,10 +207,8 @@ public class CmApiV2
         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var identifier = Reference.ByCodename("which-brewing-fits-you");
 
-        var response = await client.GetAssetAsync(identifier);
+        var response = (await client.GetAssetAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -236,10 +234,8 @@ public class CmApiV2
         var identifier = AssetRenditionIdentifier.ByIds(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"), Guid.Parse("ce559491-0fc1-494b-96f3-244bc095de57"));
         // var identifier = new AssetRenditionIdentifier(Reference.ByExternalId("which-brewing-fits-you"), Reference.ByExternalId("hero-image-rendition"));
 
-        var response = await client.GetAssetRenditionAsync(identifier);
+        var response = (await client.GetAssetRenditionAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -271,8 +267,6 @@ public class CmApiV2
 
         IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsOfContentTypeWithComponentsAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -313,10 +307,8 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("59713");
 
-        var response = await client.GetContentItemAsync(identifier);
+        var response = (await client.GetContentItemAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
 
@@ -344,10 +336,8 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("de-DE");
         // var identifier = Reference.ByExternalId("standard-german");
 
-        var response = await client.GetLanguageAsync(identifier);
+        var response = (await client.GetLanguageAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -370,10 +360,8 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_get_project_information
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.GetEnvironmentInformationAsync();
+        var response = (await client.GetEnvironmentInformationAsync()).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -387,10 +375,8 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("metadata");
         // var identifier = Reference.ByExternalId("snippet-type-123");
 
-        var response = await client.GetContentTypeSnippetAsync(identifier);
+        var response = (await client.GetContentTypeSnippetAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -417,10 +403,8 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
 
-        var response = await client.GetTaxonomyGroupAsync(identifier);
+        var response = (await client.GetTaxonomyGroupAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -447,10 +431,8 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("new_article");
         // var identifier = Reference.ByExternalId("article");
 
-        var response = await client.GetContentTypeAsync(identifier);
+        var response = (await client.GetContentTypeAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -477,10 +459,8 @@ public class CmApiV2
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "es-ES");
 
-        var response = await client.GetLanguageVariantAsync(identifier);
+        var response = (await client.GetLanguageVariantAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -493,10 +473,8 @@ public class CmApiV2
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "es-ES");
 
-        var response = await client.GetPublishedLanguageVariantAsync(identifier);
+        var response = (await client.GetPublishedLanguageVariantAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -558,10 +536,8 @@ public class CmApiV2
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("5df74e27-1213-484e-b9ae-bcbe90bd5990"));
 
-        var response = await client.GetWebhookAsync(identifier);
+        var response = (await client.GetWebhookAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -601,10 +577,8 @@ public class CmApiV2
         var identifier = Reference.ById(Guid.Parse("a23d3727-3b16-4d94-9eb0-85225d29cfef"));
         //var identifier = Reference.ByCodename("project-manager");
 
-        var response = await client.GetEnvironmentRoleAsync(identifier);
+        var response = (await client.GetEnvironmentRoleAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -630,10 +604,8 @@ public class CmApiV2
         var identifier = UserIdentifier.ByEmail("Joe.Joe@kontent.ai");
         //var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
-        var response = await client.GetSubscriptionUserAsync(identifier);
+        var response = (await client.GetSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -669,10 +641,8 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_get_environment_status
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.GetEnvironmentCloningStateAsync();
+        var response = (await client.GetEnvironmentCloningStateAsync()).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -682,10 +652,8 @@ public class CmApiV2
 
         // DocSection: mapi_v2_get_validation_task
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.GetAsyncValidationTaskAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"));
+        var response = (await client.GetAsyncValidationTaskAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"))).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -787,14 +755,12 @@ public class CmApiV2
         // var identifier = Reference.ByExternalId("standard-german");
 
 
-        var response = await client.ModifyLanguageAsync(identifier,
+        var response = (await client.ModifyLanguageAsync(identifier,
         [
             LanguagePatch.FallbackLanguage(Reference.ByCodename("en-US")),
             LanguagePatch.Name("Deutsch"),
-        ]);
+        ])).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -808,7 +774,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("my_metadata_snippet");
         // var identifier = Reference.ByExternalId("my-metadata-snippet-id");
 
-        var response = await client.ModifyContentTypeSnippetAsync(identifier,
+        var response = (await client.ModifyContentTypeSnippetAsync(identifier,
         [
             ContentTypeSnippetPatch.ReplaceName("A new snippet name"),
             ContentTypeSnippetPatch.ReplaceGuidelines(
@@ -831,10 +797,8 @@ public class CmApiV2
                 Reference.ByExternalId("my-multiple-choice-id"),
                 Reference.ById(Guid.Parse("8e6ec8b1-6510-4b9b-b4be-6c977f4bdfbc")),
                 Reference.ById(Guid.Parse("6bfe5a60-5cc2-4303-8f72-9cc53431046b")))
-        ]);
+        ])).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -848,7 +812,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
 
-        var response = await client.ModifyTaxonomyGroupAsync(identifier,
+        var response = (await client.ModifyTaxonomyGroupAsync(identifier,
         [
             TaxonomyGroupPatch.ReplaceName(identifier, "Categories"),
             TaxonomyGroupPatch.ReplaceCodename(identifier, "category"),
@@ -883,10 +847,8 @@ public class CmApiV2
                 Reference = Reference.ByExternalId("my-new-term"),
                 Before = Reference.ByCodename("first_term")
             }
-        ]);
+        ])).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -900,7 +862,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("my-article-id");
 
-        var response = await client.ModifyContentTypeAsync(identifier,
+        var response = (await client.ModifyContentTypeAsync(identifier,
         [
             ContentTypePatch.ReplaceName("A new type name"),
             ContentTypePatch.ReplaceGuidelines(
@@ -923,10 +885,8 @@ public class CmApiV2
                 Reference.ByExternalId("my-multiple-choice-id"),
                 Reference.ById(Guid.Parse("d66ffa49-86ff-eeaa-c33b-e5d9eefe8b81")),
                 Reference.ById(Guid.Parse("523e6231-8d80-a158-3601-dffde4e64a78")))
-        ]);
+        ])).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -936,16 +896,14 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_patch_environment
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.ModifyEnvironmentAsync(
+        var response = (await client.ModifyEnvironmentAsync(
         [
             new EnvironmentRenamePatchModel
             {
                 Value = "My Little Production"
             }
-        ]);
+        ])).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -955,7 +913,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_asset
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateAssetAsync(new AssetCreateModel
+        var response = (await client.CreateAssetAsync(new AssetCreateModel
         {
             FileReference = new FileReference
             {
@@ -989,10 +947,8 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1002,7 +958,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_asset_folders
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateAssetFoldersAsync(new AssetFolderCreateModel
+        var response = (await client.CreateAssetFoldersAsync(new AssetFolderCreateModel
         {
             Folders =
             [
@@ -1020,10 +976,8 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1036,7 +990,7 @@ public class CmApiV2
         var assetReference = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var assetReference = Reference.ByExternalId("which-brewing-fits-you");
 
-        var response = await client.CreateAssetRenditionAsync(assetReference, new AssetRenditionCreateModel
+        var response = (await client.CreateAssetRenditionAsync(assetReference, new AssetRenditionCreateModel
         {
             ExternalId = "hero-image-rendition",
             Transformation = new RectangleResizeTransformation
@@ -1048,10 +1002,8 @@ public class CmApiV2
                 Width = 360,
                 Height = 720,
             }
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1065,10 +1017,8 @@ public class CmApiV2
         var contentType = "image/jpeg";
 
         // Binary file reference to be used when adding a new asset
-        var response = await client.UploadFileAsync(new FileContentSource(filePath, contentType));
+        var response = (await client.UploadFileAsync(new FileContentSource(filePath, contentType))).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1078,17 +1028,15 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_item
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentItemAsync(new ContentItemCreateModel
+        var response = (await client.CreateContentItemAsync(new ContentItemCreateModel
         {
             Name = "On Roasts",
             Codename = "my_article",
             Type = Reference.ByCodename("article"),
             Collection = Reference.ByDefaultCodename(),
             ExternalId = "59713",
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
 
@@ -1099,17 +1047,15 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_language
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateLanguageAsync(new LanguageCreateModel
+        var response = (await client.CreateLanguageAsync(new LanguageCreateModel
         {
             Name = "German (Germany)",
             Codename = "de-DE",
             IsActive = true,
             FallbackLanguage = Reference.ByCodename("de-AT"),
             ExternalId = "standard-german"
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1119,7 +1065,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_snippet
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
+        var response = (await client.CreateContentTypeSnippetAsync(new ContentTypeSnippetCreateModel
         {
             Name = "metadata",
             Codename = "my_metadata",
@@ -1141,10 +1087,8 @@ public class CmApiV2
                     ExternalId = "meta_description",
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1154,7 +1098,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_taxonomy_group
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
+        var response = (await client.CreateTaxonomyGroupAsync(new TaxonomyGroupCreateModel
         {
             Name = "Personas",
             ExternalId = "Tax-Group-123",
@@ -1202,10 +1146,8 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1215,7 +1157,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_type
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateContentTypeAsync(new ContentTypeCreateModel
+        var response = (await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
             ExternalId = "article",
             Name = "Article",
@@ -1256,10 +1198,8 @@ public class CmApiV2
                     ContentGroup = Reference.ByCodename("author"),
                 },
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1269,10 +1209,8 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_validate
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.ValidateEnvironmentAsync();
+        var response = (await client.ValidateEnvironmentAsync()).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1282,7 +1220,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_webhook
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateWebhookAsync(new WebhookCreateModel
+        var response = (await client.CreateWebhookAsync(new WebhookCreateModel
         {
             Name = "Example webhook",
             Url = "https://example.com/webhook",
@@ -1376,10 +1314,8 @@ public class CmApiV2
                 Slot = DeliverySlot.Preview,
                 Events =  WebhookEvents.Specific
             }
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1389,7 +1325,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_workflow
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CreateWorkflowAsync(new WorkflowUpsertModel
+        var response = (await client.CreateWorkflowAsync(new WorkflowUpsertModel
         {
             Name = "My workflow",
             Scopes =
@@ -1435,10 +1371,8 @@ public class CmApiV2
                 UnpublishRoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
             },
             ArchivedStep = new WorkflowArchivedStepUpsertModel()
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1448,7 +1382,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_user
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.InviteUserIntoEnvironmentAsync(new UserInviteModel
+        var response = (await client.InviteUserIntoEnvironmentAsync(new UserInviteModel
         {
             Email = "user@example.com",
             CollectionGroups =
@@ -1470,10 +1404,8 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1483,7 +1415,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_clone_environment
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.CloneEnvironmentAsync(new EnvironmentCloneModel
+        var response = (await client.CloneEnvironmentAsync(new EnvironmentCloneModel
         {
             Name = "New environment",
             RolesToActivate = [Guid.Parse("2f925111-1457-49d4-a595-0958feae8ae4")],
@@ -1492,10 +1424,8 @@ public class CmApiV2
                 ContentItemsAssets = true,
                 ContentItemVersionHistory = false
             }
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1505,10 +1435,8 @@ public class CmApiV2
 
         // DocSection: mapi_v2_post_validate_async
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = await client.InitiateEnvironmentAsyncValidationTaskAsync();
+        var response = (await client.InitiateEnvironmentAsyncValidationTaskAsync()).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1604,7 +1532,7 @@ public class CmApiV2
         var identifier = AssetRenditionIdentifier.ByIds(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"), Guid.Parse("ce559491-0fc1-494b-96f3-244bc095de57"));
         // var identifier = new AssetRenditionIdentifier(Reference.ByExternalId("which-brewing-fits-you"), Reference.ByExternalId("hero-image-rendition"));
 
-        var response = await client.UpdateAssetRenditionAsync(identifier, new AssetRenditionUpdateModel()
+        var response = (await client.UpdateAssetRenditionAsync(identifier, new AssetRenditionUpdateModel()
         {
             Transformation = new RectangleResizeTransformation
             {
@@ -1615,10 +1543,8 @@ public class CmApiV2
                 Width = 360,
                 Height = 720,
             }
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1655,7 +1581,7 @@ public class CmApiV2
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
-        var response = await client.UpsertLanguageVariantAsync(
+        var response = (await client.UpsertLanguageVariantAsync(
             identifier,
             new LanguageVariantUpsertModel
             {
@@ -1703,10 +1629,8 @@ public class CmApiV2
                     Value = DateTime.Parse("2092-01-07T06:04:00.7069564Z", CultureInfo.InvariantCulture)
                 },
                 Workflow = new WorkflowStepIdentifier(Reference.ByDefaultCodename(), Reference.ByCodename("review"))
-            });
+            })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1858,7 +1782,7 @@ public class CmApiV2
         var identifier = Reference.ByCodename("my_workflow");
         // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
 
-        var response = await client.UpdateWorkflowAsync(identifier, new WorkflowUpsertModel
+        var response = (await client.UpdateWorkflowAsync(identifier, new WorkflowUpsertModel
         {
             Name = "My workflow",
             Scopes =
@@ -1904,10 +1828,8 @@ public class CmApiV2
                 UnpublishRoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
             },
             ArchivedStep = new WorkflowArchivedStepUpsertModel()
-        });
+        })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]
@@ -1920,7 +1842,7 @@ public class CmApiV2
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
         //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
 
-        var response = await client.UpdateUserRolesAsync(
+        var response = (await client.UpdateUserRolesAsync(
             identifier,
             new UserRolesUpdateModel
             {
@@ -1939,10 +1861,8 @@ public class CmApiV2
                         ]
                     }
                 ]
-            });
+            })).EnsureSuccess();
         // EndDocSection
-
-        Assert.NotNull(response);
     }
 
     [Fact]

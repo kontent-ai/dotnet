@@ -35,7 +35,7 @@ public enum CacheStorageMode
     RawJson = 1
 
 // Kontent.Ai.Delivery.Abstractions
-public sealed class DeliveryCacheDependencies
+public static class DeliveryCacheDependencies
     const String ItemsListScope = scope_items_list
     const String TaxonomiesListScope = scope_taxonomies_list
     const String TypesListScope = scope_types_list
@@ -69,7 +69,7 @@ public sealed class DeliveryOptions : IValidatableObject
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Delivery.Abstractions
-public sealed class DeliveryOptionsExtensions
+public static class DeliveryOptionsExtensions
     static String GetBaseUrl(DeliveryOptions options)
     static String? GetApiKey(DeliveryOptions options)
 

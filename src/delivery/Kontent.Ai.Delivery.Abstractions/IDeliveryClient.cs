@@ -5,9 +5,17 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// All methods return query builders that must be executed with ExecuteAsync() to retrieve the actual API response.
 /// </summary>
 /// <remarks>
+/// <para>
+/// Not every query is cached. Items, types and taxonomies go through the registered
+/// <c>IDeliveryCacheManager</c>; languages, single content elements and used-in queries always reach the
+/// API. Those three are small, rarely hot, and their results are already implied by content that is
+/// cached - so they are deliberately left out rather than overlooked.
+/// </para>
+/// <para>
 /// This contract carries no disposal. A client resolved from a container is owned by the container,
 /// which releases it; a client from <c>DeliveryClientBuilder</c> owns the services it was built from
 /// and is returned as the concrete <c>DeliveryClient</c>, which is disposable.
+/// </para>
 /// </remarks>
 public interface IDeliveryClient
 {

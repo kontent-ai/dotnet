@@ -1,9 +1,9 @@
 ﻿// Kontent.Ai.Delivery
-public sealed class DeliveryCacheOptionsExtensions
+public static class DeliveryCacheOptionsExtensions
     static DeliveryCacheOptions ConfigureFusionCache(DeliveryCacheOptions options, Action<FusionCacheOptions> configure)
 
 // Kontent.Ai.Delivery
-public sealed class DeliveryCacheServiceCollectionExtensions
+public static class DeliveryCacheServiceCollectionExtensions
     static IServiceCollection AddDeliveryCacheManager(IServiceCollection services, Func<IServiceProvider, IDeliveryCacheManager> createCacheManager)
     static IServiceCollection AddDeliveryCacheManager(IServiceCollection services, String clientName, Func<IServiceProvider, IDeliveryCacheManager> createCacheManager)
     static IServiceCollection AddDeliveryHybridCache(IServiceCollection services, Action<DeliveryCacheOptions> configureCacheOptions)
@@ -20,7 +20,7 @@ public sealed class DeliveryCacheServiceCollectionExtensions
     static IServiceCollection AddDeliveryMemoryCache(IServiceCollection services, TimeSpan? defaultExpiration)
 
 // Kontent.Ai.Delivery
-public sealed class DeliveryClientBuilderExtensions
+public static class DeliveryClientBuilderExtensions
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<DeliveryCacheOptions> configureCacheOptions)
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, Action<IServiceProvider, DeliveryCacheOptions> configureCacheOptions)
     static DeliveryClientBuilder WithHybridCache(DeliveryClientBuilder builder, IDistributedCache distributedCache, TimeSpan? defaultExpiration)

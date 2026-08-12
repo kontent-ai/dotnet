@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Collections.Patch;
+﻿namespace Kontent.Ai.Management.Models.Collections.Patch;
 
 /// <summary>
 /// Represents properties of the collection.

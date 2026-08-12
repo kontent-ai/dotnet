@@ -1,5 +1,5 @@
 ﻿// Kontent.Ai.ModelGenerator.Core
-public class CodeGeneratorBase
+public abstract class CodeGeneratorBase
     Task<Int32> RunAsync()
 
 // Kontent.Ai.ModelGenerator.Core
@@ -111,7 +111,7 @@ public sealed class LinkedItemsElementInput : ManagementElementInput, IEquatable
     Void Deconstruct(out String Codename, out String Id)
 
 // Kontent.Ai.ModelGenerator.Core.Common
-public class ManagementElementInput : IEquatable<ManagementElementInput>
+public abstract class ManagementElementInput : IEquatable<ManagementElementInput>
     String Codename { get; init; }
     String Id { get; init; }
     Boolean Equals(ManagementElementInput? other)
@@ -192,7 +192,7 @@ public sealed class RichTextElementInput : ManagementElementInput, IEquatable<Ri
     Void Deconstruct(out String Codename, out String Id)
 
 // Kontent.Ai.ModelGenerator.Core.Common
-public sealed class SnippetExpander
+public static class SnippetExpander
     static IEnumerable<ElementMetadataBase> Expand(IEnumerable<ElementMetadataBase> elements, Func<Reference, ContentTypeSnippetModel?> resolveSnippet, Action<String> warn)
 
 // Kontent.Ai.ModelGenerator.Core.Common
@@ -251,7 +251,7 @@ public class CodeGeneratorOptions
     String? OutputDir { get; set; }
 
 // Kontent.Ai.ModelGenerator.Core.Configuration
-public sealed class CodeGeneratorOptionsExtensions
+public static class CodeGeneratorOptionsExtensions
     static String? GetEnvironmentId(CodeGeneratorOptions options)
 
 // Kontent.Ai.ModelGenerator.Core.Configuration
@@ -284,7 +284,7 @@ public interface IUserMessageLogger
     Void LogWarning(String message)
 
 // Kontent.Ai.ModelGenerator.Core.Generators
-public class GeneralGenerator
+public abstract class GeneralGenerator
     readonly String Namespace
 
 // Kontent.Ai.ModelGenerator.Core.Generators.Class
@@ -296,7 +296,7 @@ public class BaseClassCodeGenerator : GeneralGenerator
     Void AddClassNameToExtend(String className)
 
 // Kontent.Ai.ModelGenerator.Core.Generators.Class
-public class ClassCodeGenerator : GeneralGenerator
+public abstract class ClassCodeGenerator : GeneralGenerator
     const String DefaultNamespace = KontentAiModels
     ClassDefinition ClassDefinition { get; }
     String ClassFilename { get; }
@@ -311,7 +311,7 @@ public sealed class ManagementClassCodeGenerator : ClassCodeGenerator
     .ctor(ClassDefinition classDefinition, String classFilename, String? namespace)
 
 // Kontent.Ai.ModelGenerator.Core.Helpers
-public sealed class TextHelpers
+public static class TextHelpers
     static String GenerateCommentString(String customComment)
     static String GetValidPascalCaseIdentifierName(String name)
     static String NormalizeLineEndings(String text)

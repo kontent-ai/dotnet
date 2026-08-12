@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
+﻿namespace Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
 
 /// <summary>
 /// Represents enum of properties that can be replaced in the taxonomy group.

@@ -1,5 +1,4 @@
-﻿
-namespace Kontent.Ai.Management.Models.Collections.Patch;
+﻿namespace Kontent.Ai.Management.Models.Collections.Patch;
 
 /// <summary>
 /// Patch operation that changes a collection's position in the environment's ordered collection list.

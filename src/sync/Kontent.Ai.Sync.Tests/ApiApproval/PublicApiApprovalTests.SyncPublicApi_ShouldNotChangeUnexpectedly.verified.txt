@@ -61,7 +61,7 @@ public interface ISyncResult`1<T> : ISyncResult
     T Value { get; }
 
 // Kontent.Ai.Sync
-public sealed class ServiceCollectionExtensions
+public static class ServiceCollectionExtensions
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<IServiceProvider, SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions)
     static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
@@ -157,7 +157,7 @@ public sealed class SyncOptions : IValidatableObject
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Sync
-public sealed class SyncOptionsExtensions
+public static class SyncOptionsExtensions
     static String GetBaseUrl(SyncOptions options)
     static String? GetApiKey(SyncOptions options)
 
