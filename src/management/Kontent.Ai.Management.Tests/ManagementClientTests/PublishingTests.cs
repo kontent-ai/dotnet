@@ -85,7 +85,7 @@ public class PublishingTests
         var (client, mock) = MockClientFactory.Create();
         var schedule = new ScheduleModel
         {
-            DisplayTimeZone = "prague",
+            DisplayTimeZone = "Europe/Prague",
             ScheduledTo = DateTimeOffset.UtcNow
         };
 
@@ -106,7 +106,7 @@ public class PublishingTests
         var (client, _) = MockClientFactory.Create();
         var schedule = new ScheduleModel
         {
-            DisplayTimeZone = "prague",
+            DisplayTimeZone = "Europe/Prague",
             ScheduledTo = DateTimeOffset.UtcNow
         };
 
@@ -120,9 +120,9 @@ public class PublishingTests
         var (client, mock) = MockClientFactory.Create();
         var schedule = new SchedulePublishAndUnpublishModel()
         {
-            PublishDisplayTimeZone = "prague",
+            PublishDisplayTimeZone = "Europe/Prague",
             PublishScheduledTo = DateTimeOffset.UtcNow,
-            UnpublishDisplayTimeZone = "prague",
+            UnpublishDisplayTimeZone = "Europe/Prague",
             UnpublishScheduledTo = DateTimeOffset.UtcNow.AddDays(10)
         };
 
@@ -143,9 +143,9 @@ public class PublishingTests
         var (client, _) = MockClientFactory.Create();
         var schedule = new SchedulePublishAndUnpublishModel()
         {
-            PublishDisplayTimeZone = "prague",
+            PublishDisplayTimeZone = "Europe/Prague",
             PublishScheduledTo = DateTimeOffset.UtcNow,
-            UnpublishDisplayTimeZone = "prague",
+            UnpublishDisplayTimeZone = "Europe/Prague",
             UnpublishScheduledTo = DateTimeOffset.UtcNow.AddDays(10)
         };
 
@@ -238,7 +238,7 @@ public class PublishingTests
         var (client, mock) = MockClientFactory.Create();
         var schedule = new ScheduleModel
         {
-            DisplayTimeZone = "prague",
+            DisplayTimeZone = "Europe/Prague",
             ScheduledTo = DateTimeOffset.UtcNow
         };
 
@@ -259,7 +259,7 @@ public class PublishingTests
         var (client, _) = MockClientFactory.Create();
         var schedule = new ScheduleModel
         {
-            DisplayTimeZone = "prague",
+            DisplayTimeZone = "Europe/Prague",
             ScheduledTo = DateTimeOffset.UtcNow
         };
 
