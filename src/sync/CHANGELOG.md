@@ -7,6 +7,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The named-options accessor requires the client name it reads.** It accepted a null name and fell back to the unnamed registration, which only exists when a default client was registered — so on a named-only setup that path would have resolved a `SyncOptions` nobody configured and built requests against a blank environment rather than failing. No caller passed null; the parameter is now non-nullable, matching the Delivery SDK's equivalent.
+
 - **The pass-through `CreateRefitSettings` wrapper is gone**, along with its summary describing a customization hook that had been removed.
 
 - **The Refit settings no longer configure a query string this API does not have.** A collection format and URL key formatter were carried over from the Delivery SDK, but the sync endpoints send the environment in the path and the continuation token in a header — there is no query parameter for either setting to apply to.
