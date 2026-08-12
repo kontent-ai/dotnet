@@ -5,6 +5,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ## 2.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
 Targets .NET 10, moving from `net8.0` to `net10.0`, and Refit's transport is upgraded across four major

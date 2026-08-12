@@ -8,6 +8,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 20.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ## 20.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
 Targets .NET 10. Every package in this product moves from `net8.0` to `net10.0`, which is why this is a major release, and Refit's transport is upgraded across four major versions. Beyond the target framework the public API is almost untouched — one configuration hook is removed, and two request-building details change in ways that are visible in logs but not in results.

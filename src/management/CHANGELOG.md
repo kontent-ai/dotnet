@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Changed
 
 - **`EnvironmentId` is no longer required when you only call subscription endpoints.** Subscription-scoped endpoints resolve against `/v2/subscriptions/{id}` and never touch an environment, but validation demanded an `EnvironmentId` regardless — so a subscription admin listing projects had to invent an environment GUID the SDK would never use. Each scope's client is now built only when its identifier is configured, and `EnvironmentId` is validated for format only when supplied, exactly as `SubscriptionId` already was.
