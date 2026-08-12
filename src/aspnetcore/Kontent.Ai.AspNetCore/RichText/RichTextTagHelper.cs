@@ -16,11 +16,10 @@ namespace Kontent.Ai.AspNetCore.RichText;
 /// </list>
 /// The <c>&lt;rich-text&gt;</c> element itself is not emitted — the resolver's HTML is rendered in its place.
 /// </remarks>
-[HtmlTargetElement("rich-text", Attributes = "content")]
 /// <param name="defaultResolver">Optional resolver injected from the DI container via <c>AddKontentRichText</c>.</param>
+[HtmlTargetElement("rich-text", Attributes = "content")]
 public sealed class RichTextTagHelper(IHtmlResolver? defaultResolver = null) : TagHelper
 {
-
     /// <summary>
     /// The structured rich-text content to render.
     /// </summary>

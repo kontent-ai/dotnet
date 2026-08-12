@@ -3,6 +3,17 @@ name: Publish batch
 # Creates a GitHub Release for every product whose version is prepared but not yet on NuGet,
 # in dependency order, waiting for each to actually publish before starting the next.
 #
+# The ordering is a backstop, not the usual path. Cross-product floors in Directory.Packages.props
+# are raised only after the dependency has shipped, so by the time a batch runs, every floor
+# already names a version on nuget.org and release.yml's check would pass whatever order the
+# products went in. The ordering earns its keep only if a floor names a version that is being
+# released in this same batch - which the floor rule forbids and prepare-release makes awkward,
+# since the version number is not known when the floor is raised. Treat it as insurance: it also
+# fails the batch on a dependsOn cycle and stops on the first failed release rather than
+# publishing dependents against a product that never shipped. Do NOT raise a floor to an
+# unreleased version on the assumption that the batch will sort it out - nothing checks that at
+# PR time, and if the two are not in the same batch the release simply fails.
+#
 # Run it after merging a "Prepare release" PR. It is the counterpart to that workflow: one
 # opens a single PR for many products, this one turns the merged result into many releases.
 #
@@ -95,9 +106,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Wait for a product's packages to appear on nuget.org. The next release in the batch
-          # may depend on them, and release.yml refuses to publish against an unpublished
-          # cross-product dependency.
+          # Wait for a product's packages to appear on nuget.org before starting the next release.
+          # In the normal case nothing downstream needs this - floors already name published
+          # versions - but release.yml refuses to publish against an unpublished cross-product
+          # dependency, so this is what makes the batch survive a floor that names a version
+          # shipping alongside it. It is also what keeps a failed release from being followed by
+          # its dependents.
           wait_for_publish() {
             product="$1"
             for _ in $(seq 1 60); do
