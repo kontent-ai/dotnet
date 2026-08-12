@@ -1,3 +1,5 @@
+using Kontent.Ai.Common;
+
 namespace Kontent.Ai.Delivery.Configuration;
 
 /// <summary>
@@ -172,17 +174,15 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     /// <summary>
     /// Returns a new instance of the <see cref="DeliveryOptions"/> class.
     /// </summary>
-    public DeliveryOptions Build() => new()
+    /// <remarks>
+    /// Reflected rather than listed property by property: a hand-written list keeps compiling when a new
+    /// option is added and silently stops carrying it, so a value the caller set never reaches the client.
+    /// </remarks>
+    public DeliveryOptions Build()
     {
-        EnvironmentId = _options.EnvironmentId,
-        EnableResilience = _options.EnableResilience,
-        ProductionEndpoint = _options.ProductionEndpoint,
-        PreviewEndpoint = _options.PreviewEndpoint,
-        PreviewApiKey = _options.PreviewApiKey,
-        UsePreviewApi = _options.UsePreviewApi,
-        UseSecureAccess = _options.UseSecureAccess,
-        SecureAccessApiKey = _options.SecureAccessApiKey,
-        DefaultRenditionPreset = _options.DefaultRenditionPreset,
-        CustomAssetDomain = _options.CustomAssetDomain
-    };
+        var built = new DeliveryOptions();
+        OptionsCopier<DeliveryOptions>.Copy(_options, built);
+
+        return built;
+    }
 }
