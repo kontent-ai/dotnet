@@ -12,13 +12,13 @@ clients, the ASP.NET Core extensions and the model generator. Each keeps its own
 changelog and release cadence, so a change touching several of them is one pull request
 rather than a coordinated release across five repositories.
 
-| Product | Version | Readme | Packages |
-|---|---|---|---|
-| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) | `Kontent.Ai.AspNetCore` |
-| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) | `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Delivery.Caching`, `Kontent.Ai.Delivery.SourceGeneration`, `Kontent.Ai.Urls` |
-| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) | `Kontent.Ai.Management` |
-| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) | `Kontent.Ai.ModelGenerator`, `Kontent.Ai.ModelGenerator.Core` |
-| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) | `Kontent.Ai.Sync` |
+| Product | Version | Readme |
+|---|---|---|
+| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) |
+| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) |
+| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) |
+| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
+| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
 
 The badge tracks each product's flagship package on nuget.org, prereleases included, so it
 shows the release candidates ahead of a GA rather than the stable line they supersede.
