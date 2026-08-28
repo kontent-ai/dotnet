@@ -15,12 +15,13 @@ public partial class ManagementClient
             cancellationToken);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken = default)
-        => PageEnumerator.EnumerateAsync<AssetListingResponseServerModel, AssetModel>(
-            ManagementApi.ListAssetsInternalAsync,
-            page => page.Assets,
-            page => page.Pagination?.Token,
-            cancellationToken);
+    public Task<IManagementResult<ListingPage<AssetModel>>> ListAssetsPageAsync(string? continuationToken = null, CancellationToken cancellationToken = default)
+        => ManagementApi.ListAssetsInternalAsync(continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<AssetModel>
+            {
+                Items = page.Assets,
+                ContinuationToken = page.Pagination?.Token,
+            });
 
     /// <inheritdoc />
     public Task<IManagementResult<AssetModel>> GetAssetAsync(Reference identifier, CancellationToken cancellationToken = default)

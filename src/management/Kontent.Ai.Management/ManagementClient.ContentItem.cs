@@ -15,12 +15,13 @@ public partial class ManagementClient
             cancellationToken);
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken = default)
-        => PageEnumerator.EnumerateAsync<ContentItemListingResponseServerModel, ContentItemModel>(
-            ManagementApi.ListContentItemsInternalAsync,
-            page => page.Items,
-            page => page.Pagination?.Token,
-            cancellationToken);
+    public Task<IManagementResult<ListingPage<ContentItemModel>>> ListContentItemsPageAsync(string? continuationToken = null, CancellationToken cancellationToken = default)
+        => ManagementApi.ListContentItemsInternalAsync(continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<ContentItemModel>
+            {
+                Items = page.Items,
+                ContinuationToken = page.Pagination?.Token,
+            });
 
     /// <inheritdoc />
     public Task<IManagementResult<ContentItemModel>> GetContentItemAsync(Reference identifier, CancellationToken cancellationToken = default)

@@ -309,21 +309,38 @@ public class Readme
         }
     }
 
-    public async Task StreamLargeListing(IManagementClient client)
+    public async Task WalkLargeListing(IManagementClient client)
     {
-        await foreach (var page in client.EnumerateContentItemPagesAsync())
+        string? continuationToken = null;
+        do
         {
-            if (!page.IsSuccess)
+            var result = await client.ListContentItemsPageAsync(continuationToken);
+            if (!result.IsSuccess)
             {
-                Console.WriteLine($"A page failed: {page.Error?.Message}");
+                Console.WriteLine($"A page failed: {result.Error?.Message}");
                 break;
             }
 
-            foreach (var item in page.Value)
+            foreach (var item in result.Value.Items)
             {
                 Console.WriteLine(item.Name);
             }
+
+            continuationToken = result.Value.ContinuationToken;
         }
+        while (continuationToken is not null);
+    }
+
+    public async Task ResumeLargeListing(IManagementClient client, string? lastGoodToken)
+    {
+        var page = (await client.ListContentItemsPageAsync(lastGoodToken)).EnsureSuccess();
+
+        foreach (var item in page.Items)
+        {
+            Console.WriteLine(item.Name);
+        }
+
+        lastGoodToken = page.ContinuationToken;
     }
 
     public async Task ContentItems(IManagementClient client)

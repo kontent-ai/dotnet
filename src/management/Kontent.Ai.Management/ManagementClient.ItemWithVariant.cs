@@ -18,15 +18,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> EnumerateItemsWithVariantsByFilterPagesAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(filterRequest);
 
-        return PageEnumerator.EnumerateAsync<ItemWithVariantFilterListingResponseServerModel, ItemWithVariantFilterResultModel>(
-            (token, ct) => ManagementApi.FilterItemsWithVariantsInternalAsync(filterRequest, token, ct),
-            page => page.Variants,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.FilterItemsWithVariantsInternalAsync(filterRequest, continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<ItemWithVariantFilterResultModel>
+            {
+                Items = page.Variants,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 
     /// <inheritdoc />
@@ -42,14 +43,15 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> EnumerateItemsWithVariantsByBulkGetPagesAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bulkGetRequest);
 
-        return PageEnumerator.EnumerateAsync<ContentItemsWithVariantsListingResponseServerModel, ContentItemWithVariantModel>(
-            (token, ct) => ManagementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, token, ct),
-            page => page.Data,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.BulkGetItemsWithVariantsInternalAsync(bulkGetRequest, continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<ContentItemWithVariantModel>
+            {
+                Items = page.Data,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 }

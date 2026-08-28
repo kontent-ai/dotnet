@@ -175,7 +175,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task EnumerateItemsWithVariantsByFilterPagesAsync_StreamsAllPages()
+    public async Task ListItemsWithVariantsByFilterPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("FilterResponseFirstPage.json");
@@ -192,24 +192,25 @@ public class ItemWithVariantTests
         };
 
         var items = new List<ItemWithVariantFilterResultModel>();
-        await foreach (var page in client.EnumerateItemsWithVariantsByFilterPagesAsync(request))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            items.AddRange(page.Value);
+            var page = (await client.ListItemsWithVariantsByFilterPageAsync(request, continuationToken)).EnsureSuccess();
+            items.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         items.Should().BeEquivalentTo(ConcatPages<ItemWithVariantFilterResultModel>(firstPage, lastPage));
     }
 
     [Fact]
-    public void EnumerateItemsWithVariantsByFilterPagesAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task ListItemsWithVariantsByFilterPageAsync_WithNullRequest_ThrowsArgumentNullException()
     {
-        // The null guard is eager (the method is not an iterator), so the call throws synchronously before enumeration.
         var (client, _) = MockClientFactory.Create();
 
-        client.Invoking(x => x.EnumerateItemsWithVariantsByFilterPagesAsync(null!))
-            .Should().ThrowExactly<ArgumentNullException>();
+        await client.Invoking(x => x.ListItemsWithVariantsByFilterPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
     }
 
     [Fact]
@@ -359,7 +360,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task EnumerateItemsWithVariantsByBulkGetPagesAsync_StreamsAllPages()
+    public async Task ListItemsWithVariantsByBulkGetPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("BulkGetResponseFirstPage.json");
@@ -383,22 +384,24 @@ public class ItemWithVariantTests
         };
 
         var items = new List<ContentItemWithVariantModel>();
-        await foreach (var page in client.EnumerateItemsWithVariantsByBulkGetPagesAsync(request))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            items.AddRange(page.Value);
+            var page = (await client.ListItemsWithVariantsByBulkGetPageAsync(request, continuationToken)).EnsureSuccess();
+            items.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         items.ShouldEqualAsJson(ConcatPages<ContentItemWithVariantModel>(firstPage, lastPage));
     }
 
     [Fact]
-    public void EnumerateItemsWithVariantsByBulkGetPagesAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task ListItemsWithVariantsByBulkGetPageAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         var (client, _) = MockClientFactory.Create();
 
-        client.Invoking(x => x.EnumerateItemsWithVariantsByBulkGetPagesAsync(null!))
-            .Should().ThrowExactly<ArgumentNullException>();
+        await client.Invoking(x => x.ListItemsWithVariantsByBulkGetPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
     }
 }

@@ -430,27 +430,53 @@ A listing is **all-or-nothing**: if any page fails, that first failure short-cir
 > [!NOTE]
 > Because every page is fetched and buffered before the result returns, a listing materializes the full set in memory. For the Management API's configuration data (types, languages, taxonomies, …) that's a non-issue.
 
-### Streaming large listings
+### Walking large listings a page at a time
 
-The endpoints whose results can grow large — content items, assets, the items-with-variants filter and bulk-get, and the language-variant listings by type, collection, and space (which scale as items × languages) — also expose an `EnumerateXPagesAsync` overload that streams one continuation-token page at a time, so you can process the listing without buffering it all in memory (and stop early). Each iteration is one HTTP request and yields a page result; a failed page surfaces as a failed result and ends the stream:
+The endpoints whose results can grow large — content items, assets, the items-with-variants filter and bulk-get, the language-variant listings by type, collection, and space (which scale as items × languages), and an async validation task's issues — also expose a `ListXPageAsync` overload that fetches exactly one continuation-token page, so you can process the listing without buffering it all in memory (and stop whenever you like). It returns a `ListingPage<T>`: the page's `Items`, and the `ContinuationToken` you pass back for the next page. A `null` token means that was the last one.
 
 ```csharp
-await foreach (var page in client.EnumerateContentItemPagesAsync())
+string? continuationToken = null;
+
+do
 {
-    if (!page.IsSuccess)
+    var result = await client.ListContentItemsPageAsync(continuationToken);
+    if (!result.IsSuccess)
     {
-        Console.WriteLine($"A page failed: {page.Error?.Message}");
+        Console.WriteLine($"A page failed: {result.Error?.Message}");
         break;
     }
 
-    foreach (var item in page.Value)   // one page's worth
+    foreach (var item in result.Value.Items)   // one page's worth
     {
         Console.WriteLine(item.Name);
     }
+
+    continuationToken = result.Value.ContinuationToken;
 }
+while (continuationToken is not null);
 ```
 
-The next page is fetched only when you iterate past the current one, so breaking early leaves later pages unrequested. Reach for this only when a listing is genuinely large; everywhere else, `ListXAsync` is simpler.
+Each call is one HTTP request and one ordinary result, so a failed page is handled exactly like a failure anywhere else in the SDK — including `EnsureSuccess()` if you would rather it throw.
+
+Because the token is yours, an interrupted walk can be **resumed** rather than restarted — which matters most under a [rate limit](https://kontent.ai/learn/docs/apis/management-api-v2/api-limitations), since a page-per-request walk is exactly the workload that reaches the per-minute one. The resilience pipeline retries a `429` three times with backoff, but a sustained limit outlives that and surfaces as a failed result. Holding the last successful page's token makes recovery a single request:
+
+```csharp
+var page = (await client.ListContentItemsPageAsync(lastGoodToken)).EnsureSuccess();
+
+foreach (var item in page.Items)
+{
+    Console.WriteLine(item.Name);
+}
+
+lastGoodToken = page.ContinuationToken;
+```
+
+Restarting the walk instead would re-request every page you already had — more traffic against the limit that just stopped you.
+
+> [!NOTE]
+> The token is opaque and server-issued; how long it stays valid is the API's contract, not the SDK's. It is dependable across a backoff. Verify before relying on one across a long pause or a process restart.
+
+Reach for this only when a listing is genuinely large; everywhere else, `ListXAsync` is simpler.
 
 ## Content Items
 

@@ -1,0 +1,33 @@
+{
+  "issues": [
+    {
+      "item": {
+        "id": "6b0a7992-e4a3-490f-a159-599846e918e6",
+        "name": "Another item",
+        "codename": "another_item"
+      },
+      "language": {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "name": "Default project language",
+        "codename": "default"
+      },
+      "issues": [
+        {
+          "element": {
+            "id": "9dd57e5e-b7c3-4b25-a4f8-b06c3d0d6b9e",
+            "name": "Related articles",
+            "codename": "related_articles"
+          },
+          "messages": [
+            "Element 'Related articles' references a non-existent content item 3f2c0c9a-7f4c-4f0f-9f3a-2b2b0f6f1f11."
+          ]
+        }
+      ],
+      "issue_type": "variant_issue"
+    }
+  ],
+  "pagination": {
+    "continuation_token": "+RID:~...",
+    "next_page": "https://manage.kontent.ai/v2/projects/<project_id>/<resource>?continuationToken=%2bRID%3a~..."
+  }
+}

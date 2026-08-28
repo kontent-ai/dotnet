@@ -37,7 +37,7 @@ public class ContentItemTests
     }
 
     [Fact]
-    public async Task EnumerateContentItemPagesAsync_StreamsAllPages()
+    public async Task ListContentItemsPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("ContentItemPage1.json");
@@ -45,41 +45,36 @@ public class ContentItemTests
         var page3 = Fixture("ContentItemPage3.json");
         var url = $"{MockClientFactory.BaseUrl}/items";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page3);
 
         var contentItems = new List<ContentItemModel>();
-        await foreach (var page in client.EnumerateContentItemPagesAsync())
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            contentItems.AddRange(page.Value);
+            var page = (await client.ListContentItemsPageAsync(continuationToken)).EnsureSuccess();
+            contentItems.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         contentItems.Should().BeEquivalentTo(ConcatPages<ContentItemModel>(page1, page2, page3));
     }
 
     [Fact]
-    public async Task EnumerateContentItemPagesAsync_PageFails_YieldsFailureThenStops()
+    public async Task ListContentItemsPageAsync_PageFails_ReturnsTheFailure()
     {
-        // The streaming property: a failed page surfaces as a failed result page (not an exception) and ends the
-        // stream, so the caller keeps what it gathered and sees the failure.
+        // A page call is an ordinary request: the failure arrives as a failed result, exactly like every other method.
         var (client, mock) = MockClientFactory.Create();
-        var url = $"{MockClientFactory.BaseUrl}/items";
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", Fixture("ContentItemPage1.json"));
-        mock.Expect(HttpMethod.Get, url).Respond(System.Net.HttpStatusCode.InternalServerError, "application/json", """{ "message": "Server error." }""");
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/items")
+            .Respond(System.Net.HttpStatusCode.InternalServerError, "application/json", """{ "message": "Server error." }""");
 
-        var pages = new List<IManagementResult<IReadOnlyList<ContentItemModel>>>();
-        await foreach (var page in client.EnumerateContentItemPagesAsync())
-        {
-            pages.Add(page);
-        }
+        var result = await client.ListContentItemsPageAsync();
 
         mock.VerifyNoOutstandingExpectation();
-        pages.Should().HaveCount(2);
-        pages[0].IsSuccess.Should().BeTrue();
-        pages[1].IsSuccess.Should().BeFalse();
-        pages[1].StatusCode.Should().Be(System.Net.HttpStatusCode.InternalServerError);
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(System.Net.HttpStatusCode.InternalServerError);
     }
 
     [Fact]
