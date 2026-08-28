@@ -46,13 +46,6 @@ public static class QueryCacheExtensions
     static ITypesQuery WithCacheExpiration(ITypesQuery query, TimeSpan? expiration)
 
 // Kontent.Ai.Delivery
-public static class QueryEnumerationExtensions
-    static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> EnumerateItemsWithStatusAsync<TModel>(IEnumerateItemsQuery<TModel> query, CancellationToken cancellationToken)
-    static IAsyncEnumerable<IDeliveryResult<IDeliveryItemsFeedResponse>> EnumerateItemsWithStatusAsync(IDynamicEnumerateItemsQuery query, CancellationToken cancellationToken)
-    static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IAssetUsedInQuery query, CancellationToken cancellationToken)
-    static IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(IItemUsedInQuery query, CancellationToken cancellationToken)
-
-// Kontent.Ai.Delivery
 public static class RichTextExtensions
     static IEnumerable<IContentItemLink> GetContentItemLinks(IRichTextContent richText)
     static IEnumerable<IEmbeddedContent<TModel>> GetEmbeddedContent<TModel>(IRichTextContent richText)

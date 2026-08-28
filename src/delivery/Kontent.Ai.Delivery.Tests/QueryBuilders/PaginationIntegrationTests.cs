@@ -654,7 +654,7 @@ public sealed class PaginationIntegrationTests
     }
 
     [Fact]
-    public async Task ItemsFeed_EnumerateItemsWithStatusAsync_ErrorOnSecondPage_YieldsFailurePage()
+    public async Task ItemsFeed_AsPages_ErrorOnSecondPage_ThrowsAfterYieldingTheGoodPage()
     {
         var env = Guid.NewGuid().ToString();
         var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
@@ -669,22 +669,53 @@ public sealed class PaginationIntegrationTests
             .Respond(HttpStatusCode.ServiceUnavailable);
 
         var client = BuildClient(env, mockHttp);
-        var pages = new List<IDeliveryResult<IDeliveryItemsFeedResponse<TestArticle>>>();
+        var pages = new List<DeliveryPage<IContentItem<TestArticle>>>();
 
-        await foreach (var page in client.GetItemsFeed<TestArticle>().EnumerateItemsWithStatusAsync())
+        var exception = await Assert.ThrowsAsync<DeliveryRequestException>(async () =>
         {
-            pages.Add(page);
-        }
+            await foreach (var page in client.GetItemsFeed<TestArticle>().EnumerateAsync().AsPages())
+            {
+                pages.Add(page);
+            }
+        });
 
-        Assert.Equal(2, pages.Count);
-        Assert.True(pages[0].IsSuccess);
-        Assert.Single(pages[0].Value.Items);
-        Assert.False(pages[1].IsSuccess);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, pages[1].StatusCode);
+        // The good page still reached the caller; the failure is loud rather than a silent early stop.
+        Assert.Single(pages);
+        Assert.Single(pages[0].Items);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, exception.StatusCode);
     }
 
     [Fact]
-    public async Task DynamicItemsFeed_EnumerateItemsWithStatusAsync_ErrorOnSecondPage_YieldsFailurePage()
+    public async Task ItemsFeed_EnumerateAsync_ErrorOnSecondPage_ThrowsRatherThanTruncating()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(req => CreateFeedResponse(["a"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(HttpStatusCode.ServiceUnavailable);
+
+        var client = BuildClient(env, mockHttp);
+        var items = new List<IContentItem<TestArticle>>();
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(async () =>
+        {
+            await foreach (var item in client.GetItemsFeed<TestArticle>().EnumerateAsync())
+            {
+                items.Add(item);
+            }
+        });
+
+        Assert.Single(items);
+    }
+
+    [Fact]
+    public async Task DynamicItemsFeed_AsPages_ErrorOnSecondPage_ThrowsAfterYieldingTheGoodPage()
     {
         var env = Guid.NewGuid().ToString();
         var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
@@ -699,18 +730,19 @@ public sealed class PaginationIntegrationTests
             .Respond(HttpStatusCode.ServiceUnavailable);
 
         var client = BuildClient(env, mockHttp);
-        var pages = new List<IDeliveryResult<IDeliveryItemsFeedResponse>>();
+        var pages = new List<DeliveryPage<IContentItem>>();
 
-        await foreach (var page in client.GetItemsFeed().EnumerateItemsWithStatusAsync())
+        var exception = await Assert.ThrowsAsync<DeliveryRequestException>(async () =>
         {
-            pages.Add(page);
-        }
+            await foreach (var page in client.GetItemsFeed().EnumerateAsync().AsPages())
+            {
+                pages.Add(page);
+            }
+        });
 
-        Assert.Equal(2, pages.Count);
-        Assert.True(pages[0].IsSuccess);
-        Assert.Single(pages[0].Value.Items);
-        Assert.False(pages[1].IsSuccess);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, pages[1].StatusCode);
+        Assert.Single(pages);
+        Assert.Single(pages[0].Items);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, exception.StatusCode);
     }
 
     #endregion
@@ -1077,6 +1109,219 @@ public sealed class PaginationIntegrationTests
         Assert.True(secondPage.IsSuccess);
 
         mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    #endregion
+
+    #region Enumeration contract
+
+    [Fact]
+    public async Task Enumeration_EnumeratedTwice_RestartsRatherThanResuming()
+    {
+        // Continuation state must live in the enumerator, never on the query or the enumeration.
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(req => CreateFeedResponse(["a"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(req => CreateFeedResponse(["b"], null));
+
+        var enumeration = BuildClient(env, mockHttp).GetItemsFeed<TestArticle>().EnumerateAsync();
+
+        var first = new List<string>();
+        await foreach (var item in enumeration)
+            first.Add(item.System.Codename);
+
+        var second = new List<string>();
+        await foreach (var item in enumeration)
+            second.Add(item.System.Codename);
+
+        Assert.Equal(["a", "b"], first);
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Enumeration_AsPagesWithDifferentTokens_DoNotShareState()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.TryGetValues("X-Continuation", out var v) && v.First() == "token_a")
+            .Respond(req => CreateFeedResponse(["from_a"], null));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.TryGetValues("X-Continuation", out var v) && v.First() == "token_b")
+            .Respond(req => CreateFeedResponse(["from_b"], null));
+
+        var enumeration = BuildClient(env, mockHttp).GetItemsFeed<TestArticle>().EnumerateAsync();
+
+        var fromA = new List<string>();
+        await foreach (var page in enumeration.AsPages("token_a"))
+            fromA.AddRange(page.Items.Select(i => i.System.Codename));
+
+        var fromB = new List<string>();
+        await foreach (var page in enumeration.AsPages("token_b"))
+            fromB.AddRange(page.Items.Select(i => i.System.Codename));
+
+        Assert.Equal(["from_a"], fromA);
+        Assert.Equal(["from_b"], fromB);
+    }
+
+    [Fact]
+    public async Task Enumeration_ItemWalk_CancelsWhenEitherTokenFires()
+    {
+        // The token captured by EnumerateAsync and the one supplied at enumeration time are linked, not overridden.
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"https://deliver.kontent.ai/{env}/items-feed")
+            .Respond(req => CreateFeedResponse(["a"], "token"));
+
+        var client = BuildClient(env, mockHttp);
+
+        using var captured = new CancellationTokenSource();
+        await captured.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed<TestArticle>().EnumerateAsync(captured.Token))
+            {
+                // The first pull is expected to throw; nothing should reach the body.
+            }
+        });
+
+        using var enumeration = new CancellationTokenSource();
+        await enumeration.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed<TestArticle>().EnumerateAsync().WithCancellation(enumeration.Token))
+            {
+                // The first pull is expected to throw; nothing should reach the body.
+            }
+        });
+    }
+
+    [Fact]
+    public async Task Enumeration_PageWalk_CancelsWhenEitherTokenFires()
+    {
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"https://deliver.kontent.ai/{env}/items-feed")
+            .Respond(req => CreateFeedResponse(["a"], "token"));
+
+        var client = BuildClient(env, mockHttp);
+
+        using var captured = new CancellationTokenSource();
+        await captured.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed<TestArticle>().EnumerateAsync(captured.Token).AsPages())
+            {
+                // The first pull is expected to throw; nothing should reach the body.
+            }
+        });
+
+        using var enumeration = new CancellationTokenSource();
+        await enumeration.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed<TestArticle>().EnumerateAsync().AsPages().WithCancellation(enumeration.Token))
+            {
+                // The first pull is expected to throw; nothing should reach the body.
+            }
+        });
+    }
+
+    [Fact]
+    public async Task FeedResponse_HasNextPage_AgreesWithContinuationToken()
+    {
+        // Two public views of one fact; they must never drift.
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl).Respond(req => CreateFeedResponse(["a"], "token"));
+        mockHttp.Expect(feedUrl).Respond(req => CreateFeedResponse(["b"], null));
+
+        var query = BuildClient(env, mockHttp).GetItemsFeed<TestArticle>();
+
+        var first = (await query.ExecuteAsync()).Value;
+        Assert.Equal(!string.IsNullOrEmpty(first.ContinuationToken), first.HasNextPage);
+        Assert.True(first.HasNextPage);
+
+        var last = (await query.ExecuteAsync(first.ContinuationToken!)).Value;
+        Assert.Equal(!string.IsNullOrEmpty(last.ContinuationToken), last.HasNextPage);
+        Assert.False(last.HasNextPage);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task FeedWalk_EmptyContinuationHeader_EndsTheWalkAndReportsNoToken()
+    {
+        // A present-but-empty X-Continuation means "no next page". If it leaked through as "", a consumer following
+        // the documented `ContinuationToken is not null` contract would re-request the first page forever.
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"https://deliver.kontent.ai/{env}/items-feed")
+            .Respond(req =>
+            {
+                var response = CreateFeedResponse(["only"], null);
+                response.Headers.Add("X-Continuation", string.Empty);
+                return response;
+            });
+
+        var query = BuildClient(env, mockHttp).GetItemsFeed<TestArticle>();
+
+        var pages = new List<DeliveryPage<IContentItem<TestArticle>>>();
+        await foreach (var page in query.EnumerateAsync().AsPages())
+            pages.Add(page);
+
+        Assert.Single(pages);
+        Assert.Null(pages[0].ContinuationToken);
+
+        var single = (await query.ExecuteAsync()).Value;
+        Assert.Null(single.ContinuationToken);
+        Assert.False(single.HasNextPage);
+    }
+
+    [Fact]
+    public async Task AsPages_EmptyToken_StartsFromTheFirstPage()
+    {
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.Expect($"https://deliver.kontent.ai/{env}/items-feed")
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(req => CreateFeedResponse(["first"], null));
+
+        var enumeration = BuildClient(env, mockHttp).GetItemsFeed<TestArticle>().EnumerateAsync();
+
+        var items = new List<string>();
+        await foreach (var page in enumeration.AsPages(string.Empty))
+            items.AddRange(page.Items.Select(i => i.System.Codename));
+
+        Assert.Equal(["first"], items);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task FromPages_YieldsSuppliedPagesWithoutTransport()
+    {
+        var enumeration = DeliveryEnumeration<string>.FromPages(
+        [
+            new DeliveryPage<string> { Items = ["a", "b"], ContinuationToken = "next" },
+            new DeliveryPage<string> { Items = ["c"], ContinuationToken = null },
+        ]);
+
+        var items = new List<string>();
+        await foreach (var item in enumeration)
+            items.Add(item);
+
+        Assert.Equal(["a", "b", "c"], items);
     }
 
     #endregion

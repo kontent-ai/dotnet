@@ -22,15 +22,32 @@ public interface IItemUsedInQuery
     IItemUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build);
 
     /// <summary>
+    /// Executes the query and returns the first page of parent content items using the Used In endpoint.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A result wrapping the first page and the token that fetches the next one.</returns>
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes the query from a previously returned continuation token, resuming a walk rather than starting one.
+    /// </summary>
+    /// <param name="continuationToken">A token taken from <see cref="DeliveryPage{T}.ContinuationToken"/>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A result wrapping the page following the one the token came from.</returns>
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Enumerates parent content items using the Used In endpoint.
     /// </summary>
+    /// <remarks>
+    /// The returned value is both a stream of items and, via <see cref="DeliveryEnumeration{T}.AsPages"/>, a stream of
+    /// pages. A failed request throws <see cref="DeliveryRequestException"/> — enumeration is a walk, not a single
+    /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> where non-throwing
+    /// semantics are needed.
+    /// </remarks>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
-    /// <returns>
-    /// Async sequence of used-in items.
-    /// Enumeration stops when a page request fails and returns items already received.
-    /// Use SDK extension methods for status-aware page enumeration.
-    /// </returns>
-    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default);
+    /// <returns>An enumeration over the used-in items.</returns>
+    DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -55,13 +72,30 @@ public interface IAssetUsedInQuery
     IAssetUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build);
 
     /// <summary>
+    /// Executes the query and returns the first page of parent content items using the Asset Used In endpoint.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A result wrapping the first page and the token that fetches the next one.</returns>
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes the query from a previously returned continuation token, resuming a walk rather than starting one.
+    /// </summary>
+    /// <param name="continuationToken">A token taken from <see cref="DeliveryPage{T}.ContinuationToken"/>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A result wrapping the page following the one the token came from.</returns>
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Enumerates parent content items using the Asset Used In endpoint.
     /// </summary>
+    /// <remarks>
+    /// The returned value is both a stream of items and, via <see cref="DeliveryEnumeration{T}.AsPages"/>, a stream of
+    /// pages. A failed request throws <see cref="DeliveryRequestException"/> — enumeration is a walk, not a single
+    /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> where non-throwing
+    /// semantics are needed.
+    /// </remarks>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
-    /// <returns>
-    /// Async sequence of used-in items.
-    /// Enumeration stops when a page request fails and returns items already received.
-    /// Use SDK extension methods for status-aware page enumeration.
-    /// </returns>
-    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default);
+    /// <returns>An enumeration over the used-in items.</returns>
+    DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default);
 }

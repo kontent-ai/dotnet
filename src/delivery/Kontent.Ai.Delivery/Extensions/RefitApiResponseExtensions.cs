@@ -154,5 +154,15 @@ internal static class RefitApiResponseExtensions
     /// <param name="response">The API response.</param>
     /// <returns>The continuation token if present.</returns>
     internal static string? Continuation<T>(this IApiResponse<T> response)
-        => response.Headers?.TryGetValues(ContinuationHeaderName, out var vals) == true ? vals.FirstOrDefault() : null;
+    {
+        if (response.Headers?.TryGetValues(ContinuationHeaderName, out var values) != true || values is null)
+        {
+            return null;
+        }
+
+        // A present-but-empty header means no next page, same as an absent one. Normalizing here keeps every caller
+        // honest about "null when the walk is finished" instead of each re-deriving it.
+        var token = values.FirstOrDefault();
+        return string.IsNullOrEmpty(token) ? null : token;
+    }
 }

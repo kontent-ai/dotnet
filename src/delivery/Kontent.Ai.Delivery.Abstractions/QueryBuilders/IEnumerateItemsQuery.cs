@@ -47,16 +47,31 @@ public interface IEnumerateItemsQuery<TModel>
 
     /// <summary>
     /// Executes the query and returns the first page of items.
-    /// Use <see cref="IDeliveryItemsFeedResponse{TModel}.FetchNextPageAsync"/> to retrieve subsequent pages.
+    /// Use <see cref="IDeliveryItemsFeedResponse{TModel}.FetchNextPageAsync"/> to step to the next page, or
+    /// <see cref="ExecuteAsync(string, CancellationToken)"/> to resume from a persisted continuation token.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The first page of items with ability to fetch subsequent pages.</returns>
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Executes the query from a previously returned continuation token, resuming a walk rather than starting one.
+    /// </summary>
+    /// <param name="continuationToken">A token taken from <see cref="IDeliveryItemsFeedResponse{TModel}.ContinuationToken"/>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The page following the one the token came from.</returns>
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Enumerates content items using the Delivery API items-feed endpoint.
     /// </summary>
+    /// <remarks>
+    /// The returned value is both a stream of items and, via <see cref="DeliveryEnumeration{T}.AsPages"/>, a stream of
+    /// pages. A failed request throws <see cref="DeliveryRequestException"/> — enumeration is a walk, not a single
+    /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> where non-throwing
+    /// semantics are needed.
+    /// </remarks>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
-    /// <returns>Async sequence of strongly typed content items.</returns>
-    IAsyncEnumerable<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken = default);
+    /// <returns>An enumeration over the strongly typed content items.</returns>
+    DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken = default);
 }

@@ -21,7 +21,7 @@ internal sealed record DynamicDeliveryItemsFeedResponse : IDeliveryItemsFeedResp
     /// <summary>
     /// The continuation token for the next page.
     /// </summary>
-    internal string? ContinuationToken { get; init; }
+    public string? ContinuationToken { get; init; }
 
     /// <inheritdoc/>
     public bool HasNextPage => !string.IsNullOrEmpty(ContinuationToken);

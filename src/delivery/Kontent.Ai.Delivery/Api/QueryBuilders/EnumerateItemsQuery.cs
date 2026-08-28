@@ -1,8 +1,7 @@
-using System.Runtime.CompilerServices;
 using Kontent.Ai.Delivery.Api.Filtering;
+using Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders;
@@ -16,10 +15,10 @@ internal sealed class EnumerateItemsQuery<TModel>(
     Uri? customAssetDomain = null,
     ILogger? logger = null) : IEnumerateItemsQuery<TModel>
 {
+    private readonly QueryLoggingHelper _log = new(logger, "ItemsFeed", "feed");
     private EnumItemsParams _params = new();
     private bool _waitForLoadingNewContent;
     private readonly SerializedFilterCollection _serializedFilters = [];
-    private string? _continuationToken;
     private bool _typeFilterApplied;
     private static bool IsDynamicModel => ModelTypeHelper.IsDynamic<TModel>();
 
@@ -79,68 +78,67 @@ internal sealed class EnumerateItemsQuery<TModel>(
         SystemFilterHelpers.AddGenericTypeFilter<TModel>(_serializedFilters, typeProvider, logger);
     }
 
-    public async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default)
+    public Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default) =>
+        ExecuteLoggedAsync(continuationToken: null, cancellationToken);
+
+    public Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(continuationToken);
+
+        return ExecuteLoggedAsync(continuationToken, cancellationToken);
+    }
+
+    // Wraps one request in the same starting/completed bracket every other query builder emits. A walk goes straight
+    // to ExecutePageAsync instead: it has its own Pagination bracket, and per-page timings would drown it.
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteLoggedAsync(string? continuationToken, CancellationToken cancellationToken)
+    {
+        _log.LogQueryStarting();
+        var stopwatch = _log.StartTimingIfEnabled();
+
+        var result = await ExecutePageAsync(continuationToken, cancellationToken).ConfigureAwait(false);
+
+        _log.LogQueryCompleted(stopwatch, result.StatusCode, result.IsCacheHit, result.HasStaleContent);
+        return result;
+    }
+
+    // Takes the token as an argument rather than reading the field, so a walk never mutates the query it came from.
+    // Internal, not private: the dynamic wrapper's walk needs this unlogged path too.
+    internal async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken)
     {
         ApplyGenericTypeFilter();
 
         bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
-        var (deliveryResult, continuationToken) = await FetchFeedPageAsync(
-            _continuationToken,
+        var (deliveryResult, nextContinuationToken) = await FetchFeedPageAsync(
+            continuationToken,
             waitForLoadingNewContent,
             cancellationToken).ConfigureAwait(false);
 
         if (!deliveryResult.IsSuccess)
         {
+            _log.LogQueryFailed(deliveryResult.StatusCode, deliveryResult.Error?.Message);
             return CreateFailureResult(deliveryResult);
         }
 
-        var response = await PreparePageAsync(deliveryResult.Value, continuationToken, cancellationToken).ConfigureAwait(false);
+        var response = await PreparePageAsync(deliveryResult.Value, nextContinuationToken, cancellationToken).ConfigureAwait(false);
         return WrapSuccess(response, deliveryResult);
     }
 
-    private Func<CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>>? CreateNextPageFetcher(string? continuationToken) => string.IsNullOrEmpty(continuationToken) ? null : (ct => CreateContinuationQuery(continuationToken).ExecuteAsync(ct));
+    // The logged path: FetchNextPageAsync is one caller-issued request, exactly like ExecuteAsync(token), and gets
+    // the same bracket. Only the walk skips it, because it brackets itself once with Pagination*.
+    private Func<CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>>? CreateNextPageFetcher(string? continuationToken) =>
+        string.IsNullOrEmpty(continuationToken) ? null : (ct => ExecuteLoggedAsync(continuationToken, ct));
 
-    public async IAsyncEnumerable<IContentItem<TModel>> EnumerateAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        if (logger is not null)
-            LoggerMessages.PaginationStarted(logger, "ItemsFeed");
-
-        var pageResult = await ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var pageCount = 0;
-        var totalItems = 0;
-
-        while (pageResult is { IsSuccess: true })
-        {
-            pageCount++;
-
-            foreach (var item in pageResult.Value.Items)
+    public DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken = default) =>
+        new LoggedDeliveryEnumeration<IContentItem<TModel>, IDeliveryItemsFeedResponse<TModel>>(
+            "ItemsFeed",
+            logger,
+            ExecutePageAsync,
+            static response => new DeliveryPage<IContentItem<TModel>>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                totalItems++;
-                yield return item;
-            }
-
-            if (!pageResult.Value.HasNextPage)
-            {
-                if (logger is not null)
-                    LoggerMessages.PaginationCompleted(logger, "ItemsFeed", pageCount, totalItems);
-                yield break;
-            }
-
-            var nextPageResult = await pageResult.Value.FetchNextPageAsync(cancellationToken).ConfigureAwait(false);
-            if (nextPageResult is not { IsSuccess: true })
-            {
-                if (logger is not null)
-                    LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed");
-                yield break;
-            }
-
-            pageResult = nextPageResult;
-        }
-
-        if (logger is not null)
-            LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed");
-    }
+                Items = response.Items,
+                ContinuationToken = response.ContinuationToken,
+            },
+            cancellationToken);
 
     private async Task<(IDeliveryResult<DeliveryItemsFeedResponse<TModel>> DeliveryResult, string? ContinuationToken)> FetchFeedPageAsync(
         string? continuationToken,
@@ -185,26 +183,6 @@ internal sealed class EnumerateItemsQuery<TModel>(
             ContinuationToken = continuationToken,
             NextPageFetcher = CreateNextPageFetcher(continuationToken)
         };
-    }
-
-    private EnumerateItemsQuery<TModel> CreateContinuationQuery(string continuationToken)
-    {
-        var nextQuery = new EnumerateItemsQuery<TModel>(
-            api,
-            contentItemMapper,
-            typeProvider,
-            defaultRenditionPreset,
-            customAssetDomain,
-            logger)
-        {
-            _params = _params,
-            _waitForLoadingNewContent = this._waitForLoadingNewContent,
-            _continuationToken = continuationToken,
-            _typeFilterApplied = _typeFilterApplied
-        };
-
-        nextQuery._serializedFilters.CopyFrom(_serializedFilters);
-        return nextQuery;
     }
 
     private static IDeliveryResult<IDeliveryItemsFeedResponse<TModel>> WrapSuccess(

@@ -28,7 +28,14 @@ public interface IDeliveryItemsFeedResponse
     /// <summary>
     /// Gets a value indicating whether there are more items to fetch.
     /// </summary>
+    /// <remarks>Equivalent to <see cref="ContinuationToken"/> being neither <c>null</c> nor empty.</remarks>
     bool HasNextPage { get; }
+
+    /// <summary>
+    /// Gets the opaque token that resumes the walk after this page, or <c>null</c> when this was the last page.
+    /// Persist it to continue later; callers must not inspect or modify its value.
+    /// </summary>
+    string? ContinuationToken { get; }
 
     /// <summary>
     /// Fetches the next page of items if available.
@@ -52,7 +59,14 @@ public interface IDeliveryItemsFeedResponse<TModel>
     /// <summary>
     /// Gets a value indicating whether there are more items to fetch.
     /// </summary>
+    /// <remarks>Equivalent to <see cref="ContinuationToken"/> being neither <c>null</c> nor empty.</remarks>
     bool HasNextPage { get; }
+
+    /// <summary>
+    /// Gets the opaque token that resumes the walk after this page, or <c>null</c> when this was the last page.
+    /// Persist it to continue later; callers must not inspect or modify its value.
+    /// </summary>
+    string? ContinuationToken { get; }
 
     /// <summary>
     /// Raw modular content used for resolving linked items/inline content.

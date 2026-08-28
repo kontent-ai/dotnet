@@ -321,19 +321,32 @@ if (firstPage.IsSuccess)
     }
 }
 
-// Option 3: Status-aware page enumeration (exposes intermediate page failures)
-await foreach (var page in client.GetItemsFeed().EnumerateItemsWithStatusAsync())
+// Option 3: Page enumeration, with the continuation token for checkpointing
+await foreach (var page in client.GetItemsFeed().EnumerateAsync().AsPages())
 {
-    if (!page.IsSuccess)
-    {
-        Console.WriteLine($"Feed page failed with {(int)page.StatusCode}: {page.Error?.Message}");
-        break;
-    }
-
-    foreach (var item in page.Value.Items)
+    foreach (var item in page.Items)
     {
         Console.WriteLine($"Item: {item.System.Name}");
     }
+
+    Save(page.ContinuationToken);   // null on the last page — that means finished, not "start over"
+}
+```
+
+`EnumerateAsync()` is a walk, not a request: a failed page throws `DeliveryRequestException` rather than ending the
+sequence, so a partial result can never be mistaken for a complete one. Both views &mdash; items and `AsPages()` &mdash;
+behave the same way. Where you want a failure as a value instead, use `ExecuteAsync()`, which returns an
+`IDeliveryResult` like every other single request:
+
+**one request returns a result; a walk returns an enumerable that throws.**
+
+```csharp
+// Resume a walk from a persisted token
+var result = await client.GetItemsFeed<Article>().ExecuteAsync(savedToken);
+if (result.IsSuccess)
+{
+    Process(result.Value.Items);
+    Save(result.Value.ContinuationToken);   // null once the walk is finished
 }
 ```
 
@@ -476,24 +489,33 @@ if (result.IsSuccess)
 
 Find which content items reference a specific item or asset. This is useful for impact analysis before making changes.
 
-`EnumerateAsync()` follows continuation tokens automatically. If a subsequent page request fails, enumeration stops gracefully and returns items already received (no exception is thrown by default).
-
-Use status-aware enumeration when you need explicit page failure handling:
+`EnumerateAsync()` follows continuation tokens automatically. It is a walk, so a failed page throws
+`DeliveryRequestException` — a truncated result can never pass for a complete one.
 
 ```csharp
-await foreach (var page in client.GetItemUsedIn("john_doe").EnumerateItemsWithStatusAsync())
+await foreach (var usage in client.GetItemUsedIn("john_doe").EnumerateAsync())
 {
-    if (!page.IsSuccess)
-    {
-        Console.WriteLine($"Used-in lookup failed with {(int)page.StatusCode}: {page.Error?.Message}");
-        break;
-    }
-
-    foreach (var usage in page.Value)
-    {
-        Console.WriteLine($"Referenced by: {usage.System.Name}");
-    }
+    Console.WriteLine($"Referenced by: {usage.System.Name}");
 }
+```
+
+Use `AsPages()` when you want the continuation token, and `ExecuteAsync()` when you want a failure as a value rather
+than an exception:
+
+```csharp
+var result = await client.GetItemUsedIn("john_doe").ExecuteAsync();
+if (!result.IsSuccess)
+{
+    Console.WriteLine($"Used-in lookup failed with {(int)result.StatusCode}: {result.Error?.Message}");
+    return;
+}
+
+foreach (var usage in result.Value.Items)
+{
+    Console.WriteLine($"Referenced by: {usage.System.Name}");
+}
+
+// result.Value.ContinuationToken feeds the next call, or is null when finished.
 ```
 
 #### Find Items Using a Content Item

@@ -1,7 +1,5 @@
-using System.Runtime.CompilerServices;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders;
@@ -59,17 +57,32 @@ internal sealed class DynamicEnumerateItemsQuery(
         return this;
     }
 
-    public async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(CancellationToken cancellationToken = default)
-    {
-        var deliveryResult = await _inner.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+    public async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(CancellationToken cancellationToken = default) =>
+        await ConvertResultAsync(await _inner.ExecuteAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
 
+    public async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(continuationToken);
+
+        return await ConvertResultAsync(await _inner.ExecuteAsync(continuationToken, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+    }
+
+    // The walk's per-page fetch. Goes to the inner query's unlogged path: a walk is bracketed once by Pagination*,
+    // not once per page by the query-starting/completed pair the public overloads above emit.
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken) =>
+        await ConvertResultAsync(await _inner.ExecutePageAsync(continuationToken, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ConvertResultAsync(
+        IDeliveryResult<IDeliveryItemsFeedResponse<IDynamicElements>> deliveryResult,
+        CancellationToken cancellationToken)
+    {
         if (!deliveryResult.IsSuccess)
         {
             return DeliveryResult.FailureFrom<IDeliveryItemsFeedResponse, IDeliveryItemsFeedResponse<IDynamicElements>>(deliveryResult);
         }
 
-        var continuationToken = (deliveryResult.Value as DeliveryItemsFeedResponse<IDynamicElements>)?.ContinuationToken;
-        var response = await ConvertResponseAsync(deliveryResult.Value, continuationToken, cancellationToken).ConfigureAwait(false);
+        var nextContinuationToken = deliveryResult.Value.ContinuationToken;
+        var response = await ConvertResponseAsync(deliveryResult.Value, nextContinuationToken, cancellationToken).ConfigureAwait(false);
 
         return DeliveryResult.SuccessFrom<IDeliveryItemsFeedResponse, IDeliveryItemsFeedResponse<IDynamicElements>>(response, deliveryResult);
     }
@@ -104,55 +117,18 @@ internal sealed class DynamicEnumerateItemsQuery(
     {
         var nextPageResult = await currentPage.FetchNextPageAsync(cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException("The current feed page indicated a next page, but fetching it returned null.");
 
-        if (!nextPageResult.IsSuccess)
-        {
-            return DeliveryResult.FailureFrom<IDeliveryItemsFeedResponse, IDeliveryItemsFeedResponse<IDynamicElements>>(nextPageResult);
-        }
-
-        var continuationToken = (nextPageResult.Value as DeliveryItemsFeedResponse<IDynamicElements>)?.ContinuationToken;
-        var response = await ConvertResponseAsync(nextPageResult.Value, continuationToken, cancellationToken).ConfigureAwait(false);
-        return DeliveryResult.SuccessFrom<IDeliveryItemsFeedResponse, IDeliveryItemsFeedResponse<IDynamicElements>>(response, nextPageResult);
+        return await ConvertResultAsync(nextPageResult, cancellationToken).ConfigureAwait(false);
     }
 
-    public async IAsyncEnumerable<IContentItem> EnumerateAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        if (logger is not null)
-            LoggerMessages.PaginationStarted(logger, "ItemsFeed (dynamic)");
-
-        var pageResult = await ExecuteAsync(cancellationToken).ConfigureAwait(false);
-        var pageCount = 0;
-        var totalItems = 0;
-
-        while (pageResult is { IsSuccess: true })
-        {
-            pageCount++;
-
-            foreach (var item in pageResult.Value.Items)
+    public DeliveryEnumeration<IContentItem> EnumerateAsync(CancellationToken cancellationToken = default) =>
+        new LoggedDeliveryEnumeration<IContentItem, IDeliveryItemsFeedResponse>(
+            "ItemsFeed",
+            logger,
+            ExecutePageAsync,
+            static response => new DeliveryPage<IContentItem>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                totalItems++;
-                yield return item;
-            }
-
-            if (!pageResult.Value.HasNextPage)
-            {
-                if (logger is not null)
-                    LoggerMessages.PaginationCompleted(logger, "ItemsFeed (dynamic)", pageCount, totalItems);
-                yield break;
-            }
-
-            var nextPageResult = await pageResult.Value.FetchNextPageAsync(cancellationToken).ConfigureAwait(false);
-            if (nextPageResult is not { IsSuccess: true })
-            {
-                if (logger is not null)
-                    LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed (dynamic)");
-                yield break;
-            }
-
-            pageResult = nextPageResult;
-        }
-
-        if (logger is not null)
-            LoggerMessages.PaginationStoppedEarly(logger, "ItemsFeed (dynamic)");
-    }
+                Items = response.Items,
+                ContinuationToken = response.ContinuationToken,
+            },
+            cancellationToken);
 }
