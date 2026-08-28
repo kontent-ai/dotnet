@@ -1,6 +1,5 @@
-using System.Runtime.CompilerServices;
 using Kontent.Ai.Delivery.Api.Filtering;
-using Kontent.Ai.Delivery.Logging;
+using Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 using Kontent.Ai.Delivery.UsedIn;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +9,7 @@ namespace Kontent.Ai.Delivery.Api.QueryBuilders;
 internal sealed class ItemUsedInQuery(
     IDeliveryApi api,
     string codename,
-    ILogger? logger = null) : IItemUsedInQuery, IUsedInQueryStatusProvider
+    ILogger? logger = null) : IItemUsedInQuery
 {
     private readonly SerializedFilterCollection _serializedFilters = [];
     private readonly UsedInQueryCore _core = new(
@@ -33,18 +32,25 @@ internal sealed class ItemUsedInQuery(
         return this;
     }
 
-    public IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default)
-        => _core.EnumerateAsync(_serializedFilters, cancellationToken);
+    public Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken = default)
+        => _core.ExecuteLoggedAsync(_serializedFilters, continuationToken: null, cancellationToken);
 
-    public IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(CancellationToken cancellationToken = default)
-        => _core.EnumerateItemsWithStatusAsync(_serializedFilters, cancellationToken);
+    public Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(continuationToken);
+
+        return _core.ExecuteLoggedAsync(_serializedFilters, continuationToken, cancellationToken);
+    }
+
+    public DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default)
+        => _core.CreateEnumeration(_serializedFilters, cancellationToken);
 }
 
 /// <inheritdoc cref="IAssetUsedInQuery"/>
 internal sealed class AssetUsedInQuery(
     IDeliveryApi api,
     string codename,
-    ILogger? logger = null) : IAssetUsedInQuery, IUsedInQueryStatusProvider
+    ILogger? logger = null) : IAssetUsedInQuery
 {
     private readonly SerializedFilterCollection _serializedFilters = [];
     private readonly UsedInQueryCore _core = new(
@@ -67,17 +73,20 @@ internal sealed class AssetUsedInQuery(
         return this;
     }
 
-    public IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default)
-        => _core.EnumerateAsync(_serializedFilters, cancellationToken);
+    public Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken = default)
+        => _core.ExecuteLoggedAsync(_serializedFilters, continuationToken: null, cancellationToken);
 
-    public IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(CancellationToken cancellationToken = default)
-        => _core.EnumerateItemsWithStatusAsync(_serializedFilters, cancellationToken);
+    public Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(continuationToken);
+
+        return _core.ExecuteLoggedAsync(_serializedFilters, continuationToken, cancellationToken);
+    }
+
+    public DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken = default)
+        => _core.CreateEnumeration(_serializedFilters, cancellationToken);
 }
 
-internal interface IUsedInQueryStatusProvider
-{
-    IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(CancellationToken cancellationToken = default);
-}
 
 internal sealed class UsedInQueryCore(
     string queryType,
@@ -85,65 +94,62 @@ internal sealed class UsedInQueryCore(
     Func<string, string?, bool?, string?, CancellationToken, Task<IApiResponse<DeliveryUsedInResponse>>> fetchPage,
     ILogger? logger)
 {
+    private readonly QueryLoggingHelper _log = new(logger, queryType, codename);
     private bool _waitForLoadingNewContent;
 
     public void WaitForLoadingNewContent(bool enabled = true) => _waitForLoadingNewContent = enabled;
 
-    public async IAsyncEnumerable<IUsedInItem> EnumerateAsync(
+    // Wraps one request in the same starting/completed bracket every other query builder emits. A walk goes straight
+    // to ExecutePageAsync instead: it has its own Pagination bracket, and per-page timings would drown it.
+    public async Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteLoggedAsync(
         SerializedFilterCollection filters,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        string? continuationToken,
+        CancellationToken cancellationToken)
     {
-        await foreach (var pageResult in EnumerateItemsWithStatusAsync(filters, cancellationToken).ConfigureAwait(false))
-        {
-            if (!pageResult.IsSuccess)
-            {
-                yield break;
-            }
+        _log.LogQueryStarting();
+        var stopwatch = _log.StartTimingIfEnabled();
 
-            foreach (var parent in pageResult.Value)
-            {
-                yield return parent;
-            }
-        }
+        var result = await ExecutePageAsync(filters, continuationToken, cancellationToken).ConfigureAwait(false);
+
+        _log.LogQueryCompleted(stopwatch, result.StatusCode, result.IsCacheHit, result.HasStaleContent);
+        return result;
     }
 
-    public async IAsyncEnumerable<IDeliveryResult<IReadOnlyList<IUsedInItem>>> EnumerateItemsWithStatusAsync(
+    public DeliveryEnumeration<IUsedInItem> CreateEnumeration(SerializedFilterCollection filters, CancellationToken cancellationToken) =>
+        new LoggedDeliveryEnumeration<IUsedInItem, DeliveryPage<IUsedInItem>>(
+            queryType,
+            logger,
+            (token, ct) => ExecutePageAsync(filters, token, ct),
+            static page => page,
+            cancellationToken);
+
+    public async Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecutePageAsync(
         SerializedFilterCollection filters,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        string? continuationToken,
+        CancellationToken cancellationToken)
     {
         bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
-        var filterQuery = FilterQueryString.Render(filters);
-        string? token = null;
 
-        while (true)
+        var response = await fetchPage(
+            codename,
+            FilterQueryString.Render(filters),
+            waitForLoadingNewContent,
+            continuationToken,
+            cancellationToken).ConfigureAwait(false);
+
+        var deliveryResult = await response.ToDeliveryResultAsync(logger).ConfigureAwait(false);
+        if (!deliveryResult.IsSuccess)
         {
-            var response = await fetchPage(
-                codename,
-                filterQuery,
-                waitForLoadingNewContent,
-                token,
-                cancellationToken).ConfigureAwait(false);
-
-            var deliveryResult = await response.ToDeliveryResultAsync(logger).ConfigureAwait(false);
-            if (!deliveryResult.IsSuccess)
-            {
-                if (logger is not null)
-                {
-                    LoggerMessages.PaginationStoppedEarly(logger, queryType);
-                }
-
-                yield return DeliveryResult.FailureFrom<IReadOnlyList<IUsedInItem>, DeliveryUsedInResponse>(deliveryResult);
-                yield break;
-            }
-
-            IReadOnlyList<IUsedInItem> items = deliveryResult.Value.Items;
-            yield return DeliveryResult.SuccessFrom(items, deliveryResult);
-
-            token = response.Continuation();
-            if (string.IsNullOrEmpty(token))
-            {
-                yield break;
-            }
+            _log.LogQueryFailed(deliveryResult.StatusCode, deliveryResult.Error?.Message);
+            return DeliveryResult.FailureFrom<DeliveryPage<IUsedInItem>, DeliveryUsedInResponse>(deliveryResult);
         }
+
+        var page = new DeliveryPage<IUsedInItem>
+        {
+            Items = deliveryResult.Value.Items,
+            ContinuationToken = response.Continuation(),
+        };
+
+        return DeliveryResult.SuccessFrom(page, deliveryResult);
     }
 }

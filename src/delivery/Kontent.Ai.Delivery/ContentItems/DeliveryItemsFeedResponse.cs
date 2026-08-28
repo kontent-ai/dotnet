@@ -26,7 +26,7 @@ internal sealed record DeliveryItemsFeedResponse<TModel> : IDeliveryItemsFeedRes
     /// The continuation token for the next page.
     /// </summary>
     [JsonIgnore]
-    internal string? ContinuationToken { get; init; }
+    public string? ContinuationToken { get; init; }
 
     IReadOnlyList<IContentItem<TModel>> IDeliveryItemsFeedResponse<TModel>.Items => Items;
 

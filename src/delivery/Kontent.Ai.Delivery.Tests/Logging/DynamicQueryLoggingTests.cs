@@ -340,6 +340,191 @@ public class DynamicQueryLoggingTests
         AssertLog(loggerProvider.Entries, LogEventIds.QueryStaleContent, "stale content");
     }
 
+    [Fact]
+    public async Task Enumeration_TwoPageWalk_LogsStartedAndCompletedWithAccumulatedCounts()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["a", "b"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["c"], null));
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        var items = new List<IContentItem>();
+        await foreach (var item in client.GetItemsFeed().EnumerateAsync())
+        {
+            items.Add(item);
+        }
+
+        Assert.Equal(3, items.Count);
+        AssertLog(loggerProvider.Entries, LogEventIds.PaginationStarted, "ItemsFeed");
+
+        // Pin which count is which: bare "2" and "3" would pass on a transposition too.
+        var completed = Assert.Single(loggerProvider.Entries, e => e.EventId == LogEventIds.PaginationCompleted);
+        Assert.Contains("2 pages", completed.Message, StringComparison.Ordinal);
+        Assert.Contains("3 items", completed.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Enumeration_FailedPage_LogsStartedButNotCompleted()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["a"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(HttpStatusCode.ServiceUnavailable);
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed().EnumerateAsync())
+            {
+                // The second pull throws; nothing should reach the body twice.
+            }
+        });
+
+        AssertLog(loggerProvider.Entries, LogEventIds.PaginationStarted, "ItemsFeed");
+        Assert.DoesNotContain(loggerProvider.Entries, e => e.EventId == LogEventIds.PaginationCompleted);
+    }
+
+    [Fact]
+    public async Task Feed_ExecuteAsync_Failure_LogsTheQueryFailedFamilyLikeEveryOtherQuery()
+    {
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"https://deliver.kontent.ai/{env}/items-feed")
+            .Respond(HttpStatusCode.NotFound, "application/json", """{"message":"Not found","request_id":"req"}""");
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        var result = await client.GetItemsFeed().ExecuteAsync();
+
+        Assert.False(result.IsSuccess);
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryStarting, "Starting ItemsFeed query");
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryFailed, "Query ItemsFeed failed");
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryCompleted, "Completed ItemsFeed query");
+    }
+
+    [Fact]
+    public async Task UsedIn_ExecuteAsync_Failure_LogsTheQueryFailedFamilyLikeEveryOtherQuery()
+    {
+        var env = Guid.NewGuid().ToString();
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"https://deliver.kontent.ai/{env}/items/article/used-in")
+            .Respond(HttpStatusCode.NotFound, "application/json", """{"message":"Not found","request_id":"req"}""");
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        var result = await client.GetItemUsedIn("article").ExecuteAsync();
+
+        Assert.False(result.IsSuccess);
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryStarting, "Starting ItemUsedIn query");
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryFailed, "Query ItemUsedIn failed");
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryCompleted, "Completed ItemUsedIn query");
+    }
+
+    [Fact]
+    public async Task Enumeration_FailedPage_LogsQueryFailedWithoutPerPageStartedOrCompleted()
+    {
+        // A walk reports its failures like any other request, but is bracketed once by Pagination* rather than
+        // emitting a QueryStarting/QueryCompleted pair for every page it fetches.
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["a"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(HttpStatusCode.ServiceUnavailable);
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(async () =>
+        {
+            await foreach (var _ in client.GetItemsFeed().EnumerateAsync())
+            {
+                // The second pull throws.
+            }
+        });
+
+        // One query, one name: the pagination and query event families must agree on it.
+        AssertLog(loggerProvider.Entries, LogEventIds.QueryFailed, "Query ItemsFeed failed");
+        AssertLog(loggerProvider.Entries, LogEventIds.PaginationStarted, "ItemsFeed");
+        Assert.DoesNotContain(loggerProvider.Entries, e => e.EventId == LogEventIds.QueryStarting);
+        Assert.DoesNotContain(loggerProvider.Entries, e => e.EventId == LogEventIds.QueryCompleted);
+        Assert.DoesNotContain(loggerProvider.Entries, e => e.EventId == LogEventIds.PaginationCompleted);
+    }
+
+    [Fact]
+    public async Task Feed_FetchNextPageAsync_BracketsEachStepLikeExecuteAsync()
+    {
+        // Step, resume and walk are presented as peers, so stepping must not be the one route that logs nothing:
+        // a manual FetchNextPageAsync loop should log the same as the equivalent ExecuteAsync(token) loop.
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.When(feedUrl)
+            .With(req => !req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["a"], "token"));
+
+        mockHttp.When(feedUrl)
+            .With(req => req.Headers.Contains("X-Continuation"))
+            .Respond(_ => CreateFeedResponse(["b"], null));
+
+        var loggerProvider = new CollectingLoggerProvider();
+        var client = CreateClient(env, mockHttp, loggerProvider);
+
+        var first = await client.GetItemsFeed().ExecuteAsync();
+        Assert.True(first.IsSuccess);
+        var second = await first.Value.FetchNextPageAsync();
+        Assert.NotNull(second);
+        Assert.True(second.IsSuccess);
+
+        Assert.Equal(2, loggerProvider.Entries.Count(e => e.EventId == LogEventIds.QueryStarting));
+        Assert.Equal(2, loggerProvider.Entries.Count(e => e.EventId == LogEventIds.QueryCompleted));
+    }
+
+    private static HttpResponseMessage CreateFeedResponse(IReadOnlyList<string> codenames, string? continuationToken)
+    {
+        var itemsJson = string.Join(",", codenames.Select(codename =>
+            $"{{\"system\": {{\"id\": \"{Guid.NewGuid()}\", \"name\": \"{codename}\", \"codename\": \"{codename}\", \"language\": \"default\", \"type\": \"article\", \"collection\": \"default\", \"last_modified\": \"2024-01-01T00:00:00Z\"}}, \"elements\": {{}}}}"));
+
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent($"{{\"items\": [{itemsJson}], \"modular_content\": {{}}}}", System.Text.Encoding.UTF8, "application/json")
+        };
+
+        if (!string.IsNullOrEmpty(continuationToken))
+        {
+            response.Headers.Add("X-Continuation", continuationToken);
+        }
+
+        return response;
+    }
+
     private static IDeliveryClient CreateClient(string env, MockHttpMessageHandler mockHttp, CollectingLoggerProvider loggerProvider)
     {
         var services = new ServiceCollection();

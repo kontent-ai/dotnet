@@ -222,21 +222,9 @@ internal static partial class LoggerMessages
     public static partial void PaginationStarted(ILogger logger, string queryType);
 
     [LoggerMessage(
-        EventId = LogEventIds.PaginationStoppedEarly,
-        Level = LogLevel.Warning,
-        Message = "Pagination stopped early for {QueryType}: response unsuccessful or null content")]
-    public static partial void PaginationStoppedEarly(ILogger logger, string queryType);
-
-    [LoggerMessage(
         EventId = LogEventIds.PaginationCompleted,
         Level = LogLevel.Debug,
         Message = "Pagination completed for {QueryType}: {PageCount} pages, {TotalItems} items")]
     public static partial void PaginationCompleted(ILogger logger, string queryType, int pageCount, int totalItems);
-
-    [LoggerMessage(
-        EventId = LogEventIds.ItemsPaginationProgress,
-        Level = LogLevel.Debug,
-        Message = "Items pagination progress: page {PageNumber}, {ItemsSoFar} items fetched")]
-    public static partial void ItemsPaginationProgress(ILogger logger, int pageNumber, int itemsSoFar);
 
 }

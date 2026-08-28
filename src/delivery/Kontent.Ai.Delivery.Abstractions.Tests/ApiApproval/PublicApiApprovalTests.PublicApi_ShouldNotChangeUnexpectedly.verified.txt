@@ -53,6 +53,12 @@ public sealed class DeliveryCacheOptions
     TimeSpan JitterMaxDuration { get; set; }
 
 // Kontent.Ai.Delivery.Abstractions
+public abstract class DeliveryEnumeration`1<T> : IAsyncEnumerable<T>
+    IAsyncEnumerable<DeliveryPage<T>> AsPages(String? continuationToken)
+    IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
+    static DeliveryEnumeration<T> FromPages(IEnumerable<DeliveryPage<T>> pages)
+
+// Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptions : IValidatableObject
     const String DefaultConfigurationSectionName = DeliveryOptions
     .ctor()
@@ -72,6 +78,25 @@ public sealed class DeliveryOptions : IValidatableObject
 public static class DeliveryOptionsExtensions
     static String GetBaseUrl(DeliveryOptions options)
     static String? GetApiKey(DeliveryOptions options)
+
+// Kontent.Ai.Delivery.Abstractions
+public sealed class DeliveryPage`1<T> : IEquatable<DeliveryPage<T>>
+    .ctor()
+    String? ContinuationToken { get; init; }
+    required IReadOnlyList<T> Items { get; init; }
+    Boolean Equals(DeliveryPage<T>? other)
+    Boolean Equals(Object? obj)
+    DeliveryPage<T> <Clone>$()
+    Int32 GetHashCode()
+    String ToString()
+
+// Kontent.Ai.Delivery.Abstractions
+public sealed class DeliveryRequestException : Exception
+    .ctor(String message, HttpStatusCode statusCode, IError? error, String? requestUrl)
+    HttpStatusCode StatusCode { get; }
+    IError? Error { get; }
+    String? RequestId { get; }
+    String? RequestUrl { get; }
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class HtmlNodePredicate : MulticastDelegate
@@ -100,9 +125,11 @@ public interface IAssetRendition
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IAssetUsedInQuery
+    DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
     IAssetUsedInQuery WaitForLoadingNewContent(Boolean enabled)
     IAssetUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
-    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(String continuationToken, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IBlockWithChildren : IRichTextBlock
@@ -222,6 +249,7 @@ public interface IDeliveryItemsFeedResponse
     Boolean HasNextPage { get; }
     IReadOnlyDictionary<String, JsonElement>? ModularContent { get; }
     IReadOnlyList<IContentItem> Items { get; }
+    String? ContinuationToken { get; }
     Task<IDeliveryResult<IDeliveryItemsFeedResponse>?> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
@@ -229,6 +257,7 @@ public interface IDeliveryItemsFeedResponse`1<TModel>
     Boolean HasNextPage { get; }
     IReadOnlyDictionary<String, JsonElement> ModularContent { get; }
     IReadOnlyList<IContentItem<TModel>> Items { get; }
+    String? ContinuationToken { get; }
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>?> FetchNextPageAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
@@ -282,7 +311,7 @@ public interface IDynamicElements : IEnumerable, IEnumerable<KeyValuePair<String
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicEnumerateItemsQuery
-    IAsyncEnumerable<IContentItem> EnumerateAsync(CancellationToken cancellationToken)
+    DeliveryEnumeration<IContentItem> EnumerateAsync(CancellationToken cancellationToken)
     IDynamicEnumerateItemsQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
     IDynamicEnumerateItemsQuery WaitForLoadingNewContent(Boolean enabled)
     IDynamicEnumerateItemsQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
@@ -290,6 +319,7 @@ public interface IDynamicEnumerateItemsQuery
     IDynamicEnumerateItemsQuery WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
     IDynamicEnumerateItemsQuery WithoutElements(String[] elementCodenames)
     Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(String continuationToken, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicItemQuery
@@ -322,7 +352,7 @@ public interface IEmbeddedContent`1<TModel> : IContentItem, IContentItem<TModel>
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IEnumerateItemsQuery`1<TModel>
-    IAsyncEnumerable<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken)
+    DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken)
     IEnumerateItemsQuery<TModel> OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
     IEnumerateItemsQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
     IEnumerateItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
@@ -330,6 +360,7 @@ public interface IEnumerateItemsQuery`1<TModel>
     IEnumerateItemsQuery<TModel> WithLanguage(String languageCodename, LanguageFallbackMode languageFallbackMode)
     IEnumerateItemsQuery<TModel> WithoutElements(String[] elementCodenames)
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(String continuationToken, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IError
@@ -429,9 +460,11 @@ public interface IItemTypingStrategy
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IItemUsedInQuery
-    IAsyncEnumerable<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
+    DeliveryEnumeration<IUsedInItem> EnumerateAsync(CancellationToken cancellationToken)
     IItemUsedInQuery WaitForLoadingNewContent(Boolean enabled)
     IItemUsedInQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteAsync(String continuationToken, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IItemsFilterBuilder

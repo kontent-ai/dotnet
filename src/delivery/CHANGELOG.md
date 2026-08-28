@@ -8,6 +8,60 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **Feed and used-in enumeration surfaces a failed page instead of silently truncating.** `EnumerateAsync()` ended its loop when a page request failed and yielded nothing to say so, so an interrupted walk was indistinguishable from a finished one — an export or a search-index build could quietly persist a partial result. It now throws `DeliveryRequestException`, carrying the status code, the API's `IError` and the request ID.
+
+  This is the point of the change rather than a side effect: the defect could not be fixed without a behaviour break, because *not throwing* is precisely what was wrong. Code that relied on the documented graceful stop must now catch, or move to the single-request `ExecuteAsync`, which still reports failure as a value.
+
+- **`EnumerateAsync()` returns `DeliveryEnumeration<T>` rather than `IAsyncEnumerable<T>`.** `DeliveryEnumeration<T>` *is* an `IAsyncEnumerable<T>`, so `await foreach` over items is unchanged and only a recompile is needed. It additionally offers `AsPages(continuationToken)`, a page view that exposes the continuation token so a walk can be checkpointed and resumed — which no route could do before.
+
+- **`QueryEnumerationExtensions` is removed**, with all four `EnumerateItemsWithStatusAsync` overloads. It existed only because the item walk could not report failure, and that is now fixed at the source. The replacement is `EnumerateAsync().AsPages()` — but note this is not a rename: the element type changes from `IDeliveryResult<…>` to `DeliveryPage<T>`, and the `if (!result.IsSuccess)` branch becomes a `try`/`catch`.
+
+  ```csharp
+  // before
+  await foreach (var page in query.EnumerateItemsWithStatusAsync())
+  {
+      if (!page.IsSuccess) { Handle(page.Error); break; }
+      Process(page.Value.Items);
+  }
+
+  // after
+  try
+  {
+      await foreach (var page in query.EnumerateAsync().AsPages())
+      {
+          Process(page.Items);
+      }
+  }
+  catch (DeliveryRequestException ex) { Handle(ex); }
+  ```
+
+  The two used-in overloads also downcast to an internal interface and threw `NotSupportedException` for any query the SDK did not itself create; that wart goes with them.
+
+- **A failed walk no longer emits the `PaginationStoppedEarly` warning** (event ID `1051`, now retired). The exception thrown in its place carries strictly more — status code, the API's `IError`, request ID and request URL — and the caller's `catch` is where a failure belongs in the log rather than a warning the SDK emits on its way to throwing. Anyone alerting on event ID `1051` should move to the exception, or to `QueryFailed` — see below.
+
+### Added
+
+- **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.
+
+- **`ContinuationToken` on `IDeliveryItemsFeedResponse` and `IDeliveryItemsFeedResponse<T>`**, making the feed's result-based route resumable across a process restart, which `FetchNextPageAsync` cannot be. `HasNextPage` is unchanged and remains equivalent to the token being present.
+
+- **`ExecuteAsync()` on the used-in queries**, which previously had no single-request result-based route at all — only enumeration.
+
+- **`DeliveryEnumeration<T>`, `DeliveryPage<T>` and `DeliveryRequestException`.** `DeliveryEnumeration<T>.FromPages(...)` builds one over a fixed set of pages, for tests and fakes that no longer compile against the changed interfaces.
+
+- **The feed and used-in queries now log like every other query.** They were the only family that never adopted the shared query-logging helper, so a failed `GetItemsFeed(...)` or `GetItemUsedIn(...)` produced no log line at all, where `GetItem`, `GetItems`, `GetTypes` and the rest have always emitted `QueryStarting`, `QueryFailed` (at `Error`) and `QueryCompleted`. They now do too.
+
+  This reaches `FetchNextPageAsync()` as well: it issues one request, so it now emits the same bracket as `ExecuteAsync`. A manual page-by-page loop that previously logged only its first request will now log every one of them.
+
+  A walk is the exception, and deliberately so: it is bracketed once by `PaginationStarted`/`PaginationCompleted` rather than emitting a starting/completed pair per page, since a 500-page walk should not produce 1,000 log entries. A failed page still reports `QueryFailed`, so no request fails silently on any route.
+
+### Unchanged, deliberately
+
+- `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.
+- The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched. They carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
+
 ## 20.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Breaking changes

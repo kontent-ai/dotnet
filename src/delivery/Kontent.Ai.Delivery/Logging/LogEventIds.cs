@@ -23,14 +23,8 @@ internal static class LogEventIds
     /// <summary>Pagination enumeration started.</summary>
     public const int PaginationStarted = 1050;
 
-    /// <summary>Pagination stopped early due to error or null content.</summary>
-    public const int PaginationStoppedEarly = 1051;
-
     /// <summary>Pagination enumeration completed.</summary>
     public const int PaginationCompleted = 1052;
-
-    /// <summary>Items pagination progress update.</summary>
-    public const int ItemsPaginationProgress = 1053;
 
     // ========== Cache Operations (1100-1199) ==========
 

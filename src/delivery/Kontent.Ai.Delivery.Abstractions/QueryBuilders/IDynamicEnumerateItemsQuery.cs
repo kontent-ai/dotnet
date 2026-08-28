@@ -60,7 +60,8 @@ public interface IDynamicEnumerateItemsQuery
 
     /// <summary>
     /// Executes the query and returns the first page of items.
-    /// Use <see cref="IDeliveryItemsFeedResponse.FetchNextPageAsync"/> to retrieve subsequent pages.
+    /// Use <see cref="IDeliveryItemsFeedResponse.FetchNextPageAsync"/> to step to the next page, or
+    /// <see cref="ExecuteAsync(string, CancellationToken)"/> to resume from a persisted continuation token.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>
@@ -70,6 +71,14 @@ public interface IDynamicEnumerateItemsQuery
     Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Executes the query from a previously returned continuation token, resuming a walk rather than starting one.
+    /// </summary>
+    /// <param name="continuationToken">A token taken from <see cref="IDeliveryItemsFeedResponse.ContinuationToken"/>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The page following the one the token came from.</returns>
+    Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Enumerates content items using the Delivery API items-feed endpoint.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
@@ -77,5 +86,5 @@ public interface IDynamicEnumerateItemsQuery
     /// Async sequence of content items. Each item will be runtime-typed if a custom
     /// <see cref="ITypeProvider"/> is registered and provides a mapping.
     /// </returns>
-    IAsyncEnumerable<IContentItem> EnumerateAsync(CancellationToken cancellationToken = default);
+    DeliveryEnumeration<IContentItem> EnumerateAsync(CancellationToken cancellationToken = default);
 }
