@@ -30,16 +30,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByTypePagesAsync(Reference identifier, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByTypePageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        var typeSegment = identifier.ToUrlSegment();
-        return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => ManagementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
-            page => page.Variants,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.ListLanguageVariantsByTypeInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<LanguageVariantModel>
+            {
+                Items = page.Variants,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 
     /// <inheritdoc />
@@ -56,16 +56,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync(Reference identifier, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        var typeSegment = identifier.ToUrlSegment();
-        return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
-            page => page.Variants,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<LanguageVariantModel>
+            {
+                Items = page.Variants,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 
     /// <inheritdoc />
@@ -82,16 +82,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByCollectionPagesAsync(Reference identifier, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByCollectionPageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        var collectionSegment = identifier.ToUrlSegment();
-        return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => ManagementApi.ListLanguageVariantsByCollectionInternalAsync(collectionSegment, token, ct),
-            page => page.Variants,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.ListLanguageVariantsByCollectionInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<LanguageVariantModel>
+            {
+                Items = page.Variants,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 
     /// <inheritdoc />
@@ -108,16 +108,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsBySpacePagesAsync(Reference identifier, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsBySpacePageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
 
-        var spaceSegment = identifier.ToUrlSegment();
-        return PageEnumerator.EnumerateAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
-            (token, ct) => ManagementApi.ListLanguageVariantsBySpaceInternalAsync(spaceSegment, token, ct),
-            page => page.Variants,
-            page => page.Pagination?.Token,
-            cancellationToken);
+        return ManagementApi.ListLanguageVariantsBySpaceInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<LanguageVariantModel>
+            {
+                Items = page.Variants,
+                ContinuationToken = page.Pagination?.Token,
+            });
     }
 
     /// <inheritdoc />

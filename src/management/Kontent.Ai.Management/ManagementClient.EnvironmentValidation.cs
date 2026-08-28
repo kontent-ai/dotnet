@@ -31,4 +31,13 @@ public partial class ManagementClient
             page => page.Issues,
             page => page.Pagination?.Token,
             cancellationToken);
+
+    /// <inheritdoc />
+    public Task<IManagementResult<ListingPage<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesPageAsync(Guid taskId, string? continuationToken = null, CancellationToken cancellationToken = default)
+        => ManagementApi.ListAsyncValidationTaskIssuesInternalAsync(taskId, continuationToken, cancellationToken)
+            .ToManagementResultAsync(page => new ListingPage<AsyncValidationTaskIssueModel>
+            {
+                Items = page.Issues,
+                ContinuationToken = page.Pagination?.Token,
+            });
 }

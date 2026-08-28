@@ -11,14 +11,6 @@ public interface IError
 
 // Kontent.Ai.Management
 public interface IManagementClient
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> EnumerateItemsWithVariantsByBulkGetPagesAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> EnumerateItemsWithVariantsByFilterPagesAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByCollectionPagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsBySpacePagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByTypePagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync(Reference identifier, CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> CreateAssetFoldersAsync(AssetFolderCreateModel folders, CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> GetAssetFoldersAsync(CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> ModifyAssetFoldersAsync(IEnumerable<AssetFolderOperationBaseModel> changes, CancellationToken cancellationToken)
@@ -82,6 +74,15 @@ public interface IManagementClient
     Task<IManagementResult<LanguageVariantModel>> GetLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetPublishedLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(LanguageVariantIdentifier identifier, LanguageVariantUpsertModel languageVariantUpsertModel, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<AssetModel>>> ListAssetsPageAsync(String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesPageAsync(Guid taskId, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ContentItemModel>>> ListContentItemsPageAsync(String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByCollectionPageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsBySpacePageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByTypePageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
     Task<IManagementResult<PreviewConfigurationModel>> GetPreviewConfigurationAsync(CancellationToken cancellationToken)
     Task<IManagementResult<PreviewConfigurationModel>> UpdatePreviewConfigurationAsync(PreviewConfigurationModel previewConfiguration, CancellationToken cancellationToken)
     Task<IManagementResult<SpaceModel>> CreateSpaceAsync(SpaceCreateModel space, CancellationToken cancellationToken)
@@ -142,14 +143,6 @@ public interface IManagementResult`1<T> : IManagementResult
 // Kontent.Ai.Management
 public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagementClient
     .ctor(ManagementOptions managementOptions)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> EnumerateItemsWithVariantsByBulkGetPagesAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> EnumerateItemsWithVariantsByFilterPagesAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByCollectionPagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsBySpacePagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByTypePagesAsync(Reference identifier, CancellationToken cancellationToken)
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync(Reference identifier, CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> CreateAssetFoldersAsync(AssetFolderCreateModel folders, CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> GetAssetFoldersAsync(CancellationToken cancellationToken)
     Task<IManagementResult<AssetFoldersModel>> ModifyAssetFoldersAsync(IEnumerable<AssetFolderOperationBaseModel> changes, CancellationToken cancellationToken)
@@ -213,6 +206,15 @@ public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagemen
     Task<IManagementResult<LanguageVariantModel>> GetLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> GetPublishedLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     Task<IManagementResult<LanguageVariantModel>> UpsertLanguageVariantAsync(LanguageVariantIdentifier identifier, LanguageVariantUpsertModel languageVariantUpsertModel, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<AssetModel>>> ListAssetsPageAsync(String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesPageAsync(Guid taskId, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ContentItemModel>>> ListContentItemsPageAsync(String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByCollectionPageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsBySpacePageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByTypePageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync(Reference identifier, String? continuationToken, CancellationToken cancellationToken)
     Task<IManagementResult<PreviewConfigurationModel>> GetPreviewConfigurationAsync(CancellationToken cancellationToken)
     Task<IManagementResult<PreviewConfigurationModel>> UpdatePreviewConfigurationAsync(PreviewConfigurationModel previewConfiguration, CancellationToken cancellationToken)
     Task<IManagementResult<SpaceModel>> CreateSpaceAsync(SpaceCreateModel space, CancellationToken cancellationToken)
@@ -1834,6 +1836,17 @@ public sealed class ElementIssue : IEquatable<ElementIssue>
     Boolean Equals(Object? obj)
     ElementIssue <Clone>$()
     Int32 GetHashCode()
+    String ToString()
+
+// Kontent.Ai.Management.Models.Shared
+public sealed class ListingPage`1<T> : IEquatable<ListingPage<T>>
+    .ctor()
+    String? ContinuationToken { get; init; }
+    required IReadOnlyList<T> Items { get; init; }
+    Boolean Equals(ListingPage<T>? other)
+    Boolean Equals(Object? obj)
+    Int32 GetHashCode()
+    ListingPage<T> <Clone>$()
     String ToString()
 
 // Kontent.Ai.Management.Models.Shared

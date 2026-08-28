@@ -62,12 +62,13 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<AssetModel>>> ListAssetsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the assets one continuation-token page at a time, for environments too large to materialize in one list.
-    /// Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the assets, for environments too large to materialize in one list. Pass the previous page's
+    /// <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's assets on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<AssetModel>>> EnumerateAssetPagesAsync(CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of assets and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<AssetModel>>> ListAssetsPageAsync(string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the asset.
@@ -188,12 +189,13 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<ContentItemModel>>> ListContentItemsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the environment's content items one continuation-token page at a time, for environments too large to
-    /// materialize in one list. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the environment's content items, for environments too large to materialize in one list. Pass
+    /// the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's content items on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemModel>>> EnumerateContentItemPagesAsync(CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of content items and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<ContentItemModel>>> ListContentItemsPageAsync(string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the content item.
@@ -455,6 +457,17 @@ public interface IManagementClient
     /// <returns>A result wrapping all issues on success, or the first failed page's detail.</returns>
     Task<IManagementResult<IReadOnlyList<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesAsync(Guid taskId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists one page of an asynchronous validation task's issues, for tasks reporting more issues than is practical
+    /// to materialize (they scale as items x variants x elements). Pass the previous page's
+    /// <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
+    /// </summary>
+    /// <param name="taskId">The identifier of the validation task.</param>
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of issues and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesPageAsync(Guid taskId, string? continuationToken = null, CancellationToken cancellationToken = default);
+
     /// <summary>Lists all filtered item variant references.</summary>
     /// <param name="filterRequest">The filter request containing filters and ordering options.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
@@ -462,13 +475,15 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams filtered item variant references one continuation-token page at a time, for filters matching more
-    /// results than is practical to materialize. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of filtered item variant references, for filters matching more results than is practical to
+    /// materialize. Pass the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page;
+    /// a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="filterRequest">The filter request containing filters and ordering options.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's filtered variant references on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> EnumerateItemsWithVariantsByFilterPagesAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of filtered variant references and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>Lists all content items with their language variants.</summary>
     /// <param name="bulkGetRequest">The bulk-get request containing variant identifiers.</param>
@@ -477,13 +492,15 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams content items with their language variants one continuation-token page at a time, for bulk-get requests
-    /// matching more results than is practical to materialize. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of content items with their language variants, for bulk-get requests matching more results than
+    /// is practical to materialize. Pass the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch
+    /// the next page; a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="bulkGetRequest">The bulk-get request containing variant identifiers.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's content items with variants on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> EnumerateItemsWithVariantsByBulkGetPagesAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of content items with variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lists all languages.
@@ -532,13 +549,14 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsByTypeAsync(Reference identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the content type's language variants one continuation-token page at a time, for environments too large to materialize
-    /// in one list. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the content type's language variants, for environments too large to materialize in one list. Pass the
+    /// previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="identifier">The identifier of the content type.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's language variants on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByTypePagesAsync(Reference identifier, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByTypePageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>Lists all language variants containing components for the specified content type.</summary>
     /// <param name="identifier">The identifier of the content type.</param>
@@ -547,13 +565,14 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsAsync(Reference identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the content type's component-containing language variants one continuation-token page at a time, for environments too large to materialize
-    /// in one list. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the content type's component-containing language variants, for environments too large to materialize in one list. Pass the
+    /// previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="identifier">The identifier of the content type.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's language variants on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync(Reference identifier, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>Lists all language variants for the specified collection.</summary>
     /// <param name="identifier">The identifier of the collection.</param>
@@ -562,13 +581,14 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsByCollectionAsync(Reference identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the collection's language variants one continuation-token page at a time, for environments too large to materialize
-    /// in one list. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the collection's language variants, for environments too large to materialize in one list. Pass the
+    /// previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="identifier">The identifier of the collection.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's language variants on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsByCollectionPagesAsync(Reference identifier, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByCollectionPageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>Lists all language variants for the specified space.</summary>
     /// <param name="identifier">The identifier of the space.</param>
@@ -577,13 +597,14 @@ public interface IManagementClient
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsBySpaceAsync(Reference identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Streams the space's language variants one continuation-token page at a time, for environments too large to materialize
-    /// in one list. Each iteration is one HTTP request; a failed page is yielded as a failed result and ends the stream.
+    /// Lists one page of the space's language variants, for environments too large to materialize in one list. Pass the
+    /// previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token means the last page.
     /// </summary>
     /// <param name="identifier">The identifier of the space.</param>
-    /// <param name="cancellationToken">Token to cancel the enumeration.</param>
-    /// <returns>An async stream of pages; each yields one page's language variants on success, or that page's failure detail.</returns>
-    IAsyncEnumerable<IManagementResult<IReadOnlyList<LanguageVariantModel>>> EnumerateLanguageVariantsBySpacePagesAsync(Reference identifier, CancellationToken cancellationToken = default);
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsBySpacePageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Returns the language variant, with untyped element values.

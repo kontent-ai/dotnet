@@ -6,6 +6,47 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **The `Enumerate…PagesAsync` page streams are replaced by `List…PageAsync` single-page calls.** The streams returned `IAsyncEnumerable<IManagementResult<IReadOnlyList<T>>>` — three wrappers to unpack before reaching an item, which meant they delivered none of what an async stream is normally reached for: you could not `await foreach` over the items, and LINQ operated on page results rather than content. The failure signal also arrived per element, so a loop body that skipped `IsSuccess` hit the failed page's `null` value instead of the error.
+
+  Each stream is replaced by a call that fetches exactly one page and hands back the continuation token:
+
+  ```csharp
+  string? continuationToken = null;
+  do
+  {
+      var page = (await client.ListContentItemsPageAsync(continuationToken)).EnsureSuccess();
+      Process(page.Items);
+      continuationToken = page.ContinuationToken;
+  }
+  while (continuationToken is not null);
+  ```
+
+  One call is one result, exactly like every other method on the client. Surfacing the token also makes an interrupted walk **recoverable**, which the stream was not. Resilience retries a `429` three times with backoff, but a sustained rate limit — the failure a bulk walk over a large environment actually provokes — outlives that and surfaces as a failure. The stream ended there and gave back no token, so the only way on was to re-enumerate from the first page, re-issuing every request that had already succeeded against the very limit that stopped it. Holding the last successful page's token turns that into one request.
+
+  | Removed | Replacement |
+  |---|---|
+  | `EnumerateAssetPagesAsync` | `ListAssetsPageAsync` |
+  | `EnumerateContentItemPagesAsync` | `ListContentItemsPageAsync` |
+  | `EnumerateItemsWithVariantsByFilterPagesAsync` | `ListItemsWithVariantsByFilterPageAsync` |
+  | `EnumerateItemsWithVariantsByBulkGetPagesAsync` | `ListItemsWithVariantsByBulkGetPageAsync` |
+  | `EnumerateLanguageVariantsByTypePagesAsync` | `ListLanguageVariantsByTypePageAsync` |
+  | `EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync` | `ListLanguageVariantsOfContentTypeWithComponentsPageAsync` |
+  | `EnumerateLanguageVariantsByCollectionPagesAsync` | `ListLanguageVariantsByCollectionPageAsync` |
+  | `EnumerateLanguageVariantsBySpacePagesAsync` | `ListLanguageVariantsBySpacePageAsync` |
+
+  The materialized `List…Async` methods are unchanged, and remain the right default.
+
+### Added
+
+- **A page call for the async validation task issues.** `ListAsyncValidationTaskIssuesPageAsync` joins the materialized `ListAsyncValidationTaskIssuesAsync`. This is the listing that scales hardest — a task over a broken environment reports issues proportional to items × variants × elements — and it was the one unbounded listing with no paged access at all, while narrower ones (the variant listings, assets, items) already had it.
+- **`ListingPage<T>`**, the page a `List…PageAsync` call returns: the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page).
+
+### Fixed
+
+- **The paging helper no longer reads a continuation token off a disposed response.** Mapping a page to a result disposes the underlying Refit response; the walker then read the next token from it. The value survived because Refit buffers the body, but the ordering was load-bearing and invisible at the call site. The token is now read before the response is mapped. No behavior change.
+
 ## 9.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Breaking changes

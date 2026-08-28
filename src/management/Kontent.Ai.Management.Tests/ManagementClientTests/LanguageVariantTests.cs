@@ -349,7 +349,7 @@ public class LanguageVariantTests
     }
 
     [Fact]
-    public async Task EnumerateLanguageVariantsByTypePagesAsync_StreamsAllPages()
+    public async Task ListLanguageVariantsByTypePageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("LanguageVariantsPage1.json");
@@ -359,22 +359,25 @@ public class LanguageVariantTests
         var identifier = Reference.ById(Guid.Parse("17ff8a28-ebe6-5c9d-95ea-18fe1ff86d2d"));
         var url = $"{MockClientFactory.BaseUrl}/types/{identifier.Id}/variants";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page3);
 
         var variants = new List<LanguageVariantModel>();
-        await foreach (var page in client.EnumerateLanguageVariantsByTypePagesAsync(identifier))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            variants.AddRange(page.Value);
+            var page = (await client.ListLanguageVariantsByTypePageAsync(identifier, continuationToken)).EnsureSuccess();
+            variants.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         variants.ShouldEqualAsJson(ConcatPages<LanguageVariantModel>(page1, page2, page3));
     }
 
     [Fact]
-    public async Task EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync_StreamsAllPages()
+    public async Task ListLanguageVariantsOfContentTypeWithComponentsPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("LanguageVariantsPage1.json");
@@ -384,22 +387,25 @@ public class LanguageVariantTests
         var identifier = Reference.ById(Guid.Parse("17ff8a28-ebe6-5c9d-95ea-18fe1ff86d2d"));
         var url = $"{MockClientFactory.BaseUrl}/types/{identifier.Id}/components";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page3);
 
         var variants = new List<LanguageVariantModel>();
-        await foreach (var page in client.EnumerateLanguageVariantsOfContentTypeWithComponentsPagesAsync(identifier))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            variants.AddRange(page.Value);
+            var page = (await client.ListLanguageVariantsOfContentTypeWithComponentsPageAsync(identifier, continuationToken)).EnsureSuccess();
+            variants.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         variants.ShouldEqualAsJson(ConcatPages<LanguageVariantModel>(page1, page2, page3));
     }
 
     [Fact]
-    public async Task EnumerateLanguageVariantsByCollectionPagesAsync_StreamsAllPages()
+    public async Task ListLanguageVariantsByCollectionPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("LanguageVariantsPage1.json");
@@ -409,22 +415,25 @@ public class LanguageVariantTests
         var identifier = Reference.ById(Guid.Parse("17ff8a28-ebe6-5c9d-95ea-18fe1ff86d2d"));
         var url = $"{MockClientFactory.BaseUrl}/collections/{identifier.Id}/variants";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page3);
 
         var variants = new List<LanguageVariantModel>();
-        await foreach (var page in client.EnumerateLanguageVariantsByCollectionPagesAsync(identifier))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            variants.AddRange(page.Value);
+            var page = (await client.ListLanguageVariantsByCollectionPageAsync(identifier, continuationToken)).EnsureSuccess();
+            variants.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         variants.ShouldEqualAsJson(ConcatPages<LanguageVariantModel>(page1, page2, page3));
     }
 
     [Fact]
-    public async Task EnumerateLanguageVariantsBySpacePagesAsync_StreamsAllPages()
+    public async Task ListLanguageVariantsBySpacePageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("LanguageVariantsPage1.json");
@@ -434,15 +443,18 @@ public class LanguageVariantTests
         var identifier = Reference.ById(Guid.Parse("17ff8a28-ebe6-5c9d-95ea-18fe1ff86d2d"));
         var url = $"{MockClientFactory.BaseUrl}/spaces/{identifier.Id}/variants";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "+RID:~...").Respond("application/json", page3);
 
         var variants = new List<LanguageVariantModel>();
-        await foreach (var page in client.EnumerateLanguageVariantsBySpacePagesAsync(identifier))
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            variants.AddRange(page.Value);
+            var page = (await client.ListLanguageVariantsBySpacePageAsync(identifier, continuationToken)).EnsureSuccess();
+            variants.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         variants.ShouldEqualAsJson(ConcatPages<LanguageVariantModel>(page1, page2, page3));

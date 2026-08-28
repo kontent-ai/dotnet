@@ -45,7 +45,23 @@ public class AssetTests
     }
 
     [Fact]
-    public async Task EnumerateAssetPagesAsync_StreamsAllPages()
+    public async Task ListAssetsPageAsync_ReturnsTheFirstPageAndItsToken()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        var page1 = Fixture("AssetsPage1.json");
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/assets")
+            .Respond("application/json", page1);
+
+        var result = await client.ListAssetsPageAsync();
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Items.ShouldEqualAsJson(ConcatPages<AssetModel>(page1));
+        result.Value.ContinuationToken.Should().Be("asset-page-2-token");
+    }
+
+    [Fact]
+    public async Task ListAssetsPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var page1 = Fixture("AssetsPage1.json");
@@ -53,15 +69,18 @@ public class AssetTests
         var page3 = Fixture("AssetsPage3.json");
         var url = $"{MockClientFactory.BaseUrl}/assets";
         mock.Expect(HttpMethod.Get, url).Respond("application/json", page1);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page2);
-        mock.Expect(HttpMethod.Get, url).Respond("application/json", page3);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "asset-page-2-token").Respond("application/json", page2);
+        mock.Expect(HttpMethod.Get, url).WithHeaders("x-continuation", "asset-page-3-token").Respond("application/json", page3);
 
         var assets = new List<AssetModel>();
-        await foreach (var page in client.EnumerateAssetPagesAsync())
+        string? continuationToken = null;
+        do
         {
-            page.IsSuccess.Should().BeTrue();
-            assets.AddRange(page.Value);
+            var page = (await client.ListAssetsPageAsync(continuationToken)).EnsureSuccess();
+            assets.AddRange(page.Items);
+            continuationToken = page.ContinuationToken;
         }
+        while (continuationToken is not null);
 
         mock.VerifyNoOutstandingExpectation();
         assets.ShouldEqualAsJson(ConcatPages<AssetModel>(page1, page2, page3));

@@ -35,7 +35,7 @@ dotnet add package Kontent.Ai.Management --prerelease
 | Error handling | Breaking | Methods no longer throw `ManagementException` on `4xx`/`5xx`. Every method returns `IManagementResult` / `IManagementResult<T>` — inspect `IsSuccess` / `Value` / `Error`. |
 | Serialization | Breaking | Newtonsoft.Json replaced by `System.Text.Json`. Custom `JsonConverter`s and `[JsonProperty]` usage against SDK models no longer apply. |
 | Transport | Mostly internal | Hand-rolled HTTP (`ActionInvoker` / `ManagementHttpClient` / `EndpointUrlBuilder`) replaced by a Refit interface. Visible only if you customized the HTTP layer. |
-| Listings | Breaking | `IListingResponseModel<T>` with `HasNextPage()` / `GetNextPage()` / `GetAllAsync()` replaced by materialized `List…Async` methods, plus a streaming `Enumerate…PagesAsync` option for large continuation-paged sets. |
+| Listings | Breaking | `IListingResponseModel<T>` with `HasNextPage()` / `GetNextPage()` / `GetAllAsync()` replaced by materialized `List…Async` methods, plus a `List…PageAsync` single-page option for large continuation-paged sets. |
 | Strongly-typed models | Breaking | Element properties are plain values or `*Value` records (e.g. `string Title`, `RichTextValue Content`) instead of mutable element wrappers (`TextElement { Value }`). Models are immutable records. |
 | Method names | Breaking | A focused set of renames — `Modify…` now consistently means PATCH, so the PUT-based ones became `Update…`; see [§10.1](#10-model-and-dto-changes). |
 | Untyped element authoring | Breaking | `ElementBuilder.GetElementsAsDynamic(...)` and anonymous `dynamic[]` removed. Author with typed `BaseElement` records; `DynamicElement` is the escape hatch. |
@@ -54,7 +54,7 @@ The package name is unchanged — `Kontent.Ai.Management`. The modernized API is
 - [ ] Update the package with `--prerelease`.
 - [ ] Replace every `try { … } catch (ManagementException)` around a client call with an `if (!result.IsSuccess)` branch on the returned result (or opt into `EnsureSuccess()` / `TryGetValue(...)`).
 - [ ] Update content access from `response.Property` to `result.Value.Property`.
-- [ ] Replace listing paging loops (`HasNextPage()` / `GetNextPage()` / `GetAllAsync()`) with a single `List…Async` call, or `Enumerate…PagesAsync` for large sets.
+- [ ] Replace listing paging loops (`HasNextPage()` / `GetNextPage()` / `GetAllAsync()`) with a single `List…Async` call, or `List…PageAsync` for large sets.
 - [ ] Regenerate or hand-update strongly-typed models: element properties are now plain values / `*Value` records, and the model is an immutable record.
 - [ ] Replace `ElementBuilder.GetElementsAsDynamic(...)` and `dynamic[]` element arrays with typed `BaseElement` records (or `DynamicElement` for unmodeled kinds).
 - [ ] Replace hand-written rich-text component placeholders with `RichTextBuilder`.
@@ -259,27 +259,33 @@ foreach (var item in result.Value)   // result.Value is IReadOnlyList<ContentIte
 
 `List…Async` walks every page, merges them, and returns the whole set in one result. It is **all-or-nothing**: if any page fails, that first failure short-circuits and is returned, so you never get a silently truncated set.
 
-### 3.1 Streaming large listings
+### 3.1 Walking large listings a page at a time
 
-The endpoints whose results can grow large — content items, assets, the items-with-variants filter / bulk-get, and the language-variant listings by type, collection, and space — expose an `Enumerate…PagesAsync` overload that streams one continuation-token page at a time (and lets you stop early), replacing the old manual `GetNextPage()` loop where memory matters:
+The endpoints whose results can grow large — content items, assets, the items-with-variants filter / bulk-get, the language-variant listings by type, collection, and space, and an async validation task's issues — expose a `List…PageAsync` overload that fetches one continuation-token page, replacing the old manual `GetNextPage()` loop where memory matters. It returns a `ListingPage<T>` carrying the page's `Items` and the `ContinuationToken` for the next page (`null` on the last):
 
 ```csharp
-await foreach (var page in client.EnumerateContentItemPagesAsync())
+string? continuationToken = null;
+
+do
 {
-    if (!page.IsSuccess)
+    var result = await client.ListContentItemsPageAsync(continuationToken);
+    if (!result.IsSuccess)
     {
-        Console.WriteLine($"A page failed: {page.Error?.Message}");
+        Console.WriteLine($"A page failed: {result.Error?.Message}");
         break;
     }
 
-    foreach (var item in page.Value)   // one page's worth
+    foreach (var item in result.Value.Items)   // one page's worth
     {
         Console.WriteLine(item.Name);
     }
+
+    continuationToken = result.Value.ContinuationToken;
 }
+while (continuationToken is not null);
 ```
 
-The next page is fetched only when you iterate past the current one. Reach for this only when a listing is genuinely large; everywhere else, `List…Async` is simpler.
+The token is yours to keep, so a walk can be persisted and resumed rather than restarted. Reach for this only when a listing is genuinely large; everywhere else, `List…Async` is simpler.
 
 ---
 
@@ -598,7 +604,7 @@ The highlights you're most likely to hit:
 | `ManagementException` as control flow (thrown on `4xx`/`5xx`) | Result pattern — `IsSuccess` / `Value` / `Error`. `EnsureSuccess()` opts back into throwing ([§2](#2-response-handling-exceptions--result-pattern)). |
 | `ElementBuilder.GetElementsAsDynamic(...)` | Typed `IReadOnlyList<BaseElement>`; `DynamicElement` for unmodeled kinds ([§5](#5-authoring-elements-without-a-generated-model)). |
 | Anonymous `dynamic[]` element arrays | Same as above. |
-| `IListingResponseModel<T>.HasNextPage()` / `GetNextPage()` / `GetAllAsync()` | Materialized `List…Async` + streaming `Enumerate…PagesAsync` ([§3](#3-listings-manual-paging--materialized-results)). |
+| `IListingResponseModel<T>.HasNextPage()` / `GetNextPage()` / `GetAllAsync()` | Materialized `List…Async` + single-page `List…PageAsync` ([§3](#3-listings-manual-paging--materialized-results)). |
 | Generic `AssetCreateModel<T>` | Non-generic `AssetCreateModel` with typed `Elements` ([§7](#7-assets)). |
 | Newtonsoft.Json (custom converters, `[JsonProperty]`) | `System.Text.Json` ([§8](#8-serialization-newtonsoft--systemtextjson)). |
 | Web Spotlight activation: `ActivateWebSpotlightAsync`, `DeactivateWebSpotlightAsync`, `GetWebSpotlightStatusAsync`, `WebSpotlightModel`, `WebSpotlightActivateModel` | Live preview (preview-configuration endpoints). The `root_item` field on Spaces is retained. |
@@ -619,7 +625,7 @@ Content moved behind the result: `result.Value.…`. For strongly-typed variants
 Build a typed `BaseElement[]` and assign it to `LanguageVariantUpsertModel.Elements` directly; use `DynamicElement` for kinds the SDK doesn't model ([§5](#5-authoring-elements-without-a-generated-model)).
 
 **`HasNextPage()` / `GetNextPage()` / `GetAllAsync()` are gone.**
-`List…Async` returns the whole set already merged. For large sets, stream pages with `Enumerate…PagesAsync` ([§3](#3-listings-manual-paging--materialized-results)).
+`List…Async` returns the whole set already merged. For large sets, walk pages with `List…PageAsync` ([§3](#3-listings-manual-paging--materialized-results)).
 
 **"Required member must be set" on an object initializer.**
 The DTO modernization added `required` to properties the API always demands. Set them — the compiler lists exactly which ([§10](#10-model-and-dto-changes)).
