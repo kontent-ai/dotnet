@@ -1,6 +1,9 @@
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Conversion;
+using Kontent.Ai.Management.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using RichardSzalay.MockHttp;
 using System.Net;
 
@@ -8,8 +11,9 @@ namespace Kontent.Ai.Management.Tests.Base;
 
 /// <summary>
 /// Builds an <see cref="IManagementClient"/> whose Refit transport is backed by a
-/// <see cref="MockHttpMessageHandler"/>, wired in as the inner handler through <see cref="ManagementApiFactory"/>,
-/// so tests arrange responses and assert outgoing requests via MockHttp's fluent API. Supply a pre-registered
+/// <see cref="MockHttpMessageHandler"/>, installed as the primary handler through the same registration
+/// the SDK uses, so tests arrange responses and assert outgoing requests via MockHttp's fluent API.
+/// Resilience is switched off explicitly: a fixture answering 5xx must fail the call, not be retried. Supply a pre-registered
 /// <c>converter</c> for strongly-typed variant paths: the client's own converter would otherwise
 /// auto-scan the whole test assembly and trip the intentional codename collision among the test fixtures.
 /// </summary>
@@ -28,17 +32,36 @@ internal static class MockClientFactory
     public static (IManagementClient Client, MockHttpMessageHandler Mock) Create(ContentItemEnvelopeConverter? converter = null)
     {
         var mock = new MockHttpMessageHandler();
-        var options = new ManagementOptions
+        var (managementApi, subscriptionApi, owned) = CreateApis(mock);
+        var client = new ManagementClient(managementApi, subscriptionApi, owned, converter);
+        return (client, mock);
+    }
+
+    /// <summary>
+    /// Runs the SDK's registration in a private container with <paramref name="primaryHandler"/> as the
+    /// innermost handler, and draws the configured scopes' Refit clients from it.
+    /// </summary>
+    public static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) CreateApis(
+        HttpMessageHandler primaryHandler,
+        ManagementOptions? options = null)
+    {
+        options ??= new ManagementOptions
         {
             ApiKey = "Dummy_API_key",
             EnvironmentId = EnvironmentId,
             SubscriptionId = SubscriptionId,
         };
+        options.EnableResilience = false;
 
-        var managementApi = ManagementApiFactory.Create(options, mock);
-        var subscriptionApi = ManagementApiFactory.CreateSubscription(options, mock);
-        var client = new ManagementClient(managementApi, subscriptionApi, contentConverter: converter);
-        return (client, mock);
+        var services = new ServiceCollection();
+        services.AddManagementClient(
+            options,
+            configureHttpClient: http => http.ConfigurePrimaryHttpMessageHandler(() => primaryHandler));
+
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        return ServiceCollectionExtensions.CreateOwnedApis(provider, NamedClients.Default);
     }
 
     // Doc-sample helpers. Samples don't assert the outgoing request — they just need the call to return a canned
@@ -59,15 +82,8 @@ internal static class MockClientFactory
             return response;
         });
 
-        var options = new ManagementOptions
-        {
-            ApiKey = "Dummy_API_key",
-            EnvironmentId = EnvironmentId,
-            SubscriptionId = SubscriptionId,
-        };
-        return new ManagementClient(
-            ManagementApiFactory.Create(options, mock),
-            ManagementApiFactory.CreateSubscription(options, mock));
+        var (managementApi, subscriptionApi, owned) = CreateApis(mock);
+        return new ManagementClient(managementApi, subscriptionApi, owned);
     }
 
     private static string SamplePath(string folder, string file)

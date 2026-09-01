@@ -291,7 +291,7 @@ public static partial class ServiceCollectionExtensions
         RegisterRefitClient<IManagementApi>(
             services,
             name,
-            $"{ManagementHttpClientPrefix}{name}",
+            EnvironmentHttpClientName(name),
             o => o.EnvironmentScopePath(),
             refitSettings,
             configureHttpClient,
@@ -300,7 +300,7 @@ public static partial class ServiceCollectionExtensions
         RegisterRefitClient<ISubscriptionApi>(
             services,
             name,
-            $"{SubscriptionHttpClientPrefix}{name}",
+            SubscriptionHttpClientName(name),
             o => o.SubscriptionScopePath(),
             refitSettings,
             configureHttpClient,
@@ -331,5 +331,9 @@ public static partial class ServiceCollectionExtensions
             : null;
         return new ManagementClient(managementApi, subscriptionApi);
     }
+
+    private static string EnvironmentHttpClientName(string name) => $"{ManagementHttpClientPrefix}{name}";
+
+    private static string SubscriptionHttpClientName(string name) => $"{SubscriptionHttpClientPrefix}{name}";
 
 }

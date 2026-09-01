@@ -1,6 +1,7 @@
 using System.Net;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Common;
+using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,10 +40,55 @@ public static partial class ServiceCollectionExtensions
         configureHttpClient?.Invoke(httpClientBuilder);
 
         services.AddKeyedTransient<T>(clientName, (sp, _) =>
+            CreateApi<T>(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName), refitSettings));
+    }
+
+    private static T CreateApi<T>(HttpClient httpClient, RefitSettings refitSettings) where T : class
+        => RestService.For<T>(httpClient, refitSettings);
+
+    /// <summary>
+    /// Builds the API clients a standalone <see cref="ManagementClient"/> owns: the same registration the
+    /// container path runs, drawn from a provider the caller assembled. Each scope's <see cref="HttpClient"/>
+    /// is created only when its identifier is configured, as the container path resolves them. Takes
+    /// ownership of <paramref name="provider"/> even when construction fails.
+    /// </summary>
+    internal static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) CreateOwnedApis(
+        ServiceProvider provider,
+        string name)
+    {
+        try
         {
-            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName);
-            return RestService.For<T>(httpClient, refitSettings);
-        });
+            var options = provider.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(name);
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
+            var owned = new List<IDisposable>(3);
+
+            IManagementApi? api = null;
+            if (options.HasEnvironmentId())
+            {
+                var httpClient = httpClientFactory.CreateClient(EnvironmentHttpClientName(name));
+                owned.Add(httpClient);
+                api = CreateApi<IManagementApi>(httpClient, refitSettings);
+            }
+
+            ISubscriptionApi? subscriptionApi = null;
+            if (options.HasSubscriptionId())
+            {
+                var httpClient = httpClientFactory.CreateClient(SubscriptionHttpClientName(name));
+                owned.Add(httpClient);
+                subscriptionApi = CreateApi<ISubscriptionApi>(httpClient, refitSettings);
+            }
+
+            // The HttpClients before the provider: a request after disposal then fails at once, whatever
+            // the factory-owned handlers behind them are still doing.
+            owned.Add(provider);
+            return (api, subscriptionApi, new CompositeDisposable([.. owned]));
+        }
+        catch
+        {
+            provider.Dispose();
+            throw;
+        }
     }
 
     private static void ConfigureResilienceHandler(

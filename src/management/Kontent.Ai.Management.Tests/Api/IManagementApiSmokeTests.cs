@@ -3,6 +3,7 @@ using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Models.Spaces;
 using Kontent.Ai.Management.Models.Spaces.Patch;
+using Kontent.Ai.Management.Tests.Base;
 using System.Net;
 
 namespace Kontent.Ai.Management.Tests.Api;
@@ -37,8 +38,8 @@ public class IManagementApiSmokeTests
     private static (IManagementApi api, CapturingHandler handler) CreateApi(string responseBody = "{}")
     {
         var handler = new CapturingHandler(responseBody);
-        var api = ManagementApiFactory.Create(new ManagementOptions { ApiKey = ApiKey, EnvironmentId = EnvironmentId }, handler);
-        return (api, handler);
+        var (api, _, _) = MockClientFactory.CreateApis(handler, new ManagementOptions { ApiKey = ApiKey, EnvironmentId = EnvironmentId });
+        return (api!, handler);
     }
 
     [Fact]
