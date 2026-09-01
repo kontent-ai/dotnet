@@ -20,15 +20,12 @@ internal sealed class RichTextParser(
     /// <summary>
     /// Converts a rich text element to structured content.
     /// </summary>
-    internal async Task<IRichTextContent?> ConvertAsync<TElement>(
-        TElement contentElement,
+    internal async Task<IRichTextContent> ConvertAsync(
+        IRichTextElementValue element,
         Func<string, Task<object?>> getLinkedItem,
         DependencyTrackingContext? dependencyContext,
-        CancellationToken cancellationToken = default) where TElement : IContentElementValue<string>
+        CancellationToken cancellationToken = default)
     {
-        if (contentElement is not IRichTextElementValue element)
-            return null;
-
         using var document = await parser.ParseDocumentAsync(element.Value, cancellationToken).ConfigureAwait(false);
 
         if (document.Body is null)
@@ -52,7 +49,7 @@ internal sealed class RichTextParser(
                 blocks.Add(block);
         }
 
-        return new RichTextContent(blocks, element.Links, element.Images, element.ModularContent);
+        return new RichTextContent(blocks);
     }
 
     private async Task<IRichTextBlock?> ParseNodeAsync(

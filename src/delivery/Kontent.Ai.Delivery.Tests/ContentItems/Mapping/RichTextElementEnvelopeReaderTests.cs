@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Kontent.Ai.Delivery.ContentItems.Elements;
-using Kontent.Ai.Delivery.ContentItems.RichText;
 
 namespace Kontent.Ai.Delivery.Tests.ContentItems.Mapping;
 
@@ -55,15 +54,17 @@ public sealed class RichTextElementEnvelopeReaderTests
     }
 
     [Fact]
-    public async Task ParseRichTextAsync_UsesSharedEnvelopeReader_ParityForMetadata()
+    public async Task ParseRichTextAsync_BakesEnvelopeMetadataIntoTheBlocks()
     {
+        // The envelope's images and links reach resolution per block, baked in at parse time - the
+        // container carries no second copy of them.
         using var doc = JsonDocument.Parse(
             """
             {
               "type": "rich_text",
               "name": "Body Copy",
               "codename": "body_copy",
-              "value": "<p>Hello world</p>",
+              "value": "<figure data-asset-id=\"11111111-1111-1111-1111-111111111111\"><img src=\"x\" data-asset-id=\"11111111-1111-1111-1111-111111111111\"></figure><p><a data-item-id=\"22222222-2222-2222-2222-222222222222\">link</a></p>",
               "images": {
                 "11111111-1111-1111-1111-111111111111": {
                   "description": "Hero",
@@ -83,14 +84,17 @@ public sealed class RichTextElementEnvelopeReaderTests
               "modular_content": ["component_a", "", "linked_item"]
             }
             """);
-        var parsed = await doc.RootElement.ParseRichTextAsync();
-        var parsedRichText = Assert.IsType<RichTextContent>(parsed);
 
-        var shared = RichTextElementEnvelopeReader.Read(doc.RootElement, "body_copy");
+        var richText = await doc.RootElement.ParseRichTextAsync();
+        Assert.NotNull(richText);
 
-        Assert.Equal(shared.Images.Count, parsedRichText.Images?.Count ?? 0);
-        Assert.Equal(shared.Links.Count, parsedRichText.Links?.Count ?? 0);
-        Assert.Equal(shared.ModularContent, parsedRichText.ModularContentCodenames);
+        var image = Assert.Single(richText.GetInlineImages());
+        Assert.Equal("https://example.com/image.jpg", image.Url);
+        Assert.Equal("Hero", image.Description);
+
+        var link = Assert.Single(richText.GetContentItemLinks());
+        Assert.Equal("linked_item", link.Metadata!.Codename);
+        Assert.Equal("article", link.Metadata.ContentTypeCodename);
     }
 
     [Fact]

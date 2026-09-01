@@ -8,20 +8,6 @@ namespace Kontent.Ai.Delivery.Tests.ContentItems.Processing;
 public class RichTextParserTests
 {
     [Fact]
-    public async Task ConvertAsync_NonRichTextElement_ReturnsNull()
-    {
-        var parser = new RichTextParser(new HtmlParser());
-        var element = new PlainTextElement("plain text");
-
-        var result = await parser.ConvertAsync(
-            element,
-            _ => Task.FromResult<object?>(null),
-            dependencyContext: null);
-
-        Assert.Null(result);
-    }
-
-    [Fact]
     public async Task ConvertAsync_EmbeddedObjectWithoutCodename_ThrowsInvalidOperationException()
     {
         var parser = new RichTextParser(new HtmlParser());
@@ -104,14 +90,6 @@ public class RichTextParserTests
 
         Assert.NotNull(result);
         Assert.Empty(result.GetInlineImages());
-    }
-
-    private sealed class PlainTextElement(string value) : IContentElementValue<string>
-    {
-        public string Value { get; } = value;
-        public string Codename => "plain_text";
-        public string Name => "Plain text";
-        public string Type => "text";
     }
 
     private sealed class TestRichTextElement(string value) : IRichTextElementValue
