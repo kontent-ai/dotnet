@@ -1112,7 +1112,7 @@ var resolver = new HtmlResolverBuilder()
 ```
 
 > There are also `WithContentResolvers` overloads keyed by `Type`. They exist for model types you only
-> have at runtime — enumerated from an `ITypeProvider`, say — and hand the resolver the non-generic
+> have at runtime — found by scanning an assembly, say — and hand the resolver the non-generic
 > `IEmbeddedContent`, because there is no type argument to give it. If you can name the type in source,
 > use `WithContentResolver<T>` above.
 
