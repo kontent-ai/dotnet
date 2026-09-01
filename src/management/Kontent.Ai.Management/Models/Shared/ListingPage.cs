@@ -9,7 +9,7 @@ namespace Kontent.Ai.Management.Models.Shared;
 /// a token stays valid is the Management API's contract, not this SDK's.
 /// </remarks>
 /// <typeparam name="T">The type of the listed items.</typeparam>
-public sealed record ListingPage<T>
+public sealed class ListingPage<T>
 {
     /// <summary>
     /// This page's items.

@@ -41,7 +41,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 ### Added
 
 - **A page call for the async validation task issues.** `ListAsyncValidationTaskIssuesPageAsync` joins the materialized `ListAsyncValidationTaskIssuesAsync`. This is the listing that scales hardest — a task over a broken environment reports issues proportional to items × variants × elements — and it was the one unbounded listing with no paged access at all, while narrower ones (the variant listings, assets, items) already had it.
-- **`ListingPage<T>`**, the page a `List…PageAsync` call returns: the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page).
+- **`ListingPage<T>`**, the page a `List…PageAsync` call returns: the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page). It is a sealed class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
 
 ### Fixed
 

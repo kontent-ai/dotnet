@@ -49,7 +49,9 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`ExecuteAsync()` on the used-in queries**, which previously had no single-request result-based route at all — only enumeration.
 
-- **`DeliveryEnumeration<T>`, `DeliveryPage<T>` and `DeliveryRequestException`.** `DeliveryEnumeration<T>.FromPages(...)` builds one over a fixed set of pages, for tests and fakes that no longer compile against the changed interfaces.
+- **`DeliveryEnumeration<T>`, `DeliveryPage<T>` and `DeliveryRequestException`.** Both new types are sealed. `DeliveryEnumeration<T>` composes a page sequence through its constructor rather than being inherited from, so adapting another token-paged source is a delegate rather than a subclass — and `DeliveryEnumeration<T>.FromPages(...)` builds one over a fixed set of pages, for tests and fakes that no longer compile against the changed interfaces.
+
+  `DeliveryPage<T>` is a plain class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
 
 - **The feed and used-in queries now log like every other query.** They were the only family that never adopted the shared query-logging helper, so a failed `GetItemsFeed(...)` or `GetItemUsedIn(...)` produced no log line at all, where `GetItem`, `GetItems`, `GetTypes` and the rest have always emitted `QueryStarting`, `QueryFailed` (at `Error`) and `QueryCompleted`. They now do too.
 

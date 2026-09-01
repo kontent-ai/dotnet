@@ -11,34 +11,35 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// a failed request throws <see cref="DeliveryRequestException"/>. Where non-throwing semantics are needed, use the
 /// query's single-request <c>ExecuteAsync</c> instead — one request returns a result, a walk throws.
 /// <para>
-/// Derived types implement only <see cref="AsPagesCore"/>. The base derives item enumeration from the page walk, so
-/// the two views cannot disagree, and it owns cancellation: the token captured at construction is combined with the
-/// one supplied to <see cref="GetAsyncEnumerator"/> or <c>WithCancellation</c>.
+/// To enumerate another token-paged source, supply its page sequence to the constructor.
 /// </para>
 /// </remarks>
 /// <typeparam name="T">The type of the enumerated items.</typeparam>
-public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
+public sealed class DeliveryEnumeration<T> : IAsyncEnumerable<T>
 {
+    private readonly Func<string?, CancellationToken, IAsyncEnumerable<DeliveryPage<T>>> _pages;
     private readonly CancellationToken _requestCancellationToken;
 
     /// <summary>
-    /// Initializes the enumeration with the cancellation token of the request that created it.
+    /// Creates an enumeration over a page sequence.
     /// </summary>
+    /// <param name="pages">
+    /// Produces the pages for a given continuation token and cancellation token. Invoked once per enumeration, so the
+    /// sequence it returns need not be re-enumerable.
+    /// </param>
     /// <param name="cancellationToken">
     /// Token supplied by the caller when the enumeration was requested. It is combined with any token supplied later
     /// at enumeration time; either one firing cancels the walk.
     /// </param>
-    protected DeliveryEnumeration(CancellationToken cancellationToken = default)
+    public DeliveryEnumeration(
+        Func<string?, CancellationToken, IAsyncEnumerable<DeliveryPage<T>>> pages,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(pages);
+
+        _pages = pages;
         _requestCancellationToken = cancellationToken;
     }
-
-    /// <summary>
-    /// Fetches the pages. The only member a derived type implements; the base handles cancellation and item flattening.
-    /// </summary>
-    /// <param name="continuationToken">Token to resume from, or <c>null</c> to start at the first page.</param>
-    /// <param name="cancellationToken">The effective token for the walk, already combined by the base.</param>
-    protected abstract IAsyncEnumerable<DeliveryPage<T>> AsPagesCore(string? continuationToken, CancellationToken cancellationToken);
 
     /// <summary>
     /// Views the enumeration as a stream of pages, exposing each page's continuation token so a walk can be
@@ -75,19 +76,19 @@ public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
     {
         ArgumentNullException.ThrowIfNull(pages);
 
-        return new FixedEnumeration(pages);
+        return new DeliveryEnumeration<T>((_, cancellationToken) => YieldAsync(pages, cancellationToken));
     }
 
     /// <summary>
     /// Walks pages until the continuation token runs out, turning a failed request into a throw. The one place that
-    /// logic lives, so no derived enumeration can drift on how a walk terminates or how a failure surfaces.
+    /// logic lives, so no enumeration can drift on how a walk terminates or how a failure surfaces.
     /// </summary>
     /// <typeparam name="TResponse">The per-page response the fetch returns.</typeparam>
     /// <param name="continuationToken">Token to resume from, or <c>null</c> to start at the first page.</param>
     /// <param name="fetchPage">Fetches one page for a given token.</param>
     /// <param name="selectPage">Projects a fetched response onto the page shape.</param>
     /// <param name="cancellationToken">The effective token for the walk.</param>
-    protected static IAsyncEnumerable<DeliveryPage<T>> WalkPagesAsync<TResponse>(
+    internal static IAsyncEnumerable<DeliveryPage<T>> Walk<TResponse>(
         string? continuationToken,
         Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
         Func<TResponse, DeliveryPage<T>> selectPage,
@@ -97,10 +98,10 @@ public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
         ArgumentNullException.ThrowIfNull(fetchPage);
         ArgumentNullException.ThrowIfNull(selectPage);
 
-        return WalkPagesCoreAsync(continuationToken, fetchPage, selectPage, cancellationToken);
+        return WalkCoreAsync(continuationToken, fetchPage, selectPage, cancellationToken);
     }
 
-    private static async IAsyncEnumerable<DeliveryPage<T>> WalkPagesCoreAsync<TResponse>(
+    private static async IAsyncEnumerable<DeliveryPage<T>> WalkCoreAsync<TResponse>(
         string? continuationToken,
         Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
         Func<TResponse, DeliveryPage<T>> selectPage,
@@ -134,6 +135,19 @@ public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
         }
     }
 
+    private static async IAsyncEnumerable<DeliveryPage<T>> YieldAsync(
+        IEnumerable<DeliveryPage<T>> pages,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask.ConfigureAwait(false);
+
+        foreach (var page in pages)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return page;
+        }
+    }
+
     private async IAsyncEnumerable<DeliveryPage<T>> EnumeratePagesAsync(
         string? continuationToken,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -158,7 +172,7 @@ public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
 
         try
         {
-            await foreach (var page in AsPagesCore(continuationToken, effectiveToken).ConfigureAwait(false))
+            await foreach (var page in _pages(continuationToken, effectiveToken).ConfigureAwait(false))
             {
                 yield return page;
             }
@@ -167,22 +181,6 @@ public abstract class DeliveryEnumeration<T> : IAsyncEnumerable<T>
         {
             // Runs when the enumerator is disposed, including when the consumer breaks out early.
             linked?.Dispose();
-        }
-    }
-
-    private sealed class FixedEnumeration(IEnumerable<DeliveryPage<T>> pages) : DeliveryEnumeration<T>
-    {
-        protected override async IAsyncEnumerable<DeliveryPage<T>> AsPagesCore(
-            string? continuationToken,
-            [EnumeratorCancellation] CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask.ConfigureAwait(false);
-
-            foreach (var page in pages)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                yield return page;
-            }
         }
     }
 }

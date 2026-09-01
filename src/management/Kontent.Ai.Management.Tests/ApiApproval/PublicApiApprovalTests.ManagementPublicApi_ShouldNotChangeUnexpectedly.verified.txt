@@ -1839,15 +1839,10 @@ public sealed class ElementIssue : IEquatable<ElementIssue>
     String ToString()
 
 // Kontent.Ai.Management.Models.Shared
-public sealed class ListingPage`1<T> : IEquatable<ListingPage<T>>
+public sealed class ListingPage`1<T>
     .ctor()
     String? ContinuationToken { get; init; }
     required IReadOnlyList<T> Items { get; init; }
-    Boolean Equals(ListingPage<T>? other)
-    Boolean Equals(Object? obj)
-    Int32 GetHashCode()
-    ListingPage<T> <Clone>$()
-    String ToString()
 
 // Kontent.Ai.Management.Models.Shared
 public sealed class NamedReference : IEquatable<NamedReference>

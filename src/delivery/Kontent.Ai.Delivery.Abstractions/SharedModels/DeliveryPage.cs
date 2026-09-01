@@ -4,7 +4,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// One page of a multi-request enumeration: the items the page carried, and the token that fetches the next one.
 /// </summary>
 /// <typeparam name="T">The type of the enumerated items.</typeparam>
-public sealed record DeliveryPage<T>
+public sealed class DeliveryPage<T>
 {
     /// <summary>
     /// This page's items.
