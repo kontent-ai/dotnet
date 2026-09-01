@@ -77,9 +77,9 @@ public static class ServiceCollectionExtensions
 // Kontent.Ai.Sync
 public sealed class SyncChange`1<TData> : IEquatable<SyncChange<TData>>
     .ctor()
-    TData? Data { get; init; }
     required ChangeType ChangeType { get; init; }
     required DateTime Timestamp { get; init; }
+    required TData Data { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(SyncChange<TData>? other)
     Int32 GetHashCode()

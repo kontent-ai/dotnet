@@ -65,8 +65,7 @@ if (!deltaResult.IsSuccess)
 var delta = deltaResult.Value;
 foreach (var item in delta.Items)
 {
-    // Data is null when the entry only records that something was deleted.
-    Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data?.System.Codename}");
+    Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data.System.Codename}");
 }
 
 await SaveSyncTokenAsync(deltaResult.SyncToken);
@@ -91,7 +90,7 @@ await foreach (var page in syncClient.EnumerateDeltaAsync(syncToken, cancellatio
 
     foreach (var item in page.Value.Items)
     {
-        Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data?.System.Codename}");
+        Console.WriteLine($"{item.Timestamp:u}  {item.ChangeType}  {item.Data.System.Codename}");
     }
 
     token = page.SyncToken;
@@ -110,7 +109,7 @@ when, and the metadata:
 |---|---|
 | `ChangeType` | `Changed` or `Deleted` |
 | `Timestamp` | when the change occurred in the Delivery API, UTC |
-| `Data` | the entity's metadata; `null` when the entry carries none |
+| `Data` | the entity's metadata, on every change — a deletion names what was deleted |
 
 The payload differs per collection, because the API's does:
 

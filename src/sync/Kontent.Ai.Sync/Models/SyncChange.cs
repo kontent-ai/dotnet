@@ -27,8 +27,8 @@ public sealed record SyncChange<TData> where TData : class
     public required DateTime Timestamp { get; init; }
 
     /// <summary>
-    /// The affected entity's metadata.
+    /// The affected entity's metadata. Present on every change, deletions included.
     /// </summary>
     [JsonPropertyName("data")]
-    public TData? Data { get; init; }
+    public required TData Data { get; init; }
 }

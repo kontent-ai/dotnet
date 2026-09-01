@@ -76,7 +76,7 @@ foreach (ISyncItem item in page.Value.Items)
 // After
 foreach (SyncChange<SyncItemData> item in page.Value.Items)
 {
-    string? codename = item.Data?.System.Codename;
+    string codename = item.Data.System.Codename;
     DateTime when = item.Timestamp;
 }
 ```
