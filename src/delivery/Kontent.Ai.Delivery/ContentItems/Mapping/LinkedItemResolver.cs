@@ -5,13 +5,13 @@ namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 
 internal sealed class LinkedItemResolver(
     IItemTypingStrategy typingStrategy,
-    IContentDeserializer deserializer,
+    ContentDeserializer deserializer,
     ILogger<LinkedItemResolver>? logger = null)
 {
     public async Task<object?> ResolveAsync(
         string codename,
         MappingContext context,
-        Func<object, Type, MappingContext, Task> hydrateContentItemAsync)
+        Func<IContentItem, Type, MappingContext, Task> hydrateContentItemAsync)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(hydrateContentItemAsync);
@@ -46,7 +46,7 @@ internal sealed class LinkedItemResolver(
         // New item: deserialize and store before hydration.
         var contentType = ContentItemJsonHelper.ExtractContentType(linkedItem);
         var modelType = typingStrategy.ResolveModelType(contentType);
-        var contentItem = deserializer.DeserializeContentItem(linkedItem, modelType);
+        var contentItem = deserializer.Deserialize(linkedItem, modelType);
 
         context.ItemsBeingHydrated[codename] = contentItem;
 

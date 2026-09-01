@@ -4,56 +4,36 @@ using System.Text.Json;
 namespace Kontent.Ai.Delivery.ContentItems;
 
 /// <summary>
-/// Default implementation of <see cref="IContentDeserializer"/> using System.Text.Json
-/// with cached generic type construction for performance.
+/// Deserializes content item JSON into <see cref="ContentItem{TModel}"/>.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of <see cref="ContentDeserializer"/>.
-/// </remarks>
 /// <param name="options">The JSON serializer options to use.</param>
-internal sealed class ContentDeserializer(JsonSerializerOptions options) : IContentDeserializer
+internal sealed class ContentDeserializer(JsonSerializerOptions options)
 {
-
-    // Cache constructed ContentItem<T> types to avoid MakeGenericType overhead on repeated calls
+    // Only the runtime-typed overload needs this; the generic one is resolved by the JIT.
     private static readonly ConcurrentDictionary<Type, Type> _contentItemTypes = new();
 
     /// <summary>
-    /// Deserializes JSON to ContentItem&lt;TModel&gt; where TModel is the specified modelType.
+    /// Deserializes an item whose model type is known at compile time.
     /// </summary>
-    /// <param name="json">The JSON string to deserialize.</param>
-    /// <param name="modelType">The model type (any POCO or <see cref="IDynamicElements"/>).</param>
-    /// <returns>The deserialized ContentItem as an object.</returns>
-    public object DeserializeContentItem(string json, Type modelType)
-    {
-        if (string.IsNullOrEmpty(json))
-        {
-            throw new ArgumentException("JSON cannot be null or empty", nameof(json));
-        }
-
-        ArgumentNullException.ThrowIfNull(modelType);
-
-        var contentItemType = _contentItemTypes.GetOrAdd(modelType,
-            static t => typeof(ContentItem<>).MakeGenericType(t));
-
-        return JsonSerializer.Deserialize(json, contentItemType, options)
-            ?? throw new JsonException($"Deserialization returned null for {contentItemType.Name}");
-    }
+    public ContentItem<TModel> Deserialize<TModel>(JsonElement json)
+        => JsonSerializer.Deserialize<ContentItem<TModel>>(json, options)
+            ?? throw new JsonException($"Deserialization returned null for ContentItem<{typeof(TModel).Name}>");
 
     /// <summary>
-    /// Deserializes a JsonElement to ContentItem&lt;TModel&gt; where TModel is the specified modelType.
-    /// Avoids the string allocation of GetRawText() when the source is already a JsonElement.
+    /// Deserializes an item whose model type is only known once its content type codename has been
+    /// resolved, which is the case for linked items and for runtime typing of dynamic items.
     /// </summary>
-    /// <param name="jsonElement">The JsonElement to deserialize.</param>
+    /// <param name="json">The JSON of the content item.</param>
     /// <param name="modelType">The model type (any POCO or <see cref="IDynamicElements"/>).</param>
-    /// <returns>The deserialized ContentItem as an object.</returns>
-    public object DeserializeContentItem(JsonElement jsonElement, Type modelType)
+    public IContentItem Deserialize(JsonElement json, Type modelType)
     {
         ArgumentNullException.ThrowIfNull(modelType);
 
         var contentItemType = _contentItemTypes.GetOrAdd(modelType,
             static t => typeof(ContentItem<>).MakeGenericType(t));
 
-        return JsonSerializer.Deserialize(jsonElement, contentItemType, options)
-            ?? throw new JsonException($"Deserialization returned null for {contentItemType.Name}");
+        // Safe by construction: the type was built as ContentItem<>, which implements IContentItem.
+        return (IContentItem)(JsonSerializer.Deserialize(json, contentItemType, options)
+            ?? throw new JsonException($"Deserialization returned null for {contentItemType.Name}"));
     }
 }

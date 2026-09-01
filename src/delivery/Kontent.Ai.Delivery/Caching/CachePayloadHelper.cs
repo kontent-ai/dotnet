@@ -80,7 +80,7 @@ internal static class CachePayloadHelper
     /// </summary>
     internal static async Task<ContentItem<TModel>> RehydrateItemAsync<TModel>(
         CachedRawItemsPayload payload,
-        IContentDeserializer contentDeserializer,
+        ContentDeserializer contentDeserializer,
         ContentItemMapper contentItemMapper,
         bool isDynamicModel,
         string? defaultRenditionPreset,
@@ -95,8 +95,7 @@ internal static class CachePayloadHelper
         }
 
         using var itemDoc = JsonDocument.Parse(payload.ItemsJson[0]);
-        var item = (ContentItem<TModel>)contentDeserializer.DeserializeContentItem(
-            itemDoc.RootElement.Clone(), typeof(TModel));
+        var item = contentDeserializer.Deserialize<TModel>(itemDoc.RootElement.Clone());
 
         if (!isDynamicModel)
         {
@@ -119,7 +118,7 @@ internal static class CachePayloadHelper
     /// </summary>
     internal static async Task<DeliveryItemListingResponse<TModel>> RehydrateListingAsync<TModel>(
         CachedRawItemsPayload payload,
-        IContentDeserializer contentDeserializer,
+        ContentDeserializer contentDeserializer,
         ContentItemMapper contentItemMapper,
         bool isDynamicModel,
         string? defaultRenditionPreset,
@@ -138,8 +137,7 @@ internal static class CachePayloadHelper
         foreach (var itemJson in payload.ItemsJson)
         {
             using var itemDoc = JsonDocument.Parse(itemJson);
-            var item = (ContentItem<TModel>)contentDeserializer.DeserializeContentItem(
-                itemDoc.RootElement.Clone(), typeof(TModel));
+            var item = contentDeserializer.Deserialize<TModel>(itemDoc.RootElement.Clone());
 
             if (!isDynamicModel)
             {

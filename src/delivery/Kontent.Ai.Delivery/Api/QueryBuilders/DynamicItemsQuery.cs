@@ -15,7 +15,7 @@ namespace Kontent.Ai.Delivery.Api.QueryBuilders;
 internal sealed class DynamicItemsQuery(
     IDeliveryApi api,
     ContentItemMapper contentItemMapper,
-    IContentDeserializer contentDeserializer,
+    ContentDeserializer contentDeserializer,
     ITypeProvider typeProvider,
     string? defaultRenditionPreset = null,
     Uri? customAssetDomain = null,

@@ -9,7 +9,7 @@ namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 /// </summary>
 internal sealed class ContentItemMapper(
     IItemTypingStrategy typingStrategy,
-    IContentDeserializer deserializer,
+    ContentDeserializer deserializer,
     ElementValueMapper elementValueMapper,
     LinkedItemResolver linkedItemResolver)
 {
@@ -99,7 +99,7 @@ internal sealed class ContentItemMapper(
         }
 
         // Deserialize to the runtime type.
-        var contentItem = deserializer.DeserializeContentItem(rawItemJson, modelType);
+        var contentItem = deserializer.Deserialize(rawItemJson, modelType);
 
         // Hydrate complex elements.
         var context = new MappingContext
@@ -113,7 +113,7 @@ internal sealed class ContentItemMapper(
 
         await HydrateContentItemIfNeededAsync(contentItem, modelType, context).ConfigureAwait(false);
 
-        return contentItem as IContentItem;
+        return contentItem;
     }
 
     /// <summary>
@@ -208,7 +208,7 @@ internal sealed class ContentItemMapper(
     /// <summary>
     /// Hydrates a content item's complex elements if it's not in dynamic mode.
     /// </summary>
-    private async Task HydrateContentItemIfNeededAsync(object contentItem, Type modelType, MappingContext context)
+    private async Task HydrateContentItemIfNeededAsync(IContentItem contentItem, Type modelType, MappingContext context)
     {
         // Skip hydration for dynamic mode items (they keep raw JSON envelopes).
         if (ModelTypeHelper.IsDynamic(modelType))

@@ -25,7 +25,6 @@ public class ServiceCollectionsExtensionsTests
         {
             { typeof(ITypeProvider), typeof(TypeProvider) },
             { typeof(IItemTypingStrategy), typeof(DefaultItemTypingStrategy) },
-            { typeof(IContentDeserializer), typeof(ContentDeserializer) },
             { typeof(IHtmlParser), typeof(HtmlParser) },
             { typeof(IDeliveryClient), typeof(DeliveryClient) },
         }
