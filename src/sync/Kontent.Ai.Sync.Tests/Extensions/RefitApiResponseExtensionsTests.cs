@@ -71,10 +71,26 @@ public class RefitApiResponseExtensionsTests
         result.Error.Should().NotBeNull();
         result.Error.Message.Should().Contain("Raw response:");
         result.Error.Message.Should().Contain("gateway down");
-        result.Error.Exception.Should().BeOfType<AggregateException>();
-        var aggregate = (AggregateException)result.Error.Exception;
-        aggregate.InnerExceptions.Should().HaveCount(2);
-        aggregate.InnerExceptions[0].Should().BeOfType<ApiException>();
+        result.Error.Exception.Should().BeOfType<ApiException>(
+            "Error.Exception is the request failure on every path, parsed body or not");
+    }
+
+    [Fact]
+    public async Task ToSyncResultAsync_ErrorBodyWithoutErrorCode_LeavesErrorCodeNull()
+    {
+        const string json = """{ "message": "Something went wrong.", "request_id": "req-9" }""";
+
+        var apiResponse = await CreateFailedResponse<string>(
+            statusCode: HttpStatusCode.InternalServerError,
+            requestUrl: "https://test.com/sync",
+            errorContent: json);
+
+        var result = await apiResponse.ToSyncResultAsync();
+
+        result.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        result.Error.Should().NotBeNull();
+        result.Error.Message.Should().Be("Something went wrong.");
+        result.Error.ErrorCode.Should().BeNull("ErrorCode carries the API's code, not the HTTP status");
     }
 
     [Fact]

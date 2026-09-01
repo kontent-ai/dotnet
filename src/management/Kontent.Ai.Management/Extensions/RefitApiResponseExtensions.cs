@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Kontent.Ai.Common.Http;
 
 namespace Kontent.Ai.Management.Extensions;
@@ -88,34 +87,13 @@ internal static class RefitApiResponseExtensions
 
     private static async Task<IError> BuildErrorAsync(IApiResponse response)
     {
-        if (response.Error is null)
-        {
-            return new Error();
-        }
+        var parsed = await RefitErrorParsing.ParseAsync<Error>(response.Error).ConfigureAwait(false);
 
-        // Only ApiException buffers the response body; the other ApiExceptionBase kinds describe a
-        // failure that produced no body to parse.
-        if (response.Error is not ApiException apiException)
+        return parsed switch
         {
-            return new Error { Message = response.Error.Message, Exception = response.Error };
-        }
-
-        try
-        {
-            var parsed = await apiException.GetContentAsAsync<Error>().ConfigureAwait(false);
-            return parsed is not null
-                ? parsed with { Exception = apiException }
-                : new Error { Message = apiException.Message, Exception = apiException };
-        }
-        catch (JsonException)
-        {
-            // The body was not a Management API error envelope — an HTML 5xx page, plain text, or empty.
-            var rawBody = apiException.Content;
-            var message = string.IsNullOrWhiteSpace(rawBody)
-                ? apiException.Message
-                : $"{apiException.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
-
-            return new Error { Message = message, Exception = apiException };
-        }
+            { Envelope: not null } => parsed.Envelope with { Exception = parsed.Exception },
+            { Message: not null } => new Error { Message = parsed.Message, Exception = parsed.Exception },
+            _ => new Error(),
+        };
     }
 }

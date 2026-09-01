@@ -47,6 +47,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **The paging helper no longer reads a continuation token off a disposed response.** Mapping a page to a result disposes the underlying Refit response; the walker then read the next token from it. The value survived because Refit buffers the body, but the ordering was load-bearing and invisible at the call site. The token is now read before the response is mapped. No behavior change.
 
+- **A response body that is not the error envelope no longer risks an unhandled exception.** Parsing failures were caught as `JsonException` alone, so anything else raised while reading the body — an encoding failure on a malformed payload, say — escaped the result pattern and was thrown at the caller. The catch now covers any non-fatal exception, matching the Delivery and Sync SDKs; the resulting error still carries the raw body and the original request failure.
+
 ## 9.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Breaking changes
