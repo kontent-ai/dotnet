@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Configuration;
+using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -443,7 +444,7 @@ public static partial class ServiceCollectionExtensions
     {
         var deliveryApi = sp.GetRequiredKeyedService<IDeliveryApi>(clientName);
         var contentItemMapper = sp.GetRequiredService<ContentItemMapper>();
-        var contentDeserializer = sp.GetRequiredService<IContentDeserializer>();
+        var contentDeserializer = sp.GetRequiredService<ContentDeserializer>();
         var typeProvider = sp.GetRequiredService<ITypeProvider>();
         var optionsAccessor = sp.GetRequiredKeyedService<IOptionsAccessor<DeliveryOptions>>(clientName);
 

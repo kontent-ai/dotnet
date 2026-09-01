@@ -14,7 +14,7 @@ internal sealed class ItemQuery<TModel>(
     IDeliveryApi api,
     string codename,
     ContentItemMapper contentItemMapper,
-    IContentDeserializer contentDeserializer,
+    ContentDeserializer contentDeserializer,
     IDeliveryCacheManager? cacheManager,
     string? defaultRenditionPreset = null,
     Uri? customAssetDomain = null,

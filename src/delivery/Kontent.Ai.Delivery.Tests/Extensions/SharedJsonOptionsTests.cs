@@ -75,8 +75,8 @@ public class SharedJsonOptionsTests
         // from, and a typed model comes back empty without anything being thrown or logged.
         var provider = BuildProvider(services => services.AddSingleton(new JsonSerializerOptions()));
 
-        var item = provider.GetRequiredService<IContentDeserializer>()
-            .DeserializeContentItem(ItemJson, typeof(IDynamicElements));
+        var item = provider.GetRequiredService<ContentDeserializer>()
+            .Deserialize<IDynamicElements>(JsonSerializer.Deserialize<JsonElement>(ItemJson));
 
         Assert.True(((IRawContentItem)item).RawItemJson.HasValue);
     }

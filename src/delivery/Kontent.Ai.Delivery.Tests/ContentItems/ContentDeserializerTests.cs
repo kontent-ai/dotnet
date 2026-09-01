@@ -27,60 +27,44 @@ public class ContentDeserializerTests
     }
     """;
 
+    private static JsonElement Element => JsonSerializer.Deserialize<JsonElement>(ValidJson);
+
     [Fact]
-    public void DeserializeContentItem_String_NullJson_ThrowsArgumentException()
+    public void Deserialize_Generic_ReturnsContentItemOfThatModel()
     {
         var sut = new ContentDeserializer(Options);
 
-        Assert.Throws<ArgumentException>(() => sut.DeserializeContentItem(null!, typeof(IDynamicElements)));
+        // Typed as ContentItem<IDynamicElements> by the compiler - the caller casts nothing.
+        ContentItem<IDynamicElements> result = sut.Deserialize<IDynamicElements>(Element);
+
+        Assert.Equal("test", result.System.Codename);
     }
 
     [Fact]
-    public void DeserializeContentItem_String_EmptyJson_ThrowsArgumentException()
+    public void Deserialize_Generic_CapturesRawItemJson()
     {
         var sut = new ContentDeserializer(Options);
 
-        Assert.Throws<ArgumentException>(() => sut.DeserializeContentItem("", typeof(IDynamicElements)));
+        var result = sut.Deserialize<IDynamicElements>(Element);
+
+        Assert.True(((IRawContentItem)result).RawItemJson.HasValue);
     }
 
     [Fact]
-    public void DeserializeContentItem_String_NullModelType_ThrowsArgumentNullException()
+    public void Deserialize_RuntimeType_NullModelType_ThrowsArgumentNullException()
     {
         var sut = new ContentDeserializer(Options);
 
-        Assert.Throws<ArgumentNullException>(() => sut.DeserializeContentItem(ValidJson, null!));
+        Assert.Throws<ArgumentNullException>(() => sut.Deserialize(Element, null!));
     }
 
     [Fact]
-    public void DeserializeContentItem_String_ValidJson_ReturnsContentItem()
+    public void Deserialize_RuntimeType_ReturnsContentItemOfTheResolvedModel()
     {
         var sut = new ContentDeserializer(Options);
 
-        var result = sut.DeserializeContentItem(ValidJson, typeof(IDynamicElements));
+        var result = sut.Deserialize(Element, typeof(IDynamicElements));
 
-        Assert.NotNull(result);
-        var contentItem = Assert.IsType<ContentItem<IDynamicElements>>(result);
-        Assert.Equal("test", contentItem.System.Codename);
-    }
-
-    [Fact]
-    public void DeserializeContentItem_JsonElement_NullModelType_ThrowsArgumentNullException()
-    {
-        var sut = new ContentDeserializer(Options);
-        var element = JsonSerializer.Deserialize<JsonElement>(ValidJson);
-
-        Assert.Throws<ArgumentNullException>(() => sut.DeserializeContentItem(element, null!));
-    }
-
-    [Fact]
-    public void DeserializeContentItem_JsonElement_ValidJson_ReturnsContentItem()
-    {
-        var sut = new ContentDeserializer(Options);
-        var element = JsonSerializer.Deserialize<JsonElement>(ValidJson);
-
-        var result = sut.DeserializeContentItem(element, typeof(IDynamicElements));
-
-        Assert.NotNull(result);
         var contentItem = Assert.IsType<ContentItem<IDynamicElements>>(result);
         Assert.Equal("test", contentItem.System.Codename);
     }

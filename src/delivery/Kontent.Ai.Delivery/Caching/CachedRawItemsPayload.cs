@@ -18,7 +18,7 @@ namespace Kontent.Ai.Delivery.Caching;
 /// </list>
 /// <para>
 /// On cache hit, the raw JSON is rehydrated to the requested type using
-/// the existing deserialization and hydration pipeline (IContentDeserializer and ContentItemMapper).
+/// the existing deserialization and hydration pipeline (ContentDeserializer and ContentItemMapper).
 /// </para>
 /// </remarks>
 internal sealed record CachedRawItemsPayload

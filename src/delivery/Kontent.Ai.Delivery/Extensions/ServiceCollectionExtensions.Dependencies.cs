@@ -21,7 +21,7 @@ public static partial class ServiceCollectionExtensions
         // Core services
         services.TryAddSingleton<ITypeProvider, TypeProvider>();
         services.TryAddSingleton<IItemTypingStrategy, DefaultItemTypingStrategy>();
-        services.TryAddSingleton<IContentDeserializer>(sp =>
+        services.TryAddSingleton(sp =>
             new ContentDeserializer(sp.GetRequiredService<DeliveryJsonOptions>().Value));
         services.TryAddSingleton(sp => new ElementValueMapper(
             sp.GetRequiredService<IContentDependencyExtractor>(),

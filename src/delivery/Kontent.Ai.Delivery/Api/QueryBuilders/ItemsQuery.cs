@@ -13,7 +13,7 @@ namespace Kontent.Ai.Delivery.Api.QueryBuilders;
 internal sealed class ItemsQuery<TModel>(
     IDeliveryApi api,
     ContentItemMapper contentItemMapper,
-    IContentDeserializer contentDeserializer,
+    ContentDeserializer contentDeserializer,
     ITypeProvider typeProvider,
     IDeliveryCacheManager? cacheManager,
     string? defaultRenditionPreset = null,

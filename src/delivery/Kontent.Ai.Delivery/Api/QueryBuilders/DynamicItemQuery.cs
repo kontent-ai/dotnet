@@ -14,7 +14,7 @@ internal sealed class DynamicItemQuery(
     IDeliveryApi api,
     string codename,
     ContentItemMapper contentItemMapper,
-    IContentDeserializer contentDeserializer,
+    ContentDeserializer contentDeserializer,
     string? defaultRenditionPreset = null,
     Uri? customAssetDomain = null,
     ILogger? logger = null) : IDynamicItemQuery
