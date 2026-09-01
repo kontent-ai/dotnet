@@ -59,6 +59,24 @@ public class SyncClientTests
     }
 
     [Fact]
+    public async Task EnumerateDeltaAsync_RepeatedToken_StopsInsteadOfLooping()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestOptions());
+
+        // The same token back with changes still in the page would otherwise re-request it forever.
+        var stuck = CreateSuccessDeltaResponse(nextToken: "token-1", itemCount: 1);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(stuck));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Should().ContainSingle();
+        await syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task EnumerateDeltaAsync_AlreadyUpToDate_YieldsNothing()
     {
         var syncApi = Substitute.For<ISyncApi>();

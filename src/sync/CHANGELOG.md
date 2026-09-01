@@ -48,6 +48,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Walking the delta feed stops if the API repeats a continuation token.** Every response carries a fresh one, and the walk advances by storing it — so a response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
+
 - **`SyncClientBuilder.Build()` documents the exception it actually throws.** It advertised `InvalidOperationException` for a validation failure, but options that fail validation raise `ValidationException`. `InvalidOperationException` is the separate case of calling `Build()` without `WithOptions()`; both are now listed.
 
 - **`SyncOptions` describes what its properties do.** The two endpoint properties were documented as a "format", carried over from the Delivery SDK where they are format strings — here they are plain base URLs. `EnableResilience` now records that it is read once when the HTTP pipeline is built and that switching it off also restores `HttpClient`'s 100-second ceiling over the whole call. `Validate`'s summary no longer claims that yielding is what lets the attribute-based validations run.
