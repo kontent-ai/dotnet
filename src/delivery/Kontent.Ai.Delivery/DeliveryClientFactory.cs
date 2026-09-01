@@ -17,11 +17,8 @@ internal sealed class DeliveryClientFactory(IServiceProvider serviceProvider) : 
     public IDeliveryClient Get() => Get(NamedClients.Default);
 
     /// <inheritdoc />
-    public IDeliveryClient Get(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return serviceProvider.GetRequiredKeyedService<IDeliveryClient>(name);
-    }
+    public IDeliveryClient Get(string name) =>
+        KeyedClients.Resolve<IDeliveryClient>(serviceProvider, name, "delivery client", "AddDeliveryClient");
 
     /// <inheritdoc />
     public IDeliveryClient? TryGet(string name)
