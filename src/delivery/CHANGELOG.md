@@ -41,6 +41,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **A failed walk no longer emits the `PaginationStoppedEarly` warning** (event ID `1051`, now retired). The exception thrown in its place carries strictly more — status code, the API's `IError`, request ID and request URL — and the caller's `catch` is where a failure belongs in the log rather than a warning the SDK emits on its way to throwing. Anyone alerting on event ID `1051` should move to the exception, or to `QueryFailed` — see below.
 
+- **`DeliveryClientFactory` is internal; resolve `IDeliveryClientFactory` instead.** The concrete factory was public with a constructor taking an `IServiceProvider`, so the only way to build one was to have a container already — at which point resolving the interface is what you would do anyway. Nothing in the SDK or its siblings constructed it, and the Management and Sync equivalents have always been internal. The interface is unchanged and still resolves from the container exactly as before; only `new DeliveryClientFactory(serviceProvider)` and references to the concrete type break.
+
 ### Added
 
 - **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.

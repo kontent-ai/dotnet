@@ -11,7 +11,7 @@ namespace Kontent.Ai.Delivery;
 /// Initializes a new instance of the <see cref="DeliveryClientFactory"/> class.
 /// </remarks>
 /// <param name="serviceProvider">An <see cref="IServiceProvider"/> instance.</param>
-public sealed class DeliveryClientFactory(IServiceProvider serviceProvider) : IDeliveryClientFactory
+internal sealed class DeliveryClientFactory(IServiceProvider serviceProvider) : IDeliveryClientFactory
 {
     /// <inheritdoc />
     public IDeliveryClient Get() => Get(NamedClients.Default);
