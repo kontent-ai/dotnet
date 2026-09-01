@@ -16,9 +16,8 @@ public class DeliveryCodeGenerator : CodeGeneratorBase
         IOutputProvider outputProvider,
         IDeliveryClient deliveryClient,
         IClassCodeGeneratorFactory classCodeGeneratorFactory,
-        IClassDefinitionFactory classDefinitionFactory,
         IUserMessageLogger logger)
-        : base(options, outputProvider, classCodeGeneratorFactory, classDefinitionFactory, logger)
+        : base(options, outputProvider, classCodeGeneratorFactory, logger)
     {
         _deliveryClient = deliveryClient;
     }

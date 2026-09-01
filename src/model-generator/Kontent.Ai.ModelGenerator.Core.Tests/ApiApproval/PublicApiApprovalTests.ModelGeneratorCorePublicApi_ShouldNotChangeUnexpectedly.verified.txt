@@ -4,11 +4,11 @@ public abstract class CodeGeneratorBase
 
 // Kontent.Ai.ModelGenerator.Core
 public class DeliveryCodeGenerator : CodeGeneratorBase
-    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IDeliveryClient deliveryClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IClassDefinitionFactory classDefinitionFactory, IUserMessageLogger logger)
+    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IDeliveryClient deliveryClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IUserMessageLogger logger)
 
 // Kontent.Ai.ModelGenerator.Core
 public class ManagementCodeGenerator : CodeGeneratorBase
-    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IManagementClient managementClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IClassDefinitionFactory classDefinitionFactory, IManagementElementService elementService, IUserMessageLogger logger)
+    .ctor(IOptions<CodeGeneratorOptions> options, IOutputProvider outputProvider, IManagementClient managementClient, IClassCodeGeneratorFactory classCodeGeneratorFactory, IUserMessageLogger logger)
 
 // Kontent.Ai.ModelGenerator.Core.Common
 public sealed class AssetElementInput : ManagementElementInput, IEquatable<AssetElementInput>
@@ -56,10 +56,9 @@ public class ClassDefinition
     Void AddProperty(Property property)
 
 // Kontent.Ai.ModelGenerator.Core.Common
-public class ClassDefinitionFactory : IClassDefinitionFactory
-    .ctor()
-    ClassDefinition CreateClassDefinition(String codename)
-    ClassDefinition CreateClassDefinitionWithoutCodenameConstants(String codename)
+public static class ClassDefinitionFactory
+    static ClassDefinition CreateClassDefinition(String codename)
+    static ClassDefinition CreateClassDefinitionWithoutCodenameConstants(String codename)
 
 // Kontent.Ai.ModelGenerator.Core.Common
 public sealed class CustomElementInput : ManagementElementInput, IEquatable<CustomElementInput>
@@ -265,15 +264,6 @@ public interface IClassCodeGeneratorFactory
     ClassCodeGenerator CreateManagementClassCodeGenerator(CodeGeneratorOptions options, ClassDefinition classDefinition, String classFilename)
 
 // Kontent.Ai.ModelGenerator.Core.Contract
-public interface IClassDefinitionFactory
-    ClassDefinition CreateClassDefinition(String codename)
-    ClassDefinition CreateClassDefinitionWithoutCodenameConstants(String codename)
-
-// Kontent.Ai.ModelGenerator.Core.Contract
-public interface IManagementElementService
-    ManagementElementOutput Build(ManagementElementInput input)
-
-// Kontent.Ai.ModelGenerator.Core.Contract
 public interface IOutputProvider
     Boolean Output(String content, String fileName, Boolean overwriteExisting)
 
@@ -317,7 +307,6 @@ public static class TextHelpers
     static String NormalizeLineEndings(String text)
 
 // Kontent.Ai.ModelGenerator.Core.Services
-public sealed class ManagementElementService : IManagementElementService
-    .ctor()
-    ManagementElementOutput Build(ManagementElementInput input)
+public static class ManagementElementService
+    static ManagementElementOutput Build(ManagementElementInput input)
 

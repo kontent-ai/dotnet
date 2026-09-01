@@ -9,7 +9,6 @@ using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Microsoft.Extensions.Options;
 using Kontent.Ai.ModelGenerator.Core.Contract;
-using Kontent.Ai.ModelGenerator.Core.Services;
 using NSubstitute;
 using LimitType = Kontent.Ai.Management.Models.Types.LimitType;
 
@@ -20,9 +19,7 @@ public class ManagementCodeGeneratorTests
     private readonly IManagementClient _client = Substitute.For<IManagementClient>();
     private readonly IOutputProvider _output = Substitute.For<IOutputProvider>();
     private readonly IUserMessageLogger _logger = Substitute.For<IUserMessageLogger>();
-    private readonly ClassDefinitionFactory _classDefinitionFactory = new();
     private readonly ClassCodeGeneratorFactory _classCodeGeneratorFactory = new();
-    private readonly ManagementElementService _elementService = new();
 
     [Fact]
     public async Task RunAsync_TinyType_WritesOneFile()
@@ -567,8 +564,6 @@ public class ManagementCodeGeneratorTests
             _output,
             _client,
             _classCodeGeneratorFactory,
-            _classDefinitionFactory,
-            _elementService,
             _logger);
     }
 

@@ -5,12 +5,10 @@ namespace Kontent.Ai.ModelGenerator.Core.Tests.Services;
 
 public class ManagementElementServiceTests
 {
-    private readonly ManagementElementService _sut = new();
-
     [Fact]
     public void Build_NullInput_Throws()
     {
-        var call = () => _sut.Build(null!);
+        var call = () => ManagementElementService.Build(null!);
 
         call.Should().Throw<ArgumentNullException>();
     }
@@ -20,7 +18,7 @@ public class ManagementElementServiceTests
     public void Build_SimpleElement_EmitsTypedPropertyWithOnlyKontentElement(
         ManagementElementInput input, string expectedTypeName, string expectedIdentifier)
     {
-        var result = _sut.Build(input);
+        var result = ManagementElementService.Build(input);
 
         result.Property.Codename.Should().Be(input.Codename);
         result.Property.Id.Should().Be(input.Id);
@@ -60,7 +58,7 @@ public class ManagementElementServiceTests
                 new MultipleChoiceOptionInput("release", "opt-2"),
             ]);
 
-        var result = _sut.Build(input);
+        var result = ManagementElementService.Build(input);
 
         result.Property.TypeName.Should().Be("IEnumerable<ArticleCategory>?");
         result.Property.Attributes.Should().ContainSingle()
@@ -81,7 +79,7 @@ public class ManagementElementServiceTests
                 new MultipleChoiceOptionInput("n3", "opt-3"),
             ]);
 
-        var result = _sut.Build(input);
+        var result = ManagementElementService.Build(input);
 
         result.Enums.Should().ContainSingle();
         var enumDef = result.Enums[0];
@@ -105,7 +103,7 @@ public class ManagementElementServiceTests
             EnumTypeName: "",
             Options: [new MultipleChoiceOptionInput("news", "opt-1")]);
 
-        var call = () => _sut.Build(input);
+        var call = () => ManagementElementService.Build(input);
 
         call.Should().Throw<ArgumentException>().WithMessage("*EnumTypeName*");
     }

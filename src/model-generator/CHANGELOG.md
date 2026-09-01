@@ -9,7 +9,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-## 11.0.0-rc.2 (2026-08-12)  _(prerelease)_
+### Breaking changes
+
+- **`IClassDefinitionFactory` and `IManagementElementService` are removed; their implementations are static classes.** Each had exactly one implementation, was never substituted anywhere including the tests — which construct the concrete type — and held no state. `ManagementElementService`'s own documentation described it as a pure function. They were abstraction without a second implementation to abstract over, and once the interfaces went the analyzer confirmed every method could be static.
+
+  `ClassDefinitionFactory.CreateClassDefinition(...)` and `ManagementElementService.Build(...)` are now static calls on the same types with the same signatures, so call sites change only by losing the instance. Both types stop being registered in the container.
+
+  `DeliveryCodeGenerator` and `ManagementCodeGenerator` lose the corresponding constructor parameters — `classDefinitionFactory` from both, and `elementService` from the management one. Anything resolving these generators from the container is unaffected; only code constructing them by hand needs the arguments removed.
 
 ### Fixed
 
