@@ -90,6 +90,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Resolved rich text is encoded by one encoder throughout.** Text nodes used a Unicode-preserving encoder while attribute values and an inline image's `alt` used `HtmlEncoder.Default`, so the same character survived in one position and was escaped in the other — `<p>café</p>` next to `alt="caf&#xE9;"` in a single document. Both now use the Unicode-preserving encoder. HTML-reserved characters are escaped exactly as before; what changes is that non-ASCII characters in the Basic Multilingual Plane now appear literally in attribute values too. Output that pins the old numeric references character-for-character will differ; rendered output does not.
+
+  The comment describing that encoder claimed it preserved emojis. It does not: `UnicodeRanges.All` is the Basic Multilingual Plane, and emoji live in a supplementary plane, so they were and remain numeric references. The comment now says what the code does.
+
 - **Typed models read a rich text element's `images` and `links` the same way dynamic access does.** The two paths shared one envelope reader but disagreed on how to configure it: the typed path passed no `JsonSerializerOptions` at all, falling back to `JsonSerializerOptions.Default` and matching property names case-sensitively, while `ParseRichTextAsync` matched them case-insensitively. Because `IInlineImage.Url` is a required member, a recased `url` from the API threw on a strongly-typed query and parsed cleanly on a dynamic one. The reader now owns one case-insensitive configuration that both paths use.
 
   The same divergence covered `modular_content`: the typed path kept blank entries and the dynamic path dropped them. Blanks are now dropped on both. Nothing observable changes — the list feeds cache-dependency tracking, which already discarded blanks — but the two paths no longer differ for no stated reason.

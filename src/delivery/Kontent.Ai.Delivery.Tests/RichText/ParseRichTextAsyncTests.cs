@@ -1119,4 +1119,29 @@ public class ParseRichTextAsyncTests
     }
 
     #endregion
+
+    [Fact]
+    public async Task ParseRichTextAsync_OneEncoderCoversTextAndAttributes()
+    {
+        // Text nodes and attribute values used to be encoded by two different encoders, so the same
+        // character survived in one and was escaped in the other.
+        using var doc = JsonDocument.Parse(
+            """
+            {
+              "type": "rich_text",
+              "name": "Body",
+              "codename": "body",
+              "value": "<p title=\u0022caf\u00e9 \ud83d\ude00\u0022>caf\u00e9 \ud83d\ude00</p>",
+              "images": {},
+              "links": {},
+              "modular_content": []
+            }
+            """);
+
+        var richText = await doc.RootElement.ParseRichTextAsync();
+        var html = await richText!.ToHtmlAsync();
+
+        // Basic Multilingual Plane passes through in both positions; supplementary planes escape in both.
+        Assert.Equal("<p title=\"caf\u00e9 &#x1F600;\">caf\u00e9 &#x1F600;</p>", html);
+    }
 }

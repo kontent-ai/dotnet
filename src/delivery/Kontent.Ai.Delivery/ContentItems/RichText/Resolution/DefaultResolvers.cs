@@ -1,4 +1,5 @@
 using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 
@@ -7,6 +8,15 @@ namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 /// </summary>
 public static class DefaultResolvers
 {
+    /// <remarks>
+    /// One encoder for the whole document, text nodes and attribute values alike, so a character cannot
+    /// survive in one and be escaped in the other. <see cref="UnicodeRanges.All"/> is the Basic Multilingual
+    /// Plane (U+0000-U+FFFF) rather than every Unicode character: accented letters and smart quotes pass
+    /// through literally, HTML-reserved characters are still escaped, and anything in a supplementary plane -
+    /// emoji included - is emitted as a numeric reference. Valid HTML either way.
+    /// </remarks>
+    internal static readonly HtmlEncoder Encoder = HtmlEncoder.Create(UnicodeRanges.All);
+
     /// <summary>
     /// Creates a content item link resolver that generates URLs based on content type-specific patterns.
     /// Each content type can have its own URL pattern. Placeholders: {codename}, {type}, {urlslug}, {id}
@@ -86,7 +96,7 @@ public static class DefaultResolvers
         var allAttributes = existingAttributes
             .Concat(additional.Select(a => new KeyValuePair<string, string>(a.key, a.value)))
             .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
-            .Select(kvp => $"{kvp.Key}=\"{HtmlEncoder.Default.Encode(kvp.Value)}\"");
+            .Select(kvp => $"{kvp.Key}=\"{Encoder.Encode(kvp.Value)}\"");
 
         return string.Join(" ", allAttributes);
     }
@@ -98,7 +108,7 @@ public static class DefaultResolvers
     {
         var attributes = existingAttributes
             .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
-            .Select(kvp => $"{kvp.Key}=\"{HtmlEncoder.Default.Encode(kvp.Value)}\"");
+            .Select(kvp => $"{kvp.Key}=\"{Encoder.Encode(kvp.Value)}\"");
 
         return string.Join(" ", attributes);
     }
