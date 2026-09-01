@@ -9,17 +9,7 @@ public sealed class RichTextContent : IRichTextContent
 {
     private readonly IReadOnlyList<IRichTextBlock> _blocks;
 
-    internal RichTextContent(
-        IReadOnlyList<IRichTextBlock> blocks,
-        IReadOnlyDictionary<Guid, IContentLink>? links = null,
-        IReadOnlyDictionary<Guid, IInlineImage>? images = null,
-        IReadOnlyList<string>? modularContentCodenames = null)
-    {
-        _blocks = blocks;
-        Links = links;
-        Images = images;
-        ModularContentCodenames = modularContentCodenames;
-    }
+    internal RichTextContent(IReadOnlyList<IRichTextBlock> blocks) => _blocks = blocks;
 
     /// <summary>
     /// The default Kontent.ai empty rich text value, equivalent to <c>&lt;p&gt;&lt;br&gt;&lt;/p&gt;</c>.
@@ -36,24 +26,6 @@ public sealed class RichTextContent : IRichTextContent
                     [])
             ])
     ]);
-
-    /// <summary>
-    /// Link metadata for resolving content item links.
-    /// Internal property used during HTML resolution.
-    /// </summary>
-    internal IReadOnlyDictionary<Guid, IContentLink>? Links { get; }
-
-    /// <summary>
-    /// Image metadata for resolving inline images.
-    /// Internal property used during HTML resolution.
-    /// </summary>
-    internal IReadOnlyDictionary<Guid, IInlineImage>? Images { get; }
-
-    /// <summary>
-    /// Modular content codenames for resolving inline content items.
-    /// Internal property used during HTML resolution.
-    /// </summary>
-    internal IReadOnlyList<string>? ModularContentCodenames { get; }
 
     /// <inheritdoc />
     public int Count => _blocks.Count;

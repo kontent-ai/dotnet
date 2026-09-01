@@ -101,18 +101,6 @@ public static class DefaultResolvers
         return string.Join(" ", allAttributes);
     }
 
-    /// <summary>
-    /// Overload for building attributes without additional ones.
-    /// </summary>
-    private static string BuildAttributes(IReadOnlyDictionary<string, string> existingAttributes)
-    {
-        var attributes = existingAttributes
-            .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
-            .Select(kvp => $"{kvp.Key}=\"{Encoder.Encode(kvp.Value)}\"");
-
-        return string.Join(" ", attributes);
-    }
-
     private static bool IsVoidElement(string tagName) =>
         tagName.Equals("br", StringComparison.OrdinalIgnoreCase)
         || tagName.Equals("img", StringComparison.OrdinalIgnoreCase);
