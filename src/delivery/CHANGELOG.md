@@ -64,6 +64,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 - `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.
 - The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched. They carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
 
+### Fixed
+
+- **A transport failure reports what actually went wrong.** A DNS failure, a refused connection or a resilience-pipeline rejection produced `Error.Message` of `"Unknown error"`, discarding the exception's own message while keeping it reachable only through `Error.Exception`. The message now carries it — `"No such host is known."` rather than `"Unknown error"`. The exception is still on `Error.Exception` as before.
+
 ## 20.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Breaking changes

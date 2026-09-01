@@ -1,4 +1,3 @@
-using Kontent.Ai.Common;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
@@ -65,48 +64,20 @@ internal static class RefitApiResponseExtensions
             var headers = apiResponse.Headers;
             var responseSource = ExtractResponseSource(apiResponse);
 
-            if (apiResponse.Error is not ApiException apiEx)
-            {
-                var fallback = new Error
-                {
-                    Message = "Unknown error",
-                    Exception = apiResponse.Error
-                };
-                return DeliveryResult.Failure<T>(url, status, fallback, headers, responseSource);
-            }
+            var parsed = await RefitErrorParsing.ParseAsync<Error>(
+                apiResponse.Error,
+                logger is null
+                    ? null
+                    : parseEx => LoggerMessages.ApiErrorParsingFailed(
+                        logger, url, status, (apiResponse.Error as ApiException)?.Content?.Length ?? 0, parseEx))
+                .ConfigureAwait(false);
 
-            Error error;
-            try
+            Error error = parsed switch
             {
-                // Try to parse a structured Kontent API error from the body.
-                var parsed = await apiEx.GetContentAsAsync<Error>().ConfigureAwait(false);
-                if (parsed is not null)
-                {
-                    // Preserve the exception in the parsed error
-                    error = parsed with { Exception = apiEx };
-                }
-                else
-                {
-                    error = new Error { Message = apiEx.Message, Exception = apiEx };
-                }
-            }
-            catch (Exception parseEx) when (!FatalExceptions.IsFatal(parseEx))
-            {
-                // Log the deserialization failure for diagnostics
-                if (logger is not null)
-                {
-                    LoggerMessages.ApiErrorParsingFailed(logger, url, status, apiEx.Content?.Length ?? 0, parseEx);
-                }
-
-                // Body isn't JSON or deserialization failed. Use Refit's formatted message as the base
-                // (it includes HTTP context) and append the raw body for debugging if available.
-                var rawBody = apiEx.Content;
-                var message = string.IsNullOrWhiteSpace(rawBody)
-                    ? apiEx.Message
-                    : $"{apiEx.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
-
-                error = new Error { Message = message, Exception = apiEx };
-            }
+                { Envelope: not null } => parsed.Envelope with { Exception = parsed.Exception },
+                { Message: not null } => new Error { Message = parsed.Message, Exception = parsed.Exception },
+                _ => new Error(),
+            };
 
             return DeliveryResult.Failure<T>(url, status, error, headers, responseSource);
         }

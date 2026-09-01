@@ -218,7 +218,10 @@ public sealed class SyncTransportTests : IDisposable
 
         result.IsSuccess.Should().BeFalse();
         result.Error.Should().NotBeNull();
+        result.Error.Message.Should().Contain("could not be read");
         result.Error.Exception.Should().NotBeNull();
+        result.Error.Exception.InnerException.Should().BeOfType<System.Text.Json.JsonException>();
+        result.Error.ErrorCode.Should().BeNull("the HTTP status is not an API error code");
     }
 
     [Fact]

@@ -1,5 +1,3 @@
-using System.Net;
-using Kontent.Ai.Common;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Sync.SharedModels;
 
@@ -24,16 +22,18 @@ internal static class RefitApiResponseExtensions
     /// <returns>Sync result containing response data or error details.</returns>
     public static Task<ISyncResult<T>> ToSyncResultAsync<T>(this IApiResponse<T> apiResponse)
     {
-        if (apiResponse.IsSuccessStatusCode && apiResponse.Content is not null)
+        if (apiResponse.IsSuccessStatusCode)
         {
             using (apiResponse)
             {
-                return Task.FromResult<ISyncResult<T>>(SyncResult<T>.Success(
-                    apiResponse.Content,
-                    RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                    RequireSyncToken(apiResponse),
-                    RefitResponses.StatusOf(apiResponse),
-                    apiResponse.Headers));
+                return Task.FromResult(apiResponse.Content is null
+                    ? UnreadableBody<T>(apiResponse)
+                    : SyncResult<T>.Success(
+                        apiResponse.Content,
+                        RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+                        RequireSyncToken(apiResponse),
+                        RefitResponses.StatusOf(apiResponse),
+                        apiResponse.Headers));
             }
         }
 
@@ -66,6 +66,27 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
+    /// <summary>
+    /// A 2xx whose body did not deserialize - a delta that does not match the models, most likely.
+    /// Reported as a failed result naming the cause, rather than as an empty success.
+    /// </summary>
+    private static ISyncResult<T> UnreadableBody<T>(IApiResponse<T> apiResponse)
+    {
+        var cause = apiResponse.Error?.InnerException?.Message ?? apiResponse.Error?.Message;
+
+        return SyncResult<T>.Failure(
+            RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
+            RefitResponses.StatusOf(apiResponse),
+            new Error
+            {
+                Message = cause is null
+                    ? "The Sync API returned a success status but no readable response body."
+                    : $"The Sync API returned a success status but its response body could not be read: {cause}",
+                Exception = apiResponse.Error,
+            },
+            apiResponse.Headers);
+    }
+
     private static async Task<ISyncResult> MapFailureAsync(IApiResponse apiResponse)
     {
         using (apiResponse)
@@ -73,7 +94,7 @@ internal static class RefitApiResponseExtensions
             RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
             var statusCode = RefitResponses.StatusOf(apiResponse);
-            var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
+            var error = await BuildErrorAsync(apiResponse).ConfigureAwait(false);
 
             return SyncResult.Failure(
                 RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
@@ -90,7 +111,7 @@ internal static class RefitApiResponseExtensions
             RefitResponses.RethrowIfCanceled(apiResponse.Error);
 
             var statusCode = RefitResponses.StatusOf(apiResponse);
-            var error = await BuildErrorAsync(apiResponse, statusCode).ConfigureAwait(false);
+            var error = await BuildErrorAsync(apiResponse).ConfigureAwait(false);
 
             return SyncResult<T>.Failure(
                 RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
@@ -103,42 +124,16 @@ internal static class RefitApiResponseExtensions
     /// <summary>
     /// Builds the error for a failed response, shared by the typed and untyped paths.
     /// </summary>
-    private static async Task<IError> BuildErrorAsync(IApiResponse apiResponse, HttpStatusCode statusCode)
+    private static async Task<IError> BuildErrorAsync(IApiResponse apiResponse)
     {
-        // Only ApiException buffers the response body; the other kinds describe a failure that produced
-        // no body to parse.
-        if (apiResponse.Error is not ApiException exception)
-        {
-            return new Error
-            {
-                Message = apiResponse.Error?.InnerException?.Message ?? apiResponse.Error?.Message ?? "Unknown error",
-                ErrorCode = (int)statusCode,
-                Exception = apiResponse.Error,
-            };
-        }
+        var parsed = await RefitErrorParsing.ParseAsync<Error>(apiResponse.Error).ConfigureAwait(false);
 
-        try
+        return parsed switch
         {
-            var parsed = await exception.GetContentAsAsync<Error>().ConfigureAwait(false);
-
-            return parsed is not null
-                ? parsed with { ErrorCode = parsed.ErrorCode ?? (int)statusCode, Exception = exception }
-                : new Error { Message = exception.Message, ErrorCode = (int)statusCode, Exception = exception };
-        }
-        catch (Exception parseException) when (!FatalExceptions.IsFatal(parseException))
-        {
-            var rawBody = exception.Content;
-            var message = string.IsNullOrWhiteSpace(rawBody)
-                ? exception.Message
-                : $"{exception.Message} | Raw response: {RefitResponses.TruncateBody(rawBody)}";
-
-            return new Error
-            {
-                Message = message,
-                ErrorCode = (int)statusCode,
-                Exception = new AggregateException(exception, parseException),
-            };
-        }
+            { Envelope: not null } => parsed.Envelope with { Exception = parsed.Exception },
+            { Message: not null } => new Error { Message = parsed.Message, Exception = parsed.Exception },
+            _ => new Error(),
+        };
     }
 
     /// <summary>

@@ -147,6 +147,7 @@ public class RefitApiResponseExtensionsTests
         Assert.False(result.IsSuccess);
         Assert.NotNull(result.Error);
         Assert.IsType<HttpRequestException>(result.Error.Exception?.InnerException);
+        Assert.Equal("No such host is known.", result.Error.Message);
     }
 
     [Fact]

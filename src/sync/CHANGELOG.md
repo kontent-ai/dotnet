@@ -41,6 +41,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **The JSON options no longer configure what the wire models already settle.** Every model names its own properties and `ChangeType` names its own converter, so the snake_case naming policy, the case-insensitive property matching and the enum converter applied to nothing, and the SDK sends no request body for the null-writing rule to act on.
 
+- **`IError.ErrorCode` is the API's error code again, not the HTTP status.** Every failed result stamped the response's status code into `ErrorCode` when the API had not supplied one, so a consumer could not tell an API error code of 429 from an HTTP 429 that carried none. It is now null unless the error envelope contained one, matching the Delivery and Management SDKs and the property's own documentation.
+
+- **A success status with an unreadable body is reported as what it is.** A 2xx whose payload did not match the delta models produced a failed result reading `Unknown error` with `ErrorCode` 200 — a failure whose error code was a success status, and no indication of the cause. It now names it: *"The Sync API returned a success status but its response body could not be read: JSON deserialization for type … was missing required properties including: 'data'."*
+
+- **`Error.Exception` has the same type on every failure path.** A body that was not the error envelope produced an `AggregateException` wrapping both the request failure and the parse failure, while every other path produced the `ApiException` — so a consumer testing `Error.Exception is ApiException` got different answers depending on what the server happened to return. It is always the request failure now; the parse failure is still described in `Error.Message` alongside the raw body.
+
 ## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Fixed
