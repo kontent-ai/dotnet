@@ -39,6 +39,15 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     }
 
     /// <inheritdoc/>
+    public ISyncOptionsBuilder UseProductionApi(string secureAccessApiKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(secureAccessApiKey);
+        _options.ApiMode = ApiMode.Secure;
+        _options.ApiKey = secureAccessApiKey;
+        return this;
+    }
+
+    /// <inheritdoc/>
     public ISyncOptionsBuilder UsePreviewApi(string apiKey)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
@@ -48,13 +57,8 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     }
 
     /// <inheritdoc/>
-    public ISyncOptionsBuilder UseSecureApi(string apiKey)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
-        _options.ApiMode = ApiMode.Secure;
-        _options.ApiKey = apiKey;
-        return this;
-    }
+    [Obsolete("Use UseProductionApi(secureAccessApiKey) instead, matching the Delivery SDK. Removed in 3.0.")]
+    public ISyncOptionsBuilder UseSecureApi(string apiKey) => UseProductionApi(apiKey);
 
     /// <inheritdoc/>
     public ISyncOptionsBuilder DisableRetryPolicy()

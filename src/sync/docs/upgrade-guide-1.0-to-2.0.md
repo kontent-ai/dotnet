@@ -17,6 +17,7 @@ small and the compiler points at each one.
 | `Kontent.Ai.Sync.Abstractions` folded into `Kontent.Ai.Sync` | Drop the reference, change one `using`; see [§2](#2-one-package-one-namespace) |
 | `ISyncItem`/`ISyncType`/`ISyncLanguage`/`ISyncTaxonomy` → `SyncChange<TData>` | Change the loop variable's type; `Data` is now typed. See [§3](#3-one-delta-type-with-a-typed-payload) |
 | `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§4](#4-paging-is-now-a-stream) |
+| `UseSecureApi(key)` → `UseProductionApi(key)` | Rename the call; the old name still works until 3.0 |
 | `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` removed | Delete the usage; the stream ends on its own |
 | `SyncToken` is non-nullable | Drop any `?? previous` fallback |
 | `InitializeSyncAsync` returns `ISyncResult` | Change the declared type, or use `var` |

@@ -64,7 +64,7 @@ public class SyncClientBuilderTests
         using var client = SyncClientBuilder
             .WithOptions(o => o
                 .WithEnvironmentId(EnvironmentId)
-                .UseSecureApi(TestSecureApiKey)
+                .UseProductionApi(TestSecureApiKey)
                 .Build())
             .Build();
 

@@ -19,6 +19,20 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
 
+### Deprecated
+
+- **`ISyncOptionsBuilder.UseSecureApi(apiKey)` is obsolete; use `UseProductionApi(secureAccessApiKey)`.** Secure access is production access with a Delivery API key, and the Delivery SDK has always spelled it as an overload of `UseProductionApi`. Two SDKs naming one concept differently is a papercut for anyone using both, so Sync adopts Delivery's spelling. The old method still works and still delegates to the new one; it will be removed in 3.0.
+
+  ```csharp
+  // Before
+  .UseSecureApi("secure-access-api-key")
+
+  // After
+  .UseProductionApi("secure-access-api-key")
+  ```
+
+  `SyncOptions` is unchanged — `ApiMode` and a single `ApiKey` stay as they are. Only the builder's spelling moves.
+
 ### Fixed
 
 - **`SyncClientBuilder.Build()` documents the exception it actually throws.** It advertised `InvalidOperationException` for a validation failure, but options that fail validation raise `ValidationException`. `InvalidOperationException` is the separate case of calling `Build()` without `WithOptions()`; both are now listed.
