@@ -76,6 +76,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: DeliverySourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+
 - **A missing named client says which call registers one.** `IDeliveryClientFactory.Get(name)` let the container raise the failure, so an unregistered name produced its generic "No service for type … has been registered" rather than naming the client or the fix. It now reports `No delivery client registered with name '…'. Ensure you've registered the client using AddDeliveryClient("…", ...)`, matching the Management and Sync SDKs. Still an `InvalidOperationException`; only the message changes.
 
 - **A transport failure reports what actually went wrong.** A DNS failure, a refused connection or a resilience-pipeline rejection produced `Error.Message` of `"Unknown error"`, discarding the exception's own message while keeping it reachable only through `Error.Exception`. The message now carries it — `"No such host is known."` rather than `"Unknown error"`. The exception is still on `Error.Exception` as before.

@@ -37,18 +37,16 @@ internal static class HttpRequestHeadersExtensions
         }
     }
 
-    private static string GenerateSourceTrackingHeaderValue(Assembly originatingAssembly, SourceTrackingHeaderAttribute attribute)
-    {
-        if (attribute.LoadFromAssembly)
-        {
-            var packageName = attribute.PackageName ?? originatingAssembly.GetName().Name;
-            return $"{packageName};{originatingAssembly.GetProductVersion()}";
-        }
-
-        var version = SdkTrackingHeaders.FormatSourceVersion(
-            attribute.MajorVersion, attribute.MinorVersion, attribute.PatchVersion, attribute.PreReleaseLabel);
-        return $"{attribute.PackageName};{version}";
-    }
+    private static string GenerateSourceTrackingHeaderValue(Assembly originatingAssembly, SourceTrackingHeaderAttribute attribute) =>
+        attribute.LoadFromAssembly
+            ? SdkTrackingHeaders.ComposeSourceHeaderValue(originatingAssembly, attribute.PackageName)
+            : SdkTrackingHeaders.ComposeSourceHeaderValue(
+                originatingAssembly,
+                attribute.PackageName,
+                attribute.MajorVersion,
+                attribute.MinorVersion,
+                attribute.PatchVersion,
+                attribute.PreReleaseLabel);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Assembly? GetOriginatingAssembly() => SdkTrackingHeaders.FindOriginatingAssembly(SdkAssembly);
