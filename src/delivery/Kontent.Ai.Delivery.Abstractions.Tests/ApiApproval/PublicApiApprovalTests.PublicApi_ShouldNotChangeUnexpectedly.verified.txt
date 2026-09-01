@@ -133,11 +133,6 @@ public interface IBlockWithChildren : IRichTextBlock
     IReadOnlyList<IRichTextBlock> Children { get; }
 
 // Kontent.Ai.Delivery.Abstractions
-public interface IContentDeserializer
-    Object DeserializeContentItem(JsonElement jsonElement, Type modelType)
-    Object DeserializeContentItem(String json, Type modelType)
-
-// Kontent.Ai.Delivery.Abstractions
 public interface IContentElement
     String Codename { get; }
     String Name { get; }
@@ -451,10 +446,6 @@ public interface IItemQuery`1<TModel>
     IItemQuery<TModel> WithLanguage(String languageCodename)
     IItemQuery<TModel> WithoutElements(String[] elementCodenames)
     Task<IDeliveryResult<IContentItem<TModel>>> ExecuteAsync(CancellationToken cancellationToken)
-
-// Kontent.Ai.Delivery.Abstractions
-public interface IItemTypingStrategy
-    Type ResolveModelType(String contentTypeCodename)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IItemUsedInQuery

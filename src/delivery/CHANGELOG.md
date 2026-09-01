@@ -43,6 +43,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`DeliveryClientFactory` is internal; resolve `IDeliveryClientFactory` instead.** The concrete factory was public with a constructor taking an `IServiceProvider`, so the only way to build one was to have a container already — at which point resolving the interface is what you would do anyway. Nothing in the SDK or its siblings constructed it, and the Management and Sync equivalents have always been internal. The interface is unchanged and still resolves from the container exactly as before; only `new DeliveryClientFactory(serviceProvider)` and references to the concrete type break.
 
+- **`IItemTypingStrategy` and `IContentDeserializer` are internal.** Both sat in `Kontent.Ai.Delivery.Abstractions` as public interfaces with a single internal implementation each, and neither was a seam anyone could use.
+
+  `IContentDeserializer` could not be implemented at all. Its `DeserializeContentItem` returns `object`, but the value has to be a `ContentItem<TModel>` — an internal sealed record a consumer can neither construct nor derive from — and the raw-JSON cache path hard-casts to it. A custom deserializer therefore worked well enough on the uncached routes, which tolerate the result as `object`, and threw `InvalidCastException` the moment `CacheStorageMode.RawJson` rehydrated an entry. The migration notes for `19.0.0-rc1` suggested overriding its `JsonElement` overload; that advice should not have been given.
+
+  `IItemTypingStrategy` was substitutable, since it only maps a codename to a `Type`, but it duplicates `ITypeProvider` one layer down and replacing it silently forfeited what the default adds: memoized lookups, the fallback to `DynamicElements` when a codename has no model, and the log line recording that fallback. `ITypeProvider` is the supported route for the same decision — it is public, documented, what the source generator emits against, and settable through `DeliveryClientBuilder.WithTypeProvider(...)`. Move any custom typing strategy there.
+
 ### Added
 
 - **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.

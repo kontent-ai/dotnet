@@ -5,7 +5,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// <summary>
 /// Provides deserialization of JSON content items into strongly-typed models.
 /// </summary>
-public interface IContentDeserializer
+internal interface IContentDeserializer
 {
     /// <summary>
     /// Deserializes a JSON string into a ContentItem with the specified model type.

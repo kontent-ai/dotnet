@@ -3,7 +3,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// <summary>
 /// Decides the effective model type for content item deserialization.
 /// </summary>
-public interface IItemTypingStrategy
+internal interface IItemTypingStrategy
 {
     /// <summary>
     /// Resolves the .NET model type to use for deserialization based on the content type codename.
