@@ -97,9 +97,8 @@ exactly: the divergence is visible because the common file has no retry-by-metho
 
 ### 2.5 `RefitClients.AddKeyed<TApi>` — one shape, four registrations
 
-> **Back in play: 2.9 is blocked on Refit 14.0.1** (see there). Until Refit ships a keyed
-> registration for generated clients, this hand-rolled shape is the only one available, and sharing
-> it is legitimate.
+> **Resolved by 2.9.** The hand-rolled registration no longer exists; Refit's keyed generated
+> registration replaced it in all three products.
 
 ```csharp
 services.AddKeyedTransient(name, (sp, _) =>
@@ -208,28 +207,13 @@ one and missed in the other.
 
 ### 2.9 Use Refit's own keyed registration instead of hand-rolling it — the strongest alignment available
 
-> **Tried on `unify-registration` and reverted: blocked by Refit 14.0.1, not by the SDKs.** Refit 14
-> builds clients two ways. Source-generated clients are what all three products use — none of their
-> interfaces raise RF006, and none reference `Refit.Reflection`. `AddKeyedRefitClient` is the
-> *reflection* registration: resolving it calls `RequestBuilder.ForType<T>`, which throws
-> `NotSupportedException` ("this interface needs the reflection request builder, which is not
-> installed") the moment a client is resolved. The generated registration, `AddRefitGeneratedClient`,
-> exists but has no keyed variant in 14.0.1, and named clients need the key. So the hand-rolled
-> `AddKeyedTransient(name, sp => RestService.For<T>(factory.CreateClient(name), settings))` is not
-> a copy of something Refit ships; it is the only keyed registration for generated clients that
-> exists today. Two probes did confirm the rest: Refit adds no delegating handler of its own, and it
-> sets a plain `HttpClientHandler` as the primary, which the SDK's connection recycling replaces
-> because it runs later — now pinned by a test in each product's DI suite.
->
-> **Revisit when a Refit release ships a keyed generated registration**, and only then. The floor
-> would move with it. Taking `Refit.Reflection` to unlock the keyed reflection registration is the
-> wrong trade: it reintroduces the runtime request building the generator exists to remove.
-
-All three products register their Refit client the same way: `AddHttpClient(name)` to get the
-factory's builder, then `AddKeyedTransient(name, sp => RestService.For<TApi>(factory.CreateClient(name), settings))`.
-That is, line for line, what `Refit.HttpClientFactory` provides. The Refit 14 binary the repo restores
-exposes `AddKeyedRefitClient<TApi>(serviceKey, settings, httpClientName)` alongside `AddRefitClient`,
-returning the same `IHttpClientBuilder` the products already configure.
+> **Done on `unify-registration`, after moving to Refit 15.2.0.** On 14.0.1 this was blocked: Refit 14's
+> keyed registration is the *reflection* one (`RequestBuilder.ForType<T>` throws `NotSupportedException`
+> without `Refit.Reflection`, which no product references), and its generated registration had no keyed
+> variant. Refit 15.0.0 added `AddKeyedRefitGeneratedClient<T>(serviceKey, settings, httpClientName)`, which
+> is the exact shape below. All three products now register through it; the hand-rolled
+> `AddKeyedTransient` is gone. The primary-handler test in each DI suite pins that the SDK's connection
+> recycling still wins over the plain `HttpClientHandler` Refit installs.
 
 Two facts checked against the binary that make it viable:
 
@@ -252,8 +236,7 @@ so a different lifetime would be harmless but worth knowing), and that Refit's r
 handler of its own ahead of the products' chain, since the resilience-outside-auth order is what the
 retry tests pin. Both are a single test run to settle.
 
-**Order:** after the container plan, in the same PR as 2.3, since both edit the same twenty lines of
-each registration file.
+**Order:** done, in the same PR as the container plan.
 
 ## 3. Extract — `src/testing`
 
@@ -338,8 +321,7 @@ catch drift in it.
    site per product to work on.
 2. **3.1** — the shared tests give every later step a net to land on, and they are pure addition.
 3. **2.1, 2.2, 2.3, 2.4** together — the DI registration files of all three products change in
-   one PR, each getting shorter, each behaviour already tested per product. 2.5 stays a candidate
-   while 2.9 is blocked; 2.9 waits for Refit.
+   one PR, each getting shorter, each behaviour already tested per product. 2.5 and 2.9 are done.
 4. **2.7** and **2.8** — each self-contained, each with the approval snapshot as the check that no
    public surface moved.
 5. **5.1** then **5.2** — Delivery only, `TypeQuery`/`TaxonomyQuery` first as the plan sequences it.

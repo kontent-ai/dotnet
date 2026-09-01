@@ -26,7 +26,7 @@ public static partial class ServiceCollectionExtensions
 
         var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
-            .AddHttpClient(httpClientName)
+            .AddKeyedRefitGeneratedClient<IDeliveryApi>(name, refitSettings, httpClientName)
             .ConfigureHttpClient((serviceProvider, httpClient) =>
             {
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
@@ -51,14 +51,6 @@ public static partial class ServiceCollectionExtensions
 
         // Apply custom configuration last, so a consumer can still replace anything set above.
         configureHttpClient?.Invoke(httpClientBuilder);
-
-        // Register keyed IDeliveryApi - create Refit client from the configured HTTP pipeline
-        services.AddKeyedTransient(name, (sp, _) =>
-        {
-            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient(httpClientName);
-            return RestService.For<IDeliveryApi>(httpClient, refitSettings);
-        });
     }
 
     /// <summary>

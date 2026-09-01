@@ -19,9 +19,11 @@ internal static class RefitResponses
     /// Rethrows caller cancellation instead of reporting it as a failed result.
     /// </summary>
     /// <remarks>
-    /// Refit captures every handler-chain exception into <c>Error</c> rather than throwing, which suits
-    /// transport failures - they are an outcome of the call. Cancellation is not: it is the caller
-    /// withdrawing the request. Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
+    /// Refit captures a transport failure into <c>Error</c> rather than throwing, which suits it - the
+    /// failure is an outcome of the call. A cancellation raised while the body is read is captured the
+    /// same way, with the 2xx status already in hand, and that one is not an outcome: it is the caller
+    /// withdrawing the request. (A cancellation raised during the send itself is thrown by Refit and
+    /// never reaches here.) Reporting it as a result would leave <see cref="Task.IsCanceled"/> unset,
     /// so <c>Task.WhenAll</c> and <c>Parallel.ForEachAsync</c> would treat it as a failure and keep going,
     /// and <c>catch (OperationCanceledException)</c> would never fire.
     /// <para>
