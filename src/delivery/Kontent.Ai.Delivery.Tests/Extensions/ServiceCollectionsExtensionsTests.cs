@@ -1336,4 +1336,23 @@ public class ServiceCollectionsExtensionsTests
 
         return httpClient.Timeout;
     }
+
+    [Fact]
+    public void AddDeliveryClient_KeepsThePooledPrimaryHandler()
+    {
+        // Refit's registration installs a plain HttpClientHandler as the primary. The SDK's connection
+        // recycling runs after it and must be what sits at the bottom of the chain.
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Delivery.HttpClient.Default");
+        while (handler is DelegatingHandler { InnerHandler: { } inner })
+        {
+            handler = inner;
+        }
+
+        var primary = Assert.IsType<SocketsHttpHandler>(handler);
+        Assert.Equal(TimeSpan.FromMinutes(2), primary.PooledConnectionLifetime);
+    }
 }
