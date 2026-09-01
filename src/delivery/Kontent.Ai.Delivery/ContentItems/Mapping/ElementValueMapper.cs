@@ -106,10 +106,7 @@ internal sealed class ElementValueMapper(
             return null;
         }
 
-        var richTextData = RichTextElementEnvelopeReader.Read(
-            envelope,
-            elementCodename,
-            preserveEmptyModularContentEntries: true);
+        var richTextData = RichTextElementEnvelopeReader.Read(envelope, elementCodename);
 
         if (context.CustomAssetDomain is not null && richTextData.Images.Count > 0)
         {

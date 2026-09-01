@@ -12,11 +12,6 @@ namespace Kontent.Ai.Delivery;
 /// </summary>
 public static class RichTextExtensions
 {
-    private static readonly JsonSerializerOptions RichTextEnvelopeReadOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     // Cached parser and options for ParseRichTextAsync - safe to reuse as HtmlParser.ParseDocument returns new documents
     private static readonly Lazy<RichTextParser> DefaultRichTextParser = new(
         () => new RichTextParser(new AngleSharp.Html.Parser.HtmlParser()),
@@ -228,11 +223,7 @@ public static class RichTextExtensions
         RichTextElementData elementData;
         try
         {
-            elementData = RichTextElementEnvelopeReader.Read(
-                richTextElement,
-                codename,
-                RichTextEnvelopeReadOptions,
-                preserveEmptyModularContentEntries: false);
+            elementData = RichTextElementEnvelopeReader.Read(richTextElement, codename);
         }
         catch (JsonException)
         {

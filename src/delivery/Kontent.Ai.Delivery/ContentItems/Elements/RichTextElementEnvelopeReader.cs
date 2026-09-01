@@ -6,32 +6,38 @@ namespace Kontent.Ai.Delivery.ContentItems.Elements;
 
 internal static class RichTextElementEnvelopeReader
 {
-    public static RichTextElementData Read(
-        JsonElement envelope,
-        string codename,
-        JsonSerializerOptions? serializerOptions = null,
-        bool preserveEmptyModularContentEntries = false)
+    /// <remarks>
+    /// Owned here rather than taken from the caller. The envelope's three shapes are internal records whose
+    /// every property carries an explicit <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/>,
+    /// so they need nothing from the SDK's configurable options - and holding one instance is what keeps the
+    /// typed and the dynamic path reading the same envelope the same way, rather than trusting two callers to
+    /// pass the same thing. They did not: the typed path passed nothing at all, leaving
+    /// <see cref="InlineImage.Url"/> - a required member - to throw on a recased property that the dynamic
+    /// path accepted.
+    /// </remarks>
+    private static readonly JsonSerializerOptions EnvelopeOptions = new()
     {
-        return new RichTextElementData
+        PropertyNameCaseInsensitive = true
+    };
+
+    public static RichTextElementData Read(JsonElement envelope, string codename)
+        => new()
         {
             Type = GetStringProperty(envelope, "type"),
             Name = GetStringProperty(envelope, "name"),
             Codename = codename,
             Value = GetStringProperty(envelope, "value"),
-            Images = DeserializeInlineImages(envelope, serializerOptions),
-            Links = DeserializeContentLinks(envelope, serializerOptions),
-            ModularContent = DeserializeModularContent(envelope, serializerOptions, preserveEmptyModularContentEntries)
+            Images = DeserializeInlineImages(envelope),
+            Links = DeserializeContentLinks(envelope),
+            ModularContent = DeserializeModularContent(envelope)
         };
-    }
 
-    public static string GetStringProperty(JsonElement element, string propertyName)
+    private static string GetStringProperty(JsonElement element, string propertyName)
         => element.TryGetProperty(propertyName, out var prop)
             ? prop.GetString() ?? string.Empty
             : string.Empty;
 
-    private static Dictionary<Guid, IInlineImage> DeserializeInlineImages(
-        JsonElement root,
-        JsonSerializerOptions? serializerOptions)
+    private static Dictionary<Guid, IInlineImage> DeserializeInlineImages(JsonElement root)
     {
         if (!root.TryGetProperty("images", out var imagesEl) || imagesEl.ValueKind != JsonValueKind.Object)
         {
@@ -46,9 +52,7 @@ internal static class RichTextElementEnvelopeReader
                 continue;
             }
 
-            var image = serializerOptions is null
-                ? JsonSerializer.Deserialize<InlineImage>(prop.Value)
-                : JsonSerializer.Deserialize<InlineImage>(prop.Value, serializerOptions);
+            var image = JsonSerializer.Deserialize<InlineImage>(prop.Value, EnvelopeOptions);
             if (image is not null)
             {
                 result[id] = image;
@@ -58,9 +62,7 @@ internal static class RichTextElementEnvelopeReader
         return result;
     }
 
-    private static Dictionary<Guid, IContentLink> DeserializeContentLinks(
-        JsonElement root,
-        JsonSerializerOptions? serializerOptions)
+    private static Dictionary<Guid, IContentLink> DeserializeContentLinks(JsonElement root)
     {
         if (!root.TryGetProperty("links", out var linksEl) || linksEl.ValueKind != JsonValueKind.Object)
         {
@@ -75,9 +77,7 @@ internal static class RichTextElementEnvelopeReader
                 continue;
             }
 
-            var link = serializerOptions is null
-                ? JsonSerializer.Deserialize<ContentLink>(prop.Value)
-                : JsonSerializer.Deserialize<ContentLink>(prop.Value, serializerOptions);
+            var link = JsonSerializer.Deserialize<ContentLink>(prop.Value, EnvelopeOptions);
             if (link is null)
             {
                 continue;
@@ -89,34 +89,26 @@ internal static class RichTextElementEnvelopeReader
         return result;
     }
 
-    private static List<string> DeserializeModularContent(
-        JsonElement root,
-        JsonSerializerOptions? serializerOptions,
-        bool preserveEmptyEntries)
+    /// <remarks>
+    /// Blank codenames are dropped. The list feeds cache-dependency tracking, which discards them anyway, and
+    /// a blank names no content item that could ever be looked up.
+    /// </remarks>
+    private static List<string> DeserializeModularContent(JsonElement root)
     {
         if (!root.TryGetProperty("modular_content", out var modularEl) || modularEl.ValueKind != JsonValueKind.Array)
         {
             return [];
         }
 
-        if (preserveEmptyEntries)
-        {
-            var deserializedModularContent = serializerOptions is null
-                ? JsonSerializer.Deserialize<List<string>>(modularEl)
-                : JsonSerializer.Deserialize<List<string>>(modularEl, serializerOptions);
-            return deserializedModularContent ?? [];
-        }
-
-        List<string> list = [];
+        List<string> codenames = [];
         foreach (var item in modularEl.EnumerateArray())
         {
-            var str = item.GetString();
-            if (!string.IsNullOrEmpty(str))
+            if (item.GetString() is { Length: > 0 } codename)
             {
-                list.Add(str);
+                codenames.Add(codename);
             }
         }
 
-        return list;
+        return codenames;
     }
 }

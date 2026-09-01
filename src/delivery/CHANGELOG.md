@@ -86,6 +86,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Typed models read a rich text element's `images` and `links` the same way dynamic access does.** The two paths shared one envelope reader but disagreed on how to configure it: the typed path passed no `JsonSerializerOptions` at all, falling back to `JsonSerializerOptions.Default` and matching property names case-sensitively, while `ParseRichTextAsync` matched them case-insensitively. Because `IInlineImage.Url` is a required member, a recased `url` from the API threw on a strongly-typed query and parsed cleanly on a dynamic one. The reader now owns one case-insensitive configuration that both paths use.
+
+  The same divergence covered `modular_content`: the typed path kept blank entries and the dynamic path dropped them. Blanks are now dropped on both. Nothing observable changes — the list feeds cache-dependency tracking, which already discarded blanks — but the two paths no longer differ for no stated reason.
+
 - **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: DeliverySourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
 
 - **A missing named client says which call registers one.** `IDeliveryClientFactory.Get(name)` let the container raise the failure, so an unregistered name produced its generic "No service for type … has been registered" rather than naming the client or the fix. It now reports `No delivery client registered with name '…'. Ensure you've registered the client using AddDeliveryClient("…", ...)`, matching the Management and Sync SDKs. Still an `InvalidOperationException`; only the message changes.

@@ -35,10 +35,7 @@ public sealed class RichTextElementEnvelopeReaderTests
             }
             """);
 
-        var richText = RichTextElementEnvelopeReader.Read(
-            doc.RootElement,
-            "body_copy",
-            preserveEmptyModularContentEntries: true);
+        var richText = RichTextElementEnvelopeReader.Read(doc.RootElement, "body_copy");
 
         Assert.Equal("rich_text", richText.Type);
         Assert.Equal("Body Copy", richText.Name);
@@ -54,7 +51,7 @@ public sealed class RichTextElementEnvelopeReaderTests
         Assert.Equal(Guid.Parse("11111111-1111-1111-1111-111111111111"), image.ImageId);
 
         Assert.Single(richText.Links);
-        Assert.Equal(3, richText.ModularContent.Count);
+        Assert.Equal(["component_a", "linked_item"], richText.ModularContent);
     }
 
     [Fact]
@@ -89,14 +86,50 @@ public sealed class RichTextElementEnvelopeReaderTests
         var parsed = await doc.RootElement.ParseRichTextAsync();
         var parsedRichText = Assert.IsType<RichTextContent>(parsed);
 
-        var shared = RichTextElementEnvelopeReader.Read(
-            doc.RootElement,
-            "body_copy",
-            serializerOptions: new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
-            preserveEmptyModularContentEntries: false);
+        var shared = RichTextElementEnvelopeReader.Read(doc.RootElement, "body_copy");
 
         Assert.Equal(shared.Images.Count, parsedRichText.Images?.Count ?? 0);
         Assert.Equal(shared.Links.Count, parsedRichText.Links?.Count ?? 0);
         Assert.Equal(shared.ModularContent, parsedRichText.ModularContentCodenames);
+    }
+
+    [Fact]
+    public void RichTextElementEnvelopeReader_MatchesPropertyNamesCaseInsensitively()
+    {
+        // The typed path used to read this envelope with JsonSerializerOptions.Default, so a recased
+        // property left InlineImage.Url - a required member - unset and threw, while the dynamic path
+        // read the same payload without complaint.
+        using var doc = JsonDocument.Parse(
+            """
+            {
+              "type": "rich_text",
+              "name": "Body Copy",
+              "value": "<p>Hello world</p>",
+              "images": {
+                "11111111-1111-1111-1111-111111111111": {
+                  "Description": "Hero",
+                  "URL": "https://example.com/image.jpg",
+                  "Image_Id": "11111111-1111-1111-1111-111111111111"
+                }
+              },
+              "links": {
+                "22222222-2222-2222-2222-222222222222": {
+                  "Codename": "linked_item",
+                  "Url_Slug": "linked-item",
+                  "Type": "article"
+                }
+              }
+            }
+            """);
+
+        var richText = RichTextElementEnvelopeReader.Read(doc.RootElement, "body_copy");
+
+        var image = richText.Images.Values.Single();
+        Assert.Equal("https://example.com/image.jpg", image.Url);
+        Assert.Equal("Hero", image.Description);
+
+        var link = richText.Links.Values.Single();
+        Assert.Equal("linked_item", link.Codename);
+        Assert.Equal("article", link.ContentTypeCodename);
     }
 }
