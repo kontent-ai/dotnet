@@ -105,8 +105,10 @@ public sealed class SyncClientBuilder
     /// Builds and returns a configured <see cref="ISyncClient"/> instance.
     /// </summary>
     /// <returns>A fully configured <see cref="ISyncClient"/> that should be disposed when no longer needed.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when validation fails (e.g., missing environment ID or API key).
+    /// <exception cref="InvalidOperationException">Thrown when <see cref="WithOptions"/> was not called.</exception>
+    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// Thrown when the options fail validation - a missing environment ID, or a missing API key for the
+    /// Preview or Secure mode.
     /// </exception>
     /// <remarks>
     /// <para>

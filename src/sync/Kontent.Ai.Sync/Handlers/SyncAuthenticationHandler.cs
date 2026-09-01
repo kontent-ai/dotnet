@@ -8,11 +8,6 @@ namespace Kontent.Ai.Sync.Handlers;
 /// <summary>
 /// Delegating handler that injects authentication header and rewrites hosts for Sync requests.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance.
-/// </remarks>
-/// <param name="optionsAccessor">Supplies the effective options for each request.</param>
-/// <param name="logger">Optional logger.</param>
 internal sealed class SyncAuthenticationHandler(
     ISyncOptionsAccessor optionsAccessor,
     ILogger<SyncAuthenticationHandler>? logger = null) : DelegatingHandler
@@ -24,43 +19,36 @@ internal sealed class SyncAuthenticationHandler(
         var options = optionsAccessor.Current;
         var baseUri = new Uri(options.GetBaseUrl().TrimEnd('/'), UriKind.Absolute);
 
-        if (!IsTrustedHost(request.RequestUri, baseUri))
+        // Absolute by now: HttpClient resolves the URI against BaseAddress before the handler chain runs.
+        var requestUri = request.RequestUri!;
+
+        if (!IsTrustedHost(requestUri, baseUri))
         {
             ClearAuthentication(request);
             return base.SendAsync(request, cancellationToken);
         }
 
-        RewriteHostIfNeeded(request, baseUri);
+        RewriteHost(request, requestUri, baseUri);
         SetAuthentication(request, options);
 
         return base.SendAsync(request, cancellationToken);
     }
 
-    private void RewriteHostIfNeeded(HttpRequestMessage request, Uri baseUri)
+    // An options reload can move the endpoint after the HttpClient captured its BaseAddress.
+    private void RewriteHost(HttpRequestMessage request, Uri requestUri, Uri baseUri)
     {
-        if (request.RequestUri is null)
-        {
-            request.RequestUri = baseUri;
-        }
-        else if (!request.RequestUri.IsAbsoluteUri)
-        {
-            request.RequestUri = new Uri(baseUri, request.RequestUri);
-        }
-        else
-        {
-            var originalHost = request.RequestUri.Host;
-            var uriBuilder = new UriBuilder(request.RequestUri)
-            {
-                Scheme = baseUri.Scheme,
-                Host = baseUri.Host,
-                Port = baseUri.IsDefaultPort ? -1 : baseUri.Port
-            };
-            request.RequestUri = uriBuilder.Uri;
+        var originalHost = requestUri.Host;
 
-            if (logger is not null && !originalHost.Equals(baseUri.Host, StringComparison.OrdinalIgnoreCase))
-            {
-                LoggerMessages.HttpEndpointRewritten(logger, originalHost, baseUri.Host);
-            }
+        request.RequestUri = new UriBuilder(requestUri)
+        {
+            Scheme = baseUri.Scheme,
+            Host = baseUri.Host,
+            Port = baseUri.IsDefaultPort ? -1 : baseUri.Port
+        }.Uri;
+
+        if (logger is not null && !originalHost.Equals(baseUri.Host, StringComparison.OrdinalIgnoreCase))
+        {
+            LoggerMessages.HttpEndpointRewritten(logger, originalHost, baseUri.Host);
         }
     }
 
@@ -90,9 +78,7 @@ internal sealed class SyncAuthenticationHandler(
         }
     }
 
-    private static bool IsTrustedHost(Uri? requestUri, Uri configuredBase) =>
-        requestUri is null ||
-        !requestUri.IsAbsoluteUri ||
+    private static bool IsTrustedHost(Uri requestUri, Uri configuredBase) =>
         requestUri.Host.Equals(configuredBase.Host, StringComparison.OrdinalIgnoreCase) ||
         requestUri.Host.Equals("deliver.kontent.ai", StringComparison.OrdinalIgnoreCase) ||
         requestUri.Host.Equals("preview-deliver.kontent.ai", StringComparison.OrdinalIgnoreCase);

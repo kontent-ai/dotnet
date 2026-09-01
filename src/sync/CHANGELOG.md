@@ -19,6 +19,14 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
 
+### Fixed
+
+- **`SyncClientBuilder.Build()` documents the exception it actually throws.** It advertised `InvalidOperationException` for a validation failure, but options that fail validation raise `ValidationException`. `InvalidOperationException` is the separate case of calling `Build()` without `WithOptions()`; both are now listed.
+
+- **`SyncOptions` describes what its properties do.** The two endpoint properties were documented as a "format", carried over from the Delivery SDK where they are format strings — here they are plain base URLs. `EnableResilience` now records that it is read once when the HTTP pipeline is built and that switching it off also restores `HttpClient`'s 100-second ceiling over the whole call. `Validate`'s summary no longer claims that yielding is what lets the attribute-based validations run.
+
+- **The JSON options no longer configure what the wire models already settle.** Every model names its own properties and `ChangeType` names its own converter, so the snake_case naming policy, the case-insensitive property matching and the enum converter applied to nothing, and the SDK sends no request body for the null-writing rule to act on.
+
 ## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Fixed
