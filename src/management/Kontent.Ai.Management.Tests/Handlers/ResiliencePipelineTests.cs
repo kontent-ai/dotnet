@@ -1,114 +1,18 @@
 using AwesomeAssertions;
-using Kontent.Ai.Common.Http;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
-using Polly.Timeout;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Sockets;
 
 namespace Kontent.Ai.Management.Tests.Handlers;
 
+/// <summary>
+/// The composed default pipeline and its idempotency rule. The shared predicates it is built from are
+/// pinned by the shared test sources under <c>Testing/Http</c>.
+/// </summary>
 public class ResiliencePipelineTests
 {
-    public static TheoryData<HttpStatusCode, bool> RetryableStatusCodes => new()
-    {
-        { HttpStatusCode.RequestTimeout, true },
-        { HttpStatusCode.TooManyRequests, true },
-        { HttpStatusCode.InternalServerError, true },
-        { HttpStatusCode.BadGateway, true },
-        { HttpStatusCode.ServiceUnavailable, true },
-        { HttpStatusCode.GatewayTimeout, true },
-        { HttpStatusCode.OK, false },
-        { HttpStatusCode.BadRequest, false },
-        { HttpStatusCode.Unauthorized, false },
-        { HttpStatusCode.Forbidden, false },
-        { HttpStatusCode.NotFound, false },
-        { HttpStatusCode.Conflict, false },
-        { HttpStatusCode.UnprocessableEntity, false }
-    };
-
-    [Theory]
-    [MemberData(nameof(RetryableStatusCodes))]
-    public void IsRetryableStatusCode_MatchesExpected(HttpStatusCode code, bool expected)
-    {
-        HttpRetryPredicates.IsRetryableStatusCode(code).Should().Be(expected);
-    }
-
-    [Fact]
-    public void IsRetryableStatusCode_Null_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsRetryableStatusCode(null).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_Null_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsTransientException(null, CancellationToken.None).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_HttpRequestException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new HttpRequestException(), CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_SocketException_WrappedInHttpRequestException_ReturnsTrue()
-    {
-        var inner = new SocketException((int)SocketError.ConnectionRefused);
-        var ex = new HttpRequestException("transient", inner);
-
-        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TimeoutException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new TimeoutException(), CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TaskCanceledException_WithoutUserCancellation_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new TaskCanceledException(), CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TaskCanceledException_WithTimeoutInner_ReturnsTrue()
-    {
-        var ex = new TaskCanceledException("http timeout", new TimeoutException());
-
-        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_OperationCanceled_UserCancelled_ReturnsFalse()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        var ex = new OperationCanceledException(cts.Token);
-
-        HttpRetryPredicates.IsTransientException(ex, cts.Token).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_InvalidOperationException_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsTransientException(new InvalidOperationException(), CancellationToken.None).Should().BeFalse();
-    }
-
-    // The management pipeline adds no per-attempt timeout, so this case cannot arise here. The predicate is
-    // shared source though, and it is pinned identically in all three suites so a change to it cannot pass
-    // one product's tests while breaking another's.
-    [Fact]
-    public void IsTransientException_TimeoutRejectedException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new TimeoutRejectedException(), CancellationToken.None).Should().BeTrue();
-    }
-
     // Retry-After handling is deliberately left to HttpRetryStrategyOptions' built-in ShouldRetryAfterHeader default
     // (it honors both delta and HTTP-date forms); these pin that the default pipeline actually applies it.
     [Fact]

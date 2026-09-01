@@ -17,6 +17,9 @@
 
   <ItemGroup>
     <Compile Include="$(KontentTestingPath)PublicApiApproval.cs" Link="Testing\PublicApiApproval.cs" />
+    <Compile Include="$(KontentTestingPath)Http\HttpRetryPredicatesTests.cs" Link="Testing\Http\HttpRetryPredicatesTests.cs" />
+    <Compile Include="$(KontentTestingPath)Http\HttpRetryDelayTests.cs" Link="Testing\Http\HttpRetryDelayTests.cs" />
+    <Compile Include="$(KontentTestingPath)Http\SdkTrackingHeadersTests.cs" Link="Testing\Http\SdkTrackingHeadersTests.cs" />
   </ItemGroup>
 
   <ItemGroup>

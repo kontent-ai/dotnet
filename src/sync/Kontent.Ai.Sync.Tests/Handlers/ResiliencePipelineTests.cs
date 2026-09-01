@@ -1,138 +1,17 @@
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Sockets;
 using AwesomeAssertions;
-using Kontent.Ai.Common.Http;
 using Polly;
-using Polly.Retry;
 using Polly.Timeout;
 
 namespace Kontent.Ai.Sync.Tests.Handlers;
 
+/// <summary>
+/// The composed default pipeline. The shared predicates and delay generator it is built from are
+/// pinned by the shared test sources under <c>Testing/Http</c>.
+/// </summary>
 public class ResiliencePipelineTests
 {
-    public static TheoryData<HttpStatusCode, bool> RetryableStatusCodes => new()
-    {
-        { HttpStatusCode.RequestTimeout, true },
-        { HttpStatusCode.TooManyRequests, true },
-        { HttpStatusCode.InternalServerError, true },
-        { HttpStatusCode.BadGateway, true },
-        { HttpStatusCode.ServiceUnavailable, true },
-        { HttpStatusCode.GatewayTimeout, true },
-        { HttpStatusCode.OK, false },
-        { HttpStatusCode.BadRequest, false },
-        { HttpStatusCode.Unauthorized, false },
-        { HttpStatusCode.Forbidden, false },
-        { HttpStatusCode.NotFound, false },
-        { HttpStatusCode.Conflict, false },
-        { HttpStatusCode.UnprocessableEntity, false }
-    };
-
-    [Theory]
-    [MemberData(nameof(RetryableStatusCodes))]
-    public void IsRetryableStatusCode_MatchesExpected(HttpStatusCode code, bool expected)
-    {
-        HttpRetryPredicates.IsRetryableStatusCode(code).Should().Be(expected);
-    }
-
-    [Fact]
-    public void IsRetryableStatusCode_Null_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsRetryableStatusCode(null).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_Null_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsTransientException(null, CancellationToken.None).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_HttpRequestException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new HttpRequestException(), CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_SocketException_WrappedInHttpRequestException_ReturnsTrue()
-    {
-        var inner = new SocketException((int)SocketError.ConnectionRefused);
-        var ex = new HttpRequestException("transient", inner);
-
-        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TimeoutException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new TimeoutException(), CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TaskCanceledException_WithoutUserCancellation_ReturnsTrue()
-    {
-        var ex = new TaskCanceledException();
-
-        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_TaskCanceledException_WithTimeoutInner_ReturnsTrue()
-    {
-        var ex = new TaskCanceledException("http timeout", new TimeoutException());
-
-        HttpRetryPredicates.IsTransientException(ex, CancellationToken.None).Should().BeTrue();
-    }
-
-    [Fact]
-    public void IsTransientException_OperationCanceled_UserCancelled_ReturnsFalse()
-    {
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
-
-        var ex = new OperationCanceledException(cts.Token);
-
-        HttpRetryPredicates.IsTransientException(ex, cts.Token).Should().BeFalse();
-    }
-
-    [Fact]
-    public void IsTransientException_InvalidOperationException_ReturnsFalse()
-    {
-        HttpRetryPredicates.IsTransientException(new InvalidOperationException(), CancellationToken.None).Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task GetRetryAfterDelay_Returns429RetryAfterDelta()
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
-        response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromSeconds(7));
-
-        var delay = await InvokeGetRetryAfterDelay(response);
-
-        delay.Should().Be(TimeSpan.FromSeconds(7));
-    }
-
-    [Fact]
-    public async Task GetRetryAfterDelay_429WithoutHeader_ReturnsNull()
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
-
-        var delay = await InvokeGetRetryAfterDelay(response);
-
-        delay.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetRetryAfterDelay_Non429_ReturnsNull()
-    {
-        var response = new HttpResponseMessage(HttpStatusCode.InternalServerError);
-        response.Headers.RetryAfter = new RetryConditionHeaderValue(TimeSpan.FromSeconds(7));
-
-        var delay = await InvokeGetRetryAfterDelay(response);
-
-        delay.Should().BeNull();
-    }
-
     [Fact]
     public async Task ConfigureDefaultResilience_RetriesOnTransientStatusCode()
     {
@@ -172,13 +51,6 @@ public class ResiliencePipelineTests
     }
 
     [Fact]
-    public void IsTransientException_TimeoutRejectedException_ReturnsTrue()
-    {
-        HttpRetryPredicates.IsTransientException(new TimeoutRejectedException(), CancellationToken.None)
-            .Should().BeTrue();
-    }
-
-    [Fact]
     public async Task ConfigureDefaultResilience_RetriesAnAttemptTheTimeoutRejected()
     {
         var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
@@ -203,23 +75,5 @@ public class ResiliencePipelineTests
     {
         response.Headers.RetryAfter = new RetryConditionHeaderValue(delta);
         return response;
-    }
-
-    private static async Task<TimeSpan?> InvokeGetRetryAfterDelay(HttpResponseMessage response)
-    {
-        var context = ResilienceContextPool.Shared.Get();
-        try
-        {
-            var args = new RetryDelayGeneratorArguments<HttpResponseMessage>(
-                context,
-                Outcome.FromResult(response),
-                attemptNumber: 0);
-
-            return await HttpRetryDelay.FromRetryAfterHeader(args);
-        }
-        finally
-        {
-            ResilienceContextPool.Shared.Return(context);
-        }
     }
 }
