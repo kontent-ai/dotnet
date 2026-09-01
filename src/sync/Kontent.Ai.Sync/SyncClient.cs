@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Extensions;
@@ -19,14 +20,14 @@ namespace Kontent.Ai.Sync;
 public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
 {
     private readonly ISyncApi _syncApi;
-    private readonly ISyncOptionsAccessor _optionsAccessor;
+    private readonly IOptionsAccessor<SyncOptions> _optionsAccessor;
     private readonly HttpClient? _ownedHttpClient;
     private int _disposeState;
 
     /// <summary>
     /// Creates a client over an already-configured Refit client. The caller owns its lifetime.
     /// </summary>
-    internal SyncClient(ISyncApi syncApi, ISyncOptionsAccessor optionsAccessor)
+    internal SyncClient(ISyncApi syncApi, IOptionsAccessor<SyncOptions> optionsAccessor)
     {
         _syncApi = syncApi ?? throw new ArgumentNullException(nameof(syncApi));
         _optionsAccessor = optionsAccessor ?? throw new ArgumentNullException(nameof(optionsAccessor));
@@ -52,7 +53,7 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(options);
         Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
 
-        _optionsAccessor = new SnapshotSyncOptionsAccessor(options);
+        _optionsAccessor = new SnapshotOptionsAccessor<SyncOptions>(options);
 
         // Only the default pipeline is known to bound each attempt, so only it lifts HttpClient's ceiling.
         var usesDefaultResilience = options.EnableResilience && configureResilience is null;

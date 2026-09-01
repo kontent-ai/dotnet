@@ -1,4 +1,4 @@
-using Kontent.Ai.Sync.Configuration;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
@@ -23,7 +23,7 @@ internal static class SyncApiFactory
     /// </summary>
     public static HttpClient CreateHttpClient(
         SyncOptions options,
-        ISyncOptionsAccessor optionsAccessor,
+        IOptionsAccessor<SyncOptions> optionsAccessor,
         ResiliencePipeline<HttpResponseMessage>? resiliencePipeline = null,
         bool pipelineBoundsAttempts = false,
         ILoggerFactory? loggerFactory = null,

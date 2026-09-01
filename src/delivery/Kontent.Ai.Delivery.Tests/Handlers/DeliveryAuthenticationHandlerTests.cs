@@ -1,5 +1,5 @@
+using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Abstractions;
-using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.Handlers;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
@@ -89,7 +89,7 @@ public class DeliveryAuthenticationHandlerTests
 
         var optionsMonitor = new TestOptionsMonitor<DeliveryOptions>(optionsWithKey);
         optionsMonitor.AddNamedOptions(TestClientName, optionsWithKey);
-        var handler = new DeliveryAuthenticationHandler(new MonitorOptionsAccessor(optionsMonitor, TestClientName))
+        var handler = new DeliveryAuthenticationHandler(new MonitorBackedOptionsAccessor<DeliveryOptions>(optionsMonitor, TestClientName))
         {
             InnerHandler = new TestHandler()
         };
@@ -165,7 +165,7 @@ public class DeliveryAuthenticationHandlerTests
         var optionsMonitor = new TestOptionsMonitor<DeliveryOptions>(defaultOptions);
         optionsMonitor.AddNamedOptions("named", namedOptions);
 
-        var handler = new DeliveryAuthenticationHandler(new MonitorOptionsAccessor(optionsMonitor, "named"))
+        var handler = new DeliveryAuthenticationHandler(new MonitorBackedOptionsAccessor<DeliveryOptions>(optionsMonitor, "named"))
         {
             InnerHandler = new TestHandler()
         };
@@ -464,11 +464,11 @@ public class DeliveryAuthenticationHandlerTests
 
     private const string TestClientName = "test";
 
-    private static IDeliveryOptionsAccessor AccessorFor(DeliveryOptions options)
+    private static IOptionsAccessor<DeliveryOptions> AccessorFor(DeliveryOptions options)
     {
         var monitor = new TestOptionsMonitor<DeliveryOptions>(options);
         monitor.AddNamedOptions(TestClientName, options);
-        return new MonitorOptionsAccessor(monitor, TestClientName);
+        return new MonitorBackedOptionsAccessor<DeliveryOptions>(monitor, TestClientName);
     }
 
     private static DeliveryAuthenticationHandler CreateHandlerWithLogger(

@@ -1,11 +1,11 @@
-using Kontent.Ai.Common;
 using Kontent.Ai.Common.Http;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -336,7 +336,7 @@ public static class ServiceCollectionExtensions
     {
         var clientName = (string)key!;
         var syncApi = serviceProvider.GetRequiredKeyedService<ISyncApi>(clientName);
-        var optionsAccessor = new MonitorBackedSyncOptionsAccessor(
+        var optionsAccessor = new MonitorBackedOptionsAccessor<SyncOptions>(
             serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
             clientName);
 
@@ -456,7 +456,7 @@ public static class ServiceCollectionExtensions
             sp.GetService<ILogger<TrackingHandler>>()));
 
         httpClientBuilder.AddHttpMessageHandler(sp => new SyncAuthenticationHandler(
-            new MonitorBackedSyncOptionsAccessor(sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(), clientName),
+            new MonitorBackedOptionsAccessor<SyncOptions>(sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(), clientName),
             sp.GetService<ILogger<SyncAuthenticationHandler>>()));
     }
 

@@ -1,5 +1,5 @@
 using System.Net.Http.Headers;
-using Kontent.Ai.Delivery.Configuration;
+using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -10,7 +10,7 @@ namespace Kontent.Ai.Delivery.Handlers;
 /// </summary>
 internal sealed class DeliveryAuthenticationHandler : DelegatingHandler
 {
-    private readonly IDeliveryOptionsAccessor _options;
+    private readonly IOptionsAccessor<DeliveryOptions> _options;
     private readonly ILogger<DeliveryAuthenticationHandler>? _logger;
 
     /// <summary>
@@ -20,7 +20,7 @@ internal sealed class DeliveryAuthenticationHandler : DelegatingHandler
     /// <param name="logger">Optional logger instance.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
     public DeliveryAuthenticationHandler(
-        IDeliveryOptionsAccessor options,
+        IOptionsAccessor<DeliveryOptions> options,
         ILogger<DeliveryAuthenticationHandler>? logger = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));

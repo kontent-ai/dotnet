@@ -1,8 +1,9 @@
+using System.ComponentModel.DataAnnotations;
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
 using Polly;
-using System.ComponentModel.DataAnnotations;
 
 namespace Kontent.Ai.Management;
 
@@ -106,7 +107,7 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         ArgumentNullException.ThrowIfNull(options);
         Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
 
-        var optionsAccessor = new SnapshotManagementOptionsAccessor(options);
+        var optionsAccessor = new SnapshotOptionsAccessor<ManagementOptions>(options);
         var pipeline = BuildResiliencePipeline(options, configureResilience);
         var refitSettings = Configuration.RefitSettingsProvider.CreateDefaultSettings();
 

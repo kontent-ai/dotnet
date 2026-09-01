@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposa
     private readonly ITypeProvider _typeProvider;
     private readonly IDeliveryCacheManager? _cacheManager;
     private readonly ILogger<DeliveryClient>? _logger;
-    private readonly IDeliveryOptionsAccessor? _optionsAccessor;
+    private readonly IOptionsAccessor<DeliveryOptions>? _optionsAccessor;
     private readonly IDisposable? _ownedResources;
     private int _disposeState;
 
@@ -43,7 +44,7 @@ public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposa
         ITypeProvider typeProvider,
         IDeliveryCacheManager? cacheManager = null,
         ILogger<DeliveryClient>? logger = null,
-        IDeliveryOptionsAccessor? optionsAccessor = null,
+        IOptionsAccessor<DeliveryOptions>? optionsAccessor = null,
         IDisposable? ownedResources = null)
     {
         _deliveryApi = deliveryApi;

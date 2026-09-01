@@ -1,10 +1,10 @@
-using Kontent.Ai.Common;
 using System.Text.Json;
+using Kontent.Ai.Common;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -395,8 +395,8 @@ public static partial class ServiceCollectionExtensions
         RegisterDependencies(services, sharedJsonOptions);
 
         // Per-client options accessor — bridges named IOptionsMonitor reads to the rest of the SDK.
-        services.AddKeyedSingleton<IDeliveryOptionsAccessor>(name, (sp, _) =>
-            new MonitorOptionsAccessor(sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>(), name));
+        services.AddKeyedSingleton<IOptionsAccessor<DeliveryOptions>>(name, (sp, _) =>
+            new MonitorBackedOptionsAccessor<DeliveryOptions>(sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>(), name));
 
         // Register named HTTP client and Refit API
         RegisterNamedHttpClient(services, name, sharedJsonOptions, configureHttpClient, configureResilience);
@@ -445,7 +445,7 @@ public static partial class ServiceCollectionExtensions
         var contentItemMapper = sp.GetRequiredService<ContentItemMapper>();
         var contentDeserializer = sp.GetRequiredService<IContentDeserializer>();
         var typeProvider = sp.GetRequiredService<ITypeProvider>();
-        var optionsAccessor = sp.GetRequiredKeyedService<IDeliveryOptionsAccessor>(clientName);
+        var optionsAccessor = sp.GetRequiredKeyedService<IOptionsAccessor<DeliveryOptions>>(clientName);
 
         // Resolve keyed cache manager for this client (registered via AddDeliveryMemoryCache/AddDeliveryHybridCache/AddDeliveryCacheManager)
         var cacheManager = sp.GetKeyedService<IDeliveryCacheManager>(clientName);

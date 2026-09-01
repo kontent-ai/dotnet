@@ -1,3 +1,4 @@
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Handlers;
 using Microsoft.Extensions.Http.Resilience;
@@ -16,14 +17,14 @@ internal static class ManagementApiFactory
     public static IManagementApi Create(ManagementOptions options, HttpMessageHandler? innerHandler = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var http = CreateHttpClient(options, options.EnvironmentScopePath(), new SnapshotManagementOptionsAccessor(options), primaryHandler: innerHandler);
+        var http = CreateHttpClient(options, options.EnvironmentScopePath(), new SnapshotOptionsAccessor<ManagementOptions>(options), primaryHandler: innerHandler);
         return RestService.For<IManagementApi>(http, RefitSettingsProvider.CreateDefaultSettings());
     }
 
     public static ISubscriptionApi CreateSubscription(ManagementOptions options, HttpMessageHandler? innerHandler = null)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var http = CreateHttpClient(options, options.SubscriptionScopePath(), new SnapshotManagementOptionsAccessor(options), primaryHandler: innerHandler);
+        var http = CreateHttpClient(options, options.SubscriptionScopePath(), new SnapshotOptionsAccessor<ManagementOptions>(options), primaryHandler: innerHandler);
         return RestService.For<ISubscriptionApi>(http, RefitSettingsProvider.CreateDefaultSettings());
     }
 
@@ -37,7 +38,7 @@ internal static class ManagementApiFactory
     public static HttpClient CreateHttpClient(
         ManagementOptions options,
         string scopePath,
-        IManagementOptionsAccessor optionsAccessor,
+        IOptionsAccessor<ManagementOptions> optionsAccessor,
         ResiliencePipeline<HttpResponseMessage>? resiliencePipeline = null,
         HttpMessageHandler? primaryHandler = null)
     {
