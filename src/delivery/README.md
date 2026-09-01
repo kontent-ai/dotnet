@@ -1087,26 +1087,34 @@ var resolver = new HtmlResolverBuilder()
     .Build();
 ```
 
-**Batch Registration with Tuples:**
+**Registering several resolvers:**
+
+Chain one `WithContentResolver<T>` per model type. Each names its type once, and the resolver receives
+`IEmbeddedContent<T>`, so there is nothing to cast.
+
+```csharp
+var resolver = new HtmlResolverBuilder()
+    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
+    .WithContentResolver<Video>(v => $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\"></iframe>")
+    .WithContentResolver<Quote>(q => $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>")
+    .Build();
+```
+
+Codenames work the same way, and `WithContentResolvers` takes a dictionary or tuples when you already
+have them in a collection:
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
     .WithContentResolvers(
-        (typeof(Tweet), content =>
-            content is IEmbeddedContent<Tweet> t
-                ? $"<blockquote>{t.Elements.TweetText}</blockquote>"
-                : ""),
-        (typeof(Video), content =>
-            content is IEmbeddedContent<Video> v
-                ? $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\"></iframe>"
-                : ""),
-        (typeof(Quote), content =>
-            content is IEmbeddedContent<Quote> q
-                ? $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>"
-                : "")
-    )
+        ("tweet", content => $"<blockquote>{content.System.Name}</blockquote>"),
+        ("hosted_video", content => $"<video data-item=\"{content.System.Id}\"></video>"))
     .Build();
 ```
+
+> There are also `WithContentResolvers` overloads keyed by `Type`. They exist for model types you only
+> have at runtime — enumerated from an `ITypeProvider`, say — and hand the resolver the non-generic
+> `IEmbeddedContent`, because there is no type argument to give it. If you can name the type in source,
+> use `WithContentResolver<T>` above.
 
 #### Registering Resolver with Dependency Injection
 

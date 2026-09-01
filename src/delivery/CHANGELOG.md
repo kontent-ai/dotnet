@@ -86,6 +86,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 ### Unchanged, deliberately
 
 - `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.
+- **The `Type`-keyed `WithContentResolvers` overloads stay.** They duplicate `WithContentResolver<TModel>` for anyone who can name the model type in source, and their `Func<IEmbeddedContent, string>` signature forces a cast plus an `else` branch that can never run — dispatch already keys on the content's own model type, so the resolver only ever sees content of the type it was registered for. But they do one thing the generic overload cannot: register resolvers for model types discovered at runtime, where there is no type argument to give. Removing them would take that with it, and they have shipped in every stable 19.x.
+
+  They are instead documented for what they are and marked `[EditorBrowsable(EditorBrowsableState.Advanced)]`, so they leave the default completion list while staying fully callable. The XML docs and the batch-registration examples in the README, the upgrade guide and the rich text customization guide now lead with `WithContentResolver<TModel>`. Note that the public API approval snapshots do not track attributes, so this change is invisible to that gate.
+
+- `GetEmbeddedContentOfType<TModel>` stays too, and keeps filtering only the sequence it is given. It extends `IEnumerable<IRichTextBlock>`, which `GetEmbeddedContent<TModel>` cannot reach — there is no way to get an `IRichTextContent` from a block's `Children`. Both now state their depth in their XML docs, and the example on `GetEmbeddedContentOfType` no longer shows it applied to a whole rich text element, where it silently searches the top level only.
+
 - The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched. They carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
 
 ### Fixed
