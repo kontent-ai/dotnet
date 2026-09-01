@@ -50,6 +50,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Standalone clients are built through the same registration as container-resolved ones.** `SyncClientBuilder.Build()` assembled a second copy of the HTTP pipeline by hand. They now run the same `AddSyncClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. Nothing on the public surface changes and the client still owns its `HttpClient` — disposing it still fails every further request. One timing difference: pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved.
+
 - **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
 
 - **A cancellation raised while a response body is being read is thrown, not reported as a failed result.** Refit captures it with the 2xx status already in hand, so it arrived as "the response body could not be read" with the cancellation buried in `Error.Exception` - and `Task.IsCanceled` stayed unset for anything awaiting the call. It now throws `OperationCanceledException` like a cancellation anywhere else in the SDK, matching the Delivery and Management SDKs.
