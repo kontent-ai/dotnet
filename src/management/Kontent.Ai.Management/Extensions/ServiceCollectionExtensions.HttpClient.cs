@@ -34,7 +34,7 @@ public static partial class ServiceCollectionExtensions
         // tokens rotate). Diverges from delivery/sync by omitting AddTimeout — see ConfigureDefaultResilience.
         ConfigureResilienceHandler(httpClientBuilder, $"management_{typeof(T).Name}_{clientName}", clientName, configureResilience);
         AddMessageHandlers(httpClientBuilder, clientName);
-        ConfigureConnectionRecycling(httpClientBuilder);
+        HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
         configureHttpClient?.Invoke(httpClientBuilder);
 
@@ -44,22 +44,6 @@ public static partial class ServiceCollectionExtensions
             return RestService.For<T>(httpClient, refitSettings);
         });
     }
-
-    /// <summary>
-    /// Gives the client's connections a bounded lifetime so DNS changes are picked up.
-    /// </summary>
-    /// <remarks>
-    /// The client is a keyed singleton and resolves its <see cref="HttpClient"/> once, so the handler
-    /// chain it holds is never rotated - <see cref="IHttpClientFactory"/> only hands a fresh chain to a
-    /// *new* <c>CreateClient</c> call. Without this, a long-running application keeps talking to whatever
-    /// address it resolved at startup, indefinitely. Two minutes matches the factory's own default
-    /// handler lifetime, so a connection lives no longer than it would on the non-singleton path.
-    /// </remarks>
-    private static void ConfigureConnectionRecycling(IHttpClientBuilder httpClientBuilder) =>
-        httpClientBuilder.ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler
-        {
-            PooledConnectionLifetime = TimeSpan.FromMinutes(2),
-        });
 
     private static void ConfigureResilienceHandler(
         IHttpClientBuilder httpClientBuilder,

@@ -217,7 +217,7 @@ public static class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
         RegisterOptions(services, name, builder => builder.Configure(configureOptions));
 
@@ -263,7 +263,7 @@ public static class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
         RegisterOptions(services, name, builder =>
             builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
@@ -282,7 +282,7 @@ public static class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
         RegisterOptions(services, name, builder => builder.Bind(configuration));
 
@@ -345,18 +345,6 @@ public static class ServiceCollectionExtensions
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
 
-    private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)
-    {
-        if (!services.Any(d => d.ServiceType == typeof(ISyncClient) && Equals(d.ServiceKey, name)))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            $"A SyncClient with the name '{name}' has already been registered. " +
-            $"HTTP client name: '{GetHttpClientName(name)}'. Each client must have a unique name.");
-    }
-
     /// <summary>
     /// Registers and configures a named HTTP client with Refit.
     /// </summary>
@@ -388,7 +376,7 @@ public static class ServiceCollectionExtensions
 
         ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);
         AddMessageHandlers(httpClientBuilder, name);
-        ConfigureConnectionRecycling(httpClientBuilder);
+        HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
         configureHttpClient?.Invoke(httpClientBuilder);
 
@@ -399,23 +387,6 @@ public static class ServiceCollectionExtensions
             return RestService.For<ISyncApi>(httpClient, refitSettings);
         });
     }
-
-    /// <summary>
-    /// Gives the client's connections a bounded lifetime so DNS changes are picked up.
-    /// </summary>
-    /// <remarks>
-    /// The client is a keyed singleton and resolves its <see cref="HttpClient"/> once, so the handler
-    /// chain it holds is never rotated - <see cref="IHttpClientFactory"/> only hands a fresh chain to a
-    /// *new* <c>CreateClient</c> call. Without this, a long-running application keeps talking to whatever
-    /// address it resolved at startup, indefinitely. Two minutes matches the factory's own default
-    /// handler lifetime, so a connection lives no longer than it would on the non-singleton path.
-    /// </remarks>
-    private static void ConfigureConnectionRecycling(IHttpClientBuilder httpClientBuilder) =>
-        httpClientBuilder.ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler
-        {
-            PooledConnectionLifetime = TimeSpan.FromMinutes(2),
-        });
-
 
     /// <summary>
     /// Configures the resilience handler for an HTTP client.
