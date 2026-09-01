@@ -178,9 +178,8 @@ internal sealed class HtmlResolver : IHtmlResolver
 internal sealed record HtmlResolverOptions
 {
     /// <summary>
-    /// When true, throws an exception if embedded content or content item link have no registered resolver.
-    /// When false, silently skips blocks without resolvers.
-    /// Default: false.
+    /// When true, throws if embedded content or a content item link has no registered resolver.
+    /// When false - the default - the block renders as an HTML comment naming what is missing.
     /// </summary>
     public bool ThrowOnMissingResolver { get; init; } = false;
 

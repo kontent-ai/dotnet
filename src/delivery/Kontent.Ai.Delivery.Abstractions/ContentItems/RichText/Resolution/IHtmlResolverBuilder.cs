@@ -205,6 +205,17 @@ public interface IHtmlResolverBuilder
     IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver);
 
     /// <summary>
+    /// Configures whether resolution throws when embedded content or a content item link has no
+    /// registered resolver.
+    /// </summary>
+    /// <param name="enabled">
+    /// When true, a missing resolver throws <see cref="InvalidOperationException"/>. When false - the
+    /// default - the block renders as an HTML comment naming what is missing.
+    /// </param>
+    /// <returns>This builder for method chaining.</returns>
+    IHtmlResolverBuilder ThrowOnMissingResolver(bool enabled = true);
+
+    /// <summary>
     /// Builds the configured HTML resolver.
     /// </summary>
     /// <returns>A new HTML resolver instance.</returns>

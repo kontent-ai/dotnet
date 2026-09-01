@@ -1037,6 +1037,24 @@ public class RichTextIntegrationTests
     }
 
     [Fact]
+    public async Task IntegrationTest_ThrowOnMissingResolver_ComposesMidChain()
+    {
+        // Declared only on the concrete builder, it used to compile solely as the first call after new():
+        // every With* returns IHtmlResolverBuilder, where it did not exist.
+        var client = await CreateDeliveryClientAsync("coffee_processing_techniques.json");
+        var resolver = new HtmlResolverBuilder()
+            .WithTextNodeResolver((block, _) => ValueTask.FromResult(block.Text))
+            .ThrowOnMissingResolver()
+            .WithHtmlNodeResolver("p", (block, children) => children(block.Children))
+            .Build();
+
+        var result = await client.GetItem<Article>("coffee_processing_techniques").ExecuteAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver));
+    }
+
+    [Fact]
     public async Task IntegrationTest_TypeBasedResolver_DispatchesForNonContentItemNamedEmbeddedBlock()
     {
         var richText = new RichTextContent([new EmbeddedArticleBlock("Typed title")]);

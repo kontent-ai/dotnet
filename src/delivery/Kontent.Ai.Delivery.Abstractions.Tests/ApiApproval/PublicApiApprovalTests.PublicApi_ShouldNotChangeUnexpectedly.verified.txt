@@ -374,6 +374,7 @@ public interface IHtmlResolver : IRichTextResolver<String>
 // Kontent.Ai.Delivery.Abstractions
 public interface IHtmlResolverBuilder
     IHtmlResolver Build()
+    IHtmlResolverBuilder ThrowOnMissingResolver(Boolean enabled)
     IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
     IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver<IContentItemLink> resolver)
     IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary<String, BlockResolver<IContentItemLink>> resolvers)
