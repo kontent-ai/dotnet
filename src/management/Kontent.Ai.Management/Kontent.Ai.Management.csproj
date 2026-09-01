@@ -25,6 +25,7 @@
 		<Compile Include="$(KontentCommonPath)Http\RefitErrorParsing.cs" Link="Common\RefitErrorParsing.cs" />
 		<Compile Include="$(KontentCommonPath)FatalExceptions.cs" Link="Common\FatalExceptions.cs" />
 		<Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
+		<Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />
 		<Compile Include="$(KontentCommonPath)OptionsCopier.cs" Link="Common\OptionsCopier.cs" />
 	</ItemGroup>
 

@@ -85,7 +85,8 @@ public class DeliveryClientFactoryTests
 
         var act = () => factory.Get("nonexistent");
 
-        act.Should().Throw<InvalidOperationException>();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*No delivery client registered with name 'nonexistent'*AddDeliveryClient*");
     }
 
     [Fact]
