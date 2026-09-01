@@ -24,7 +24,6 @@ public class ServiceCollectionsExtensionsTests
         new Dictionary<Type, Type>
         {
             { typeof(ITypeProvider), typeof(TypeProvider) },
-            { typeof(IItemTypingStrategy), typeof(DefaultItemTypingStrategy) },
             { typeof(IHtmlParser), typeof(HtmlParser) },
             { typeof(IDeliveryClient), typeof(DeliveryClient) },
         }
@@ -533,7 +532,7 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_RegistersContentDependencyExtractor()
+    public void AddDeliveryCacheManager_ResolvesTheNamedClient()
     {
         _serviceCollection.AddDeliveryClient("production", o =>
         {
@@ -543,10 +542,9 @@ public class ServiceCollectionsExtensionsTests
         _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
 
         var provider = _serviceCollection.BuildServiceProvider();
-        var extractor = provider.GetService<IContentDependencyExtractor>();
+        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
 
-        Assert.NotNull(extractor);
-        Assert.DoesNotContain("Null", extractor.GetType().Name);
+        Assert.NotNull(client);
     }
 
     [Fact]
@@ -841,7 +839,7 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_RegistersContentDependencyExtractor_CacheFirst()
+    public void AddDeliveryMemoryCache_ResolvesTheNamedClient_CacheFirst()
     {
         // Cache registered before client
         _serviceCollection.AddDeliveryMemoryCache("production");
@@ -852,15 +850,13 @@ public class ServiceCollectionsExtensionsTests
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
-        var extractor = provider.GetService<IContentDependencyExtractor>();
+        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
 
-        // Should register the real extractor (not null extractor)
-        Assert.NotNull(extractor);
-        Assert.DoesNotContain("Null", extractor.GetType().Name);
+        Assert.NotNull(client);
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_RegistersContentDependencyExtractor_ClientFirst()
+    public void AddDeliveryMemoryCache_ResolvesTheNamedClient_ClientFirst()
     {
         // Client registered before cache (order should not matter)
         _serviceCollection.AddDeliveryClient("production", o =>
@@ -871,15 +867,13 @@ public class ServiceCollectionsExtensionsTests
         _serviceCollection.AddDeliveryMemoryCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
-        var extractor = provider.GetService<IContentDependencyExtractor>();
+        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
 
-        // Should register the real extractor regardless of order
-        Assert.NotNull(extractor);
-        Assert.DoesNotContain("Null", extractor.GetType().Name);
+        Assert.NotNull(client);
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_RegistersContentDependencyExtractor_CacheFirst()
+    public void AddDeliveryHybridCache_ResolvesTheNamedClient_CacheFirst()
     {
         // Cache registered before client
         _serviceCollection.AddDistributedMemoryCache();
@@ -891,15 +885,13 @@ public class ServiceCollectionsExtensionsTests
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
-        var extractor = provider.GetService<IContentDependencyExtractor>();
+        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
 
-        // Should register the real extractor (not null extractor)
-        Assert.NotNull(extractor);
-        Assert.DoesNotContain("Null", extractor.GetType().Name);
+        Assert.NotNull(client);
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_RegistersContentDependencyExtractor_ClientFirst()
+    public void AddDeliveryHybridCache_ResolvesTheNamedClient_ClientFirst()
     {
         // Client registered before cache (order should not matter)
         _serviceCollection.AddDistributedMemoryCache();
@@ -911,11 +903,9 @@ public class ServiceCollectionsExtensionsTests
         _serviceCollection.AddDeliveryHybridCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
-        var extractor = provider.GetService<IContentDependencyExtractor>();
+        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
 
-        // Should register the real extractor regardless of order
-        Assert.NotNull(extractor);
-        Assert.DoesNotContain("Null", extractor.GetType().Name);
+        Assert.NotNull(client);
     }
 
     #endregion

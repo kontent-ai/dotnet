@@ -470,9 +470,9 @@ private static void AppendFilters(
 Automatically extracts dependencies from content for cache invalidation:
 
 ```csharp
-public sealed class ContentDependencyExtractor : IContentDependencyExtractor
+internal static class ContentDependencyExtractor
 {
-    public void ExtractFromRichTextElement(
+    public static void ExtractFromRichTextElement(
         IRichTextElementValue element,
         DependencyTrackingContext? context)
     {
@@ -538,7 +538,6 @@ Parses HTML into a typed block tree:
 ```csharp
 internal class RichTextParser(
     IHtmlParser parser,
-    IContentDependencyExtractor dependencyExtractor,
     ILogger? logger = null)
 {
     internal async Task<IRichTextContent?> ConvertAsync<TElement>(
@@ -816,7 +815,7 @@ public static IServiceCollection AddDeliveryClient(
 
         var api = sp.GetRequiredKeyedService<IDeliveryApi>(clientName);
         var contentItemMapper = sp.GetRequiredService<ContentItemMapper>();
-        var contentDeserializer = sp.GetRequiredService<IContentDeserializer>();
+        var contentDeserializer = sp.GetRequiredService<ContentDeserializer>();
         var typeProvider = sp.GetRequiredService<ITypeProvider>();
         var cacheManager = sp.GetKeyedService<IDeliveryCacheManager>(clientName);
         var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
@@ -874,17 +873,14 @@ private static void RegisterDependencies(IServiceCollection services)
 
     // Type system
     services.TryAddSingleton<ITypeProvider, TypeProvider>();
-    services.TryAddSingleton<IItemTypingStrategy, DefaultItemTypingStrategy>();
-    services.TryAddSingleton<IContentDeserializer, ContentDeserializer>();
+    services.TryAddSingleton<ItemTypingStrategy>();
+    services.TryAddSingleton<ContentDeserializer>();
 
     // Content mapping and HTML parsing
     services.TryAddSingleton<ElementValueMapper>();
     services.TryAddSingleton<LinkedItemResolver>();
     services.TryAddSingleton<ContentItemMapper>();
     services.TryAddSingleton<IHtmlParser, HtmlParser>();
-
-    // Dependency extraction for cache invalidation and result dependency metadata
-    services.TryAddSingleton<IContentDependencyExtractor, ContentDependencyExtractor>();
 }
 ```
 
@@ -998,30 +994,19 @@ public sealed class GeneratedTypeProvider : ITypeProvider
 
 **Location**: `Kontent.Ai.Delivery/ContentItems/ContentDeserializer.cs`
 
-Provides deserialization of JSON content items with cached compiled delegates for performance:
+Deserializes content item JSON into `ContentItem<TModel>`. The two overloads exist because callers
+arrive knowing different things: the raw-JSON cache path knows the model type at compile time, while
+linked items and dynamic runtime typing only learn it once a content type codename has been resolved.
 
 ```csharp
-internal sealed class ContentDeserializer : IContentDeserializer
+internal sealed class ContentDeserializer(JsonSerializerOptions options)
 {
-    private readonly JsonSerializerOptions _options;
+    // Only the runtime-typed overload needs this; the generic one is resolved by the JIT.
+    private static readonly ConcurrentDictionary<Type, Type> _contentItemTypes = new();
 
-    // Cached compiled delegates per model type
-    private static readonly ConcurrentDictionary<Type, Func<string, JsonSerializerOptions, object>> _stringDeserializers = new();
-    private static readonly ConcurrentDictionary<Type, Func<JsonElement, JsonSerializerOptions, object>> _elementDeserializers = new();
+    public ContentItem<TModel> Deserialize<TModel>(JsonElement json) => ...
 
-    // String overload for backward compatibility
-    public object DeserializeContentItem(string json, Type modelType)
-    {
-        var deserializer = _stringDeserializers.GetOrAdd(modelType, BuildStringDeserializer);
-        return deserializer(json, _options);
-    }
-
-    // JsonElement overload to avoid GetRawText() allocations
-    public object DeserializeContentItem(JsonElement jsonElement, Type modelType)
-    {
-        var deserializer = _elementDeserializers.GetOrAdd(modelType, BuildElementDeserializer);
-        return deserializer(jsonElement, _options);
-    }
+    public IContentItem Deserialize(JsonElement json, Type modelType) => ...
 }
 ```
 

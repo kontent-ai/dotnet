@@ -5,15 +5,12 @@ using Microsoft.Extensions.Logging;
 namespace Kontent.Ai.Delivery.ContentItems;
 
 /// <summary>
-/// Default implementation of <see cref="IItemTypingStrategy"/> that uses an <see cref="ITypeProvider"/>
-/// to resolve model types, falling back to <see cref="DynamicElements"/> when no mapping exists.
+/// Maps a content type codename to the model type to deserialize it as, falling back to
+/// <see cref="DynamicElements"/> when the <see cref="ITypeProvider"/> has no mapping for it.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of <see cref="DefaultItemTypingStrategy"/>.
-/// </remarks>
 /// <param name="typeProvider">The type provider to use for resolving model types.</param>
 /// <param name="logger">Optional logger for diagnostic output.</param>
-internal sealed class DefaultItemTypingStrategy(ITypeProvider typeProvider, ILogger<DefaultItemTypingStrategy>? logger = null) : IItemTypingStrategy
+internal sealed class ItemTypingStrategy(ITypeProvider typeProvider, ILogger<ItemTypingStrategy>? logger = null)
 {
     private readonly ConcurrentDictionary<string, Type> _cache = new();
 

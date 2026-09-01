@@ -51,6 +51,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   `IItemTypingStrategy` was substitutable, since it only maps a codename to a `Type`, but it duplicates `ITypeProvider` one layer down and replacing it silently forfeited what the default adds: memoized lookups, the fallback to `DynamicElements` when a codename has no model, and the log line recording that fallback. `ITypeProvider` is the supported route for the same decision — it is public, documented, what the source generator emits against, and settable through `DeliveryClientBuilder.WithTypeProvider(...)`. Move any custom typing strategy there.
 
+  With no interface left to be the default implementation *of*, `DefaultItemTypingStrategy` is now `ItemTypingStrategy`. The class is internal, so this is visible only as its logger category, which changes from `Kontent.Ai.Delivery.ContentItems.DefaultItemTypingStrategy` to `Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy`. Event IDs are unchanged, so anything filtering on those is unaffected. The internal `IContentDependencyExtractor` went the same way; its implementation held no state and is now a static class.
+
 ### Added
 
 - **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.

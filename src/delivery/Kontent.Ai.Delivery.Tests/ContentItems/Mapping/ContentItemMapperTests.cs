@@ -4,7 +4,6 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.ContentItems.Processing;
 using Kontent.Ai.Delivery.Generated;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 
@@ -20,12 +19,10 @@ public sealed class ContentItemMapperTests
         _jsonOptions = RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
 
         var typeProvider = new GeneratedTypeProvider();
-        var typingStrategy = new DefaultItemTypingStrategy(typeProvider);
+        var typingStrategy = new ItemTypingStrategy(typeProvider);
         var deserializer = new ContentDeserializer(_jsonOptions);
         var htmlParser = new HtmlParser();
-        var dependencyExtractor = new ContentDependencyExtractor();
         var elementValueMapper = new ElementValueMapper(
-            dependencyExtractor,
             _jsonOptions,
             htmlParser);
         var linkedItemResolver = new LinkedItemResolver(typingStrategy, deserializer);

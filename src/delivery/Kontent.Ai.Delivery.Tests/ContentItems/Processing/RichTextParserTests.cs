@@ -10,7 +10,7 @@ public class RichTextParserTests
     [Fact]
     public async Task ConvertAsync_NonRichTextElement_ReturnsNull()
     {
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor());
+        var parser = new RichTextParser(new HtmlParser());
         var element = new PlainTextElement("plain text");
 
         var result = await parser.ConvertAsync(
@@ -24,7 +24,7 @@ public class RichTextParserTests
     [Fact]
     public async Task ConvertAsync_EmbeddedObjectWithoutCodename_ThrowsInvalidOperationException()
     {
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor());
+        var parser = new RichTextParser(new HtmlParser());
         var element = new TestRichTextElement("<object type=\"application/kenticocloud\"></object>");
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -39,7 +39,7 @@ public class RichTextParserTests
     [Fact]
     public async Task ConvertAsync_FigureWithoutImageElement_IsIgnored()
     {
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor());
+        var parser = new RichTextParser(new HtmlParser());
         var element = new TestRichTextElement("<figure><span>No image tag</span></figure>");
 
         var result = await parser.ConvertAsync(
@@ -54,7 +54,7 @@ public class RichTextParserTests
     [Fact]
     public async Task ConvertAsync_FigureWithInvalidAssetId_IsIgnored()
     {
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor());
+        var parser = new RichTextParser(new HtmlParser());
         var element = new TestRichTextElement("<figure><img data-asset-id=\"not-a-guid\" /></figure>");
 
         var result = await parser.ConvertAsync(
@@ -72,7 +72,7 @@ public class RichTextParserTests
         // An <a data-item-id="..."> where the value is not a valid GUID is not recognised
         // as a content item link. It falls through to ParseHtmlElementAsync and becomes a
         // plain HtmlNode, preserving all attributes including the malformed data-item-id.
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor());
+        var parser = new RichTextParser(new HtmlParser());
         var element = new TestRichTextElement(
             "<p><a data-item-id=\"not-a-guid\" href=\"/path\">click here</a></p>");
 
@@ -93,7 +93,7 @@ public class RichTextParserTests
     [Fact]
     public async Task ConvertAsync_FigureWithUnknownAssetId_IsIgnored()
     {
-        var parser = new RichTextParser(new HtmlParser(), new ContentDependencyExtractor(), NullLogger.Instance);
+        var parser = new RichTextParser(new HtmlParser(), NullLogger.Instance);
         var missingAssetId = Guid.NewGuid();
         var element = new TestRichTextElement($"<figure><img data-asset-id=\"{missingAssetId}\" /></figure>");
 

@@ -8,7 +8,7 @@ namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 /// Handles post-deserialization hydration of complex element types (rich text, assets, taxonomy, linked items).
 /// </summary>
 internal sealed class ContentItemMapper(
-    IItemTypingStrategy typingStrategy,
+    ItemTypingStrategy typingStrategy,
     ContentDeserializer deserializer,
     ElementValueMapper elementValueMapper,
     LinkedItemResolver linkedItemResolver)
