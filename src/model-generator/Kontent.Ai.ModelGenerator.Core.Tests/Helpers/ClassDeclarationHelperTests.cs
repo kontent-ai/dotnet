@@ -8,7 +8,7 @@ public class ClassDeclarationHelperTests
     // A missing argument and a blank one are different mistakes: null is ArgumentNullException, a value
     // that is present but empty is ArgumentException. The guard used to report both as the former.
     [Fact]
-    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Null_ThrowsArgumentNullException()
+    public void GenerateSyntaxTrivia_CustomCommentIsNull_ThrowsArgumentNullException()
     {
         var act = () => ClassDeclarationHelper.GenerateSyntaxTrivia(null!);
 
@@ -18,7 +18,7 @@ public class ClassDeclarationHelperTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void GenerateSyntaxTrivia_CustomCommentIsNullOrWhiteSpace_Blank_ThrowsArgumentException(string customComment)
+    public void GenerateSyntaxTrivia_CustomCommentIsEmptyOrWhiteSpace_ThrowsArgumentException(string customComment)
     {
         var act = () => ClassDeclarationHelper.GenerateSyntaxTrivia(customComment);
 
