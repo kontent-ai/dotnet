@@ -15,7 +15,8 @@ namespace Kontent.Ai.Management.Configuration;
 /// This is a thin wrapper over the resource-owning <see cref="ManagementClient"/> constructor; it does not
 /// spin up a private service provider. For applications using dependency injection, prefer
 /// <c>services.AddManagementClient(...)</c>, which hands lifetime to the container and integrates with
-/// <c>IHttpClientFactory</c>, options reloading, and named/keyed clients.
+/// <c>IHttpClientFactory</c> and named/keyed clients, and reads the API key per request so a rotated key
+/// takes effect without a rebuild.
 /// </para>
 /// </remarks>
 public sealed class ManagementClientBuilder
