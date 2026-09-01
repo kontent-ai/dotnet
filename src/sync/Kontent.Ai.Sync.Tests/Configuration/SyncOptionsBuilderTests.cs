@@ -8,15 +8,12 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void Build_ReturnsNewInstance_EachTime()
     {
-        // Arrange
         var builder = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId("test-environment-id");
 
-        // Act
         var options1 = builder.Build();
         var options2 = builder.Build();
 
-        // Assert
         options1.Should().NotBeSameAs(options2, "Build() should return a new instance each time");
         options1.EnvironmentId.Should().Be(options2.EnvironmentId);
     }
@@ -24,59 +21,48 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void WithEnvironmentId_String_SetsEnvironmentId()
     {
-        // Arrange
         var environmentId = "test-environment-id";
 
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(environmentId)
             .Build();
 
-        // Assert
         options.EnvironmentId.Should().Be(environmentId);
     }
 
     [Fact]
     public void WithEnvironmentId_Guid_SetsEnvironmentId()
     {
-        // Arrange
         var environmentId = Guid.NewGuid();
 
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(environmentId)
             .Build();
 
-        // Assert
         options.EnvironmentId.Should().Be(environmentId.ToString());
     }
 
     [Fact]
     public void UseProductionApi_ConfiguresProductionMode()
     {
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .UseProductionApi()
             .Build();
 
-        // Assert
         options.ApiMode.Should().Be(ApiMode.Public);
     }
 
     [Fact]
     public void UsePreviewApi_ConfiguresPreviewMode()
     {
-        // Arrange
         var apiKey = "preview-api-key";
 
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .UsePreviewApi(apiKey)
             .Build();
 
-        // Assert
         options.ApiMode.Should().Be(ApiMode.Preview);
         options.ApiKey.Should().Be(apiKey);
     }
@@ -134,13 +120,11 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void DisableRetryPolicy_DisablesResilience()
     {
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .DisableRetryPolicy()
             .Build();
 
-        // Assert
         options.EnableResilience.Should().BeFalse();
     }
 
@@ -156,7 +140,6 @@ public class SyncOptionsBuilderTests
             .WithCustomEndpoint(endpoint)
             .Build();
 
-        // Assert
         productionOptions.ProductionEndpoint.Should().Be(endpoint);
         productionOptions.PreviewEndpoint.Should().Be(endpoint);
 
@@ -167,7 +150,6 @@ public class SyncOptionsBuilderTests
             .WithCustomEndpoint(endpoint)
             .Build();
 
-        // Assert
         previewOptions.PreviewEndpoint.Should().Be(endpoint);
         previewOptions.ProductionEndpoint.Should().Be(endpoint);
     }
@@ -175,16 +157,13 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void WithCustomEndpoint_Uri_SetsCustomEndpoint()
     {
-        // Arrange
         var endpoint = new Uri("https://custom.endpoint.com");
 
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .WithCustomEndpoint(endpoint)
             .Build();
 
-        // Assert
         options.ProductionEndpoint.Should().Be(endpoint.AbsoluteUri);
         options.PreviewEndpoint.Should().Be(endpoint.AbsoluteUri);
     }
@@ -192,12 +171,10 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void FluentInterface_AllowsMethodChaining()
     {
-        // Arrange
         var environmentId = Guid.NewGuid();
         var apiKey = "test-api-key";
         var customEndpoint = "https://custom.endpoint.com";
 
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(environmentId)
             .UsePreviewApi(apiKey)
@@ -205,7 +182,6 @@ public class SyncOptionsBuilderTests
             .DisableRetryPolicy()
             .Build();
 
-        // Assert
         options.EnvironmentId.Should().Be(environmentId.ToString());
         options.ApiMode.Should().Be(ApiMode.Preview);
         options.ApiKey.Should().Be(apiKey);
@@ -269,12 +245,10 @@ public class SyncOptionsBuilderTests
     [Fact]
     public void Build_DefaultValues_AreCorrect()
     {
-        // Act
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .Build();
 
-        // Assert
         options.ApiMode.Should().Be(ApiMode.Public, "default should be public production mode");
         options.EnableResilience.Should().BeTrue("resilience should be enabled by default");
         options.ProductionEndpoint.Should().Be("https://deliver.kontent.ai");

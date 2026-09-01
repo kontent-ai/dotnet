@@ -219,20 +219,7 @@ public static class ServiceCollectionExtensions
 
         EnsureClientNameNotAlreadyRegistered(services, name);
 
-        services.Configure(name, configureOptions);
-        services.AddOptions<SyncOptions>(name)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        // The default client's options are also registered unnamed, so IOptions<SyncOptions> resolves
-        // without a name.
-        if (name == NamedClients.Default)
-        {
-            services.Configure(configureOptions);
-            services.AddOptions<SyncOptions>()
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-        }
+        RegisterOptions(services, name, builder => builder.Configure(configureOptions));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
@@ -278,18 +265,8 @@ public static class ServiceCollectionExtensions
 
         EnsureClientNameNotAlreadyRegistered(services, name);
 
-        services.AddOptions<SyncOptions>(name)
-            .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        if (name == NamedClients.Default)
-        {
-            services.AddOptions<SyncOptions>()
-                .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-        }
+        RegisterOptions(services, name, builder =>
+            builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
@@ -307,20 +284,32 @@ public static class ServiceCollectionExtensions
 
         EnsureClientNameNotAlreadyRegistered(services, name);
 
-        services.Configure<SyncOptions>(name, configuration);
-        services.AddOptions<SyncOptions>(name)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
+        RegisterOptions(services, name, builder => builder.Bind(configuration));
+
+        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
+    }
+
+    /// <summary>
+    /// Registers and validates the options under <paramref name="name"/>, and unnamed as well for the
+    /// default client so <c>IOptions&lt;SyncOptions&gt;</c> resolves without one.
+    /// </summary>
+    private static void RegisterOptions(
+        IServiceCollection services,
+        string name,
+        Action<OptionsBuilder<SyncOptions>> configure)
+    {
+        Register(services.AddOptions<SyncOptions>(name));
 
         if (name == NamedClients.Default)
         {
-            services.Configure<SyncOptions>(configuration);
-            services.AddOptions<SyncOptions>()
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
+            Register(services.AddOptions<SyncOptions>());
         }
 
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
+        void Register(OptionsBuilder<SyncOptions> builder)
+        {
+            configure(builder);
+            builder.ValidateDataAnnotations().ValidateOnStart();
+        }
     }
 
     private static IServiceCollection CompleteClientRegistration(
