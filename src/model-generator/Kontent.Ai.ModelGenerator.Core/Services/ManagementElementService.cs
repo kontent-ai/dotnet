@@ -1,5 +1,4 @@
 using Kontent.Ai.ModelGenerator.Core.Common;
-using Kontent.Ai.ModelGenerator.Core.Contract;
 using Kontent.Ai.ModelGenerator.Core.Helpers;
 
 namespace Kontent.Ai.ModelGenerator.Core.Services;
@@ -11,9 +10,9 @@ namespace Kontent.Ai.ModelGenerator.Core.Services;
 /// constraints are enforced server-side by the Management API, not mirrored onto the generated type.
 /// The element subtype selects the C# value type.
 /// </summary>
-public sealed class ManagementElementService : IManagementElementService
+public static class ManagementElementService
 {
-    public ManagementElementOutput Build(ManagementElementInput input)
+    public static ManagementElementOutput Build(ManagementElementInput input)
     {
         ArgumentNullException.ThrowIfNull(input);
 

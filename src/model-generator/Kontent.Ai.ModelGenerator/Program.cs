@@ -4,7 +4,6 @@ using Kontent.Ai.ModelGenerator.Core;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Configuration;
 using Kontent.Ai.ModelGenerator.Core.Contract;
-using Kontent.Ai.ModelGenerator.Core.Services;
 using Kontent.Ai.ModelGenerator.CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,7 +76,6 @@ internal static class Program
         services.AddTransient<IOutputProvider, FileSystemOutputProvider>();
         services.AddSingleton<IUserMessageLogger, UserMessageLogger>();
         services.AddSingleton<IClassCodeGeneratorFactory, ClassCodeGeneratorFactory>();
-        services.AddSingleton<IClassDefinitionFactory, ClassDefinitionFactory>();
         services.AddSingleton<DeliveryCodeGenerator>();
         return typeof(DeliveryCodeGenerator);
     }
@@ -92,8 +90,6 @@ internal static class Program
         services.AddTransient<IOutputProvider, FileSystemOutputProvider>();
         services.AddSingleton<IUserMessageLogger, UserMessageLogger>();
         services.AddSingleton<IClassCodeGeneratorFactory, ClassCodeGeneratorFactory>();
-        services.AddSingleton<IClassDefinitionFactory, ClassDefinitionFactory>();
-        services.AddSingleton<IManagementElementService, ManagementElementService>();
         services.AddSingleton<ManagementCodeGenerator>();
         return typeof(ManagementCodeGenerator);
     }

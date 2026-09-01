@@ -22,20 +22,16 @@ namespace Kontent.Ai.ModelGenerator.Core;
 public class ManagementCodeGenerator : CodeGeneratorBase
 {
     private readonly IManagementClient _managementClient;
-    private readonly IManagementElementService _elementService;
 
     public ManagementCodeGenerator(
         IOptions<CodeGeneratorOptions> options,
         IOutputProvider outputProvider,
         IManagementClient managementClient,
         IClassCodeGeneratorFactory classCodeGeneratorFactory,
-        IClassDefinitionFactory classDefinitionFactory,
-        IManagementElementService elementService,
         IUserMessageLogger logger)
-        : base(options, outputProvider, classCodeGeneratorFactory, classDefinitionFactory, logger)
+        : base(options, outputProvider, classCodeGeneratorFactory, logger)
     {
         _managementClient = managementClient ?? throw new ArgumentNullException(nameof(managementClient));
-        _elementService = elementService ?? throw new ArgumentNullException(nameof(elementService));
     }
 
     protected override async Task<ICollection<ClassCodeGenerator>> GetClassCodeGenerators()
@@ -185,7 +181,7 @@ public class ManagementCodeGenerator : CodeGeneratorBase
             return;
         }
 
-        var output = _elementService.Build(input);
+        var output = ManagementElementService.Build(input);
         classDefinition.AddProperty(output.Property);
 
         foreach (var enumDef in output.Enums)
