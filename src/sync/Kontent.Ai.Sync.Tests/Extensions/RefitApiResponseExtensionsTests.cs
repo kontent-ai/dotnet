@@ -225,6 +225,23 @@ public class RefitApiResponseExtensionsTests
     }
 
     [Fact]
+    public async Task ToSyncResultAsync_CanceledWhileReadingTheBody_Throws()
+    {
+        // Refit has the status by then, so the response is a 2xx with no content and the cancellation in
+        // Error. It used to be mapped as an unreadable body; it is the caller withdrawing the request.
+        var apiResponse = Substitute.For<IApiResponse<string>>();
+        apiResponse.IsSuccessStatusCode.Returns(true);
+        apiResponse.StatusCode.Returns(HttpStatusCode.OK);
+        apiResponse.Content.Returns((string?)null);
+        apiResponse.Error.Returns(new ApiRequestException(
+            "deserialization failed", new HttpRequestMessage(), HttpMethod.Get, new RefitSettings(), new TaskCanceledException("caller went away")));
+
+        var act = async () => await apiResponse.ToSyncResultAsync();
+
+        await act.Should().ThrowAsync<OperationCanceledException>().WithMessage("caller went away");
+    }
+
+    [Fact]
     public async Task ToSyncResultAsync_TimedOut_ReturnsFailureRatherThanCancellation()
     {
         // An expired HttpClient.Timeout arrives shaped like cancellation, but it is an outcome of the call,
