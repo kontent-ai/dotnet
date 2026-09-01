@@ -381,11 +381,36 @@ public static class ServiceCollectionExtensions
         configureHttpClient?.Invoke(httpClientBuilder);
 
         services.AddKeyedTransient(name, (sp, _) =>
+            CreateSyncApi(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName), refitSettings));
+    }
+
+    private static ISyncApi CreateSyncApi(HttpClient httpClient, RefitSettings refitSettings)
+        => RestService.For<ISyncApi>(httpClient, refitSettings);
+
+    /// <summary>
+    /// Builds the client <see cref="SyncClientBuilder"/> returns: the same registration the container
+    /// path runs, drawn from a provider the builder assembled, with the client owning what it drew and
+    /// the provider itself. Takes ownership of <paramref name="provider"/> even when construction fails.
+    /// </summary>
+    internal static SyncClient CreateOwnedSyncClient(ServiceProvider provider, string name)
+    {
+        try
         {
-            var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient(httpClientName);
-            return RestService.For<ISyncApi>(httpClient, refitSettings);
-        });
+            var httpClient = provider.GetRequiredService<IHttpClientFactory>().CreateClient(GetHttpClientName(name));
+            var syncApi = CreateSyncApi(httpClient, RefitSettingsProvider.CreateDefaultSettings());
+            var optionsAccessor = new MonitorBackedOptionsAccessor<SyncOptions>(
+                provider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
+                name);
+
+            // The HttpClient before the provider: a request after disposal then fails at once, whatever
+            // the factory-owned handler behind it is still doing.
+            return new SyncClient(syncApi, optionsAccessor, new CompositeDisposable(httpClient, provider));
+        }
+        catch
+        {
+            provider.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

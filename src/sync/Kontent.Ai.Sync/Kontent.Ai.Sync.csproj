@@ -7,6 +7,7 @@
     <Compile Include="$(KontentCommonPath)Http\RefitResponses.cs" Link="Common\RefitResponses.cs" />
     <Compile Include="$(KontentCommonPath)Http\RefitErrorParsing.cs" Link="Common\RefitErrorParsing.cs" />
     <Compile Include="$(KontentCommonPath)Http\HttpClientDefaults.cs" Link="Common\HttpClientDefaults.cs" />
+    <Compile Include="$(KontentCommonPath)CompositeDisposable.cs" Link="Common\CompositeDisposable.cs" />
     <Compile Include="$(KontentCommonPath)FatalExceptions.cs" Link="Common\FatalExceptions.cs" />
     <Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
     <Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />
@@ -17,6 +18,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />
