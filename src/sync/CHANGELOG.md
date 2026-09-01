@@ -19,6 +19,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
 
+- **`SyncLanguageSystem.Id`, `.Name` and `.Codename` are `required` and no longer nullable.** The API reference leaves the three unmarked, unlike every other `system` property, and the SDK read that as "may be absent". It cannot be: a language without an id, a name or a codename is not something the API can describe, and the other three payloads already model the same invariant as required. A response missing one now fails as an unsuccessful result, as a missing `data` does. Drop the `?` and any null checks.
+
 ### Added
 
 - **`SyncOptions.Timeout` bounds the whole call, and `WithTimeout` sets it from the options builder.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `configureResilience` or `WithResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently. A container-free client had no recourse at all, since `configureHttpClient` is a DI-path hook.
@@ -49,6 +51,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 ### Fixed
 
 - **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+
+- **A cancellation raised while a response body is being read is thrown, not reported as a failed result.** Refit captures it with the 2xx status already in hand, so it arrived as "the response body could not be read" with the cancellation buried in `Error.Exception` - and `Task.IsCanceled` stayed unset for anything awaiting the call. It now throws `OperationCanceledException` like a cancellation anywhere else in the SDK, matching the Delivery and Management SDKs.
 
 - **Walking the delta feed stops if the API repeats a continuation token.** Every response carries a fresh one, and the walk advances by storing it — so a response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
 

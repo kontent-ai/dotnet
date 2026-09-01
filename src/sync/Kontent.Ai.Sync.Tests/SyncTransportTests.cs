@@ -224,6 +224,27 @@ public sealed class SyncTransportTests : IDisposable
         result.Error.ErrorCode.Should().BeNull("the HTTP status is not an API error code");
     }
 
+    [Theory]
+    [InlineData("""{ "id": "00000000-0000-0000-0000-000000000000", "name": "Default language" }""")]
+    [InlineData("""{ "id": "00000000-0000-0000-0000-000000000000", "name": "Default language", "codename": null }""")]
+    public async Task GetDeltaAsync_LanguageWithoutItsIdentity_FailsInsteadOfYieldingNull(string system)
+    {
+        // Every language has an id, a name and a codename, whatever the reference's markers say.
+        var body = $$"""
+            {
+              "items": [],
+              "types": [],
+              "languages": [ { "change_type": "changed", "timestamp": "2025-06-20T13:03:06.1310204Z", "data": { "system": {{system}} } } ],
+              "taxonomies": []
+            }
+            """;
+
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Exception!.InnerException.Should().BeOfType<System.Text.Json.JsonException>();
+    }
+
     [Fact]
     public async Task GetDeltaAsync_NullCollection_FailsInsteadOfYieldingNull()
     {

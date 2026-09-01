@@ -137,9 +137,9 @@ public sealed class SyncLanguageData : IEquatable<SyncLanguageData>
 // Kontent.Ai.Sync
 public sealed class SyncLanguageSystem : IEquatable<SyncLanguageSystem>
     .ctor()
-    Guid? Id { get; init; }
-    String? Codename { get; init; }
-    String? Name { get; init; }
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(SyncLanguageSystem? other)
     Int32 GetHashCode()
