@@ -72,7 +72,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         IReadOnlyDictionary<string, BlockResolver<IContentItemLink>> resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
-        return WithContentItemLinkResolvers([.. resolvers.Select(entry => (entry.Key, entry.Value))]);
+        return RegisterContentItemLinkResolvers(resolvers.Select(entry => (entry.Key, entry.Value)));
     }
 
     /// <inheritdoc />
@@ -80,7 +80,12 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         params (string ContentTypeCodename, BlockResolver<IContentItemLink> Resolver)[] resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
+        return RegisterContentItemLinkResolvers(resolvers);
+    }
 
+    private HtmlResolverBuilder RegisterContentItemLinkResolvers(
+        IEnumerable<(string ContentTypeCodename, BlockResolver<IContentItemLink> Resolver)> resolvers)
+    {
         foreach (var (codename, resolver) in resolvers)
         {
             WithContentItemLinkResolver(codename, resolver);
@@ -149,7 +154,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         IReadOnlyDictionary<string, Func<IEmbeddedContent, string>> resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
-        return WithContentResolvers([.. resolvers.Select(entry => (entry.Key, entry.Value))]);
+        return RegisterCodenameContentResolvers(resolvers.Select(entry => (entry.Key, entry.Value)));
     }
 
     /// <inheritdoc />
@@ -157,13 +162,9 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         params (string ContentTypeCodename, Func<IEmbeddedContent, string> Resolver)[] resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
-
-        foreach (var (codename, resolver) in resolvers)
-        {
-            WithContentResolver(codename, resolver);
-        }
-        return this;
+        return RegisterCodenameContentResolvers(resolvers);
     }
+
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Advanced)]
@@ -171,7 +172,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         IReadOnlyDictionary<Type, Func<IEmbeddedContent, string>> resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
-        return WithContentResolvers([.. resolvers.Select(entry => (entry.Key, entry.Value))]);
+        return RegisterTypeContentResolvers(resolvers.Select(entry => (entry.Key, entry.Value)));
     }
 
     /// <inheritdoc />
@@ -180,7 +181,23 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         params (Type ModelType, Func<IEmbeddedContent, string> Resolver)[] resolvers)
     {
         ArgumentNullException.ThrowIfNull(resolvers);
+        return RegisterTypeContentResolvers(resolvers);
+    }
 
+
+    private HtmlResolverBuilder RegisterCodenameContentResolvers(
+        IEnumerable<(string ContentTypeCodename, Func<IEmbeddedContent, string> Resolver)> resolvers)
+    {
+        foreach (var (codename, resolver) in resolvers)
+        {
+            WithContentResolver(codename, resolver);
+        }
+        return this;
+    }
+
+    private HtmlResolverBuilder RegisterTypeContentResolvers(
+        IEnumerable<(Type ModelType, Func<IEmbeddedContent, string> Resolver)> resolvers)
+    {
         foreach (var (type, resolver) in resolvers)
         {
             ArgumentNullException.ThrowIfNull(type);
