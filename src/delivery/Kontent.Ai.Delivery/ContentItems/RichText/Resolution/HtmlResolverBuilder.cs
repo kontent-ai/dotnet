@@ -1,6 +1,3 @@
-using System.Text.Encodings.Web;
-using System.Text.Unicode;
-
 namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 
 /// <summary>
@@ -297,21 +294,17 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         // Always provide built-in defaults for elements that have sensible default rendering
         var resolversWithDefaults = new Dictionary<Type, Delegate>(_resolvers);
 
-        // Create HTML encoder that preserves Unicode characters (emojis, smart quotes, accented chars)
-        // but still encodes HTML-reserved characters (<, >, &, ", ') for security
-        var unicodeEncoder = HtmlEncoder.Create(UnicodeRanges.All);
-
         // Default text node resolver - HTML-encodes reserved chars but preserves Unicode
         resolversWithDefaults.TryAdd(typeof(ITextNode), new BlockResolver<ITextNode>(
-            (block, _) => ValueTask.FromResult(unicodeEncoder.Encode(block.Text))
+            (block, _) => ValueTask.FromResult(DefaultResolvers.Encoder.Encode(block.Text))
         ));
 
         // Default inline image resolver - generates proper HTML figure element
         resolversWithDefaults.TryAdd(typeof(IInlineImage), new BlockResolver<IInlineImage>(
             (block, _) =>
             {
-                var url = HtmlEncoder.Default.Encode(block.Url ?? string.Empty);
-                var description = HtmlEncoder.Default.Encode(block.Description ?? string.Empty);
+                var url = DefaultResolvers.Encoder.Encode(block.Url ?? string.Empty);
+                var description = DefaultResolvers.Encoder.Encode(block.Description ?? string.Empty);
                 var html = $"<figure><img src=\"{url}\" alt=\"{description}\" data-asset-id=\"{block.ImageId}\" /></figure>";
                 return ValueTask.FromResult(html);
             }
