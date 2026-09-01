@@ -160,6 +160,12 @@ services.AddSyncClient(builder => builder
     .UsePreviewApi("preview-api-key")
     .DisableRetryPolicy()
     .Build());
+
+// Secure production access takes a Delivery API key with secure access enabled:
+services.AddSyncClient(builder => builder
+    .WithEnvironmentId("your-environment-id")
+    .UseProductionApi("secure-access-api-key")
+    .Build());
 ```
 
 ### Configuration binding

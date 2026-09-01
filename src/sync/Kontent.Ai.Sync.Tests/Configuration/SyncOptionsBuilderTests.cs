@@ -82,18 +82,30 @@ public class SyncOptionsBuilderTests
     }
 
     [Fact]
-    public void UseSecureApi_ConfiguresSecureMode()
+    public void UseProductionApi_WithSecureAccessKey_ConfiguresSecureMode()
     {
-        // Arrange
         var apiKey = "delivery-api-key";
 
-        // Act
+        var options = SyncOptionsBuilder.CreateInstance()
+            .WithEnvironmentId(Guid.NewGuid())
+            .UseProductionApi(apiKey)
+            .Build();
+
+        options.ApiMode.Should().Be(ApiMode.Secure);
+        options.ApiKey.Should().Be(apiKey);
+    }
+
+    [Fact]
+    [Obsolete("Covers the obsolete UseSecureApi until it is removed in 3.0.")]
+    public void UseSecureApi_ConfiguresSecureMode_LikeUseProductionApi()
+    {
+        var apiKey = "delivery-api-key";
+
         var options = SyncOptionsBuilder.CreateInstance()
             .WithEnvironmentId(Guid.NewGuid())
             .UseSecureApi(apiKey)
             .Build();
 
-        // Assert
         options.ApiMode.Should().Be(ApiMode.Secure);
         options.ApiKey.Should().Be(apiKey);
     }
@@ -211,11 +223,11 @@ public class SyncOptionsBuilderTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void UseSecureApi_NullOrWhitespaceKey_Throws(string? apiKey)
+    public void UseProductionApi_NullOrWhitespaceSecureAccessKey_Throws(string? apiKey)
     {
         var builder = SyncOptionsBuilder.CreateInstance();
 
-        var act = () => builder.UseSecureApi(apiKey!);
+        var act = () => builder.UseProductionApi(apiKey!);
 
         act.Should().Throw<ArgumentException>();
     }

@@ -23,6 +23,12 @@ public interface ISyncOptionsBuilder
     ISyncOptionsBuilder UseProductionApi();
 
     /// <summary>
+    /// Configures for secure Production API with authentication.
+    /// </summary>
+    /// <param name="secureAccessApiKey">A Delivery API key with secure access enabled.</param>
+    ISyncOptionsBuilder UseProductionApi(string secureAccessApiKey);
+
+    /// <summary>
     /// Configures for Preview API with authentication.
     /// </summary>
     /// <param name="apiKey">A Preview API key.</param>
@@ -32,6 +38,7 @@ public interface ISyncOptionsBuilder
     /// Configures for secure Production API with authentication.
     /// </summary>
     /// <param name="apiKey">A delivery API key.</param>
+    [Obsolete("Use UseProductionApi(secureAccessApiKey) instead, matching the Delivery SDK. Removed in 3.0.")]
     ISyncOptionsBuilder UseSecureApi(string apiKey);
 
     /// <summary>
