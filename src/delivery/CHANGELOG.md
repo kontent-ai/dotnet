@@ -94,6 +94,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched. They carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
 
+### Changed
+
+- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+
 ### Fixed
 
 - **Resolved rich text is encoded by one encoder throughout.** Text nodes used a Unicode-preserving encoder while attribute values and an inline image's `alt` used `HtmlEncoder.Default`, so the same character survived in one position and was escaped in the other — `<p>café</p>` next to `alt="caf&#xE9;"` in a single document. Both now use the Unicode-preserving encoder. HTML-reserved characters are escaped exactly as before; what changes is that non-ASCII characters in the Basic Multilingual Plane now appear literally in attribute values too. Output that pins the old numeric references character-for-character will differ; rendered output does not.
