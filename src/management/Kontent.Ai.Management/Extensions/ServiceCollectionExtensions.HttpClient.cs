@@ -1,11 +1,12 @@
+using System.Net;
 using Kontent.Ai.Common.Http;
+using Kontent.Ai.Common;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
-using System.Net;
 
 namespace Kontent.Ai.Management.Extensions;
 
@@ -90,7 +91,7 @@ public static partial class ServiceCollectionExtensions
     {
         httpClientBuilder.AddHttpMessageHandler(_ => new TrackingHandler());
         httpClientBuilder.AddHttpMessageHandler(sp => new ManagementAuthenticationHandler(
-            new MonitorBackedManagementOptionsAccessor(
+            new MonitorBackedOptionsAccessor<ManagementOptions>(
                 sp.GetRequiredService<IOptionsMonitor<ManagementOptions>>(),
                 clientName)));
     }

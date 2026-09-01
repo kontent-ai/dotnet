@@ -1,5 +1,5 @@
 using System.Net.Http.Headers;
-using Kontent.Ai.Sync.Configuration;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +9,7 @@ namespace Kontent.Ai.Sync.Handlers;
 /// Delegating handler that injects authentication header and rewrites hosts for Sync requests.
 /// </summary>
 internal sealed class SyncAuthenticationHandler(
-    ISyncOptionsAccessor optionsAccessor,
+    IOptionsAccessor<SyncOptions> optionsAccessor,
     ILogger<SyncAuthenticationHandler>? logger = null) : DelegatingHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

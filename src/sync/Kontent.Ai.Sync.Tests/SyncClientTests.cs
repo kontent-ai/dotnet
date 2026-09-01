@@ -1,7 +1,7 @@
 using System.Net;
 using AwesomeAssertions;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Api;
-using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Models;
 using NSubstitute;
 using Refit;
@@ -12,8 +12,8 @@ public class SyncClientTests
 {
     private const string TestEnvironmentId = "00000000-0000-0000-0000-000000000001";
 
-    private static ISyncOptionsAccessor TestOptions() =>
-        new SnapshotSyncOptionsAccessor(new SyncOptions { EnvironmentId = TestEnvironmentId });
+    private static IOptionsAccessor<SyncOptions> TestOptions() =>
+        new SnapshotOptionsAccessor<SyncOptions>(new SyncOptions { EnvironmentId = TestEnvironmentId });
 
     [Fact]
     public async Task EnumerateDeltaAsync_YieldsEveryPage_AndStopsOnTheEmptyResponse()

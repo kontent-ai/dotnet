@@ -1,6 +1,5 @@
 using AwesomeAssertions;
 using Kontent.Ai.Common;
-using Kontent.Ai.Sync.Configuration;
 using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Options;
 
@@ -47,7 +46,7 @@ public class SyncAuthenticationHandlerTests
         };
 
         var monitor = new TestOptionsMonitor<SyncOptions>(withKey);
-        var handler = new SyncAuthenticationHandler(new MonitorBackedSyncOptionsAccessor(monitor, NamedClients.Default))
+        var handler = new SyncAuthenticationHandler(new MonitorBackedOptionsAccessor<SyncOptions>(monitor, NamedClients.Default))
         {
             InnerHandler = new TestHandler()
         };
@@ -214,7 +213,7 @@ public class SyncAuthenticationHandlerTests
     private static SyncAuthenticationHandler CreateHandler(SyncOptions options)
     {
         var monitor = new TestOptionsMonitor<SyncOptions>(options);
-        return new SyncAuthenticationHandler(new MonitorBackedSyncOptionsAccessor(monitor, NamedClients.Default))
+        return new SyncAuthenticationHandler(new MonitorBackedOptionsAccessor<SyncOptions>(monitor, NamedClients.Default))
         {
             InnerHandler = new TestHandler()
         };

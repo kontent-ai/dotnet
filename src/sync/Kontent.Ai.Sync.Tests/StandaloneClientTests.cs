@@ -1,9 +1,9 @@
 using System.Net;
 using AwesomeAssertions;
+using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Api;
-using Kontent.Ai.Sync.Configuration;
-using Polly;
 using Polly.Retry;
+using Polly;
 using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Sync.Tests;
@@ -233,7 +233,7 @@ public sealed class StandaloneClientTests : IDisposable
 
         return SyncApiFactory.CreateHttpClient(
             options,
-            new SnapshotSyncOptionsAccessor(options),
+            new SnapshotOptionsAccessor<SyncOptions>(options),
             pipelineBoundsAttempts: pipelineBoundsAttempts);
     }
 }
