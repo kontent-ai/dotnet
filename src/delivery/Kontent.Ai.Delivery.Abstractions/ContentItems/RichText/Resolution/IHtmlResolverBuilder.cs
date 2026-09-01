@@ -119,9 +119,9 @@ public interface IHtmlResolverBuilder
     /// <b>For model types you can name in source, use <see cref="WithContentResolver{TModel}(Func{IEmbeddedContent{TModel}, string})"/>
     /// instead</b> - it takes the model type as a type argument, so the resolver receives
     /// <see cref="IEmbeddedContent{TModel}"/> and needs no cast. This overload exists for the case that one
-    /// cannot serve: types discovered at runtime, such as those enumerated from an
-    /// <see cref="ITypeProvider"/>. Its resolver is handed the non-generic <see cref="IEmbeddedContent"/>
-    /// because there is no type argument to give it.
+    /// cannot serve: types discovered at runtime, such as models found by scanning an assembly. Its
+    /// resolver is handed the non-generic <see cref="IEmbeddedContent"/> because there is no type argument
+    /// to give it.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
     IHtmlResolverBuilder WithContentResolvers(
@@ -138,7 +138,7 @@ public interface IHtmlResolverBuilder
     /// </remarks>
     /// <example>
     /// <code>
-    /// foreach (var modelType in typeProvider.KnownTypes)
+    /// foreach (var modelType in modelTypesFoundAtRuntime)
     /// {
     ///     builder.WithContentResolvers((modelType, content =&gt; $"&lt;div&gt;{content.System.Codename}&lt;/div&gt;"));
     /// }

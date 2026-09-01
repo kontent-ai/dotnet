@@ -456,12 +456,13 @@ var resolver = new HtmlResolverBuilder()
 **Resolvers for Model Types Known Only at Runtime:**
 
 `WithContentResolvers` also accepts `Type` keys, for the case `WithContentResolver<T>` cannot serve —
-model types discovered at runtime rather than named in source. The resolver is handed the non-generic
-`IEmbeddedContent`, because there is no type argument to give it.
+model types discovered at runtime rather than named in source, such as models found by scanning an
+assembly. The resolver is handed the non-generic `IEmbeddedContent`, because there is no type argument
+to give it.
 
 ```csharp
 var builder = new HtmlResolverBuilder();
-foreach (var modelType in typeProvider.KnownTypes)
+foreach (var modelType in modelTypesFoundAtRuntime)
 {
     builder.WithContentResolvers((modelType, content => $"<div>{content.System.Codename}</div>"));
 }
