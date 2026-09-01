@@ -48,6 +48,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   `SyncOptions` is unchanged — `ApiMode` and a single `ApiKey` stay as they are. Only the builder's spelling moves.
 
+### Changed
+
+- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+
 ### Fixed
 
 - **Standalone clients are built through the same registration as container-resolved ones.** `SyncClientBuilder.Build()` assembled a second copy of the HTTP pipeline by hand. They now run the same `AddSyncClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. Nothing on the public surface changes and the client still owns its `HttpClient` — disposing it still fails every further request. One timing difference: pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved.
