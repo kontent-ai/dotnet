@@ -48,6 +48,25 @@ public class RefitApiResponseExtensionsTests
         result.Error.Exception.InnerException.Should().BeOfType<HttpRequestException>();
     }
 
+    [Fact]
+    public async Task ToManagementResultAsync_SuccessStatusWithoutBody_ReturnsFailure()
+    {
+        // A 2xx that carries nothing readable is not a success with a null value.
+        using var apiResponse = new ApiResponse<string>(
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                RequestMessage = new HttpRequestMessage(HttpMethod.Get, "https://manage.kontent.ai/test")
+            },
+            null,
+            new RefitSettings());
+
+        var result = await apiResponse.ToManagementResultAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Error!.Message.Should().Contain("no readable response body");
+    }
+
     private static ApiResponse<string> CreateTransportFailure(Exception inner)
     {
         var httpResponse = new HttpResponseMessage(HttpStatusCode.OK)
