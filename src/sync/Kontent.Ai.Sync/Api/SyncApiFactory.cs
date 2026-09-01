@@ -52,9 +52,6 @@ internal static class SyncApiFactory
             BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute),
         };
 
-        // Matches the DI path: HttpClient's 100-second ceiling covers the whole call, retries and backoff
-        // included, so it is lifted only for the default pipeline - the one that bounds each attempt itself.
-        // In every other case it is all that stops a black-holed connection from hanging the caller forever.
         if (pipelineBoundsAttempts)
         {
             httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;

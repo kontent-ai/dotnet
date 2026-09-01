@@ -16,10 +16,7 @@ internal sealed class SyncClientFactory(IServiceProvider serviceProvider) : ISyn
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        // Resolved with the nullable overload rather than catching: the client's own registration runs
-        // inside resolution, and anything it throws is also an InvalidOperationException - a
-        // configureHttpClient that rejected its input used to come back relabelled as a missing
-        // registration, pointing at the wrong thing entirely.
+        // Not a catch: the registration runs inside resolution and throws InvalidOperationException too.
         return serviceProvider.GetKeyedService<ISyncClient>(name)
             ?? throw new InvalidOperationException(
                 $"No sync client registered with name '{name}'. Ensure you've registered the client using AddSyncClient(\"{name}\", ...).");

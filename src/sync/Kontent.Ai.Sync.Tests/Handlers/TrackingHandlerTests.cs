@@ -91,23 +91,7 @@ public class TrackingHandlerTests
         value.Should().StartWith("Custom.Package;");
     }
 
-    [Fact]
-    public void ComposeSourceHeaderValue_NullAssembly_Throws()
-    {
-        var attribute = new SyncSourceTrackingHeaderAttribute();
 
-        var act = () => TrackingHandler.ComposeSourceHeaderValue(null!, attribute);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
-
-    [Fact]
-    public void ComposeSourceHeaderValue_NullAttribute_Throws()
-    {
-        var act = () => TrackingHandler.ComposeSourceHeaderValue(typeof(TrackingHandler).Assembly, null!);
-
-        act.Should().Throw<ArgumentNullException>();
-    }
 
     [Fact]
     public void GetOriginatingAssembly_CalledFromTestAssembly_ReturnsTestAssembly()

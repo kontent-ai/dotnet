@@ -9,10 +9,6 @@ namespace Kontent.Ai.Sync.Handlers;
 /// <summary>
 /// Delegating handler that adds SDK tracking headers to outgoing requests.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="TrackingHandler"/> class.
-/// </remarks>
-/// <param name="logger">Optional logger.</param>
 internal sealed class TrackingHandler(ILogger<TrackingHandler>? logger = null) : DelegatingHandler
 {
     private static readonly Assembly SdkAssembly = typeof(TrackingHandler).Assembly;
@@ -36,9 +32,6 @@ internal sealed class TrackingHandler(ILogger<TrackingHandler>? logger = null) :
 
     internal static string ComposeSourceHeaderValue(Assembly originatingAssembly, SyncSourceTrackingHeaderAttribute attribute)
     {
-        ArgumentNullException.ThrowIfNull(originatingAssembly);
-        ArgumentNullException.ThrowIfNull(attribute);
-
         string? packageName;
         string version;
 

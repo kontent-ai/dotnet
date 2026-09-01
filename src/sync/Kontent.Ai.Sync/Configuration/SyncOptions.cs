@@ -21,11 +21,17 @@ public sealed class SyncOptions : IValidatableObject
 
     /// <summary>
     /// Gets or sets a value that determines if the client uses resilience policies.
+    /// This setting is evaluated once when the HTTP pipeline is constructed at startup
+    /// and cannot be changed at runtime.
     /// </summary>
+    /// <remarks>
+    /// The SDK's own pipeline is what bounds each attempt, so turning it off also restores
+    /// <see cref="HttpClient"/>'s 100-second ceiling over the whole call.
+    /// </remarks>
     public bool EnableResilience { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the format of the Production API endpoint address.
+    /// Gets or sets the Production API endpoint address.
     /// </summary>
     // Fully qualified: Refit is in scope via GlobalUsings.cs and also defines a UrlAttribute,
     // so a bare [Url] is ambiguous. Matches ManagementOptions, which hit the same collision.
@@ -33,7 +39,7 @@ public sealed class SyncOptions : IValidatableObject
     public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai";
 
     /// <summary>
-    /// Gets or sets the format of the Preview API endpoint address.
+    /// Gets or sets the Preview API endpoint address.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Url]
     public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
@@ -49,10 +55,8 @@ public sealed class SyncOptions : IValidatableObject
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Validates cross-field constraints for sync options.
-    /// Ensures that <see cref="EnvironmentId"/> is not an empty GUID.
-    /// Ensures that <see cref="ApiKey"/> is set when <see cref="ApiMode"/> is Preview or Secure.
-    /// Uses yield semantics so other attribute-based validations also execute.
+    /// Validates the constraints that span more than one property: <see cref="EnvironmentId"/> must be a
+    /// non-empty GUID, and <see cref="ApiKey"/> is required in the Preview and Secure modes.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
