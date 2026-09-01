@@ -230,6 +230,27 @@ public class RichTextIntegrationTests
     }
 
     [Fact]
+    public async Task IntegrationTest_BulkContentResolvers_DuplicateKeyInOneCall_LastWins()
+    {
+        // The same rule as across calls. Routing the tuples through a dictionary would throw here instead.
+        var client = await CreateDeliveryClientAsync("coffee_beverages_explained.json");
+
+        var resolver = new HtmlResolverBuilder()
+            .WithContentResolvers(
+                ("tweet", (content) => "<div>FIRST</div>"),
+                ("tweet", (content) => "<div>SECOND</div>")
+            )
+            .Build();
+
+        var result = await client.GetItem<Article>("coffee_beverages_explained").ExecuteAsync();
+        var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains("<div>SECOND</div>", html);
+        Assert.DoesNotContain("<div>FIRST</div>", html);
+    }
+
+    [Fact]
     public async Task IntegrationTest_BulkContentResolvers_ParamsTupleSyntax()
     {
         var client = await CreateDeliveryClientAsync("coffee_beverages_explained.json");

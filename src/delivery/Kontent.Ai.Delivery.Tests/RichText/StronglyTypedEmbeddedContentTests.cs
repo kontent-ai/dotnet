@@ -241,6 +241,25 @@ public class StronglyTypedEmbeddedContentTests
         Assert.Contains("tuple-tweet", html);
     }
 
+    [Fact]
+    public async Task RichText_WithTupleTypedResolvers_DuplicateKeyInOneCall_LastWins()
+    {
+        var client = await CreateDeliveryClientAsync("coffee_beverages_explained.json");
+
+        var resolver = new HtmlResolverBuilder()
+            .WithContentResolvers(
+                (typeof(Tweet), content => "<div>FIRST</div>"),
+                (typeof(Tweet), content => "<div>SECOND</div>")
+            )
+            .Build();
+
+        var response = await client.GetItem<Article>(ArticleWithEmbeddedTweetsCodename).ExecuteAsync();
+        var html = await response.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
+
+        Assert.Contains("<div>SECOND</div>", html);
+        Assert.DoesNotContain("<div>FIRST</div>", html);
+    }
+
     private async Task<IDeliveryClient> CreateDeliveryClientAsync(string fixtureFileName)
     {
         var mockHttp = new MockHttpMessageHandler();
