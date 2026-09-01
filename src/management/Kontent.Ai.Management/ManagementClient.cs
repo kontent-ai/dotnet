@@ -151,34 +151,4 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         }
         return builder.Build();
     }
-
-    private sealed class CompositeDisposable(params IDisposable[] items) : IDisposable, IAsyncDisposable
-    {
-        private int _disposed;
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-            foreach (var item in items)
-            {
-                item.Dispose();
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
-            foreach (var item in items)
-            {
-                if (item is IAsyncDisposable a)
-                {
-                    await a.DisposeAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    item.Dispose();
-                }
-            }
-        }
-    }
 }
