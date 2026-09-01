@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using Kontent.Ai.Common;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 
@@ -8,9 +11,10 @@ namespace Kontent.Ai.Sync.Configuration;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The built client owns its underlying <see cref="HttpClient"/> - there is no container to reach into -
-/// so <see cref="Build"/> returns the concrete <see cref="SyncClient"/>, which is disposable. Dispose it
-/// when you are done.
+/// <see cref="Build"/> runs the same registration as <c>services.AddSyncClient(...)</c> inside a private
+/// container, and the built client owns both the <see cref="HttpClient"/> it draws from it and the
+/// container itself - so it returns the concrete <see cref="SyncClient"/>, which is disposable. Dispose
+/// it when you are done.
 /// </para>
 /// <para>
 /// For applications using dependency injection, prefer <c>services.AddSyncClient(...)</c>, which hands
@@ -48,6 +52,7 @@ public sealed class SyncClientBuilder
 {
     private SyncOptions? _syncOptions;
     private Action<ResiliencePipelineBuilder<HttpResponseMessage>>? _configureResilience;
+    private Action<IHttpClientBuilder>? _configureHttpClient;
     private ILoggerFactory? _loggerFactory;
 
     private SyncClientBuilder() { }
@@ -102,6 +107,17 @@ public sealed class SyncClientBuilder
     }
 
     /// <summary>
+    /// Configures the underlying HTTP client, applied after the SDK's own configuration. The test
+    /// infrastructure uses it to swap the primary handler for a mock and exercise the real chain.
+    /// </summary>
+    internal SyncClientBuilder ConfigureHttpClient(Action<IHttpClientBuilder> configureHttpClient)
+    {
+        ArgumentNullException.ThrowIfNull(configureHttpClient);
+        _configureHttpClient = configureHttpClient;
+        return this;
+    }
+
+    /// <summary>
     /// Builds and returns a configured <see cref="ISyncClient"/> instance.
     /// </summary>
     /// <returns>A fully configured <see cref="ISyncClient"/> that should be disposed when no longer needed.</returns>
@@ -113,7 +129,7 @@ public sealed class SyncClientBuilder
     /// <remarks>
     /// <para>
     /// This method validates the configuration and builds all required dependencies.
-    /// The returned client owns its dependencies (HTTP client, etc.) — dispose it when done.
+    /// The returned client owns the HTTP client it draws and the private container behind it — dispose it when done.
     /// </para>
     /// <para>
     /// The builder can be used to create multiple client instances, but each call to <see cref="Build"/>
@@ -128,6 +144,27 @@ public sealed class SyncClientBuilder
                 "SyncOptions must be configured. Call WithOptions() before Build().");
         }
 
-        return new SyncClient(_syncOptions, _configureResilience, _loggerFactory);
+        // Validated here, ahead of the container, so the failure is the documented ValidationException
+        // rather than the options pipeline's own exception for the same fault.
+        Validator.ValidateObject(_syncOptions, new ValidationContext(_syncOptions), validateAllProperties: true);
+
+        var services = new ServiceCollection();
+
+        if (_loggerFactory is not null)
+        {
+            // Before AddSyncClient: the HTTP client factory registers logging with TryAdd, so the
+            // factory supplied here is the one that wins.
+            services.AddSingleton(_loggerFactory);
+            services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
+        }
+
+        services.AddSyncClient(_syncOptions, _configureHttpClient, _configureResilience);
+
+        // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
+        // which this path does not have.
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        return ServiceCollectionExtensions.CreateOwnedSyncClient(provider, NamedClients.Default);
     }
 }

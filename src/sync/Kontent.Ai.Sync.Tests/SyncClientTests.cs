@@ -12,8 +12,12 @@ public class SyncClientTests
 {
     private const string TestEnvironmentId = "00000000-0000-0000-0000-000000000001";
 
-    private static IOptionsAccessor<SyncOptions> TestOptions() =>
-        new SnapshotOptionsAccessor<SyncOptions>(new SyncOptions { EnvironmentId = TestEnvironmentId });
+    private static IOptionsAccessor<SyncOptions> TestOptions()
+    {
+        var accessor = Substitute.For<IOptionsAccessor<SyncOptions>>();
+        accessor.Current.Returns(new SyncOptions { EnvironmentId = TestEnvironmentId });
+        return accessor;
+    }
 
     [Fact]
     public async Task EnumerateDeltaAsync_YieldsEveryPage_AndStopsOnTheEmptyResponse()
