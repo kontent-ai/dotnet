@@ -247,7 +247,7 @@ services.AddSyncClient((sp, options) =>
 
 ## Standalone client (without DI)
 
-For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. The builder spins up a private service collection internally; the returned client owns its dependencies and must be disposed.
+For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. There is no container involved: the client assembles its own `HttpClient` and handler chain, owns them, and must be disposed.
 
 ```csharp
 using Kontent.Ai.Sync.Configuration;
