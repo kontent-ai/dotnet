@@ -70,8 +70,14 @@ internal static class RefitApiResponseExtensions
     /// A 2xx whose body did not deserialize - a delta that does not match the models, most likely.
     /// Reported as a failed result naming the cause, rather than as an empty success.
     /// </summary>
+    /// <remarks>
+    /// The one success-status path Refit can reach with an error attached, so it is also where a
+    /// cancellation raised while the body was being read arrives - and that one is thrown, not reported.
+    /// </remarks>
     private static ISyncResult<T> UnreadableBody<T>(IApiResponse<T> apiResponse)
     {
+        RefitResponses.RethrowIfCanceled(apiResponse.Error);
+
         var cause = apiResponse.Error?.InnerException?.Message ?? apiResponse.Error?.Message;
 
         return SyncResult<T>.Failure(
