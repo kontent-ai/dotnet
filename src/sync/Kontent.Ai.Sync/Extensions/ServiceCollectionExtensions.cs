@@ -358,7 +358,7 @@ public static class ServiceCollectionExtensions
 
         var httpClientName = GetHttpClientName(name);
         var httpClientBuilder = services
-            .AddHttpClient(httpClientName)
+            .AddKeyedRefitGeneratedClient<ISyncApi>(name, refitSettings, httpClientName)
             .ConfigureHttpClient((serviceProvider, httpClient) =>
             {
                 var optionsMonitor = serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
@@ -379,13 +379,7 @@ public static class ServiceCollectionExtensions
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
         configureHttpClient?.Invoke(httpClientBuilder);
-
-        services.AddKeyedTransient(name, (sp, _) =>
-            CreateSyncApi(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName), refitSettings));
     }
-
-    private static ISyncApi CreateSyncApi(HttpClient httpClient, RefitSettings refitSettings)
-        => RestService.For<ISyncApi>(httpClient, refitSettings);
 
     /// <summary>
     /// Builds the client <see cref="SyncClientBuilder"/> returns: the same registration the container
@@ -397,7 +391,7 @@ public static class ServiceCollectionExtensions
         try
         {
             var httpClient = provider.GetRequiredService<IHttpClientFactory>().CreateClient(GetHttpClientName(name));
-            var syncApi = CreateSyncApi(httpClient, RefitSettingsProvider.CreateDefaultSettings());
+            var syncApi = RestService.For<ISyncApi>(httpClient, RefitSettingsProvider.CreateDefaultSettings());
             var optionsAccessor = new MonitorBackedOptionsAccessor<SyncOptions>(
                 provider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
                 name);
