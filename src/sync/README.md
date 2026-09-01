@@ -247,7 +247,7 @@ services.AddSyncClient((sp, options) =>
 
 ## Standalone client (without DI)
 
-For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. There is no container involved: the client assembles its own `HttpClient` and handler chain, owns them, and must be disposed.
+For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. It runs the same registration as `AddSyncClient` inside a private container the built client owns, so the client must be disposed.
 
 ```csharp
 using Kontent.Ai.Sync.Configuration;
@@ -272,7 +272,7 @@ await using var client = SyncClientBuilder
     .Build();
 ```
 
-`SyncOptions.Timeout` applies here too — it is the only way to bound a container-free client, since the
+`SyncOptions.Timeout` applies here too — it is the only way to bound a builder-built client, since the
 `configureHttpClient` hook is a DI-path feature:
 
 ```csharp
@@ -290,9 +290,10 @@ Without the `WithTimeout` line, supplying your own pipeline leaves `HttpClient`'
 charge, which would cut the two-minute attempt short.
 
 The returned client is thread-safe and should be used as a singleton for the lifetime of your
-application. Each `Build()` call creates an independent client that owns its own `HttpClient`, which is
-why it is disposable — dispose it and that transport is released. A client resolved from a container is
-owned by the container instead, so there is nothing for you to dispose there.
+application. Each `Build()` call creates an independent client that owns the `HttpClient` it drew and the
+private container behind it, which is why it is disposable — dispose it and no further request goes out;
+the pooled connections close once the HTTP client factory releases the handler. A client resolved from
+your own container is owned by that container instead, so there is nothing for you to dispose there.
 
 ## Named Clients
 

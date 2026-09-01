@@ -8,10 +8,8 @@ namespace Kontent.Ai.Common;
 /// Supplies the effective options to the pieces that need them at request time.
 /// </summary>
 /// <remarks>
-/// The two registration paths resolve options differently - the container reads a named
-/// <see cref="IOptionsMonitor{TOptions}"/> so reconfiguration is picked up, while a client built outside
-/// one holds the instance it was given. This is what lets a handler chain be built once and used by both,
-/// rather than the container-free path needing a container purely to satisfy an options monitor.
+/// Handlers read through this rather than <see cref="IOptionsMonitor{TOptions}"/> directly so the client
+/// name is bound once, where the handler is registered, and a test can hand a handler a fixed instance.
 /// </remarks>
 internal interface IOptionsAccessor<out TOptions>
     where TOptions : class
@@ -33,14 +31,4 @@ internal sealed class MonitorBackedOptionsAccessor<TOptions>(IOptionsMonitor<TOp
     where TOptions : class
 {
     public TOptions Current => monitor.Get(optionsName);
-}
-
-/// <summary>
-/// Holds a fixed options instance, for clients built outside a container.
-/// </summary>
-internal sealed class SnapshotOptionsAccessor<TOptions>(TOptions options)
-    : IOptionsAccessor<TOptions>
-    where TOptions : class
-{
-    public TOptions Current { get; } = options;
 }

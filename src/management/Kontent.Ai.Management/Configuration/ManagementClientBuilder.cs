@@ -7,16 +7,16 @@ namespace Kontent.Ai.Management.Configuration;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The built client owns its underlying <see cref="HttpClient"/>s and is returned as a plain
-/// <see cref="IManagementClient"/> — there is no container to reach into. Dispose it when you are done:
+/// <see cref="Build"/> runs the same registration as <c>services.AddManagementClient(...)</c> inside a
+/// private container, and the built client owns the <see cref="HttpClient"/>s it draws from it and the
+/// container itself. Dispose it when you are done:
 /// <c>await using var client = ManagementClientBuilder.WithOptions(...).Build();</c>.
 /// </para>
 /// <para>
-/// This is a thin wrapper over the resource-owning <see cref="ManagementClient"/> constructor; it does not
-/// spin up a private service provider. For applications using dependency injection, prefer
-/// <c>services.AddManagementClient(...)</c>, which hands lifetime to the container and integrates with
-/// <c>IHttpClientFactory</c> and named/keyed clients, and reads the API key per request so a rotated key
-/// takes effect without a rebuild.
+/// This is a thin wrapper over the resource-owning <see cref="ManagementClient"/> constructor. For
+/// applications using dependency injection, prefer <c>services.AddManagementClient(...)</c>, which hands
+/// lifetime to your container and integrates with named/keyed clients, and reads the API key per request
+/// so a rotated key takes effect without a rebuild.
 /// </para>
 /// </remarks>
 public sealed class ManagementClientBuilder
@@ -71,7 +71,7 @@ public sealed class ManagementClientBuilder
 
 
     /// <summary>
-    /// Builds a configured <see cref="IManagementClient"/> that owns its underlying <see cref="HttpClient"/>s.
+    /// Builds a configured <see cref="IManagementClient"/> that owns its underlying <see cref="HttpClient"/>s and the private container they came from.
     /// </summary>
     /// <returns>A new client. Dispose it (or <c>await using</c> it) to release the HTTP resources.</returns>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">The options fail validation (e.g. missing or malformed environment ID or API key).</exception>

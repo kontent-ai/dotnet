@@ -135,7 +135,7 @@ await using var client = ManagementClientBuilder
     .Build();
 ```
 
-The builder is a thin wrapper over the resource-owning constructor — it does not spin up a private service provider. The built client owns its HTTP resources, so dispose it as with the standalone constructor.
+The builder is a thin wrapper over the resource-owning constructor. Both run the same registration as `AddManagementClient` inside a private container, and the built client owns the `HttpClient`s it drew and that container, so dispose it. Disposal stops every further request; the pooled connections close once the HTTP client factory releases the handlers.
 
 ### From Configuration
 

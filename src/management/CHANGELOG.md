@@ -45,6 +45,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **Standalone clients are built through the same registration as container-resolved ones.** `ManagementClientBuilder.Build()` and the `ManagementClient(ManagementOptions)` constructor assembled a second copy of the HTTP pipeline by hand. They now run the same `AddManagementClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. Nothing on the public surface changes and the client still owns its `HttpClient` — disposing it still fails every further request. One timing difference: pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved.
+
 - **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
 
 - **The paging helper no longer reads a continuation token off a disposed response.** Mapping a page to a result disposes the underlying Refit response; the walker then read the next token from it. The value survived because Refit buffers the body, but the ordering was load-bearing and invisible at the call site. The token is now read before the response is mapped. No behavior change.
