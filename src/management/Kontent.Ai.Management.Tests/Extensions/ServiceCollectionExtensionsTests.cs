@@ -360,4 +360,27 @@ public class ServiceCollectionExtensionsTests
             return Task.FromResult(response);
         }
     }
+
+    [Fact]
+    public void AddManagementClient_KeepsThePooledPrimaryHandler()
+    {
+        // Refit's registration installs a plain HttpClientHandler as the primary. The SDK's connection
+        // recycling runs after it and must be what sits at the bottom of the chain.
+        var services = new ServiceCollection();
+        services.AddManagementClient(o =>
+        {
+            o.EnvironmentId = Guid.NewGuid().ToString();
+            o.ApiKey = "dummy";
+        });
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Management.HttpClient.Default");
+        while (handler is DelegatingHandler { InnerHandler: { } inner })
+        {
+            handler = inner;
+        }
+
+        handler.Should().BeOfType<SocketsHttpHandler>()
+            .Which.PooledConnectionLifetime.Should().Be(TimeSpan.FromMinutes(2));
+    }
 }
