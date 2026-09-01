@@ -145,7 +145,7 @@ public sealed class SyncTransportTests : IDisposable
         item.ChangeType.Should().Be(ChangeType.Changed);
         item.Timestamp.Should().Be(DateTime.Parse("2025-06-20T13:03:06.1310204Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind));
         item.Timestamp.Kind.Should().Be(DateTimeKind.Utc, "the API always sends UTC");
-        item.Data!.System.Codename.Should().Be("my_article");
+        item.Data.System.Codename.Should().Be("my_article");
         item.Data.System.Collection.Should().Be("default");
         item.Data.System.Language.Should().Be("en-US");
         item.Data.System.Workflow.Should().Be("default");
@@ -153,23 +153,38 @@ public sealed class SyncTransportTests : IDisposable
 
         // Deprecated and scheduled for removal, so deliberately not modelled - its presence in the
         // payload must not upset deserialization.
-        result.Value.Types.Should().ContainSingle().Which.Data!.System.Codename.Should().Be("article");
+        result.Value.Types.Should().ContainSingle().Which.Data.System.Codename.Should().Be("article");
 
         // The narrowest payload: no last_modified, and nothing the API guarantees.
         var language = result.Value.Languages.Should().ContainSingle().Subject;
-        language.Data!.System.Codename.Should().Be("default");
+        language.Data.System.Codename.Should().Be("default");
 
         result.Value.Taxonomies.Should().BeEmpty();
     }
 
-    // A deletion still names what was deleted; only the payload's presence is in question.
     [Fact]
-    public async Task GetDeltaAsync_DeletedEntryWithoutData_IsStillReadable()
+    public async Task GetDeltaAsync_DeletedEntry_CarriesTheDeletedEntitysMetadata()
     {
         const string body = """
             {
               "items": [
-                { "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z", "data": null }
+                {
+                  "change_type": "deleted",
+                  "timestamp": "2025-06-20T13:03:06.1310204Z",
+                  "data": {
+                    "system": {
+                      "id": "335d17ac-b6ba-4c6a-ae31-23c1193215cb",
+                      "collection": "default",
+                      "name": "My article",
+                      "codename": "my_article",
+                      "language": "en-US",
+                      "type": "article",
+                      "last_modified": "2019-03-27T13:21:11.38Z",
+                      "workflow": "default",
+                      "workflow_step": "published"
+                    }
+                  }
+                }
               ],
               "types": [],
               "languages": [],
@@ -177,6 +192,50 @@ public sealed class SyncTransportTests : IDisposable
             }
             """;
 
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeTrue();
+        var deleted = result.Value.Items.Should().ContainSingle().Subject;
+        deleted.ChangeType.Should().Be(ChangeType.Deleted);
+        deleted.Data.System.Codename.Should().Be("my_article");
+    }
+
+    [Theory]
+    [InlineData("""{ "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z", "data": null }""")]
+    [InlineData("""{ "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z" }""")]
+    public async Task GetDeltaAsync_EntryWithoutUsableData_FailsInsteadOfYieldingNull(string entry)
+    {
+        var body = $$"""
+            {
+              "items": [ {{entry}} ],
+              "types": [],
+              "languages": [],
+              "taxonomies": []
+            }
+            """;
+
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+        result.Error.Exception.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetDeltaAsync_NullCollection_FailsInsteadOfYieldingNull()
+    {
+        const string body = """
+            { "items": null, "types": [], "languages": [], "taxonomies": [] }
+            """;
+
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().NotBeNull();
+    }
+
+    private async Task<ISyncResult<ISyncDeltaResponse>> RespondWithAsync(string body)
+    {
         _http.Expect(HttpMethod.Get, SyncUrl)
             .Respond(_ => WithContinuation(
                 new HttpResponseMessage(HttpStatusCode.OK)
@@ -185,12 +244,7 @@ public sealed class SyncTransportTests : IDisposable
                 },
                 "next-token"));
 
-        var result = await CreateClient().GetDeltaAsync("token");
-
-        result.IsSuccess.Should().BeTrue();
-        var deleted = result.Value.Items.Should().ContainSingle().Subject;
-        deleted.ChangeType.Should().Be(ChangeType.Deleted);
-        deleted.Data.Should().BeNull();
+        return await CreateClient().GetDeltaAsync("token");
     }
 
     [Fact]

@@ -5,6 +5,20 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **`SyncChange<TData>.Data` is `required` and no longer nullable.** The Sync API documents `data` as required on all four delta objects, deletions included — a deleted entry names what was deleted. The SDK typed it `TData?` and the README taught that it was null for deletions, so every consumer wrote `item.Data?.System` against a property the API always sends. Drop the `?`; nothing else changes.
+
+  ```csharp
+  // Before
+  var codename = item.Data?.System.Codename;
+
+  // After
+  var codename = item.Data.System.Codename;
+  ```
+
+  A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
+
 ## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Fixed
@@ -71,7 +85,7 @@ See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the mi
   // After
   foreach (SyncChange<SyncItemData> item in page.Value.Items)
   {
-      var codename = item.Data?.System.Codename;
+      var codename = item.Data.System.Codename;
       var when     = item.Timestamp;
   }
   ```

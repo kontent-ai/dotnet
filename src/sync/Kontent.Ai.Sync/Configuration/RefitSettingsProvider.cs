@@ -33,6 +33,8 @@ internal static class RefitSettingsProvider
     {
         return new JsonSerializerOptions
         {
+            // A required member only guarantees the property was present; an explicit null still lands in it.
+            RespectNullableAnnotations = true,
             PropertyNameCaseInsensitive = true,
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
