@@ -5,24 +5,31 @@ using Microsoft.Extensions.Logging;
 namespace Kontent.Ai.Delivery.Api.QueryBuilders;
 
 /// <summary>
-/// The walk every paged query returns: <see cref="DeliveryEnumeration{T}"/>'s shared page loop wrapped in this SDK's
-/// pagination logging. Queries supply only how to fetch a page and how to project it.
+/// Builds the walk every paged query returns: <see cref="DeliveryEnumeration{T}"/>'s shared page loop wrapped in this
+/// SDK's pagination logging. Queries supply only how to fetch a page and how to project it.
 /// </summary>
 /// <remarks>
-/// The logging cannot live in <c>Kontent.Ai.Delivery.Abstractions</c> — it has no logging dependency — so it lives
-/// here rather than being repeated in each query builder.
+/// Lives here rather than in <c>Kontent.Ai.Delivery.Abstractions</c>, which has no logging dependency.
 /// </remarks>
-/// <typeparam name="TItem">The type of the enumerated items.</typeparam>
-/// <typeparam name="TResponse">The per-page response the query returns.</typeparam>
-internal sealed class LoggedDeliveryEnumeration<TItem, TResponse>(
-    string queryType,
-    ILogger? logger,
-    Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
-    Func<TResponse, DeliveryPage<TItem>> selectPage,
-    CancellationToken requestCancellationToken) : DeliveryEnumeration<TItem>(requestCancellationToken)
+internal static class LoggedDeliveryEnumeration
 {
-    protected override async IAsyncEnumerable<DeliveryPage<TItem>> AsPagesCore(
+    public static DeliveryEnumeration<TItem> Create<TItem, TResponse>(
+        string queryType,
+        ILogger? logger,
+        Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
+        Func<TResponse, DeliveryPage<TItem>> selectPage,
+        CancellationToken requestCancellationToken) =>
+        new(
+            (continuationToken, cancellationToken) =>
+                WalkLoggedAsync(queryType, logger, continuationToken, fetchPage, selectPage, cancellationToken),
+            requestCancellationToken);
+
+    private static async IAsyncEnumerable<DeliveryPage<TItem>> WalkLoggedAsync<TItem, TResponse>(
+        string queryType,
+        ILogger? logger,
         string? continuationToken,
+        Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
+        Func<TResponse, DeliveryPage<TItem>> selectPage,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (logger is not null)
@@ -33,7 +40,7 @@ internal sealed class LoggedDeliveryEnumeration<TItem, TResponse>(
         var pageCount = 0;
         var totalItems = 0;
 
-        var pages = WalkPagesAsync(continuationToken, fetchPage, selectPage, cancellationToken);
+        var pages = DeliveryEnumeration<TItem>.Walk(continuationToken, fetchPage, selectPage, cancellationToken);
 
         await foreach (var page in pages.ConfigureAwait(false))
         {

@@ -1898,40 +1898,32 @@ await foreach (var usage in client.GetAssetUsedIn("hero_image").EnumerateAsync()
 }
 ```
 
-`EnumerateAsync()` stops when a subsequent page request fails and returns the items already received.
-If you need explicit page-level failure handling, use `EnumerateItemsWithStatusAsync()`:
+`EnumerateAsync()` is a walk over many requests, so a failed page throws `DeliveryRequestException` rather than ending
+the sequence quietly. Use `AsPages()` for the continuation token:
 
 ```csharp
-await foreach (var page in client.GetAssetUsedIn("hero_image").EnumerateItemsWithStatusAsync())
+await foreach (var page in client.GetAssetUsedIn("hero_image").EnumerateAsync().AsPages())
 {
-    if (!page.IsSuccess)
-    {
-        Console.WriteLine($"Lookup failed with {(int)page.StatusCode}: {page.Error?.Message}");
-        break;
-    }
-
-    foreach (var usage in page.Value)
+    foreach (var usage in page.Items)
     {
         Console.WriteLine($"Asset used in: {usage.System.Name}");
     }
 }
 ```
 
-The same status-aware helper is available for feed queries:
+Where a failure should be a value rather than an exception, use the single-request `ExecuteAsync()`:
 
 ```csharp
-await foreach (var page in client.GetItemsFeed<Article>().EnumerateItemsWithStatusAsync())
+var result = await client.GetItemsFeed<Article>().ExecuteAsync();
+if (!result.IsSuccess)
 {
-    if (!page.IsSuccess)
-    {
-        Console.WriteLine($"Feed failed with {(int)page.StatusCode}: {page.Error?.Message}");
-        break;
-    }
+    Console.WriteLine($"Feed failed with {(int)result.StatusCode}: {result.Error?.Message}");
+    return;
+}
 
-    foreach (var item in page.Value.Items)
-    {
-        ProcessItem(item);
-    }
+foreach (var item in result.Value.Items)
+{
+    ProcessItem(item);
 }
 ```
 

@@ -53,7 +53,8 @@ public sealed class DeliveryCacheOptions
     TimeSpan JitterMaxDuration { get; set; }
 
 // Kontent.Ai.Delivery.Abstractions
-public abstract class DeliveryEnumeration`1<T> : IAsyncEnumerable<T>
+public sealed class DeliveryEnumeration`1<T> : IAsyncEnumerable<T>
+    .ctor(Func<String?, CancellationToken, IAsyncEnumerable<DeliveryPage<T>>> pages, CancellationToken cancellationToken)
     IAsyncEnumerable<DeliveryPage<T>> AsPages(String? continuationToken)
     IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken)
     static DeliveryEnumeration<T> FromPages(IEnumerable<DeliveryPage<T>> pages)
@@ -80,15 +81,10 @@ public static class DeliveryOptionsExtensions
     static String? GetApiKey(DeliveryOptions options)
 
 // Kontent.Ai.Delivery.Abstractions
-public sealed class DeliveryPage`1<T> : IEquatable<DeliveryPage<T>>
+public sealed class DeliveryPage`1<T>
     .ctor()
     String? ContinuationToken { get; init; }
     required IReadOnlyList<T> Items { get; init; }
-    Boolean Equals(DeliveryPage<T>? other)
-    Boolean Equals(Object? obj)
-    DeliveryPage<T> <Clone>$()
-    Int32 GetHashCode()
-    String ToString()
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryRequestException : Exception

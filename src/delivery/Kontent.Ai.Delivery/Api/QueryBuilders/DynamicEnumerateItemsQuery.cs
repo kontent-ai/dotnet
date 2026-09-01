@@ -121,7 +121,7 @@ internal sealed class DynamicEnumerateItemsQuery(
     }
 
     public DeliveryEnumeration<IContentItem> EnumerateAsync(CancellationToken cancellationToken = default) =>
-        new LoggedDeliveryEnumeration<IContentItem, IDeliveryItemsFeedResponse>(
+        LoggedDeliveryEnumeration.Create<IContentItem, IDeliveryItemsFeedResponse>(
             "ItemsFeed",
             logger,
             ExecutePageAsync,

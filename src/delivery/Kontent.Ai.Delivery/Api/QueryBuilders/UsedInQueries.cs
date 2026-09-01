@@ -116,7 +116,7 @@ internal sealed class UsedInQueryCore(
     }
 
     public DeliveryEnumeration<IUsedInItem> CreateEnumeration(SerializedFilterCollection filters, CancellationToken cancellationToken) =>
-        new LoggedDeliveryEnumeration<IUsedInItem, DeliveryPage<IUsedInItem>>(
+        LoggedDeliveryEnumeration.Create<IUsedInItem, DeliveryPage<IUsedInItem>>(
             queryType,
             logger,
             (token, ct) => ExecutePageAsync(filters, token, ct),

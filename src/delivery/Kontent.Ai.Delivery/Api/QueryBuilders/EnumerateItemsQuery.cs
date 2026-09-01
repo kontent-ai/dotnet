@@ -129,7 +129,7 @@ internal sealed class EnumerateItemsQuery<TModel>(
         string.IsNullOrEmpty(continuationToken) ? null : (ct => ExecuteLoggedAsync(continuationToken, ct));
 
     public DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken = default) =>
-        new LoggedDeliveryEnumeration<IContentItem<TModel>, IDeliveryItemsFeedResponse<TModel>>(
+        LoggedDeliveryEnumeration.Create<IContentItem<TModel>, IDeliveryItemsFeedResponse<TModel>>(
             "ItemsFeed",
             logger,
             ExecutePageAsync,
