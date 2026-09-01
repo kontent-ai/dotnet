@@ -101,8 +101,6 @@ public class TrackingHandlerTests
         value.Should().StartWith("Custom.Package;");
     }
 
-
-
     [Fact]
     public void GetOriginatingAssembly_CalledFromTestAssembly_ReturnsTestAssembly()
     {
