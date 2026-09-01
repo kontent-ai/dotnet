@@ -3,6 +3,7 @@ using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Polly;
 
 namespace Kontent.Ai.Management;
@@ -33,7 +34,8 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
 
     /// <summary>
     /// Creates a client against the environment described by <paramref name="managementOptions"/>. The returned
-    /// instance owns its <see cref="HttpClient"/>s — dispose it when you're done. Throws
+    /// instance owns its <see cref="HttpClient"/>s and the private container they were drawn from — dispose it
+    /// when you're done. Throws
     /// <see cref="ValidationException"/> if the options fail validation. For DI scenarios prefer
     /// <c>services.AddManagementClient(...)</c>, which hands lifetime management to the container.
     /// </summary>
@@ -97,9 +99,9 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         }
     }
 
-    // Builds the env-scoped and subscription-scoped Refit clients plus the disposable bundle the ctor needs.
-    // Validates options here so all standalone construction paths surface ValidationException uniformly (the DI
-    // path uses ValidateOnStart, a separate mechanism with its own exception type — that's not something we control).
+    // Runs the same registration as AddManagementClient inside a private container and draws the clients
+    // from it. Validates first so every standalone construction path surfaces ValidationException, rather
+    // than the options pipeline's own exception for the same fault once the container reads them.
     private static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) BuildDependencies(
         ManagementOptions options,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
@@ -107,48 +109,14 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         ArgumentNullException.ThrowIfNull(options);
         Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
 
-        var optionsAccessor = new SnapshotOptionsAccessor<ManagementOptions>(options);
-        var pipeline = BuildResiliencePipeline(options, configureResilience);
-        var refitSettings = Configuration.RefitSettingsProvider.CreateDefaultSettings();
+        var services = new ServiceCollection();
+        services.AddManagementClient(options, configureHttpClient: null, configureResilience);
 
-        var owned = new List<HttpClient>(2);
+        // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
+        // which this path does not have.
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 
-        IManagementApi? api = null;
-        if (options.HasEnvironmentId())
-        {
-            var managementHttp = ManagementApiFactory.CreateHttpClient(options, options.EnvironmentScopePath(), optionsAccessor, pipeline);
-            owned.Add(managementHttp);
-            api = RestService.For<IManagementApi>(managementHttp, refitSettings);
-        }
-
-        ISubscriptionApi? subscriptionApi = null;
-        if (options.HasSubscriptionId())
-        {
-            var subscriptionHttp = ManagementApiFactory.CreateHttpClient(options, options.SubscriptionScopePath(), optionsAccessor, pipeline);
-            owned.Add(subscriptionHttp);
-            subscriptionApi = RestService.For<ISubscriptionApi>(subscriptionHttp, refitSettings);
-        }
-
-        return (api, subscriptionApi, new CompositeDisposable([.. owned]));
-    }
-
-    private static ResiliencePipeline<HttpResponseMessage> BuildResiliencePipeline(
-        ManagementOptions options,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    {
-        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        if (options.EnableResilience)
-        {
-            // Mirrors the DI path's ConfigureResilienceHandler: a supplied hook fully replaces the default pipeline.
-            if (configureResilience is not null)
-            {
-                configureResilience(builder);
-            }
-            else
-            {
-                ServiceCollectionExtensions.ConfigureDefaultResilience(builder);
-            }
-        }
-        return builder.Build();
+        return ServiceCollectionExtensions.CreateOwnedApis(provider, NamedClients.Default);
     }
 }

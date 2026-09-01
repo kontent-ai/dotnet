@@ -4,8 +4,8 @@ namespace Kontent.Ai.Management.Api;
 
 /// <summary>
 /// Refit definition of the subscription-scoped Management API v2 endpoints (<c>/v2/subscriptions/{subscriptionId}/…</c>).
-/// Built by <c>ManagementApiFactory.CreateSubscription</c> with the subscription base address; the environment-scoped
-/// endpoints live on <see cref="IManagementApi"/>.
+/// Registered against the subscription base address; the environment-scoped endpoints live on
+/// <see cref="IManagementApi"/>.
 /// </summary>
 internal interface ISubscriptionApi
 {
