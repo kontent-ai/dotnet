@@ -5,7 +5,6 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.ContentItems.Processing;
 using Kontent.Ai.Delivery.Logging;
 using Microsoft.Extensions.Logging;
 
@@ -81,7 +80,6 @@ public sealed class ElementValueMapperTests
     {
         var jsonOptions = RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
         return new ElementValueMapper(
-            new ContentDependencyExtractor(),
             jsonOptions,
             new HtmlParser(),
             logger);

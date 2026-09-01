@@ -9,14 +9,12 @@ using Microsoft.Extensions.Logging;
 namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 
 internal sealed class ElementValueMapper(
-    IContentDependencyExtractor dependencyExtractor,
     JsonSerializerOptions jsonOptions,
     IHtmlParser htmlParser,
     ILogger<ElementValueMapper>? logger = null)
 {
     private readonly RichTextParser _richTextParser = new RichTextParser(
             htmlParser ?? throw new ArgumentNullException(nameof(htmlParser)),
-            dependencyExtractor,
             logger);
 
     public async Task<object?> MapElementAsync(
@@ -151,9 +149,9 @@ internal sealed class ElementValueMapper(
         return assets;
     }
 
-    private IReadOnlyList<TaxonomyTerm>? MapTaxonomy(JsonElement envelope, DependencyTrackingContext? dependencyContext)
+    private static IReadOnlyList<TaxonomyTerm>? MapTaxonomy(JsonElement envelope, DependencyTrackingContext? dependencyContext)
     {
-        dependencyExtractor.ExtractFromTaxonomyElement(envelope, dependencyContext);
+        ContentDependencyExtractor.ExtractFromTaxonomyElement(envelope, dependencyContext);
 
         return !TryGetArrayValue(envelope, out var arrayValue)
             ? null

@@ -18,7 +18,7 @@ namespace Kontent.Ai.Delivery.ContentItems;
 /// </list>
 /// <para>
 /// If no generated type provider is found, returns null for all mappings, instructing
-/// <see cref="DefaultItemTypingStrategy"/> to use dynamic types.
+/// <see cref="ItemTypingStrategy"/> to use dynamic types.
 /// </para>
 /// <para>
 /// Users can override this behavior by registering their own <see cref="ITypeProvider"/>

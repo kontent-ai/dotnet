@@ -3,7 +3,6 @@ using AngleSharp.Html.Parser;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.ContentItems.Processing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -20,19 +19,15 @@ public static partial class ServiceCollectionExtensions
 
         // Core services
         services.TryAddSingleton<ITypeProvider, TypeProvider>();
-        services.TryAddSingleton<IItemTypingStrategy, DefaultItemTypingStrategy>();
+        services.TryAddSingleton<ItemTypingStrategy>();
         services.TryAddSingleton(sp =>
             new ContentDeserializer(sp.GetRequiredService<DeliveryJsonOptions>().Value));
         services.TryAddSingleton(sp => new ElementValueMapper(
-            sp.GetRequiredService<IContentDependencyExtractor>(),
             sp.GetRequiredService<DeliveryJsonOptions>().Value,
             sp.GetRequiredService<IHtmlParser>(),
             sp.GetService<ILogger<ElementValueMapper>>()));
         services.TryAddSingleton<LinkedItemResolver>();
         services.TryAddSingleton<ContentItemMapper>();
         services.TryAddSingleton<IHtmlParser, HtmlParser>();
-
-        // Dependency extraction is used for cache invalidation and for optional dependency metadata on results.
-        services.TryAddSingleton<IContentDependencyExtractor, ContentDependencyExtractor>();
     }
 }

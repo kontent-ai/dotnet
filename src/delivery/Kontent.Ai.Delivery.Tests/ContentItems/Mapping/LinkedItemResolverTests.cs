@@ -59,7 +59,7 @@ public sealed class LinkedItemResolverTests
     private static LinkedItemResolver CreateResolver()
     {
         var jsonOptions = RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
-        var typingStrategy = new DefaultItemTypingStrategy(new TypeProvider());
+        var typingStrategy = new ItemTypingStrategy(new TypeProvider());
         var deserializer = new ContentDeserializer(jsonOptions);
         return new LinkedItemResolver(typingStrategy, deserializer);
     }

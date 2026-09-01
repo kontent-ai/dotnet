@@ -9,7 +9,6 @@ namespace Kontent.Ai.Delivery.ContentItems.Processing;
 
 internal sealed class RichTextParser(
     IHtmlParser parser,
-    IContentDependencyExtractor dependencyExtractor,
     ILogger? logger = null)
 {
     /// <summary>
@@ -42,7 +41,7 @@ internal sealed class RichTextParser(
         }
 
         // Extract dependencies for caching (delegated to extractor)
-        dependencyExtractor.ExtractFromRichTextElement(element, dependencyContext);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, dependencyContext);
 
         List<IRichTextBlock> blocks = [];
         foreach (var childNode in document.Body.ChildNodes)

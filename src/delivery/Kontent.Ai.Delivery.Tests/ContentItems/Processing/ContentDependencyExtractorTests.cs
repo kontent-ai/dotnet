@@ -10,7 +10,6 @@ namespace Kontent.Ai.Delivery.Tests.ContentItems.Processing;
 /// </summary>
 public class ContentDependencyExtractorTests
 {
-    private readonly ContentDependencyExtractor _extractor = new();
 
     #region Rich Text Element Extraction Tests
 
@@ -26,7 +25,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains($"asset_{imageId1}", dependencies);
@@ -45,7 +44,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains("item_article_1", dependencies);
@@ -60,7 +59,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains("item_hero_section", dependencies);
@@ -81,7 +80,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains($"asset_{imageId}", dependencies);
@@ -96,7 +95,7 @@ public class ContentDependencyExtractorTests
         var element = new MockRichTextElement();
         element.ImagesBacking.Add(Guid.NewGuid(), new MockInlineImage());
 
-        var exception = Record.Exception(() => _extractor.ExtractFromRichTextElement(element, null));
+        var exception = Record.Exception(() => ContentDependencyExtractor.ExtractFromRichTextElement(element, null));
         Assert.Null(exception);
     }
 
@@ -111,7 +110,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains("item_item1", dependencies);
@@ -129,7 +128,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains($"asset_{imageId}", dependencies);
@@ -150,7 +149,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains($"asset_{imageId}", dependencies);
@@ -165,7 +164,7 @@ public class ContentDependencyExtractorTests
 
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromRichTextElement(element, context);
+        ContentDependencyExtractor.ExtractFromRichTextElement(element, context);
 
         Assert.Empty(context.Dependencies);
     }
@@ -186,7 +185,7 @@ public class ContentDependencyExtractorTests
         var element = JsonDocument.Parse(json).RootElement;
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromTaxonomyElement(element, context);
+        ContentDependencyExtractor.ExtractFromTaxonomyElement(element, context);
 
         var dependencies = context.Dependencies.ToList();
         Assert.Contains("taxonomy_categories", dependencies);
@@ -204,7 +203,7 @@ public class ContentDependencyExtractorTests
         """;
         var element = JsonDocument.Parse(json).RootElement;
 
-        var exception = Record.Exception(() => _extractor.ExtractFromTaxonomyElement(element, null));
+        var exception = Record.Exception(() => ContentDependencyExtractor.ExtractFromTaxonomyElement(element, null));
         Assert.Null(exception);
     }
 
@@ -219,7 +218,7 @@ public class ContentDependencyExtractorTests
         var element = JsonDocument.Parse(json).RootElement;
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromTaxonomyElement(element, context);
+        ContentDependencyExtractor.ExtractFromTaxonomyElement(element, context);
 
         Assert.Empty(context.Dependencies);
     }
@@ -236,7 +235,7 @@ public class ContentDependencyExtractorTests
         var element = JsonDocument.Parse(json).RootElement;
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromTaxonomyElement(element, context);
+        ContentDependencyExtractor.ExtractFromTaxonomyElement(element, context);
 
         Assert.Empty(context.Dependencies);
     }
@@ -248,7 +247,7 @@ public class ContentDependencyExtractorTests
         var element = JsonDocument.Parse(json).RootElement;
         var context = new DependencyTrackingContext();
 
-        _extractor.ExtractFromTaxonomyElement(element, context);
+        ContentDependencyExtractor.ExtractFromTaxonomyElement(element, context);
 
         Assert.Empty(context.Dependencies);
     }

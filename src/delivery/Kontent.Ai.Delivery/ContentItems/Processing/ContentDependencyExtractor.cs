@@ -3,25 +3,16 @@ using System.Text.Json;
 namespace Kontent.Ai.Delivery.ContentItems.Processing;
 
 /// <summary>
-/// Default implementation of <see cref="IContentDependencyExtractor"/> that extracts
-/// cache dependencies from content item elements.
+/// Derives cache-invalidation keys from element values, keeping that concern out of
+/// <see cref="Mapping.ContentItemMapper"/> and <see cref="RichTextParser"/>.
 /// </summary>
-/// <remarks>
-/// <para>
-/// This implementation is registered when caching is enabled via
-/// <c>AddDeliveryMemoryCache()</c> or <c>AddDeliveryHybridCache()</c> extension methods.
-/// </para>
-/// <para>
-/// All extraction logic for cache dependencies is centralized in this class,
-/// keeping the content processors (<see cref="Mapping.ContentItemMapper"/> and
-/// <see cref="RichTextParser"/>) focused solely on their primary responsibility
-/// of processing content.
-/// </para>
-/// </remarks>
-internal sealed class ContentDependencyExtractor : IContentDependencyExtractor
+internal static class ContentDependencyExtractor
 {
-    /// <inheritdoc />
-    public void ExtractFromRichTextElement(
+    /// <summary>
+    /// Tracks the inline images, content links and inline content items a rich text element refers to.
+    /// A null context means caching is off, so nothing is extracted.
+    /// </summary>
+    public static void ExtractFromRichTextElement(
         IRichTextElementValue element,
         DependencyTrackingContext? context)
     {
@@ -58,8 +49,11 @@ internal sealed class ContentDependencyExtractor : IContentDependencyExtractor
         }
     }
 
-    /// <inheritdoc />
-    public void ExtractFromTaxonomyElement(
+    /// <summary>
+    /// Tracks the taxonomy group a taxonomy element draws from, not its individual terms.
+    /// A null context means caching is off, so nothing is extracted.
+    /// </summary>
+    public static void ExtractFromTaxonomyElement(
         JsonElement elementValue,
         DependencyTrackingContext? context)
     {

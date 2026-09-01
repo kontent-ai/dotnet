@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 
 internal sealed class LinkedItemResolver(
-    IItemTypingStrategy typingStrategy,
+    ItemTypingStrategy typingStrategy,
     ContentDeserializer deserializer,
     ILogger<LinkedItemResolver>? logger = null)
 {
