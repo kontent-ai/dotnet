@@ -28,6 +28,22 @@ public sealed class DeliveryOptions : IValidatableObject
     public bool EnableResilience { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets the ceiling on one call, covering every retry attempt and the waits between them.
+    /// Leave unset to let the resilience pipeline own timing.
+    /// </summary>
+    /// <remarks>
+    /// Unset, the SDK's own pipeline bounds each attempt and the call runs as long as its retries need;
+    /// with resilience disabled or a pipeline of your own, <see cref="HttpClient"/>'s 100-second default
+    /// applies, since nothing else is known to bound the request. A value set here always wins, and
+    /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> removes the ceiling outright.
+    /// <para>
+    /// The ceiling outranks <c>Retry-After</c>: the server's backoff is honoured in full until the budget
+    /// runs out, at which point the call is cut short.
+    /// </para>
+    /// </remarks>
+    public TimeSpan? Timeout { get; set; }
+
+    /// <summary>
     /// Gets or sets the format of the Production API endpoint address.
     /// </summary>
     [Url]
@@ -104,6 +120,13 @@ public sealed class DeliveryOptions : IValidatableObject
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (Timeout is { } timeout && timeout != System.Threading.Timeout.InfiniteTimeSpan && timeout <= TimeSpan.Zero)
+        {
+            yield return new ValidationResult(
+                "Timeout must be positive, or Timeout.InfiniteTimeSpan for no ceiling.",
+                [nameof(Timeout)]);
+        }
+
         if (UsePreviewApi && UseSecureAccess)
         {
             yield return new ValidationResult(

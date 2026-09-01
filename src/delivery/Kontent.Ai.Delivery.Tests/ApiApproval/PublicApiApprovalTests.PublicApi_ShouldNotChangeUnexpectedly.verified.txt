@@ -87,6 +87,7 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
     IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
     IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
+    IDeliveryOptionsBuilder WithTimeout(TimeSpan timeout)
     static IDeliveryOptionsBuilder CreateInstance()
 
 // Kontent.Ai.Delivery.ContentItems

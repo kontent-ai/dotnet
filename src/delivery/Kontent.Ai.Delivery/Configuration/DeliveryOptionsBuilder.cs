@@ -79,6 +79,16 @@ public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
     }
 
     /// <summary>
+    /// Sets the ceiling on one call, covering every retry attempt and the waits between them.
+    /// </summary>
+    /// <param name="timeout">The ceiling, or <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> for none.</param>
+    public IDeliveryOptionsBuilder WithTimeout(TimeSpan timeout)
+    {
+        _options.Timeout = timeout;
+        return this;
+    }
+
+    /// <summary>
     /// Use a custom endpoint for both the Production and Preview APIs.
     /// </summary>
     /// <param name="endpoint">A custom endpoint URL.</param>

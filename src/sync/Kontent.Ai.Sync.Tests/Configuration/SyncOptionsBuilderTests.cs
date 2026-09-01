@@ -111,6 +111,27 @@ public class SyncOptionsBuilderTests
     }
 
     [Fact]
+    public void WithTimeout_SetsTheCeiling()
+    {
+        var options = SyncOptionsBuilder.CreateInstance()
+            .WithEnvironmentId(Guid.NewGuid())
+            .WithTimeout(TimeSpan.FromMinutes(5))
+            .Build();
+
+        options.Timeout.Should().Be(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void WithoutTimeout_LeavesTheCeilingToTheSdk()
+    {
+        var options = SyncOptionsBuilder.CreateInstance()
+            .WithEnvironmentId(Guid.NewGuid())
+            .Build();
+
+        options.Timeout.Should().BeNull();
+    }
+
+    [Fact]
     public void DisableRetryPolicy_DisablesResilience()
     {
         // Act

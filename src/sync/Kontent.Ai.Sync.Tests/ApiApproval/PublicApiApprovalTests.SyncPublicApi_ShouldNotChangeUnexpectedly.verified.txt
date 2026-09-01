@@ -46,6 +46,7 @@ public interface ISyncOptionsBuilder
     ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
     ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
     ISyncOptionsBuilder WithEnvironmentId(String environmentId)
+    ISyncOptionsBuilder WithTimeout(TimeSpan timeout)
     SyncOptions Build()
 
 // Kontent.Ai.Sync
@@ -155,6 +156,7 @@ public sealed class SyncOptions : IValidatableObject
     String PreviewEndpoint { get; set; }
     String ProductionEndpoint { get; set; }
     String? ApiKey { get; set; }
+    TimeSpan? Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Sync
@@ -238,6 +240,7 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
     ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
     ISyncOptionsBuilder WithEnvironmentId(String environmentId)
+    ISyncOptionsBuilder WithTimeout(TimeSpan timeout)
     SyncOptions Build()
     static ISyncOptionsBuilder CreateInstance()
 

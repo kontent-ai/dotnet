@@ -248,6 +248,49 @@ public class ServiceCollectionExtensionsTests
         timeout.Should().BeGreaterThan(TimeSpan.Zero);
     }
 
+    [Fact]
+    public void AddSyncClient_ExplicitTimeout_OutranksTheDefaultPipelineLift()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient("production", options =>
+            {
+                options.EnvironmentId = EnvironmentId;
+                options.Timeout = TimeSpan.FromMinutes(5);
+            }));
+
+        timeout.Should().Be(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void AddSyncClient_ExplicitTimeout_AppliesWithACustomPipelineToo()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient(
+                "production",
+                options =>
+                {
+                    options.EnvironmentId = EnvironmentId;
+                    options.Timeout = TimeSpan.FromMinutes(5);
+                },
+                configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>())));
+
+        timeout.Should().Be(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void AddSyncClient_InfiniteTimeout_RemovesTheCeilingWithResilienceDisabled()
+    {
+        var timeout = ResolveHttpClientTimeout(services =>
+            services.AddSyncClient("production", options =>
+            {
+                options.EnvironmentId = EnvironmentId;
+                options.EnableResilience = false;
+                options.Timeout = Timeout.InfiniteTimeSpan;
+            }));
+
+        timeout.Should().Be(Timeout.InfiniteTimeSpan);
+    }
+
     private static TimeSpan ResolveHttpClientTimeout(Action<IServiceCollection> register)
     {
         var services = new ServiceCollection();

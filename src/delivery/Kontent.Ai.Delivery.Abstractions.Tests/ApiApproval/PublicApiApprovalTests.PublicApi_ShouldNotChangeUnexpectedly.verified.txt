@@ -73,6 +73,7 @@ public sealed class DeliveryOptions : IValidatableObject
     String? DefaultRenditionPreset { get; set; }
     String? PreviewApiKey { get; set; }
     String? SecureAccessApiKey { get; set; }
+    TimeSpan? Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
 
 // Kontent.Ai.Delivery.Abstractions
@@ -276,6 +277,7 @@ public interface IDeliveryOptionsBuilder
     IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
     IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
     IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
+    IDeliveryOptionsBuilder WithTimeout(TimeSpan timeout)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryResult`1<T>

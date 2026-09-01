@@ -19,6 +19,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
 
+### Added
+
+- **`SyncOptions.Timeout` bounds the whole call, and `WithTimeout` sets it from the options builder.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `configureResilience` or `WithResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently. A container-free client had no recourse at all, since `configureHttpClient` is a DI-path hook.
+
+  `Timeout` is unset by default and nothing changes for anyone who leaves it alone. Set it and it always wins, whatever the pipeline; `Timeout.InfiniteTimeSpan` removes the ceiling outright. It outranks `Retry-After`: the API's backoff is honoured in full until the budget runs out, then the call is cut short.
+
+  ```csharp
+  services.AddSyncClient(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); });
+
+  // or, container-free
+  SyncClientBuilder.WithOptions(o => o.WithEnvironmentId("…").WithTimeout(TimeSpan.FromMinutes(5)).Build())
+  ```
+
 ### Deprecated
 
 - **`ISyncOptionsBuilder.UseSecureApi(apiKey)` is obsolete; use `UseProductionApi(secureAccessApiKey)`.** Secure access is production access with a Delivery API key, and the Delivery SDK has always spelled it as an overload of `UseProductionApi`. Two SDKs naming one concept differently is a papercut for anyone using both, so Sync adopts Delivery's spelling. The old method still works and still delegates to the new one; it will be removed in 3.0.

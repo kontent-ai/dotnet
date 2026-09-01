@@ -52,10 +52,10 @@ internal static class SyncApiFactory
             BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute),
         };
 
-        if (pipelineBoundsAttempts)
-        {
-            httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-        }
+        // Matches the DI path: an explicit ceiling wins, otherwise only the SDK's own pipeline earns an
+        // unbounded call, because it is the only one known to bound each attempt.
+        httpClient.Timeout = options.Timeout
+            ?? (pipelineBoundsAttempts ? System.Threading.Timeout.InfiniteTimeSpan : httpClient.Timeout);
 
         return httpClient;
     }

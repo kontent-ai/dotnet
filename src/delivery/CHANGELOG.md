@@ -61,6 +61,14 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A walk is the exception, and deliberately so: it is bracketed once by `PaginationStarted`/`PaginationCompleted` rather than emitting a starting/completed pair per page, since a 500-page walk should not produce 1,000 log entries. A failed page still reports `QueryFailed`, so no request fails silently on any route.
 
+
+- **`DeliveryOptions.Timeout` bounds the whole call, and `IDeliveryOptionsBuilder.WithTimeout` sets it.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `configureResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently.
+
+  `Timeout` is unset by default and nothing changes for anyone who leaves it alone. Set it and it always wins, whatever the pipeline; `Timeout.InfiniteTimeSpan` removes the ceiling outright. It outranks `Retry-After`: the API's backoff is honoured in full until the budget runs out, then the call is cut short.
+
+  ```csharp
+  services.AddDeliveryClient(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); });
+  ```
 ### Unchanged, deliberately
 
 - `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.

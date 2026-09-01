@@ -35,17 +35,13 @@ public static partial class ServiceCollectionExtensions
                 // The DeliveryAuthenticationHandler handles runtime endpoint switching.
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
 
-                // Timing is the pipeline's job only when the pipeline is the SDK's own: that one bounds every
-                // attempt (see ConfigureDefaultResilience), while HttpClient's 100-second ceiling covers the
-                // whole SendAsync - retries and backoff included - and so would clip a pipeline legitimately
-                // allowed to run longer. Nothing else bounds a request, so with resilience disabled, or with a
-                // caller-supplied pipeline whose shape we cannot know, that ceiling stays and a black-holed
-                // connection fails rather than hanging the caller forever. A caller who needs longer than the
-                // ceiling raises it through configureHttpClient, which is applied after this.
-                if (options.EnableResilience && configureResilience is null)
-                {
-                    httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-                }
+                // A value set on the options is the ceiling, whatever the pipeline. Unset, the SDK's own
+                // pipeline is the only one known to bound each attempt, so only it earns an unbounded call;
+                // otherwise HttpClient's default stays and a black-holed connection fails rather than hanging.
+                httpClient.Timeout = options.Timeout
+                    ?? (options.EnableResilience && configureResilience is null
+                        ? System.Threading.Timeout.InfiniteTimeSpan
+                        : httpClient.Timeout);
             });
 
         // Add resilience and message handlers

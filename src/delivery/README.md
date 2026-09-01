@@ -1795,11 +1795,31 @@ services.AddDeliveryClient(
     });
 ```
 
-The default pipeline bounds each attempt at 30 seconds and then retries, which can legitimately outlast
-`HttpClient`'s own 100-second ceiling on the whole call - retries and backoff included - so that ceiling
-is lifted while the default pipeline is the one installed. Set `EnableResilience = false`, or replace the
-pipeline through `configureResilience`, and the ceiling applies again: nothing else would bound the
-request. Raise it with `configureHttpClient`, which runs after the SDK's own configuration.
+### Timeouts
+
+Two clocks bound a request, and they are not the same one:
+
+- **Per attempt** — the default resilience pipeline cancels any single HTTP attempt after 30 seconds and
+  retries it on a fresh connection. Up to four attempts, each with its own budget.
+- **The whole call** — `DeliveryOptions.Timeout` covers every attempt *and* the waits between them.
+
+`Timeout` is unset by default, which keeps the SDK's own rule: the default pipeline bounds each attempt,
+so the call runs as long as its retries need; with `EnableResilience = false` or a pipeline of your own,
+`HttpClient`'s 100-second default applies, because nothing else is known to bound the request.
+
+Set it and it always wins, whatever the pipeline:
+
+```csharp
+services.AddDeliveryClient(o =>
+{
+    o.EnvironmentId = "your-environment-id";
+    o.Timeout = TimeSpan.FromMinutes(5);
+});
+```
+
+`Timeout.InfiniteTimeSpan` removes the ceiling outright. Note that it outranks `Retry-After`: when the API
+rate-limits you, the pipeline waits exactly as long as the server asked, but the call is still cut short if
+your ceiling runs out first.
 
 ## Important Considerations
 
