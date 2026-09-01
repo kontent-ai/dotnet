@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Text;
 
@@ -113,20 +114,22 @@ internal sealed class HtmlResolver : IHtmlResolver
                 content.System.Type, content.System.Id, content.System.Codename));
     }
 
+    /// <remarks>
+    /// A block's model type never changes, but <see cref="Type.GetInterfaces"/> allocates an array on every
+    /// call - once per embedded block per resolve, in the render path. Cached across resolvers: the answer
+    /// depends on the block type alone, and the set of content item types an application maps is bounded.
+    /// </remarks>
+    private static readonly ConcurrentDictionary<Type, Type?> EmbeddedContentModelTypes = new();
+
     private static bool TryGetEmbeddedContentModelType(IEmbeddedContent content, out Type modelType)
     {
-        foreach (var implementedInterface in content.GetType().GetInterfaces())
-        {
-            if (implementedInterface.IsGenericType &&
-                implementedInterface.GetGenericTypeDefinition() == typeof(IEmbeddedContent<>))
-            {
-                modelType = implementedInterface.GetGenericArguments()[0];
-                return true;
-            }
-        }
+        modelType = EmbeddedContentModelTypes.GetOrAdd(content.GetType(), static blockType =>
+            Array.Find(
+                blockType.GetInterfaces(),
+                candidate => candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEmbeddedContent<>))
+            ?.GetGenericArguments()[0])!;
 
-        modelType = null!;
-        return false;
+        return modelType is not null;
     }
 
     private async ValueTask<string> ResolveHtmlNodeAsync(IHtmlNode node)
