@@ -23,7 +23,7 @@ public static partial class ServiceCollectionExtensions
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience) where T : class
     {
         var httpClientBuilder = services
-            .AddHttpClient(httpClientName)
+            .AddKeyedRefitGeneratedClient<T>(clientName, refitSettings, httpClientName)
             .ConfigureHttpClient((sp, httpClient) =>
             {
                 var options = sp.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(clientName);
@@ -38,9 +38,6 @@ public static partial class ServiceCollectionExtensions
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
         configureHttpClient?.Invoke(httpClientBuilder);
-
-        services.AddKeyedTransient<T>(clientName, (sp, _) =>
-            CreateApi<T>(sp.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName), refitSettings));
     }
 
     private static T CreateApi<T>(HttpClient httpClient, RefitSettings refitSettings) where T : class
