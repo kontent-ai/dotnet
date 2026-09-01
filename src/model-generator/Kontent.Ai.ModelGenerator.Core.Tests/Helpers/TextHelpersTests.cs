@@ -43,7 +43,7 @@ public class TextHelpersTests
     // A missing argument and a blank one are different mistakes: null is ArgumentNullException, a value
     // that is present but empty is ArgumentException. The guard used to report both as the former.
     [Fact]
-    public void GenerateCommentString_CustomCommentIsNullOrEmptyOrWhiteSpace_Null_ThrowsArgumentNullException()
+    public void GenerateCommentString_CustomCommentIsNull_ThrowsArgumentNullException()
     {
         var act = () => TextHelpers.GenerateCommentString(null!);
 
@@ -53,7 +53,7 @@ public class TextHelpersTests
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void GenerateCommentString_CustomCommentIsNullOrEmptyOrWhiteSpace_Blank_ThrowsArgumentException(string customComment)
+    public void GenerateCommentString_CustomCommentIsEmptyOrWhiteSpace_ThrowsArgumentException(string customComment)
     {
         var act = () => TextHelpers.GenerateCommentString(customComment);
 
