@@ -158,7 +158,7 @@ public static partial class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
 
         services.Configure(name, configureOptions);
         services.AddOptions<ManagementOptions>(name)
@@ -215,7 +215,7 @@ public static partial class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
 
         services.AddOptions<ManagementOptions>(name)
             .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
@@ -271,7 +271,7 @@ public static partial class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
 
         services.Configure<ManagementOptions>(name, configuration);
         services.AddOptions<ManagementOptions>(name)
@@ -341,14 +341,4 @@ public static partial class ServiceCollectionExtensions
         return new ManagementClient(managementApi, subscriptionApi);
     }
 
-    private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)
-    {
-        if (!services.Any(d => d.ServiceType == typeof(IManagementClient) && Equals(d.ServiceKey, name)))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            $"A management client with the name '{name}' has already been registered. Each client must have a unique name.");
-    }
 }

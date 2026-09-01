@@ -332,7 +332,7 @@ public static partial class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configureOptions);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
 
         services.AddOptions<DeliveryOptions>(name)
             .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
@@ -362,7 +362,7 @@ public static partial class ServiceCollectionExtensions
         NamedClients.ValidateName(name);
         ArgumentNullException.ThrowIfNull(configuration);
 
-        EnsureClientNameNotAlreadyRegistered(services, name);
+        KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
 
         // Configure named options from configuration with change-token support.
         services.Configure<DeliveryOptions>(name, configuration);
@@ -484,15 +484,4 @@ public static partial class ServiceCollectionExtensions
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
 
-    private static void EnsureClientNameNotAlreadyRegistered(IServiceCollection services, string name)
-    {
-        if (!services.Any(d => d.ServiceType == typeof(IDeliveryClient) && Equals(d.ServiceKey, name)))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException(
-            $"A DeliveryClient with the name '{name}' has already been registered. " +
-            $"HTTP client name: '{GetHttpClientName(name)}'. Each client must have a unique name.");
-    }
 }

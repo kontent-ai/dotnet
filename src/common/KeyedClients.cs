@@ -36,4 +36,34 @@ internal static class KeyedClients
                 $"No {clientDescription} registered with name '{name}'. " +
                 $"Ensure you've registered the client using {registrationMethod}(\"{name}\", ...).");
     }
+
+    /// <summary>
+    /// Refuses a second registration under a name already taken, where the container would otherwise
+    /// accept both and silently resolve one.
+    /// </summary>
+    /// <param name="services">The collection being registered into.</param>
+    /// <param name="name">The client name.</param>
+    /// <param name="clientDescription">What to call the client in the error, e.g. <c>"sync client"</c>.</param>
+    /// <param name="httpClientName">
+    /// The derived HTTP client name, when there is exactly one. Omitted where a product registers more
+    /// than one per client, since naming a single one would point at the wrong registration.
+    /// </param>
+    internal static void EnsureNotRegistered<TClient>(
+        IServiceCollection services,
+        string name,
+        string clientDescription,
+        string? httpClientName = null)
+        where TClient : class
+    {
+        if (!services.Any(d => d.ServiceType == typeof(TClient) && Equals(d.ServiceKey, name)))
+        {
+            return;
+        }
+
+        var httpClientDetail = httpClientName is null ? string.Empty : $"HTTP client name: '{httpClientName}'. ";
+
+        throw new InvalidOperationException(
+            $"A {clientDescription} with the name '{name}' has already been registered. " +
+            $"{httpClientDetail}Each client must have a unique name.");
+    }
 }
