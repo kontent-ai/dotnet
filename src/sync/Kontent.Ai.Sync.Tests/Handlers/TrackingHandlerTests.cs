@@ -1,53 +1,10 @@
 using AwesomeAssertions;
-using Kontent.Ai.Common.Http;
 using Kontent.Ai.Sync.Handlers;
 
 namespace Kontent.Ai.Sync.Tests.Handlers;
 
 public class TrackingHandlerTests
 {
-    [Fact]
-    public void GetProductVersion_ReadsInformationalVersion_StrippingBuildMetadata()
-    {
-        var assembly = typeof(TrackingHandler).Assembly;
-
-        var version = assembly.GetProductVersion();
-
-        version.Should().NotBeNullOrWhiteSpace();
-        version.Should().NotContain("+");
-    }
-
-    [Theory]
-    [InlineData("1.2.3-rc.1+cb8ea2a2edf788814cb009f470e877bd94a6af00", "1.2.3-rc.1")]
-    [InlineData("1.0.0+abc123", "1.0.0")]
-    [InlineData("2.0.0-beta", "2.0.0-beta")]
-    [InlineData("1.0.0", "1.0.0")]
-    public void StripBuildMetadata_RemovesSourceLinkGitSha(string raw, string expected)
-    {
-        SdkTrackingHeaders.StripBuildMetadata(raw).Should().Be(expected);
-    }
-
-    // A blank version yields null so the caller falls back to "0.0.0"; an empty string would otherwise
-    // travel into the tracking header as the version.
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void StripBuildMetadata_NullOrWhitespace_ReturnsNull(string? raw)
-    {
-        SdkTrackingHeaders.StripBuildMetadata(raw).Should().BeNull();
-    }
-
-    [Fact]
-    public void GetProductVersion_SdkAssembly_NeverContainsPlus()
-    {
-        // SourceLink appends "+<commit-sha>" to AssemblyInformationalVersion; the tracking header
-        // must never leak that SHA. Regression guard against removing StripBuildMetadata.
-        var version = typeof(TrackingHandler).Assembly.GetProductVersion();
-
-        version.Should().NotContain("+");
-    }
-
     [Fact]
     public void ComposeSourceHeaderValue_ExplicitVersion_WithoutPrerelease()
     {

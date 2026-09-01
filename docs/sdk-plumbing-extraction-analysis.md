@@ -242,6 +242,10 @@ retry tests pin. Both are a single test run to settle.
 
 ### 3.1 Shared tests for the shared files
 
+> **Done on `unify-registration`.** `src/testing/Http/` holds the three files below; each product
+> includes the ones for the common files it compiles. The product files kept only their composed
+> behaviour, and Delivery's separate predicate file went away entirely.
+
 The predicates, the delay generator and the header composition are tested in Sync (`225` lines) and
 Management (`374`, including its own idempotency cases) with near-identical unit tests, and in
 Delivery with `27` lines. The `X-KC-SOURCE` composition has no test in Sync. So the code that is
@@ -319,7 +323,7 @@ catch drift in it.
 1. **2.6** first, by its own plan — the container move for Sync and Management deletes their
    standalone factories and pipeline builders outright, so everything after it has one composition
    site per product to work on.
-2. **3.1** — the shared tests give every later step a net to land on, and they are pure addition.
+2. **3.1** — done.
 3. **2.1, 2.2, 2.3, 2.4** together — the DI registration files of all three products change in
    one PR, each getting shorter, each behaviour already tested per product. 2.5 and 2.9 are done.
 4. **2.7** and **2.8** — each self-contained, each with the approval snapshot as the check that no

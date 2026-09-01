@@ -107,49 +107,11 @@ public class TrackingHeaderTests
     }
 
     [Fact]
-    public void GetProductVersion_ReturnsNonEmptyVersion()
-    {
-        var assembly = GetType().Assembly;
-
-        var version = assembly.GetProductVersion();
-
-        Assert.False(string.IsNullOrEmpty(version));
-    }
-
-    [Fact]
     public void GetSdkVersion_ReturnsNonEmptyString()
     {
         var version = HttpRequestHeadersExtensions.GetSdkVersion();
 
         Assert.False(string.IsNullOrEmpty(version));
-    }
-
-    [Theory]
-    [InlineData("1.2.3", "1.2.3")]
-    [InlineData("1.2.3-rc.1", "1.2.3-rc.1")]
-    [InlineData("1.2.3+abc1234", "1.2.3")]
-    [InlineData("1.2.3-rc.1+abc1234", "1.2.3-rc.1")]
-    [InlineData("5.0.0-beta.2+sha.githash.20260416", "5.0.0-beta.2")]
-    public void StripBuildMetadata_RemovesPlusSuffixPreservesPrerelease(string input, string expected)
-    {
-        Assert.Equal(expected, SdkTrackingHeaders.StripBuildMetadata(input));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void StripBuildMetadata_NullOrWhitespace_ReturnsNull(string? input)
-    {
-        Assert.Null(SdkTrackingHeaders.StripBuildMetadata(input));
-    }
-
-    [Fact]
-    public void GetProductVersion_DoesNotContainBuildMetadata()
-    {
-        var version = GetType().Assembly.GetProductVersion();
-
-        Assert.DoesNotContain('+', version);
     }
 
     [Fact]
