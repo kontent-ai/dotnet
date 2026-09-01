@@ -1018,26 +1018,22 @@ var resolver = new HtmlResolverBuilder()
     .Build();
 ```
 
-### 5.3 Batch Resolver Registration
+### 5.3 Registering Several Resolvers
 
-**New:**
+**New:** chain one `WithContentResolver<T>` per model type — each names its type once and receives
+`IEmbeddedContent<T>`, so no cast is needed.
+
 ```csharp
 var resolver = new HtmlResolverBuilder()
-    .WithContentResolvers(
-        (typeof(Tweet), content =>
-            content is IEmbeddedContent<Tweet> t
-                ? $"<blockquote>{t.Elements.TweetText}</blockquote>"
-                : ""),
-        (typeof(Video), content =>
-            content is IEmbeddedContent<Video> v
-                ? $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\"></iframe>"
-                : ""),
-        (typeof(Quote), content =>
-            content is IEmbeddedContent<Quote> q
-                ? $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>"
-                : ""))
+    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
+    .WithContentResolver<Video>(v => $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\"></iframe>")
+    .WithContentResolver<Quote>(q => $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>")
     .Build();
 ```
+
+`WithContentResolvers` registers many at once from a dictionary or tuples, keyed by codename. The
+`Type`-keyed overloads of the same name are for model types you only have at runtime; prefer
+`WithContentResolver<T>` whenever you can name the type in source.
 
 ### 5.4 URL Pattern Resolver
 

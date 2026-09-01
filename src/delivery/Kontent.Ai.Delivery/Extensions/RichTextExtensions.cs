@@ -86,10 +86,15 @@ public static class RichTextExtensions
     public static IEnumerable<IEmbeddedContent> GetEmbeddedContent(this IRichTextContent richText) => richText.GetBlocks<IEmbeddedContent>();
 
     /// <summary>
-    /// Filters rich text blocks to return only strongly-typed embedded content of a specific model type.
+    /// Gets the strongly-typed embedded content of a specific model type from rich text content,
+    /// <b>including blocks nested inside links, tables and other elements</b>.
     /// </summary>
+    /// <remarks>
+    /// Searches the whole tree. To filter one sequence of blocks without descending into it, use
+    /// <see cref="GetEmbeddedContentOfType{TModel}"/>.
+    /// </remarks>
     /// <typeparam name="TModel">The model type to filter by.</typeparam>
-    /// <param name="richText">The rich text content to filter.</param>
+    /// <param name="richText">The rich text content to search.</param>
     /// <returns>A sequence of strongly-typed embedded content matching the specified model type.</returns>
     /// <example>
     /// <code>
@@ -110,15 +115,22 @@ public static class RichTextExtensions
     }
 
     /// <summary>
-    /// Filters a sequence of rich text blocks to return only strongly-typed embedded content of a specific model type.
+    /// Filters a sequence of rich text blocks to the strongly-typed embedded content of a specific model
+    /// type, <b>looking only at the blocks given and not at their children</b>.
     /// </summary>
+    /// <remarks>
+    /// For the blocks of a whole rich text element, including nested ones, use
+    /// <see cref="GetEmbeddedContent{TModel}(IRichTextContent)"/> instead. Because
+    /// <see cref="IRichTextContent"/> is itself a sequence of blocks, this method also binds on one - where
+    /// it searches the top level only, which is rarely what is wanted.
+    /// </remarks>
     /// <typeparam name="TModel">The model type to filter by.</typeparam>
     /// <param name="blocks">The sequence of rich text blocks to filter.</param>
     /// <returns>A sequence of strongly-typed embedded content matching the specified model type.</returns>
     /// <example>
     /// <code>
-    /// // Get all embedded coffee products from rich text blocks
-    /// var coffees = richText
+    /// // Get the coffee products embedded directly in a table cell, not those nested deeper
+    /// var coffees = cell.Children
     ///     .GetEmbeddedContentOfType&lt;Coffee&gt;()
     ///     .Select(c => c.Elements);
     /// </code>

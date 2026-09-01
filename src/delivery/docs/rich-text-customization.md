@@ -435,27 +435,37 @@ var resolver = new HtmlResolverBuilder()
 
 Register multiple content resolvers using tuples for batch registration.
 
-**Type-Safe Tuple Resolvers:**
+**Type-Safe Resolvers:**
+
+Chain one `WithContentResolver<T>` per model type. Each names its type once and receives
+`IEmbeddedContent<T>`, so there is no cast and no unreachable fallback branch to write.
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
-    .WithContentResolvers(
-        (typeof(Tweet), content =>
-            content is IEmbeddedContent<Tweet> tweet
-                ? $"<div class=\"twitter-embed\"><a href=\"{tweet.Elements.Url}\">View Tweet</a></div>"
-                : string.Empty),
-        (typeof(Quote), content =>
-            content is IEmbeddedContent<Quote> quote
-                ? quote.Elements.Attribution != null
-                    ? $"<blockquote><p>{quote.Elements.QuoteText}</p><cite>{quote.Elements.Attribution}</cite></blockquote>"
-                    : $"<blockquote><p>{quote.Elements.QuoteText}</p></blockquote>"
-                : string.Empty),
-        (typeof(CodeSnippet), content =>
-            content is IEmbeddedContent<CodeSnippet> snippet
-                ? $"<pre><code class=\"language-{snippet.Elements.Language}\">{System.Web.HttpUtility.HtmlEncode(snippet.Elements.Code)}</code></pre>"
-                : string.Empty)
-    )
+    .WithContentResolver<Tweet>(tweet =>
+        $"<div class=\"twitter-embed\"><a href=\"{tweet.Elements.Url}\">View Tweet</a></div>")
+    .WithContentResolver<Quote>(quote =>
+        quote.Elements.Attribution != null
+            ? $"<blockquote><p>{quote.Elements.QuoteText}</p><cite>{quote.Elements.Attribution}</cite></blockquote>"
+            : $"<blockquote><p>{quote.Elements.QuoteText}</p></blockquote>")
+    .WithContentResolver<CodeSnippet>(snippet =>
+        $"<pre><code class=\"language-{snippet.Elements.Language}\">{System.Web.HttpUtility.HtmlEncode(snippet.Elements.Code)}</code></pre>")
     .Build();
+```
+
+**Resolvers for Model Types Known Only at Runtime:**
+
+`WithContentResolvers` also accepts `Type` keys, for the case `WithContentResolver<T>` cannot serve —
+model types discovered at runtime rather than named in source. The resolver is handed the non-generic
+`IEmbeddedContent`, because there is no type argument to give it.
+
+```csharp
+var builder = new HtmlResolverBuilder();
+foreach (var modelType in typeProvider.KnownTypes)
+{
+    builder.WithContentResolvers((modelType, content => $"<div>{content.System.Codename}</div>"));
+}
+var resolver = builder.Build();
 ```
 
 **Codename-Based Tuple Resolvers (Legacy):**

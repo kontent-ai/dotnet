@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Kontent.Ai.Delivery.Abstractions;
 
 /// <summary>
@@ -109,34 +111,40 @@ public interface IHtmlResolverBuilder
         params (string ContentTypeCodename, Func<IEmbeddedContent, string> Resolver)[] resolvers);
 
     /// <summary>
-    /// Registers multiple type-based resolvers for embedded content using a dictionary.
-    /// The dictionary keys are model types, allowing type-based dispatch instead of codename-based.
+    /// Registers resolvers for embedded content keyed by model types only known at runtime.
     /// </summary>
     /// <param name="resolvers">Dictionary mapping model types to their resolver functions.</param>
     /// <returns>This builder for method chaining.</returns>
     /// <remarks>
-    /// Note: The resolver function accepts non-generic <see cref="IEmbeddedContent"/> to support
-    /// heterogeneous dictionaries. Use pattern matching inside the resolver for type-safe access:
-    /// <code>
-    /// content switch { IEmbeddedContent&lt;Article&gt; a =&gt; ..., _ =&gt; "" }
-    /// </code>
+    /// <b>For model types you can name in source, use <see cref="WithContentResolver{TModel}(Func{IEmbeddedContent{TModel}, string})"/>
+    /// instead</b> - it takes the model type as a type argument, so the resolver receives
+    /// <see cref="IEmbeddedContent{TModel}"/> and needs no cast. This overload exists for the case that one
+    /// cannot serve: types discovered at runtime, such as those enumerated from an
+    /// <see cref="ITypeProvider"/>. Its resolver is handed the non-generic <see cref="IEmbeddedContent"/>
+    /// because there is no type argument to give it.
     /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     IHtmlResolverBuilder WithContentResolvers(
         IReadOnlyDictionary<Type, Func<IEmbeddedContent, string>> resolvers);
 
     /// <summary>
-    /// Registers multiple type-based resolvers for embedded content using tuples.
+    /// Registers resolvers for embedded content keyed by model types only known at runtime, using tuples.
     /// </summary>
     /// <param name="resolvers">Tuples of (model type, resolver function).</param>
     /// <returns>This builder for method chaining.</returns>
+    /// <remarks>
+    /// <b>For model types you can name in source, use <see cref="WithContentResolver{TModel}(Func{IEmbeddedContent{TModel}, string})"/>
+    /// instead</b> - see the dictionary overload for why.
+    /// </remarks>
     /// <example>
     /// <code>
-    /// builder.WithContentResolvers(
-    ///     (typeof(Article), content =&gt; content is IEmbeddedContent&lt;Article&gt; a ? $"&lt;div&gt;{a.Elements.Title}&lt;/div&gt;" : ""),
-    ///     (typeof(Coffee), content =&gt; content is IEmbeddedContent&lt;Coffee&gt; c ? $"&lt;div&gt;{c.Elements.ProductName}&lt;/div&gt;" : "")
-    /// );
+    /// foreach (var modelType in typeProvider.KnownTypes)
+    /// {
+    ///     builder.WithContentResolvers((modelType, content =&gt; $"&lt;div&gt;{content.System.Codename}&lt;/div&gt;"));
+    /// }
     /// </code>
     /// </example>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     IHtmlResolverBuilder WithContentResolvers(
         params (Type ModelType, Func<IEmbeddedContent, string> Resolver)[] resolvers);
 

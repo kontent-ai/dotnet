@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 
 /// <summary>
@@ -81,15 +83,9 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     /// <inheritdoc />
     public IHtmlResolverBuilder WithContentItemLinkResolvers(
         params (string ContentTypeCodename, BlockResolver<IContentItemLink> Resolver)[] resolvers)
-    {
-        ArgumentNullException.ThrowIfNull(resolvers);
-
-        foreach (var (codename, resolver) in resolvers)
-        {
-            WithContentItemLinkResolver(codename, resolver);
-        }
-        return this;
-    }
+        => WithContentItemLinkResolvers(
+            resolvers?.ToDictionary(entry => entry.ContentTypeCodename, entry => entry.Resolver)
+            ?? throw new ArgumentNullException(nameof(resolvers)));
 
     /// <inheritdoc />
     public IHtmlResolverBuilder WithContentResolver(
@@ -163,17 +159,12 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     /// <inheritdoc />
     public IHtmlResolverBuilder WithContentResolvers(
         params (string ContentTypeCodename, Func<IEmbeddedContent, string> Resolver)[] resolvers)
-    {
-        ArgumentNullException.ThrowIfNull(resolvers);
-
-        foreach (var (codename, resolver) in resolvers)
-        {
-            WithContentResolver(codename, resolver);
-        }
-        return this;
-    }
+        => WithContentResolvers(
+            resolvers?.ToDictionary(entry => entry.ContentTypeCodename, entry => entry.Resolver)
+            ?? throw new ArgumentNullException(nameof(resolvers)));
 
     /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public IHtmlResolverBuilder WithContentResolvers(
         IReadOnlyDictionary<Type, Func<IEmbeddedContent, string>> resolvers)
     {
@@ -181,29 +172,19 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
 
         foreach (var (type, resolver) in resolvers)
         {
-            // Wrap synchronous resolver in ValueTask
-            _typeBasedContentResolvers[type] = content =>
-                ValueTask.FromResult(resolver(content));
+            _typeBasedContentResolvers[type] = content => ValueTask.FromResult(resolver(content));
         }
 
         return this;
     }
 
     /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public IHtmlResolverBuilder WithContentResolvers(
         params (Type ModelType, Func<IEmbeddedContent, string> Resolver)[] resolvers)
-    {
-        ArgumentNullException.ThrowIfNull(resolvers);
-
-        foreach (var (type, resolver) in resolvers)
-        {
-            // Wrap synchronous resolver in ValueTask
-            _typeBasedContentResolvers[type] = content =>
-                ValueTask.FromResult(resolver(content));
-        }
-
-        return this;
-    }
+        => WithContentResolvers(
+            resolvers?.ToDictionary(entry => entry.ModelType, entry => entry.Resolver)
+            ?? throw new ArgumentNullException(nameof(resolvers)));
 
     /// <inheritdoc />
     public IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
