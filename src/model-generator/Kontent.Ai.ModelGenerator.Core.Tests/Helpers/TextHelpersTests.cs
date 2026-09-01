@@ -55,7 +55,7 @@ public class TextHelpersTests
     [InlineData(" ")]
     public void GenerateCommentString_CustomCommentIsNullOrEmptyOrWhiteSpace_Blank_ThrowsArgumentException(string customComment)
     {
-        var act = () => TextHelpers.GenerateCommentString(customComment!);
+        var act = () => TextHelpers.GenerateCommentString(customComment);
 
         act.Should().ThrowExactly<ArgumentException>();
     }
