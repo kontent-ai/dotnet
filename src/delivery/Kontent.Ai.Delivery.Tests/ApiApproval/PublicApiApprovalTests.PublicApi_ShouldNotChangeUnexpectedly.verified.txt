@@ -18,13 +18,6 @@ public sealed class DeliveryClient : IAsyncDisposable, IDeliveryClient, IDisposa
     Void Dispose()
 
 // Kontent.Ai.Delivery
-public sealed class DeliveryClientFactory : IDeliveryClientFactory
-    .ctor(IServiceProvider serviceProvider)
-    IDeliveryClient Get()
-    IDeliveryClient Get(String name)
-    IDeliveryClient? TryGet(String name)
-
-// Kontent.Ai.Delivery
 public sealed class DeliverySourceTrackingHeaderAttribute : Attribute
     .ctor()
     .ctor(String packageName)
