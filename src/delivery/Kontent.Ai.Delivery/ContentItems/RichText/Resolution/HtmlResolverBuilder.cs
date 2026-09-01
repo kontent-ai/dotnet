@@ -35,18 +35,21 @@ namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 /// </example>
 public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
 {
-    private readonly Dictionary<Type, Delegate> _resolvers = [];
     private readonly List<ConditionalHtmlNodeResolver> _conditionalHtmlNodeResolvers = [];
     private readonly Dictionary<string, Func<IEmbeddedContent, ValueTask<string>>> _embeddedContentResolvers = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<Type, Func<IEmbeddedContent, ValueTask<string>>> _typeBasedContentResolvers = [];
     private readonly Dictionary<string, BlockResolver<IContentItemLink>> _contentItemLinkResolvers = new(StringComparer.OrdinalIgnoreCase);
+    private BlockResolver<IContentItemLink>? _contentItemLinkResolver;
+    private BlockResolver<IInlineImage>? _inlineImageResolver;
+    private BlockResolver<ITextNode>? _textNodeResolver;
+    private BlockResolver<IHtmlNode>? _htmlElementResolver;
     private bool _throwOnMissingResolver;
 
     /// <inheritdoc />
     public IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
     {
         ArgumentNullException.ThrowIfNull(resolver);
-        _resolvers[typeof(IContentItemLink)] = resolver;
+        _contentItemLinkResolver = resolver;
         return this;
     }
 
@@ -206,7 +209,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     public IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
     {
         ArgumentNullException.ThrowIfNull(resolver);
-        _resolvers[typeof(IInlineImage)] = resolver;
+        _inlineImageResolver = resolver;
         return this;
     }
 
@@ -214,7 +217,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     public IHtmlResolverBuilder WithTextNodeResolver(BlockResolver<ITextNode> resolver)
     {
         ArgumentNullException.ThrowIfNull(resolver);
-        _resolvers[typeof(ITextNode)] = resolver;
+        _textNodeResolver = resolver;
         return this;
     }
 
@@ -277,7 +280,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     public IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver)
     {
         ArgumentNullException.ThrowIfNull(resolver);
-        _resolvers[typeof(IHtmlNode)] = resolver;
+        _htmlElementResolver = resolver;
         return this;
     }
 
@@ -289,51 +292,31 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     }
 
     /// <inheritdoc />
-    public IHtmlResolver Build()
+    public IHtmlResolver Build() => new HtmlResolver(new HtmlResolverOptions
     {
-        // Always provide built-in defaults for elements that have sensible default rendering
-        var resolversWithDefaults = new Dictionary<Type, Delegate>(_resolvers);
+        // Text nodes, inline images and HTML elements all render sensibly without configuration, so
+        // these three are never absent. A content item link has no default: its URL is the
+        // application's to decide, and an unresolved one reports itself rather than guessing.
+        TextNodeResolver = _textNodeResolver ?? DefaultTextNodeResolver,
+        InlineImageResolver = _inlineImageResolver ?? DefaultInlineImageResolver,
+        DefaultHtmlNodeResolver = _htmlElementResolver ?? DefaultResolvers.HtmlElementResolver(),
+        ContentItemLinkResolver = _contentItemLinkResolver,
 
-        // Default text node resolver - HTML-encodes reserved chars but preserves Unicode
-        resolversWithDefaults.TryAdd(typeof(ITextNode), new BlockResolver<ITextNode>(
-            (block, _) => ValueTask.FromResult(DefaultResolvers.Encoder.Encode(block.Text))
-        ));
+        ConditionalHtmlNodeResolvers = [.. _conditionalHtmlNodeResolvers],
+        ThrowOnMissingResolver = _throwOnMissingResolver,
+        EmbeddedContentResolvers = _embeddedContentResolvers,
+        TypeBasedContentResolvers = _typeBasedContentResolvers,
+        ContentItemLinkResolvers = _contentItemLinkResolvers
+    });
 
-        // Default inline image resolver - generates proper HTML figure element
-        resolversWithDefaults.TryAdd(typeof(IInlineImage), new BlockResolver<IInlineImage>(
-            (block, _) =>
-            {
-                var url = DefaultResolvers.Encoder.Encode(block.Url ?? string.Empty);
-                var description = DefaultResolvers.Encoder.Encode(block.Description ?? string.Empty);
-                var html = $"<figure><img src=\"{url}\" alt=\"{description}\" data-asset-id=\"{block.ImageId}\" /></figure>";
-                return ValueTask.FromResult(html);
-            }
-        ));
+    private static readonly BlockResolver<ITextNode> DefaultTextNodeResolver =
+        (block, _) => ValueTask.FromResult(DefaultResolvers.Encoder.Encode(block.Text));
 
-        // Default HTML element resolver - renders elements with their structure
-        var defaultHtmlNodeResolver = resolversWithDefaults.TryGetValue(typeof(IHtmlNode), out var htmlResolver)
-            ? (BlockResolver<IHtmlNode>)htmlResolver
-            : DefaultResolvers.HtmlElementResolver();
-
-        // Note: IContentItemLink and IEmbeddedContent have NO defaults
-        // They require explicit configuration and will show diagnostic comments if missing
-
-        // Create options with conditional resolvers, embedded content resolvers, content item link resolvers, and default fallback
-        var options = new HtmlResolverOptions
+    private static readonly BlockResolver<IInlineImage> DefaultInlineImageResolver =
+        (block, _) =>
         {
-            ConditionalHtmlNodeResolvers = [.. _conditionalHtmlNodeResolvers],
-            DefaultHtmlNodeResolver = defaultHtmlNodeResolver,
-            ThrowOnMissingResolver = _throwOnMissingResolver,
-            EmbeddedContentResolvers = _embeddedContentResolvers.Count > 0 ? _embeddedContentResolvers : null,
-            TypeBasedContentResolvers = _typeBasedContentResolvers.Count > 0 ? _typeBasedContentResolvers : null,
-            ContentItemLinkResolvers = _contentItemLinkResolvers.Count > 0 ? _contentItemLinkResolvers : null
+            var url = DefaultResolvers.Encoder.Encode(block.Url ?? string.Empty);
+            var description = DefaultResolvers.Encoder.Encode(block.Description ?? string.Empty);
+            return ValueTask.FromResult($"<figure><img src=\"{url}\" alt=\"{description}\" data-asset-id=\"{block.ImageId}\" /></figure>");
         };
-
-        // Create resolver dictionary excluding IHtmlNode (handled via options)
-        var resolverDict = resolversWithDefaults
-            .Where(kvp => kvp.Key != typeof(IHtmlNode))
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-        return new HtmlResolver(resolverDict, options);
-    }
 }
