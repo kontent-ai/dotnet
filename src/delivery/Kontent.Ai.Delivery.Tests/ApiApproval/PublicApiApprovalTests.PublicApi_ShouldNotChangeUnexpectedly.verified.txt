@@ -140,8 +140,8 @@ public static class DefaultResolvers
 // Kontent.Ai.Delivery.ContentItems.RichText.Resolution
 public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     .ctor()
-    HtmlResolverBuilder ThrowOnMissingResolver(Boolean enabled)
     IHtmlResolver Build()
+    IHtmlResolverBuilder ThrowOnMissingResolver(Boolean enabled)
     IHtmlResolverBuilder WithContentItemLinkResolver(BlockResolver<IContentItemLink> resolver)
     IHtmlResolverBuilder WithContentItemLinkResolver(String contentTypeCodename, BlockResolver<IContentItemLink> resolver)
     IHtmlResolverBuilder WithContentItemLinkResolvers(IReadOnlyDictionary<String, BlockResolver<IContentItemLink>> resolvers)

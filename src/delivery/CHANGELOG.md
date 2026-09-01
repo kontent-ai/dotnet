@@ -79,6 +79,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   ```csharp
   services.AddDeliveryClient(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); });
   ```
+- **`ThrowOnMissingResolver` is on `IHtmlResolverBuilder`.** It was declared only on the concrete `HtmlResolverBuilder` and returned `HtmlResolverBuilder`, while every `With*` method returns `IHtmlResolverBuilder` — so it compiled only as the first call after `new HtmlResolverBuilder()` and was a compile error anywhere else in a chain. It is now an interface member returning `IHtmlResolverBuilder`, and composes in any position.
+
+  The concrete method's return type narrows from `HtmlResolverBuilder` to `IHtmlResolverBuilder`, so code that assigned the result to the concrete type needs `var` or the interface. Implementers of `IHtmlResolverBuilder` — of which there is no supported route, since `Build()` returns an `IHtmlResolver` whose only implementation is internal — must add the member.
+
 ### Unchanged, deliberately
 
 - `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.

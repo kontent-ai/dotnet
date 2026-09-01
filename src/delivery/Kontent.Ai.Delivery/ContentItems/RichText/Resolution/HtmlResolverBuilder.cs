@@ -284,12 +284,8 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         return this;
     }
 
-    /// <summary>
-    /// Configures whether the resolver throws when no resolver is registered for embedded content or content item links.
-    /// </summary>
-    /// <param name="enabled">When true, missing resolvers throw <see cref="InvalidOperationException"/>. Default is true for this method.</param>
-    /// <returns>This builder for method chaining.</returns>
-    public HtmlResolverBuilder ThrowOnMissingResolver(bool enabled = true)
+    /// <inheritdoc />
+    public IHtmlResolverBuilder ThrowOnMissingResolver(bool enabled = true)
     {
         _throwOnMissingResolver = enabled;
         return this;
