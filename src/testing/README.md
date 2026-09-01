@@ -31,3 +31,17 @@ differs per product is not a guard rail.
   <Compile Include="$(KontentTestingPath)PublicApiApproval.cs" Link="Testing\PublicApiApproval.cs" />
 </ItemGroup>
 ```
+
+## Shared tests for shared source
+
+`Http/` holds one test file per `src/common/Http` file: `HttpRetryPredicatesTests`,
+`HttpRetryDelayTests`, `SdkTrackingHeadersTests`. Each product's test project includes the files
+for the source files its product compiles - Management omits `HttpRetryDelayTests` because it does
+not compile `HttpRetryDelay.cs` - so the same assertions run against each assembly's own copy, and
+a change to shared code cannot pass one product's suite while breaking another's.
+
+The rule is the same as for the printer: a shared test file pins the shared file and nothing else.
+What a product composes out of it - its default pipeline, its idempotency rule, how it reads its
+own source-tracking attribute - stays in that product's tests. A shared test names no product type;
+the SDK assembly under test is `typeof(SdkTrackingHeaders).Assembly`, whichever assembly the file
+was compiled into.
