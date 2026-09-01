@@ -1,7 +1,7 @@
 using System.Net;
 using AwesomeAssertions;
-using Kontent.Ai.Common;
-using Kontent.Ai.Sync.Api;
+using Kontent.Ai.Sync.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Polly.Retry;
 using Polly;
 using RichardSzalay.MockHttp;
@@ -9,9 +9,9 @@ using RichardSzalay.MockHttp;
 namespace Kontent.Ai.Sync.Tests;
 
 /// <summary>
-/// Covers the container-free path: a client that builds and owns its own <see cref="HttpClient"/>.
-/// The DI path is covered by <see cref="SyncTransportTests"/>; these assert the standalone client
-/// assembles the same handler chain and genuinely owns what it built.
+/// Covers the builder path: a client that runs the DI registration in a private container and owns
+/// the <see cref="HttpClient"/> it drew from it. The DI path is covered by <see cref="SyncTransportTests"/>;
+/// these assert the built client sends through the same handler chain and genuinely owns what it holds.
 /// </summary>
 public sealed class StandaloneClientTests : IDisposable
 {
@@ -52,13 +52,11 @@ public sealed class StandaloneClientTests : IDisposable
             return EmptyDelta();
         });
 
-        using var client = new SyncClient(
-            Options(o =>
+        using var client = CreateClient(Options(o =>
             {
                 o.ApiMode = ApiMode.Secure;
                 o.ApiKey = "secure-key";
-            }),
-            primaryHandler: _http);
+            }));
 
         var result = await client.GetDeltaAsync("token");
 
@@ -75,7 +73,7 @@ public sealed class StandaloneClientTests : IDisposable
         _http.Expect(HttpMethod.Get, SyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
         _http.Expect(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
 
-        using var client = new SyncClient(Options(), primaryHandler: _http);
+        using var client = CreateClient(Options());
 
         var result = await client.GetDeltaAsync("token");
 
@@ -88,7 +86,7 @@ public sealed class StandaloneClientTests : IDisposable
     {
         _http.Expect(HttpMethod.Get, SyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
 
-        using var client = new SyncClient(Options(o => o.EnableResilience = false), primaryHandler: _http);
+        using var client = CreateClient(Options(o => o.EnableResilience = false));
 
         var result = await client.GetDeltaAsync("token");
 
@@ -103,15 +101,12 @@ public sealed class StandaloneClientTests : IDisposable
         _http.Expect(HttpMethod.Get, SyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
         _http.Expect(HttpMethod.Get, SyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
 
-        using var client = new SyncClient(
-            Options(),
-            configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
+        using var client = CreateClient(Options(), configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
             {
                 MaxRetryAttempts = 1,
                 Delay = TimeSpan.Zero,
                 ShouldHandle = args => ValueTask.FromResult(args.Outcome.Result?.IsSuccessStatusCode == false),
-            }),
-            primaryHandler: _http);
+            }));
 
         var result = await client.GetDeltaAsync("token");
 
@@ -127,7 +122,7 @@ public sealed class StandaloneClientTests : IDisposable
         _http.When(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
 
         SyncClient client;
-        await using (client = new SyncClient(Options(), primaryHandler: _http))
+        await using (client = CreateClient(Options()))
         {
             (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
         }
@@ -145,7 +140,7 @@ public sealed class StandaloneClientTests : IDisposable
     [Fact]
     public void Dispose_IsIdempotent()
     {
-        var client = new SyncClient(Options(), primaryHandler: _http);
+        var client = CreateClient(Options());
 
         client.Dispose();
         var act = () => client.Dispose();
@@ -156,7 +151,7 @@ public sealed class StandaloneClientTests : IDisposable
     [Fact]
     public async Task DisposeAsync_IsIdempotent()
     {
-        var client = new SyncClient(Options(), primaryHandler: _http);
+        var client = CreateClient(Options());
 
         await client.DisposeAsync();
         var act = async () => await client.DisposeAsync();
@@ -170,70 +165,37 @@ public sealed class StandaloneClientTests : IDisposable
         _http.Expect(HttpMethod.Get, $"https://preview-deliver.kontent.ai/v2/{EnvironmentId}/sync")
             .Respond(_ => EmptyDelta());
 
-        using var client = new SyncClient(
-            Options(o =>
+        using var client = CreateClient(Options(o =>
             {
                 o.ApiMode = ApiMode.Preview;
                 o.ApiKey = "preview-key";
-            }),
-            primaryHandler: _http);
+            }));
 
         (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
         _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public void InvalidOptions_AreRejectedAtConstruction()
+    public void InvalidOptions_AreRejectedByBuild()
     {
-        var act = () => new SyncClient(new SyncOptions { EnvironmentId = "not-a-guid" });
+        var act = () => SyncClientBuilder.WithOptions(_ => new SyncOptions { EnvironmentId = "not-a-guid" }).Build();
 
         act.Should().Throw<System.ComponentModel.DataAnnotations.ValidationException>();
     }
 
-    // The container-free client owns its HttpClient, so the ceiling that bounds a request is set here.
-    // Only the default pipeline, which times out each attempt itself, earns having it lifted.
-
-    [Fact]
-    public void CreateHttpClient_DefaultResilience_LiftsTheHttpClientCeiling()
+    private SyncClient CreateClient(
+        SyncOptions options,
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
     {
-        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: true);
+        var builder = SyncClientBuilder
+            .WithOptions(_ => options)
+            .ConfigureHttpClient(http => http.ConfigurePrimaryHttpMessageHandler(() => _http));
 
-        httpClient.Timeout.Should().Be(Timeout.InfiniteTimeSpan);
-    }
+        if (configureResilience is not null)
+        {
+            builder.WithResilience(configureResilience);
+        }
 
-    [Fact]
-    public void CreateHttpClient_WithoutTheDefaultPipeline_StillBoundsTheRequest()
-    {
-        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: false);
-
-        httpClient.Timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
-        httpClient.Timeout.Should().BeGreaterThan(TimeSpan.Zero);
-    }
-
-    [Fact]
-    public void CreateHttpClient_ExplicitTimeout_OutranksTheDefaultPipelineLift()
-    {
-        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: true, TimeSpan.FromMinutes(5));
-
-        httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(5));
-    }
-
-    [Fact]
-    public void CreateHttpClient_ExplicitTimeout_BoundsTheRequestWithoutTheDefaultPipeline()
-    {
-        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: false, TimeSpan.FromMinutes(5));
-
-        httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(5));
-    }
-
-    private static HttpClient BuildHttpClient(bool pipelineBoundsAttempts, TimeSpan? timeout = null)
-    {
-        var options = Options();
-        options.Timeout = timeout;
-
-        return SyncApiFactory.CreateHttpClient(
-            options,
-            new SnapshotOptionsAccessor<SyncOptions>(options),
-            pipelineBoundsAttempts: pipelineBoundsAttempts);
+        return builder.Build();
     }
 }
