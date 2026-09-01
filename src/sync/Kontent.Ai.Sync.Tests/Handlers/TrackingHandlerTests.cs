@@ -59,6 +59,16 @@ public class TrackingHandlerTests
     }
 
     [Fact]
+    public void ComposeSourceHeaderValue_ExplicitVersion_WithoutPackageName_FallsBackToTheAssemblyName()
+    {
+        var attribute = new SyncSourceTrackingHeaderAttribute(null!, 2, 3, 4);
+
+        var value = TrackingHandler.ComposeSourceHeaderValue(typeof(TrackingHandler).Assembly, attribute);
+
+        value.Should().Be("Kontent.Ai.Sync;2.3.4");
+    }
+
+    [Fact]
     public void ComposeSourceHeaderValue_ExplicitVersion_WithPrerelease()
     {
         var attribute = new SyncSourceTrackingHeaderAttribute("Acme.Tool", 1, 0, 0, "rc1");

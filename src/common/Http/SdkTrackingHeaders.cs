@@ -55,6 +55,29 @@ internal static class SdkTrackingHeaders
             : $"{major}.{minor}.{patch}-{preReleaseLabel}";
 
     /// <summary>
+    /// Composes the <c>X-KC-SOURCE</c> value, taking the version from the decorated assembly.
+    /// </summary>
+    internal static string ComposeSourceHeaderValue(Assembly originatingAssembly, string? packageName)
+        => $"{packageName ?? originatingAssembly.GetName().Name};{originatingAssembly.GetProductVersion()}";
+
+    /// <summary>
+    /// Composes the <c>X-KC-SOURCE</c> value from a version the attribute declares outright.
+    /// </summary>
+    /// <remarks>
+    /// The package name falls back to the assembly's, as it does for an assembly-read version: a header
+    /// of <c>";1.2.3"</c> names nothing and is worse than naming the assembly that made the call.
+    /// </remarks>
+    internal static string ComposeSourceHeaderValue(
+        Assembly originatingAssembly,
+        string? packageName,
+        int majorVersion,
+        int minorVersion,
+        int patchVersion,
+        string? preReleaseLabel)
+        => $"{packageName ?? originatingAssembly.GetName().Name};" +
+           FormatSourceVersion(majorVersion, minorVersion, patchVersion, preReleaseLabel);
+
+    /// <summary>
     /// Reads the SemVer informational version and drops the build-metadata suffix ('+...'), which
     /// deterministic / SourceLink builds append as the commit hash - it does not belong in a tracking
     /// header. Pre-release suffixes ('-rc.1') are kept. Falls back to "0.0.0" for unversioned builds.

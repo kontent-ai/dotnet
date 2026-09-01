@@ -16,6 +16,16 @@ public class TrackingHeaderTests
     }
 
     [Fact]
+    public void GenerateSourceTrackingHeaderValue_ExplicitVersion_WithoutPackageName_FallsBackToTheAssemblyName()
+    {
+        var attr = new DeliverySourceTrackingHeaderAttribute(null!, 2, 3, 4);
+
+        var value = HttpRequestHeadersExtensions.GenerateSourceTrackingHeaderValue(GetType().Assembly, attr);
+
+        Assert.Equal($"{GetType().Assembly.GetName().Name};2.3.4", value);
+    }
+
+    [Fact]
     public void SourceTrackingHeaderGeneratedFromAssemblyWithCustomPackageName()
     {
         var assembly = GetType().Assembly;

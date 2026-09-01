@@ -48,6 +48,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+
 - **Walking the delta feed stops if the API repeats a continuation token.** Every response carries a fresh one, and the walk advances by storing it — so a response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
 
 - **`SyncClientBuilder.Build()` documents the exception it actually throws.** It advertised `InvalidOperationException` for a validation failure, but options that fail validation raise `ValidationException`. `InvalidOperationException` is the separate case of calling `Build()` without `WithOptions()`; both are now listed.
