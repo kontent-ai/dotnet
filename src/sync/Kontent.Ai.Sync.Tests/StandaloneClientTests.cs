@@ -210,9 +210,26 @@ public sealed class StandaloneClientTests : IDisposable
         httpClient.Timeout.Should().BeGreaterThan(TimeSpan.Zero);
     }
 
-    private static HttpClient BuildHttpClient(bool pipelineBoundsAttempts)
+    [Fact]
+    public void CreateHttpClient_ExplicitTimeout_OutranksTheDefaultPipelineLift()
+    {
+        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: true, TimeSpan.FromMinutes(5));
+
+        httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(5));
+    }
+
+    [Fact]
+    public void CreateHttpClient_ExplicitTimeout_BoundsTheRequestWithoutTheDefaultPipeline()
+    {
+        using var httpClient = BuildHttpClient(pipelineBoundsAttempts: false, TimeSpan.FromMinutes(5));
+
+        httpClient.Timeout.Should().Be(TimeSpan.FromMinutes(5));
+    }
+
+    private static HttpClient BuildHttpClient(bool pipelineBoundsAttempts, TimeSpan? timeout = null)
     {
         var options = Options();
+        options.Timeout = timeout;
 
         return SyncApiFactory.CreateHttpClient(
             options,

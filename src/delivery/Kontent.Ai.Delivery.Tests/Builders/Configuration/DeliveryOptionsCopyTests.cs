@@ -65,6 +65,7 @@ public class DeliveryOptionsCopyTests
         var t when t == typeof(bool) => true,
         var t when t == typeof(int) => 42,
         var t when Nullable.GetUnderlyingType(t) == typeof(int) => 42,
+        var t when t == typeof(TimeSpan?) => TimeSpan.FromMinutes(7),
         var t when t.IsEnum => Enum.GetValues(t).GetValue(Enum.GetValues(t).Length - 1)!,
         _ => throw new NotSupportedException(
             $"{property.Name} is a {property.PropertyType.Name}; add a distinct value for it here."),

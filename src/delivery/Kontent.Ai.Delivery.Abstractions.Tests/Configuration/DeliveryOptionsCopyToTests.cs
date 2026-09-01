@@ -48,6 +48,11 @@ public class DeliveryOptionsCopyToTests
             return $"copyto-{property.Name}";
         }
 
+        if (property.PropertyType == typeof(TimeSpan?))
+        {
+            return TimeSpan.FromMinutes(7);
+        }
+
         throw new NotSupportedException(
             $"Add a distinct-value generator for '{property.Name}' of type '{property.PropertyType}' to this guard test.");
     }

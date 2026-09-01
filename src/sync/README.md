@@ -205,11 +205,31 @@ services.AddSyncClient(
     configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
 ```
 
-The default pipeline bounds each attempt at 30 seconds and then retries, which can legitimately outlast
-`HttpClient`'s own 100-second ceiling on the whole call - retries and backoff included - so that ceiling
-is lifted while the default pipeline is the one installed. Set `EnableResilience = false`, or replace the
-pipeline through `configureResilience`, and the ceiling applies again: nothing else would bound the
-request. Raise it with `configureHttpClient`, which runs after the SDK's own configuration.
+### Timeouts
+
+Two clocks bound a request, and they are not the same one:
+
+- **Per attempt** — the default resilience pipeline cancels any single HTTP attempt after 30 seconds and
+  retries it on a fresh connection. Up to four attempts, each with its own budget.
+- **The whole call** — `SyncOptions.Timeout` covers every attempt *and* the waits between them.
+
+`Timeout` is unset by default, which keeps the SDK's own rule: the default pipeline bounds each attempt,
+so the call runs as long as its retries need; with `EnableResilience = false` or a pipeline of your own,
+`HttpClient`'s 100-second default applies, because nothing else is known to bound the request.
+
+Set it and it always wins, whatever the pipeline:
+
+```csharp
+services.AddSyncClient(o =>
+{
+    o.EnvironmentId = "your-environment-id";
+    o.Timeout = TimeSpan.FromMinutes(5);
+});
+```
+
+`Timeout.InfiniteTimeSpan` removes the ceiling outright. Note that it outranks `Retry-After`: when the API
+rate-limits you, the pipeline waits exactly as long as the server asked, but the call is still cut short if
+your ceiling runs out first.
 
 ### Options from other registered services
 
@@ -251,6 +271,23 @@ await using var client = SyncClientBuilder
     .WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
     .Build();
 ```
+
+`SyncOptions.Timeout` applies here too — it is the only way to bound a container-free client, since the
+`configureHttpClient` hook is a DI-path feature:
+
+```csharp
+await using var client = SyncClientBuilder
+    .WithOptions(opts => opts
+        .WithEnvironmentId("your-environment-id")
+        .UseProductionApi()
+        .WithTimeout(TimeSpan.FromMinutes(5))
+        .Build())
+    .WithResilience(builder => builder.AddTimeout(TimeSpan.FromMinutes(2)))
+    .Build();
+```
+
+Without the `WithTimeout` line, supplying your own pipeline leaves `HttpClient`'s 100-second default in
+charge, which would cut the two-minute attempt short.
 
 The returned client is thread-safe and should be used as a singleton for the lifetime of your
 application. Each `Build()` call creates an independent client that owns its own `HttpClient`, which is

@@ -388,13 +388,13 @@ public static class ServiceCollectionExtensions
                 var options = optionsMonitor.Get(name);
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
 
-                // HttpClient's ceiling covers the whole SendAsync, retries included, so it is lifted only for
-                // the default pipeline - the one that bounds each attempt itself. Otherwise it is all that
-                // stops a black-holed connection from hanging the caller.
-                if (options.EnableResilience && configureResilience is null)
-                {
-                    httpClient.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
-                }
+                // A value set on the options is the ceiling, whatever the pipeline. Unset, the SDK's own
+                // pipeline is the only one known to bound each attempt, so only it earns an unbounded call;
+                // otherwise HttpClient's default stays and a black-holed connection fails rather than hanging.
+                httpClient.Timeout = options.Timeout
+                    ?? (options.EnableResilience && configureResilience is null
+                        ? System.Threading.Timeout.InfiniteTimeSpan
+                        : httpClient.Timeout);
             });
 
         ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);

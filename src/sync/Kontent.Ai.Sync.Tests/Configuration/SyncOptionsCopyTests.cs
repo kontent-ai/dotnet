@@ -55,6 +55,7 @@ public class SyncOptionsCopyTests
         var t when t == typeof(string) => $"copied-{property.Name}",
         var t when t == typeof(bool) => true,
         var t when t.IsEnum => Enum.GetValues(t).GetValue(Enum.GetValues(t).Length - 1)!,
+        var t when t == typeof(TimeSpan?) => TimeSpan.FromMinutes(7),
         _ => throw new NotSupportedException(
             $"{property.Name} is a {property.PropertyType.Name}; add a distinct value for it here."),
     };

@@ -68,6 +68,13 @@ public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
     }
 
     /// <inheritdoc/>
+    public ISyncOptionsBuilder WithTimeout(TimeSpan timeout)
+    {
+        _options.Timeout = timeout;
+        return this;
+    }
+
+    /// <inheritdoc/>
     public ISyncOptionsBuilder WithCustomEndpoint(string endpoint)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpoint);

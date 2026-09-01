@@ -47,6 +47,12 @@ public interface ISyncOptionsBuilder
     ISyncOptionsBuilder DisableRetryPolicy();
 
     /// <summary>
+    /// Sets the ceiling on one call, covering every retry attempt and the waits between them.
+    /// </summary>
+    /// <param name="timeout">The ceiling, or <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> for none.</param>
+    ISyncOptionsBuilder WithTimeout(TimeSpan timeout);
+
+    /// <summary>
     /// Uses a custom endpoint for the Production or Preview API.
     /// </summary>
     /// <param name="endpoint">A custom endpoint URL.</param>
