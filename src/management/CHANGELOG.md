@@ -8,6 +8,26 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
+- **`AddManagementClient` takes a builder, and `ManagementClientBuilder` is `ManagementClient.Create`.** Ten overloads of `AddManagementClient` become three: `AddManagementClient(configure)`, `AddManagementClient(name, configure)` and `AddManagementClient(options, configure)`, all taking an `Action<IManagementClientBuilder>`. The builder exposes the client's `OptionsBuilder<ManagementOptions>` as `Options`, the environment-scoped and subscription-scoped transports as `HttpClient` and `SubscriptionHttpClient`, a `ConfigureResilience` method that applies to both, and `Services` / `Name` for anything attached to the client by hand. `ManagementClientBuilder` is removed; `ManagementClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the `ManagementClient(ManagementOptions)` constructor is `Create(options)` by another name. `ManagementOptions.CopyTo` is public. Invalid options throw `OptionsValidationException` from the constructor and from `Create`, the same exception the container raises - the constructor threw `ValidationException` before.
+
+  ```csharp
+  // Before
+  services.AddManagementClient(o => { o.EnvironmentId = "…"; o.ApiKey = "…"; });
+  services.AddManagementClient(configuration, "Management", configureResilience: p => …);
+  await using var client = ManagementClientBuilder.WithOptions(o => …).WithResilience(p => …).Build();
+
+  // After
+  services.AddManagementClient(management => management.Options.Configure(o => { o.EnvironmentId = "…"; o.ApiKey = "…"; }));
+  services.AddManagementClient(management =>
+  {
+      management.Options.BindConfiguration("Management");
+      management.ConfigureResilience(p => …);
+  });
+  await using var client = ManagementClient.Create(management => { management.Options.Configure(o => …); management.ConfigureResilience(p => …); });
+  ```
+
+  The upgrade guide's §1.2, §1.3 and §9 show each form. Whatever is chained after `AddManagementClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes.
+
 - **The `Enumerate…PagesAsync` page streams are replaced by `List…PageAsync` single-page calls.** The streams returned `IAsyncEnumerable<IManagementResult<IReadOnlyList<T>>>` — three wrappers to unpack before reaching an item, which meant they delivered none of what an async stream is normally reached for: you could not `await foreach` over the items, and LINQ operated on page results rather than content. The failure signal also arrived per element, so a loop body that skipped `IsSuccess` hit the failed page's `null` value instead of the error.
 
   Each stream is replaced by a call that fetches exactly one page and hands back the continuation token:

@@ -40,7 +40,7 @@ dotnet add package Kontent.Ai.Management --prerelease
 | Method names | Breaking | A focused set of renames — `Modify…` now consistently means PATCH, so the PUT-based ones became `Update…`; see [§10.1](#10-model-and-dto-changes). |
 | Untyped element authoring | Breaking | `ElementBuilder.GetElementsAsDynamic(...)` and anonymous `dynamic[]` removed. Author with typed `BaseElement` records; `DynamicElement` is the escape hatch. |
 | Rich text | New helper | `RichTextBuilder` keeps inline `<object>` placeholders and the `components` array in sync. |
-| DI & bootstrap | Additive | New `services.AddManagementClient(...)` and `ManagementClientBuilder`, alongside the existing `new ManagementClient(options)` constructor. |
+| DI & bootstrap | Additive | New `services.AddManagementClient(management => …)` and `ManagementClient.Create(management => …)`, alongside the existing `new ManagementClient(options)` constructor. |
 | DTO contracts | Breaking | Widespread `required` members, nullability corrections, and a set of renames/removals — see [§10](#10-model-and-dto-changes). |
 | Web Spotlight | Removed | Activation endpoints removed (superseded by live preview). |
 | Target framework | — | `net8.0` only. |
@@ -514,21 +514,22 @@ The DTOs are now immutable records with `[JsonPropertyName]` attributes, designe
 The legacy hand-rolled HTTP composition was replaced by a Refit interface plus a `Microsoft.Extensions.Http.Resilience` (Polly) pipeline. For most consumers this is internal. What's visible:
 
 - **Built-in resilience is on by default** — exponential backoff with jitter, `Retry-After` handling, and **idempotency-aware retries**: `429` is retried for every method (the request was rejected, not applied), but transient failures and `5xx` are retried only for idempotent methods (`GET` / `HEAD` / `OPTIONS` / `PUT` / `DELETE`) — a `POST` that fails mid-flight is never blindly replayed into a duplicate entity. Set `EnableResilience = false` to make it a passthrough. If you ported an 8.x Polly policy that retried everything, this default is deliberately stricter.
-- **Replace the pipeline** via the `configureResilience` hook on the DI overload, or `WithResilience(...)` on the builder:
+- **Replace the pipeline** with `ConfigureResilience` on the builder, in `AddManagementClient` or `ManagementClient.Create`:
 
 ```csharp
-services.AddManagementClient(
-    options => { options.EnvironmentId = "…"; options.ApiKey = "…"; },
-    configureHttpClient: null,
-    configureResilience: pipeline => pipeline
+services.AddManagementClient(management =>
+{
+    management.Options.Configure(options => { options.EnvironmentId = "…"; options.ApiKey = "…"; });
+    management.ConfigureResilience(pipeline => pipeline
         .AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 })
         .AddTimeout(TimeSpan.FromSeconds(30)));
+});
 ```
 
 > [!NOTE]
-> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it.
+> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one through `ConfigureResilience` if you need it.
 
-If you had a custom Polly v7 policy or `Polly.Extensions.Http` setup wrapping the legacy client, port it to the `configureResilience` callback (Polly v8 `ResiliencePipelineBuilder`).
+If you had a custom Polly v7 policy or `Polly.Extensions.Http` setup wrapping the legacy client, port it to the `ConfigureResilience` callback (Polly v8 `ResiliencePipelineBuilder`).
 
 ---
 

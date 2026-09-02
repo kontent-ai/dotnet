@@ -13,7 +13,7 @@ The pillars:
 - **`System.Text.Json`** with a small set of converters encoding real MAPI quirks (polymorphic elements, codename-out/id-in mapping, string-encoded numbers). Newtonsoft is gone; do not reintroduce it.
 - **Materialized listings.** Every listing is `List{Plural}Async` → `IManagementResult<IReadOnlyList<T>>`, drained internally via `PageEnumerator` (all-or-nothing: first failed page short-circuits). Unbounded listings additionally expose `List{Plural}PageAsync`, which fetches one page and returns a `ListingPage<T>` with the continuation token.
 - **Resilience by default** (`Microsoft.Extensions.Http.Resilience`/Polly), outermost in the handler chain, with **idempotency-aware retries**: 429 retries every method; transient failures/5xx retry idempotent methods only. This is a write API — never weaken that invariant. Auth and tracking are `DelegatingHandler`s under it.
-- **Two entry points**: `services.AddManagementClient(...)` (DI, keyed/named clients, options validation) and `ManagementClientBuilder` (fluent; runs the same registration in a private container the built client owns, along with its `HttpClient`s). The plain constructor does the same and is disposable.
+- **One builder, two hosting modes**: `services.AddManagementClient(management => …)` (DI, keyed/named clients, options validation) and `ManagementClient.Create(management => …)`, which runs the same registration in a private container the built client owns, along with its `HttpClient`s. The builder is `IManagementClientBuilder` - `Options`, `HttpClient`, `SubscriptionHttpClient`, `ConfigureResilience`, `Services`, `Name`; the shared implementation is `src/common/Clients`. The plain constructor is `Create(options)` and is disposable.
 
 ## Current phase
 

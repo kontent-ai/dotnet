@@ -7,6 +7,26 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
+- **`AddSyncClient` takes a builder, and `SyncClientBuilder` is `SyncClient.Create`.** Eleven overloads of `AddSyncClient` - one per way of supplying options, doubled for named clients, with the HTTP and resilience hooks as trailing parameters - become three: `AddSyncClient(configure)`, `AddSyncClient(name, configure)` and `AddSyncClient(options, configure)`, all taking an `Action<ISyncClientBuilder>`. The builder exposes the client's `OptionsBuilder<SyncOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand, so every option-supplying form and every hook is a chained call on a type Microsoft ships. `SyncClientBuilder`, `ISyncOptionsBuilder` and `SyncOptionsBuilder` are removed; `SyncClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `SyncOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. `SyncOptions.CopyTo` is public. Invalid options throw `OptionsValidationException` from `Create`, the same exception the container raises.
+
+  ```csharp
+  // Before
+  services.AddSyncClient(o => o.EnvironmentId = "…");
+  services.AddSyncClient("preview", configuration, "Sync:Preview", configureResilience: p => …);
+  await using var client = SyncClientBuilder.WithOptions(b => b.WithEnvironmentId("…").UsePreviewApi("…").Build()).Build();
+
+  // After
+  services.AddSyncClient(sync => sync.Options.Configure(o => o.EnvironmentId = "…"));
+  services.AddSyncClient("preview", sync =>
+  {
+      sync.Options.BindConfiguration("Sync:Preview");
+      sync.ConfigureResilience(p => …);
+  });
+  await using var client = SyncClient.Create(sync => sync.Options.Configure(o => { o.EnvironmentId = "…"; o.UsePreviewApi("…"); }));
+  ```
+
+  The upgrade guide's §9 maps every removed form to its replacement. Whatever is chained after `AddSyncClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes.
+
 - **`SyncChange<TData>.Data` is `required` and no longer nullable.** The Sync API documents `data` as required on all four delta objects, deletions included — a deleted entry names what was deleted. The SDK typed it `TData?` and the README taught that it was null for deletions, so every consumer wrote `item.Data?.System` against a property the API always sends. Drop the `?`; nothing else changes.
 
   ```csharp

@@ -17,12 +17,13 @@ small and the compiler points at each one.
 | `Kontent.Ai.Sync.Abstractions` folded into `Kontent.Ai.Sync` | Drop the reference, change one `using`; see [§2](#2-one-package-one-namespace) |
 | `ISyncItem`/`ISyncType`/`ISyncLanguage`/`ISyncTaxonomy` → `SyncChange<TData>` | Change the loop variable's type; `Data` is now typed. See [§3](#3-one-delta-type-with-a-typed-payload) |
 | `GetAllDeltaAsync` → `EnumerateDeltaAsync` | Rewrite the loop; see [§4](#4-paging-is-now-a-stream) |
-| `UseSecureApi(key)` → `UseProductionApi(key)` | Rename the call; the old name still works until 3.0 |
+| `AddSyncClient` takes a builder | `AddSyncClient(o => …)` becomes `AddSyncClient(sync => sync.Options.Configure(o => …))`; see §9 for every form |
+| `SyncClientBuilder` → `SyncClient.Create` | Same builder as the DI path, over a private container |
+| `ISyncOptionsBuilder` removed | Set properties, plus `UsePreviewApi` / `UseProductionApi` / `UseCustomEndpoint` on the options |
 | `HasMoreChanges`, `SyncConstants`, `ISyncAllDeltaResult` removed | Delete the usage; the stream ends on its own |
 | `SyncToken` is non-nullable | Drop any `?? previous` fallback |
 | `InitializeSyncAsync` returns `ISyncResult` | Change the declared type, or use `var` |
 | `IDisposable` off the client interfaces | Keep the builder result as `var` |
-| `SyncClientBuilder.ConfigureServices` → `WithResilience` | Replace the call |
 | `configureRefit` parameter removed | Delete the argument |
 
 ## 1. Target .NET 10
@@ -197,36 +198,63 @@ await SaveTokenAsync(init.SyncToken);   // unchanged
 ## 8. Disposal moved to the concrete client
 
 `ISyncClient` no longer carries `IDisposable` / `IAsyncDisposable`. A client resolved from a container is
-owned by the container and was never yours to dispose; a client from `SyncClientBuilder` owns its
-`HttpClient` and is returned as the concrete `SyncClient`, which is disposable.
+owned by the container and was never yours to dispose; a client from `SyncClient.Create` owns its
+`HttpClient` and the private container behind it, and is returned as the concrete `SyncClient`, which is
+disposable.
 
 ```csharp
-// Unchanged — and what every example uses
-await using var client = SyncClientBuilder.WithOptions(...).Build();
+// What every example uses
+await using var client = SyncClient.Create(sync => sync.Options.Configure(o => o.EnvironmentId = "…"));
 
 // Breaks: the interface no longer has Dispose
-- ISyncClient client = SyncClientBuilder.WithOptions(...).Build();
+- ISyncClient client = SyncClient.Create(...);
 - client.Dispose();
-+ var client = SyncClientBuilder.WithOptions(...).Build();
++ var client = SyncClient.Create(...);
 + client.Dispose();
 ```
 
 Container-resolved clients are still disposed by the container, which checks the runtime type rather than
 the registered service type.
 
-## 9. `SyncClientBuilder.ConfigureServices` → `WithResilience`
+## 9. Registration is one builder
 
-The builder no longer stands up a private service container — the client constructs its handler chain
-directly and owns the resulting `HttpClient`. `ConfigureServices` existed only to reach into that
-container. Replacing the resilience pipeline was the realistic use, and that is now first-class.
+1.0 had a family of `AddSyncClient` overloads - one per way of supplying options, doubled for named
+clients, with the HTTP and resilience hooks as trailing parameters - plus `SyncClientBuilder` and
+`ISyncOptionsBuilder` for the container-free case. 2.0 has three `AddSyncClient` overloads and one
+`SyncClient.Create`, all taking the same `ISyncClientBuilder`. What used to be a parameter is a member on
+it: `Options` (the client's `OptionsBuilder<SyncOptions>`), `HttpClient` (its `IHttpClientBuilder`),
+`ConfigureResilience(...)`, and `Services` / `Name` for anything you attach yourself.
+
+| Before | After |
+|---|---|
+| `AddSyncClient(o => …)` | `AddSyncClient(sync => sync.Options.Configure(o => …))` |
+| `AddSyncClient((sp, o) => …)` | `sync.Options.Configure<TDependency>((o, dep) => …)` |
+| `AddSyncClient(b => b.WithEnvironmentId(id).UsePreviewApi(k).Build())` | `sync.Options.Configure(o => { o.EnvironmentId = id; o.UsePreviewApi(k); })` |
+| `AddSyncClient(configuration)`, `(configuration, "Section")` | `sync.Options.BindConfiguration("SyncOptions")` in a host; otherwise `sync.Options.Bind(configuration.GetSection(…))` |
+| `AddSyncClient(section)` | `sync.Options.Bind(section)` |
+| `AddSyncClient(options)` | unchanged |
+| `AddSyncClient("name", …)` | `AddSyncClient("name", sync => …)` |
+| `configureHttpClient: b => …` | `sync.HttpClient.…` |
+| `configureResilience: p => …` | `sync.ConfigureResilience(p => …)` |
+| `SyncClientBuilder.WithOptions(…).Build()` | `SyncClient.Create(sync => …)` |
+| `.WithLoggerFactory(f)` | `sync.Services.AddSingleton(f)` |
+| `.WithResilience(p => …)` | `sync.ConfigureResilience(p => …)` |
+| `WithEnvironmentId`, `WithTimeout`, `DisableRetryPolicy` | plain property sets: `EnvironmentId`, `Timeout`, `EnableResilience = false` |
+| `UsePreviewApi`, `UseProductionApi`, `WithCustomEndpoint` | the same names as extension methods on `SyncOptions`: `UseCustomEndpoint` |
+| `UseSecureApi(key)` | `UseProductionApi(key)` |
+
+`Options.Configure(...)` returns the `OptionsBuilder`, not the client builder, so several steps go in a
+statement lambda:
 
 ```csharp
-// Before
-.ConfigureServices(services => { /* replace registrations */ })
-
-// After
-.WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
+services.AddSyncClient(sync =>
+{
+    sync.Options.BindConfiguration("SyncOptions");
+    sync.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+});
 ```
+
+`Create` throws `OptionsValidationException` on invalid options, the same exception the container raises.
 
 ## 10. `configureRefit` is gone
 
@@ -238,9 +266,8 @@ carry the converters the wire format requires. Delete the argument.
 
 - `GetDeltaAsync`'s signature and payload, including `Value.Items` / `.Types` / `.Languages` / `.Taxonomies`.
 - `IsSuccess` / `Error` / `StatusCode` / `RequestUrl` / `ResponseHeaders` on every result.
-- Registration by `Action<SyncOptions>`, `IConfiguration`, options instance or options builder — all still
-  present, and the configuration overloads gained the `configureHttpClient` / `configureResilience` hooks
-  they were missing.
+- Every way of supplying options - a delegate, configuration, a pre-built instance - is still there,
+  through the builder's `Options` (§9).
 - `ISyncClientFactory` and named clients.
 - Source tracking via `SyncSourceTrackingHeaderAttribute`.
 
