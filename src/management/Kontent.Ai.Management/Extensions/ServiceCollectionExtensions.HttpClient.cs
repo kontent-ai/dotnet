@@ -35,14 +35,10 @@ public static partial class ServiceCollectionExtensions
                     clientName)));
         });
 
-    private static T CreateApi<T>(HttpClient httpClient, RefitSettings refitSettings) where T : class
-        => RestService.For<T>(httpClient, refitSettings);
-
     /// <summary>
-    /// Builds the API clients a standalone <see cref="ManagementClient"/> owns: the same registration the
-    /// container path runs, drawn from a provider the caller assembled. Each scope's <see cref="HttpClient"/>
-    /// is created only when its identifier is configured, as the container path resolves them. Takes
-    /// ownership of <paramref name="provider"/> even when construction fails.
+    /// Resolves the API clients a standalone <see cref="ManagementClient"/> uses from a provider the caller
+    /// assembled - the same keyed clients the container path resolves - and hands the provider back as the
+    /// resource the client owns. Takes ownership of <paramref name="provider"/> even when construction fails.
     /// </summary>
     internal static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) CreateOwnedApis(
         ServiceProvider provider,
@@ -50,31 +46,8 @@ public static partial class ServiceCollectionExtensions
     {
         try
         {
-            var options = provider.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(name);
-            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-            var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
-            var owned = new List<IDisposable>(3);
-
-            IManagementApi? api = null;
-            if (options.HasEnvironmentId())
-            {
-                var httpClient = httpClientFactory.CreateClient(EnvironmentHttpClientName(name));
-                owned.Add(httpClient);
-                api = CreateApi<IManagementApi>(httpClient, refitSettings);
-            }
-
-            ISubscriptionApi? subscriptionApi = null;
-            if (options.HasSubscriptionId())
-            {
-                var httpClient = httpClientFactory.CreateClient(SubscriptionHttpClientName(name));
-                owned.Add(httpClient);
-                subscriptionApi = CreateApi<ISubscriptionApi>(httpClient, refitSettings);
-            }
-
-            // The HttpClients before the provider: a request after disposal then fails at once, whatever
-            // the factory-owned handlers behind them are still doing.
-            owned.Add(provider);
-            return (api, subscriptionApi, new CompositeDisposable([.. owned]));
+            var (api, subscriptionApi) = ResolveApis(provider, name);
+            return (api, subscriptionApi, provider);
         }
         catch
         {
@@ -89,7 +62,7 @@ public static partial class ServiceCollectionExtensions
     /// where the request may have already been applied server-side — retry only for idempotent methods. POST and
     /// PATCH are never assumed safe: a replayed create can duplicate an entity, and the Management API PATCH grammar
     /// includes non-idempotent <c>addInto</c>. Consumers who want different semantics (e.g. retrying the POST-based
-    /// variant-filter listing) replace the pipeline via the <c>configureResilience</c> hook. Diverges from
+    /// variant-filter listing) replace the pipeline through <c>ConfigureResilience</c> on the builder, which applies to both transports. Diverges from
     /// delivery-sdk-net / sync-sdk-net by omitting <c>AddTimeout</c> — management operations include asset uploads
     /// where a per-attempt timeout would be more hindrance than help. The ceiling on the call as a whole is
     /// <see cref="ManagementOptions.Timeout"/>.

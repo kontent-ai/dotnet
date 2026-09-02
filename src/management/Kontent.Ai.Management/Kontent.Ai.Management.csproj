@@ -26,7 +26,6 @@
 		<Compile Include="$(KontentCommonPath)Http\RefitErrorParsing.cs" Link="Common\RefitErrorParsing.cs" />
 		<Compile Include="$(KontentCommonPath)Http\HttpClientDefaults.cs" Link="Common\HttpClientDefaults.cs" />
 		<Compile Include="$(KontentCommonPath)Http\ResilienceHandlers.cs" Link="Common\ResilienceHandlers.cs" />
-		<Compile Include="$(KontentCommonPath)CompositeDisposable.cs" Link="Common\CompositeDisposable.cs" />
 		<Compile Include="$(KontentCommonPath)FatalExceptions.cs" Link="Common\FatalExceptions.cs" />
 		<Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
 		<Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />

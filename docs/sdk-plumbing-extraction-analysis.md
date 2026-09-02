@@ -132,7 +132,7 @@ Delivery does not have that duplication. Its builder spins up a private `Service
 `AddDeliveryClient` on it, builds a provider with `ValidateOnBuild`, and hands the provider to the
 client as the resource it owns. The transport is defined once, in the DI registration. Sync and
 Management can do the same, and then the second definition — factory, pipeline builder, Management's
-`CompositeDisposable`, Sync's owned `HttpClient` — is deleted rather than shared.
+`CompositeDisposable`, Sync's owned `HttpClient` — is deleted rather than shared (the composite was briefly shared in `src/common`, then deleted on `client-builders` once all three standalone paths owned only the provider).
 
 Only this direction is open. Delivery's builder exposes `ConfigureServices`, and the Caching package
 registers `WithMemoryCache` / `WithHybridCache` through it; a hand-built chain has no container for

@@ -42,7 +42,7 @@ handed the provider as the resource it owns. The hand-built pieces are deleted, 
 | Invariant | Pinned by | Preserved how |
 |---|---|---|
 | `Build()` and the constructor throw `ValidationException` on invalid options | `SyncClientBuilderTests.Build_InvalidOptions_ThrowsValidationException`, `ManagementClientBuilderTests.Build_InvalidOptions_ThrowsValidationException`, `StandaloneClientTests.InvalidOptions_AreRejectedAtConstruction` | The explicit `Validator.ValidateObject` call stays and runs *before* the container is built. The options pipeline's own validation then never fires first. |
-| Requests through a disposed standalone client fail with `ObjectDisposedException` in the result | `StandaloneClientTests.DisposingTheClient_ReleasesItsHttpClient` | The client keeps owning the `HttpClient` it draws from the factory and disposes it first. `HttpClient.SendAsync` throws `ObjectDisposedException` after `Dispose` regardless of who owns the handler. |
+| Requests through a disposed standalone client fail with `ObjectDisposedException` in the result | `StandaloneClientTests.DisposingTheClient_ReleasesItsHttpClient` | Originally by the client disposing the `HttpClient` it drew before the provider; since the reversal recorded in the dated note below, by the provider's disposal taking the resilience handler's pipeline with it. Pinned in all three products. |
 | Dispose and DisposeAsync are idempotent, on both paths, and a no-op for DI-resolved clients | `StandaloneClientTests.Dispose_IsIdempotent`, `DisposeAsync_IsIdempotent`, `DisposeTests.*` | Unchanged `Interlocked.Exchange` guard; `ownedResources` is `null` on the DI path exactly as now. |
 | The standalone chain equals the container's chain | `StandaloneClientTests.StandaloneClient_UsesTheSameHandlerChainAsTheContainer` | Becomes true by construction. The test stays as the proof. |
 | Default resilience retries, disabled resilience does not, a custom pipeline replaces the default | `StandaloneClientTests.StandaloneClient_RetriesTransientFailures`, `…_WithResilienceDisabled_DoesNotRetry`, `…_CustomResilience_ReplacesTheDefault`, `ManagementClientBuilderTests.WithResilience_IsChainable` | The builder forwards `configureResilience` into `Add…Client`, whose gate is already tested. |
@@ -148,6 +148,14 @@ Two decisions inside that shape, each taken for one reason:
   had the disposed-client-fails-at-once invariant before this plan and §1.2 pins it, so they keep
   the `HttpClient` handle that makes it true; Delivery resolves its Refit client from the container,
   never held the `HttpClient`, and never promised more than releasing the container.
+
+> [!NOTE]
+> **Reversed on `client-builders`, 2026-09-02.** Both decisions above were undone in review of the
+> builder rework: all three products now resolve the keyed generated Refit client from the private
+> container and own only the provider, so `RestService.For` and `src/common/CompositeDisposable.cs`
+> are gone. The disposed-client-fails-at-once invariant still holds - the resilience handler's
+> pipeline is disposed with the provider, so a request after disposal fails whether resilience is on
+> or off - and is pinned by test in all three products rather than in Sync alone.
 
 The public `ManagementClient(ManagementOptions)` constructor stays. It chains to a private
 constructor taking the tuple that a static `BuildOwned(options, configureResilience)` returns, which

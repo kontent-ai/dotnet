@@ -10,7 +10,6 @@
     <Compile Include="$(KontentCommonPath)Http\HttpClientTimeouts.cs" Link="Common\HttpClientTimeouts.cs" />
     <Compile Include="$(KontentCommonPath)Http\ResilienceHandlers.cs" Link="Common\ResilienceHandlers.cs" />
     <Compile Include="$(KontentCommonPath)Http\DefaultResilience.cs" Link="Common\DefaultResilience.cs" />
-    <Compile Include="$(KontentCommonPath)CompositeDisposable.cs" Link="Common\CompositeDisposable.cs" />
     <Compile Include="$(KontentCommonPath)FatalExceptions.cs" Link="Common\FatalExceptions.cs" />
     <Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
     <Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />
@@ -21,8 +20,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
