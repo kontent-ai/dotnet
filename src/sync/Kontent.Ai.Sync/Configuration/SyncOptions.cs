@@ -71,6 +71,16 @@ public sealed class SyncOptions : IValidatableObject
     public string? ApiKey { get; set; }
 
     /// <summary>
+    /// Copies every option onto <paramref name="destination"/>. Reflected rather than listed property by
+    /// property, so an option added later cannot be silently left behind.
+    /// </summary>
+    public void CopyTo(SyncOptions destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        Kontent.Ai.Common.OptionsCopier<SyncOptions>.Copy(this, destination);
+    }
+
+    /// <summary>
     /// Validates the constraints that span more than one property: <see cref="EnvironmentId"/> must be a
     /// non-empty GUID, and <see cref="ApiKey"/> is required in the Preview and Secure modes.
     /// </summary>

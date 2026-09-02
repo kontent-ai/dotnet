@@ -1,6 +1,5 @@
 using System.Net;
 using AwesomeAssertions;
-using Kontent.Ai.Sync.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly.Retry;
 using Polly;
@@ -195,26 +194,22 @@ public sealed class StandaloneClientTests : IDisposable
     }
 
     [Fact]
-    public void InvalidOptions_AreRejectedByBuild()
+    public void InvalidOptions_AreRejectedByCreate()
     {
-        var act = () => SyncClientBuilder.WithOptions(_ => new SyncOptions { EnvironmentId = "not-a-guid" }).Build();
+        var act = () => SyncClient.Create(sync => sync.Options.Configure(o => o.EnvironmentId = "not-a-guid"));
 
-        act.Should().Throw<System.ComponentModel.DataAnnotations.ValidationException>();
+        act.Should().Throw<Microsoft.Extensions.Options.OptionsValidationException>();
     }
 
     private SyncClient CreateClient(
         SyncOptions options,
         Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        var builder = SyncClientBuilder
-            .WithOptions(_ => options)
-            .ConfigureHttpClient(http => http.ConfigurePrimaryHttpMessageHandler(() => _http));
-
-        if (configureResilience is not null)
+        => SyncClient.Create(options, sync =>
         {
-            builder.WithResilience(configureResilience);
-        }
-
-        return builder.Build();
-    }
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http);
+            if (configureResilience is not null)
+            {
+                sync.ConfigureResilience(configureResilience);
+            }
+        });
 }
