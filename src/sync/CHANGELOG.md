@@ -8,6 +8,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 1.0.1 (2026-09-02)
+
+#### Fixes
+
+- bumps Refit to 10.2.0 to prevent a package signature issue introduced in 10.1.6
+
 ## 1.0.0 (2026-04-16)
 
 First stable release of the **Kontent.ai Sync SDK for .NET**, targeting the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
@@ -46,7 +52,7 @@ dotnet add package Kontent.Ai.Sync --version 1.0.0
 - .NET 8.0 or later
 - Kontent.ai environment with Sync API access
 
-**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/1.0.0-rc1...1.0.0
+**Full Changelog**: <https://github.com/kontent-ai/sync-sdk-net/compare/1.0.0-rc1...1.0.0>
 
 ## 1.0.0-rc1 (2026-02-24)
 
@@ -92,8 +98,7 @@ dotnet add package Kontent.Ai.Sync --version 1.0.0-rc1
 - .NET 8.0 or later
 - Kontent.ai environment with Sync API access
 
-
-**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/0.0.3...1.0.0-rc1
+**Full Changelog**: <https://github.com/kontent-ai/sync-sdk-net/compare/0.0.3...1.0.0-rc1>
 
 ## 0.0.3 (2025-11-13)
 
@@ -101,17 +106,17 @@ dotnet add package Kontent.Ai.Sync --version 1.0.0-rc1
 
 - Fixed faulty enum and interface deserialization resulting in deltas not being deserialized properly
 
-**Full Changelog**: https://github.com/kontent-ai/sync-sdk-net/compare/0.0.2...0.0.3
+**Full Changelog**: <https://github.com/kontent-ai/sync-sdk-net/compare/0.0.2...0.0.3>
 
 ## 0.0.2 (2025-11-07)
 
 This is the first standalone release of the **Kontent.ai Sync SDK for .NET**, enabling efficient synchronization of content changes from your Kontent.ai projects using the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api/).
 
->[!IMPORTANT]
->This SDK is released as beta. Breaking changes may happen before official release.
+> [!IMPORTANT]
+> This SDK is released as beta. Breaking changes may happen before official release.
 
->[!NOTE]
->Version 0.0.1 was missing an important commit due to human (mine...) error. 0.0.2 is to be treated as the first working release.
+> [!NOTE]
+> Version 0.0.1 was missing an important commit due to human (mine...) error. 0.0.2 is to be treated as the first working release.
 
 ### What's New
 
