@@ -11,7 +11,7 @@ registration plumbing landed; both are prerequisites and are assumed below.
 > the builder, and each changelog and upgrade guide carries the §4 table as the migration. The
 > deprecation alternative is kept in §7.2 as the record of what was weighed.
 >
-> **Four things came out differently from the sketch below, each for a reason found while building:**
+> **Six things came out differently from the sketch below, each for a reason found while building or in review:**
 >
 > 1. **`Options.Configure(...)` returns Microsoft's `OptionsBuilder<T>`, not the client builder**, so
 >    several steps go in a statement lambda rather than one expression chain. That is how
@@ -36,7 +36,18 @@ registration plumbing landed; both are prerequisites and are assumed below.
 >    do not have the builder until these majors ship and the floors are raised. `Add…Client(options)`
 >    with one argument is the one call shape both surfaces accept, so the tool binds its
 >    configuration section into an instance and passes that. Both legs stay green through the
->    transition; nothing about the tool's behaviour changes.
+>    transition; nothing about the tool's behaviour changes. The floors are raised in the PR that
+>    follows the 20.0.0 / 9.0.0 / 2.0.0 releases; that is where the tracking lives, not in the code
+>    comment.
+> 6. **Two things found in review of the branch.** The standalone path was not one path: Sync and
+>    Management drew the `HttpClient` from the factory and built the proxy with `RestService.For`,
+>    Delivery resolved the keyed generated client. All three now resolve the keyed client and own
+>    only the provider; `RestService.For` and `CompositeDisposable` are gone, and the post-dispose
+>    test runs in every product. And the unnamed options mirror served the default client's options
+>    stale after a configuration reload, because the change-token source `BindConfiguration`
+>    registers is named after the client; a change-token source registered under the unnamed name now
+>    composes the named ones, and the unnamed copy is no longer `ValidateOnStart`ed, since the mirror
+>    validates through the named factory and a second registration reported one failure twice.
 >
 > One trap worth recording: the unnamed `IOptions<TOptions>` alias for the default client cannot be a
 > `Configure<IOptionsMonitor<TOptions>>` registration - resolving the monitor while it is being built
@@ -155,7 +166,7 @@ is exactly what the SDKs' standalone builders are, so `DeliveryClient.Create(con
 var services = new ServiceCollection();
 services.AddDeliveryClient(configure);
 var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
-return ServiceCollectionExtensions.CreateOwnedDeliveryClient(provider, NamedClients.Default);
+return ServiceCollectionExtensions.CreateDeliveryClient(provider, NamedClients.Default, ownedResources: provider);
 ```
 
 `WithLoggerFactory` becomes `delivery.Services.AddSingleton(loggerFactory)` - or, better, is not

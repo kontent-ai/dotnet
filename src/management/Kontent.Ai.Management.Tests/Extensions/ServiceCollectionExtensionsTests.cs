@@ -412,4 +412,48 @@ public class ServiceCollectionExtensionsTests
 
         handler.Should().BeSameAs(marker);
     }
+
+    // The instance overload copies when the options are first built, not at registration.
+    [Fact]
+    public void AddManagementClient_WithOptionsInstance_CopiesWhenTheOptionsAreFirstBuilt()
+    {
+        var options = new ManagementOptions { EnvironmentId = ValidEnvironmentId, ApiKey = ValidApiKey };
+        var services = new ServiceCollection();
+        services.AddManagementClient(options);
+
+        options.ApiKey = "rotated-before-build";                  // before the first read: included
+        using var provider = services.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<ManagementOptions>>();
+        monitor.Get(NamedClients.Default).ApiKey.Should().Be("rotated-before-build");
+
+        options.ApiKey = "rotated-after-read";                    // after it: not
+        monitor.Get(NamedClients.Default).ApiKey.Should().Be("rotated-before-build");
+    }
+
+    [Fact]
+    public async Task AddManagementClient_BindConfiguration_BindsTheSectionTheClientSendsTo()
+    {
+        var stub = new RecordingPrimaryHandler(_ => EnvironmentInformationResponse());
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Management:EnvironmentId"] = ValidEnvironmentId,
+                ["Management:ApiKey"] = ValidApiKey,
+            })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddManagementClient(management =>
+        {
+            management.Options.BindConfiguration("Management");
+            management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => stub);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var result = await provider.GetRequiredService<IManagementClient>().GetEnvironmentInformationAsync();
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Id.Should().Be(Guid.Parse(ValidEnvironmentId));
+        stub.Attempts.Should().ContainSingle().Which.Authorization.Should().Be($"Bearer {ValidApiKey}");
+    }
 }

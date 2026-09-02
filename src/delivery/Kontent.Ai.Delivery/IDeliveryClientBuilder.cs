@@ -13,7 +13,7 @@ namespace Kontent.Ai.Delivery;
 /// The SDK's own setup has already run when the builder is handed over, so everything configured here
 /// applies on top of it: <see cref="Options"/> is the client's <see cref="OptionsBuilder{TOptions}"/>
 /// (<c>Configure</c>, <c>Bind</c>, <c>BindConfiguration</c>, <c>Validate</c> and the rest), and
-/// <see cref="HttpClient"/> is the named HTTP client the transport is built on, open to every
+/// <see cref="IDeliveryClientBuilder.HttpClient"/> is the named HTTP client the transport is built on, open to every
 /// <c>Microsoft.Extensions.Http</c> extension.
 /// </para>
 /// <para>
@@ -38,7 +38,7 @@ public interface IDeliveryClientBuilder
 
     /// <summary>
     /// Replaces the default resilience pipeline. Has no effect when <see cref="DeliveryOptions.EnableResilience"/>
-    /// is <c>false</c>. With a pipeline of your own installed, <see cref="HttpClient"/>'s 100-second default
+    /// is <c>false</c>. With a pipeline of your own installed, <see cref="System.Net.Http.HttpClient.Timeout"/>'s 100-second default
     /// bounds the call unless <see cref="DeliveryOptions.Timeout"/> says otherwise, since only the SDK's pipeline
     /// is known to bound each attempt.
     /// </summary>

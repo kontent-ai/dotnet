@@ -303,13 +303,14 @@ services.AddDeliveryClient(delivery =>
     delivery.Options.Configure(options =>
     {
         options.EnvironmentId = "your-environment-id";
+
+        // The ceiling on the whole call, retries included. Set it here, not through
+        // HttpClient.Timeout, which the SDK owns and which would silently cap the retry sequence.
+        options.Timeout = TimeSpan.FromSeconds(30);
     });
 
     delivery.HttpClient.ConfigureHttpClient(client =>
     {
-        // Timeout
-        client.Timeout = TimeSpan.FromSeconds(30);
-
         // Headers
         client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
     });
@@ -512,8 +513,8 @@ public class MyService
     }
 }
 
-// ❌ Bad: Manual instantiation (potential leak)
-var client = new DeliveryClient(...);  // Don't do this
+// ❌ Bad: A standalone client per request - each Create builds and holds a private container
+var client = DeliveryClient.Create(delivery => { ... });  // Don't do this per request; build one and keep it
 ```
 
 ## Monitoring and Diagnostics

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Kontent.Ai.Common;
 
 namespace Kontent.Ai.Sync;
 
@@ -77,7 +78,7 @@ public sealed class SyncOptions : IValidatableObject
     public void CopyTo(SyncOptions destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        Kontent.Ai.Common.OptionsCopier<SyncOptions>.Copy(this, destination);
+        OptionsCopier<SyncOptions>.Copy(this, destination);
     }
 
     /// <summary>

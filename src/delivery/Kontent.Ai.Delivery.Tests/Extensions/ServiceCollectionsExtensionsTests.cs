@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
+using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Delivery.Tests.Extensions;
 
@@ -1405,5 +1406,45 @@ public class ServiceCollectionsExtensionsTests
         }
 
         Assert.Same(marker, handler);
+    }
+
+    // The instance overload copies when the options are first built, not at registration.
+    [Fact]
+    public void AddDeliveryClient_WithOptionsInstance_CopiesWhenTheOptionsAreFirstBuilt()
+    {
+        var options = new DeliveryOptions { EnvironmentId = EnvironmentId };
+        var replacement = Guid.NewGuid().ToString();
+        _serviceCollection.AddDeliveryClient(options);
+
+        options.EnvironmentId = replacement;                      // before the first read: included
+        using var provider = _serviceCollection.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
+        Assert.Equal(replacement, monitor.Get("Default").EnvironmentId);
+
+        options.EnvironmentId = Guid.NewGuid().ToString();        // after it: not
+        Assert.Equal(replacement, monitor.Get("Default").EnvironmentId);
+    }
+
+    [Fact]
+    public async Task AddDeliveryClient_BindConfiguration_BindsTheSectionTheClientSendsTo()
+    {
+        using var mockHttp = new MockHttpMessageHandler();
+        var itemsJson = await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory, "Fixtures", "DeliveryClient", "items.json"));
+        mockHttp.Expect(HttpMethod.Get, $"https://deliver.kontent.ai/{EnvironmentId}/items").Respond("application/json", itemsJson);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Delivery:EnvironmentId"] = EnvironmentId })
+            .Build();
+        _serviceCollection.AddSingleton<IConfiguration>(configuration);
+        _serviceCollection.AddDeliveryClient(d =>
+        {
+            d.Options.BindConfiguration("Delivery");
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp);
+        });
+        using var provider = _serviceCollection.BuildServiceProvider();
+
+        var result = await provider.GetRequiredService<IDeliveryClient>().GetItems().ExecuteAsync();
+
+        Assert.True(result.IsSuccess);
+        mockHttp.VerifyNoOutstandingExpectation();
     }
 }

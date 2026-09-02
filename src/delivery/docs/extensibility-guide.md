@@ -208,7 +208,7 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 
 #### Explicit Registration with Dependency Injection
 
-If you need to override auto-discovery or use a custom implementation, register your type provider **before** `AddDeliveryClient()`:
+If you need to override auto-discovery or use a custom implementation, register your type provider with `AddSingleton` - before or after `AddDeliveryClient()`, either order works. The SDK registers its default with `TryAddSingleton`, so a registration made earlier is kept and one made later is the last registration, which is the one the container resolves:
 
 ```csharp
 // Register your custom type provider (takes precedence over auto-discovery)
@@ -345,17 +345,19 @@ public record Article
 
 ### 3. Registration Order (When Not Using Auto-Discovery)
 
-When using source generation, type provider registration is automatic. However, if you're registering custom implementations, register them **before** calling `AddDeliveryClient`:
+When using source generation, type provider registration is automatic. If you register a custom implementation, the order relative to `AddDeliveryClient` does not matter: the SDK registers its default with `TryAddSingleton`, so yours wins whether it was added before (the SDK's is skipped) or after (yours is the last registration):
 
 ```csharp
-// ✅ Correct order (when overriding auto-discovery)
+// ✅ Either order works
 services.AddSingleton<ITypeProvider, CustomTypeProvider>();
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
 
-// ❌ Wrong order - custom provider may not be used
+// ✅ Also fine
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
 services.AddSingleton<ITypeProvider, CustomTypeProvider>();
 ```
+
+What does not work is `TryAddSingleton` on your side after `AddDeliveryClient` - the SDK's default is already there, so yours is skipped.
 
 > [!NOTE]
 > With source generation, you typically don't need to register the type provider at all - it's auto-discovered.
