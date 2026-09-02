@@ -165,7 +165,6 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         return RegisterCodenameContentResolvers(resolvers);
     }
 
-
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Advanced)]
     public IHtmlResolverBuilder WithContentResolvers(
@@ -183,7 +182,6 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         ArgumentNullException.ThrowIfNull(resolvers);
         return RegisterTypeContentResolvers(resolvers);
     }
-
 
     private HtmlResolverBuilder RegisterCodenameContentResolvers(
         IEnumerable<(string ContentTypeCodename, Func<IEmbeddedContent, string> Resolver)> resolvers)
