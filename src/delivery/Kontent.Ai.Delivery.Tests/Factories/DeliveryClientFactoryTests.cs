@@ -10,10 +10,10 @@ public class DeliveryClientFactoryTests
     public void GetNamedClient_WithValidName_ReturnsClient()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", options =>
+        services.AddDeliveryClient("test", d => d.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -30,8 +30,8 @@ public class DeliveryClientFactoryTests
         var env1 = Guid.NewGuid().ToString();
         var env2 = Guid.NewGuid().ToString();
 
-        services.AddDeliveryClient("client1", o => o.EnvironmentId = env1);
-        services.AddDeliveryClient("client2", o => o.EnvironmentId = env2);
+        services.AddDeliveryClient("client1", d => d.Options.Configure(o => o.EnvironmentId = env1));
+        services.AddDeliveryClient("client2", d => d.Options.Configure(o => o.EnvironmentId = env2));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -48,10 +48,10 @@ public class DeliveryClientFactoryTests
     public void GetSameNamedClient_ReturnsSameInstance()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", options =>
+        services.AddDeliveryClient("test", d => d.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -66,9 +66,9 @@ public class DeliveryClientFactoryTests
     public void AddDeliveryClient_WithDuplicateName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient("test", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
-        var act = () => services.AddDeliveryClient("test", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        var act = () => services.AddDeliveryClient("test", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*'test'*already been registered*");
@@ -78,7 +78,7 @@ public class DeliveryClientFactoryTests
     public void GetNamedClient_WithNonExistentName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient("test", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -93,7 +93,7 @@ public class DeliveryClientFactoryTests
     public void GetDefaultClient_WithImplicitRegistration_Works()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var client = sp.GetRequiredService<IDeliveryClient>();
@@ -105,7 +105,7 @@ public class DeliveryClientFactoryTests
     public void GetDefaultClient_ViaFactory_Works()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -119,7 +119,7 @@ public class DeliveryClientFactoryTests
     public void KeyedServiceInjection_WithFromKeyedServices_Works()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("keyed", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient("keyed", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var client = sp.GetRequiredKeyedService<IDeliveryClient>("keyed");
@@ -131,7 +131,7 @@ public class DeliveryClientFactoryTests
     public void Get_WithNullName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -145,7 +145,7 @@ public class DeliveryClientFactoryTests
     public void Get_WithEmptyName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -159,7 +159,7 @@ public class DeliveryClientFactoryTests
     public void Get_WithWhitespaceName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -173,7 +173,7 @@ public class DeliveryClientFactoryTests
     public void Factory_IsRegisteredAsSingleton()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
 
@@ -187,7 +187,7 @@ public class DeliveryClientFactoryTests
     public void TryGetNamedClient_WithValidName_ReturnsClient()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient("test", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -201,7 +201,7 @@ public class DeliveryClientFactoryTests
     public void TryGetNamedClient_WithNonExistentName_ReturnsNull()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("test", o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient("test", d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -215,7 +215,7 @@ public class DeliveryClientFactoryTests
     public void TryGet_WithNullName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -229,7 +229,7 @@ public class DeliveryClientFactoryTests
     public void TryGet_WithEmptyName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();
@@ -243,7 +243,7 @@ public class DeliveryClientFactoryTests
     public void TryGet_WithWhitespaceName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
 
         using var sp = services.BuildServiceProvider();
         var factory = sp.GetRequiredService<IDeliveryClientFactory>();

@@ -6,7 +6,7 @@ public class PublicApiApprovalTests
 {
     [Fact]
     public Task PublicApi_ShouldNotChangeUnexpectedly()
-        => Verify(PublicApiApproval.Surface(typeof(Kontent.Ai.Delivery.Configuration.DeliveryClientBuilder).Assembly));
+        => Verify(PublicApiApproval.Surface(typeof(Kontent.Ai.Delivery.DeliveryClient).Assembly));
 
     [Fact]
     public Task CachingPublicApi_ShouldNotChangeUnexpectedly()

@@ -37,14 +37,13 @@ public class ServiceCollectionsExtensionsTests
            ["nested_under_default_key", "Options:DeliveryOptions"]
        ];
 
-
     public ServiceCollectionsExtensionsTests() => _serviceCollection = new ServiceCollection();
 
     [Fact]
-    public void AddDeliveryClientWithNullDeliveryOptions_ThrowsArgumentNullException() => Assert.Throws<ArgumentNullException>(() => _serviceCollection.AddDeliveryClient(deliveryOptions: null!));
+    public void AddDeliveryClientWithNullDeliveryOptions_ThrowsArgumentNullException() => Assert.Throws<ArgumentNullException>(() => _serviceCollection.AddDeliveryClient((DeliveryOptions)null!));
 
     [Fact]
-    public void AddDeliveryClientWithNullBuildDeliveryOptions_ThrowsArgumentNullException() => Assert.Throws<ArgumentNullException>(() => _serviceCollection.AddDeliveryClient(configureOptions: (Action<DeliveryOptions>)null!));
+    public void AddDeliveryClientWithNullConfigure_ThrowsArgumentNullException() => Assert.Throws<ArgumentNullException>(() => _serviceCollection.AddDeliveryClient((Action<IDeliveryClientBuilder>)null!));
 
     [Fact]
     public void AddDeliveryClientWithOptions_AllServicesAreRegistered()
@@ -57,16 +56,23 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClientWithConfigureAction_AllServicesAreRegistered()
     {
-        _serviceCollection.AddDeliveryClient(o => o.EnvironmentId = EnvironmentId);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
         var provider = _serviceCollection.BuildServiceProvider();
         AssertDefaultServiceCollection(provider, _expectedInterfacesWithImplementationTypes);
     }
 
     [Fact]
-    public void AddDeliveryClientWithBuilderDelegate_AllServicesAreRegistered_AndOptionsApplied()
+    public void AddDeliveryClientWithOptionsExtensions_AllServicesAreRegistered_AndOptionsApplied()
     {
-        _serviceCollection.AddDeliveryClient(
-            (IDeliveryOptionsBuilder b) => b.WithEnvironmentId(EnvironmentId).UsePreviewApi(PreviewApiKey).Build());
+        var invokedWithExpiration = TimeSpan.Zero;
+        _serviceCollection.AddDeliveryClient(d =>
+        {
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.UsePreviewApi(PreviewApiKey);
+            });
+        });
 
         var provider = _serviceCollection.BuildServiceProvider();
         AssertDefaultServiceCollection(provider, _expectedInterfacesWithImplementationTypes);
@@ -79,19 +85,16 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryClientWithBuilderDelegate_Null_ThrowsArgumentNullException()
+    public void AddDeliveryClientNamedWithNullConfigure_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() => _serviceCollection.AddDeliveryClient(
-            buildDeliveryOptions: null!));
+            "production", (Action<IDeliveryClientBuilder>)null!));
     }
 
     [Fact]
     public void AddDeliveryClient_Advanced_RegistersClient()
     {
-        _serviceCollection.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = EnvironmentId },
-            configureHttpClient: null,
-            configureResilience: null);
+        _serviceCollection.AddDeliveryClient(new DeliveryOptions { EnvironmentId = EnvironmentId });
 
         var provider = _serviceCollection.BuildServiceProvider();
         Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
@@ -100,10 +103,7 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_AdvancedConfigureAction_RegistersClient()
     {
-        _serviceCollection.AddDeliveryClient(
-            options => options.EnvironmentId = EnvironmentId,
-            configureHttpClient: null,
-            configureResilience: null);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure(options => options.EnvironmentId = EnvironmentId));
 
         var provider = _serviceCollection.BuildServiceProvider();
         Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
@@ -112,10 +112,7 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_AdvancedServiceProviderConfigureAction_RegistersClient()
     {
-        _serviceCollection.AddDeliveryClient(
-            (_, options) => options.EnvironmentId = EnvironmentId,
-            configureHttpClient: null,
-            configureResilience: null);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure<IServiceProvider>((options, _) => options.EnvironmentId = EnvironmentId));
 
         var provider = _serviceCollection.BuildServiceProvider();
         Assert.NotNull(provider.GetRequiredService<IDeliveryApi>());
@@ -125,10 +122,7 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_ResilienceEnabled_InvokesConfigureResilience()
     {
         var invoked = false;
-        _serviceCollection.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = true },
-            configureHttpClient: null,
-            configureResilience: _ => invoked = true);
+        _serviceCollection.AddDeliveryClient(new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = true }, d => d.ConfigureResilience(_ => invoked = true));
 
         var provider = _serviceCollection.BuildServiceProvider();
         // Resolve the typed client to force HttpClient pipeline building
@@ -140,10 +134,7 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_ResilienceDisabled_DoesNotInvokeConfigureResilience()
     {
         var invoked = false;
-        _serviceCollection.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false },
-            configureHttpClient: null,
-            configureResilience: _ => invoked = true);
+        _serviceCollection.AddDeliveryClient(new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false }, d => d.ConfigureResilience(_ => invoked = true));
 
         var provider = _serviceCollection.BuildServiceProvider();
         var _ = provider.GetRequiredService<IDeliveryApi>();
@@ -207,17 +198,11 @@ public class ServiceCollectionsExtensionsTests
             .AddJsonFile(jsonConfigurationPath)
             .Build();
 
-        _serviceCollection.AddDeliveryClient(fakeConfiguration, customSectionName!);
+        IConfiguration section = customSectionName is null ? fakeConfiguration : fakeConfiguration.GetSection(customSectionName);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Bind(section));
         var provider = _serviceCollection.BuildServiceProvider();
 
         AssertDefaultServiceCollection(provider, _expectedInterfacesWithImplementationTypes);
-    }
-
-    [Fact]
-    public void AddDeliveryClient_WithNullConfigurationSection_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryClient(configurationSection: null!));
     }
 
     [Fact]
@@ -234,7 +219,7 @@ public class ServiceCollectionsExtensionsTests
 
         var section = fakeConfiguration.GetSection("DeliveryOptions");
 
-        _serviceCollection.AddDeliveryClient(section);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Bind(section));
         var provider = _serviceCollection.BuildServiceProvider();
 
         AssertDefaultServiceCollection(provider, _expectedInterfacesWithImplementationTypes);
@@ -261,17 +246,23 @@ public class ServiceCollectionsExtensionsTests
         const string envId1 = "11111111-1111-1111-1111-111111111111";
         const string envId2 = "22222222-2222-2222-2222-222222222222";
 
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = envId1;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId1;
+                o.EnableResilience = false;
+            });
         });
-        _serviceCollection.AddDeliveryClient("preview", o =>
+        _serviceCollection.AddDeliveryClient("preview", d =>
         {
-            o.EnvironmentId = envId2;
-            o.UsePreviewApi = true;
-            o.PreviewApiKey = PreviewApiKey;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId2;
+                o.UsePreviewApi = true;
+                o.PreviewApiKey = PreviewApiKey;
+                o.EnableResilience = false;
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -294,11 +285,14 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_WithCustomBaseUrl_UsesCustomEndpoint()
     {
         const string customBase = "https://custom-delivery.example.com";
-        _serviceCollection.AddDeliveryClient("custom", o =>
+        _serviceCollection.AddDeliveryClient("custom", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.ProductionEndpoint = customBase;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.ProductionEndpoint = customBase;
+                o.EnableResilience = false;
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -361,7 +355,7 @@ public class ServiceCollectionsExtensionsTests
             .AddInMemoryCollection(inMemoryConfiguration)
             .Build();
 
-        _serviceCollection.AddDeliveryClient(configurationRoot);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Bind(configurationRoot.GetSection(DeliveryOptions.DefaultConfigurationSectionName)));
         var provider = _serviceCollection.BuildServiceProvider();
         var optionsMonitor = provider.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
 
@@ -389,14 +383,17 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_DuplicateClientName_ThrowsInvalidOperationException()
     {
-        _serviceCollection.AddDeliveryClient("duplicate", o =>
+        _serviceCollection.AddDeliveryClient("duplicate", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
         });
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            _serviceCollection.AddDeliveryClient("duplicate", o => o.EnvironmentId = EnvironmentId));
+            _serviceCollection.AddDeliveryClient("duplicate", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId)));
 
         Assert.Contains("duplicate", exception.Message);
         Assert.Contains("already been registered", exception.Message);
@@ -407,7 +404,7 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_WithNameContainingSpaces_ThrowsArgumentException()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            _serviceCollection.AddDeliveryClient("name with spaces", o => o.EnvironmentId = EnvironmentId));
+            _serviceCollection.AddDeliveryClient("name with spaces", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId)));
 
         Assert.Contains("Client name cannot contain whitespace", exception.Message);
         Assert.Contains("Use underscores or hyphens instead", exception.Message);
@@ -421,7 +418,7 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_WithNameContainingOtherWhitespace_ThrowsArgumentException(string name)
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            _serviceCollection.AddDeliveryClient(name, o => o.EnvironmentId = EnvironmentId));
+            _serviceCollection.AddDeliveryClient(name, d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId)));
 
         Assert.Contains("Client name cannot contain whitespace", exception.Message);
     }
@@ -430,7 +427,7 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_WithNameWithLeadingWhitespace_ThrowsArgumentException()
     {
         var exception = Assert.Throws<ArgumentException>(() =>
-            _serviceCollection.AddDeliveryClient(" leading-space", o => o.EnvironmentId = EnvironmentId));
+            _serviceCollection.AddDeliveryClient(" leading-space", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId)));
 
         Assert.Contains("Client name cannot contain whitespace", exception.Message);
     }
@@ -438,7 +435,7 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_DefaultClient_AccessibleViaFactoryAndDirectInjection()
     {
-        _serviceCollection.AddDeliveryClient(o => o.EnvironmentId = EnvironmentId);
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
 
         var provider = _serviceCollection.BuildServiceProvider();
         var clientDirect = provider.GetRequiredService<IDeliveryClient>();
@@ -454,14 +451,17 @@ public class ServiceCollectionsExtensionsTests
     #region Per-Client Caching Tests
 
     [Fact]
-    public void AddDeliveryMemoryCache_RegistersKeyedCacheManager()
+    public void UseMemoryCache_RegistersKeyedCacheManager()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
         });
-        _serviceCollection.AddDeliveryMemoryCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -471,15 +471,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_RegistersKeyedCacheManager()
+    public void UseHybridCache_RegistersKeyedCacheManager()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache();
         });
         _serviceCollection.AddDistributedMemoryCache(); // Register IDistributedCache
-        _serviceCollection.AddDeliveryHybridCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -489,14 +492,17 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_DefaultOverload_RegistersKeyedCacheManagerForDefaultClient()
+    public void UseCacheManager_DefaultOverload_RegistersKeyedCacheManagerForDefaultClient()
     {
-        _serviceCollection.AddDeliveryClient(o =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseCacheManager(_ => new TestCustomCacheManager());
         });
-        _serviceCollection.AddDeliveryCacheManager(_ => new TestCustomCacheManager());
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("Default");
@@ -506,21 +512,27 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_NamedOverload_RegistersOnlyForSpecifiedClient()
+    public void UseCacheManager_NamedOverload_RegistersOnlyForSpecifiedClient()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseCacheManager(_ => new TestCustomCacheManager());
         });
-        _serviceCollection.AddDeliveryClient("preview", o =>
+        _serviceCollection.AddDeliveryClient("preview", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.UsePreviewApi = true;
-            o.PreviewApiKey = PreviewApiKey;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.UsePreviewApi = true;
+                o.PreviewApiKey = PreviewApiKey;
+                o.EnableResilience = false;
+            });
         });
-        _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
 
         var provider = _serviceCollection.BuildServiceProvider();
         var prodCacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -532,14 +544,17 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_ResolvesTheNamedClient()
+    public void UseCacheManager_ResolvesTheNamedClient()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseCacheManager(_ => new TestCustomCacheManager());
         });
-        _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
 
         var provider = _serviceCollection.BuildServiceProvider();
         var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
@@ -548,14 +563,17 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_CustomManager_DoesNotRequirePurger()
+    public void UseCacheManager_CustomManager_DoesNotRequirePurger()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseCacheManager(_ => new TestCustomCacheManager());
         });
-        _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
@@ -566,14 +584,17 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_ResolvedManager_ImplementsPurger()
+    public void UseMemoryCache_ResolvedManager_ImplementsPurger()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
         });
-        _serviceCollection.AddDeliveryMemoryCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
@@ -582,15 +603,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_ResolvedManager_ImplementsPurger()
+    public void UseHybridCache_ResolvedManager_ImplementsPurger()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache();
         });
         _serviceCollection.AddDistributedMemoryCache();
-        _serviceCollection.AddDeliveryHybridCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
@@ -599,17 +623,19 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_AfterHybridCache_ReplacesPreviousCacheManagerRegistration()
+    public void UseMemoryCache_AfterHybridCache_ReplacesPreviousCacheManagerRegistration()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache();
+            d.UseMemoryCache();
         });
         _serviceCollection.AddDistributedMemoryCache();
-
-        _serviceCollection.AddDeliveryHybridCache("production");
-        _serviceCollection.AddDeliveryMemoryCache("production");
 
         Assert.Equal(1, CountCacheManagerRegistrations("production"));
 
@@ -620,17 +646,19 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_AfterMemoryCache_ReplacesPreviousCacheManagerRegistration()
+    public void UseHybridCache_AfterMemoryCache_ReplacesPreviousCacheManagerRegistration()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
+            d.UseHybridCache();
         });
         _serviceCollection.AddDistributedMemoryCache();
-
-        _serviceCollection.AddDeliveryMemoryCache("production");
-        _serviceCollection.AddDeliveryHybridCache("production");
 
         Assert.Equal(1, CountCacheManagerRegistrations("production"));
 
@@ -641,16 +669,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryCacheManager_AfterBuiltInCache_ReplacesPreviousCacheManagerRegistration()
+    public void UseCacheManager_AfterBuiltInCache_ReplacesPreviousCacheManagerRegistration()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
+            d.UseCacheManager(_ => new TestCustomCacheManager());
         });
-
-        _serviceCollection.AddDeliveryMemoryCache("production");
-        _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
 
         Assert.Equal(1, CountCacheManagerRegistrations("production"));
 
@@ -661,16 +691,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_AfterCustomCacheManager_ReplacesPreviousCacheManagerRegistration()
+    public void UseMemoryCache_AfterCustomCacheManager_ReplacesPreviousCacheManagerRegistration()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseCacheManager(_ => new TestCustomCacheManager());
+            d.UseMemoryCache();
         });
-
-        _serviceCollection.AddDeliveryCacheManager("production", _ => new TestCustomCacheManager());
-        _serviceCollection.AddDeliveryMemoryCache("production");
 
         Assert.Equal(1, CountCacheManagerRegistrations("production"));
 
@@ -681,16 +713,19 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public async Task AddDeliveryMemoryCache_DefaultClient_AddsNoClientNameToTheKeys()
+    public async Task UseMemoryCache_DefaultClient_AddsNoClientNameToTheKeys()
     {
-        _serviceCollection.AddDeliveryClient(o =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-        _serviceCollection.AddDeliveryMemoryCache(opts =>
-        {
-            opts.DefaultExpiration = TimeSpan.FromMinutes(5);
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(opts =>
+            {
+                opts.DefaultExpiration = TimeSpan.FromMinutes(5);
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -726,26 +761,31 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_MultipleClients_RegistersSeparateKeyedManagers()
+    public void UseMemoryCache_MultipleClients_RegistersSeparateKeyedManagers()
     {
         const string envId1 = "11111111-1111-1111-1111-111111111111";
         const string envId2 = "22222222-2222-2222-2222-222222222222";
 
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = envId1;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId1;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.KeyPrefix = "prod");
         });
-        _serviceCollection.AddDeliveryClient("preview", o =>
+        _serviceCollection.AddDeliveryClient("preview", d =>
         {
-            o.EnvironmentId = envId2;
-            o.UsePreviewApi = true;
-            o.PreviewApiKey = PreviewApiKey;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId2;
+                o.UsePreviewApi = true;
+                o.PreviewApiKey = PreviewApiKey;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.KeyPrefix = "preview");
         });
-
-        _serviceCollection.AddDeliveryMemoryCache("production", keyPrefix: "prod");
-        _serviceCollection.AddDeliveryMemoryCache("preview", keyPrefix: "preview");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var prodCacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -758,13 +798,16 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_ClientWithoutCacheRegistration_ReturnsNull()
+    public void UseMemoryCache_ClientWithoutCacheRegistration_ReturnsNull()
     {
         // Register client but NOT cache
-        _serviceCollection.AddDeliveryClient("no-cache", o =>
+        _serviceCollection.AddDeliveryClient("no-cache", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -775,15 +818,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_WithCustomExpiration_PassesExpirationToManager()
+    public void UseMemoryCache_WithCustomExpiration_PassesExpirationToManager()
     {
         var expiration = TimeSpan.FromMinutes(30);
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.DefaultExpiration = expiration);
         });
-        _serviceCollection.AddDeliveryMemoryCache("production", defaultExpiration: expiration);
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -793,60 +839,51 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_NullClientName_ThrowsArgumentNullException()
+    public void UseMemoryCache_NullBuilder_ThrowsArgumentNullException()
     {
-        // Use named parameter to ensure we call the string overload
-        Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache(clientName: null!));
+        Assert.Throws<ArgumentNullException>(() => ((IDeliveryClientBuilder)null!).UseMemoryCache());
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_EmptyClientName_ThrowsArgumentException()
-    {
-        Assert.Throws<ArgumentException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache(clientName: ""));
-    }
-
-    [Fact]
-    public void AddDeliveryMemoryCache_InvalidDefaultExpiration_ThrowsValidationException()
+    public void UseMemoryCache_InvalidDefaultExpiration_ThrowsValidationException()
     {
         Assert.Throws<ValidationException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.Zero));
+            _serviceCollection.AddDeliveryClient("production", d => d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.Zero)));
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_InvalidEagerRefreshThreshold_ThrowsValidationException()
+    public void UseMemoryCache_InvalidEagerRefreshThreshold_ThrowsValidationException()
     {
         Assert.Throws<ValidationException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache("production", opts => opts.EagerRefreshThreshold = 1.5f));
+            _serviceCollection.AddDeliveryClient("production", d => d.UseMemoryCache(opts => opts.EagerRefreshThreshold = 1.5f)));
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_NegativeJitter_ThrowsValidationException()
+    public void UseHybridCache_NegativeJitter_ThrowsValidationException()
     {
         _serviceCollection.AddDistributedMemoryCache();
 
         Assert.Throws<ValidationException>(() =>
-            _serviceCollection.AddDeliveryHybridCache("production", opts => opts.JitterMaxDuration = TimeSpan.FromMilliseconds(-1)));
+            _serviceCollection.AddDeliveryClient("production", d => d.UseHybridCache(opts => opts.JitterMaxDuration = TimeSpan.FromMilliseconds(-1))));
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_NullClientName_ThrowsArgumentNullException()
+    public void UseHybridCache_NullBuilder_ThrowsArgumentNullException()
     {
-        // Use named parameter to ensure we call the string overload
-        Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryHybridCache(clientName: null!));
+        Assert.Throws<ArgumentNullException>(() => ((IDeliveryClientBuilder)null!).UseHybridCache());
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_ResolvesTheNamedClient_CacheFirst()
+    public void UseMemoryCache_ResolvesTheNamedClient()
     {
-        // Cache registered before client
-        _serviceCollection.AddDeliveryMemoryCache("production");
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -856,51 +893,18 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_ResolvesTheNamedClient_ClientFirst()
+    public void UseHybridCache_ResolvesTheNamedClient()
     {
-        // Client registered before cache (order should not matter)
-        _serviceCollection.AddDeliveryClient("production", o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-        _serviceCollection.AddDeliveryMemoryCache("production");
-
-        var provider = _serviceCollection.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
-
-        Assert.NotNull(client);
-    }
-
-    [Fact]
-    public void AddDeliveryHybridCache_ResolvesTheNamedClient_CacheFirst()
-    {
-        // Cache registered before client
         _serviceCollection.AddDistributedMemoryCache();
-        _serviceCollection.AddDeliveryHybridCache("production");
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache();
         });
-
-        var provider = _serviceCollection.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
-
-        Assert.NotNull(client);
-    }
-
-    [Fact]
-    public void AddDeliveryHybridCache_ResolvesTheNamedClient_ClientFirst()
-    {
-        // Client registered before cache (order should not matter)
-        _serviceCollection.AddDistributedMemoryCache();
-        _serviceCollection.AddDeliveryClient("production", o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-        _serviceCollection.AddDeliveryHybridCache("production");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var client = provider.GetRequiredService<IDeliveryClientFactory>().Get("production");
@@ -918,21 +922,27 @@ public class ServiceCollectionsExtensionsTests
         const string envId1 = "11111111-1111-1111-1111-111111111111";
         const string envId2 = "22222222-2222-2222-2222-222222222222";
 
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = envId1;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId1;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.KeyPrefix = "prod");
         });
-        _serviceCollection.AddDeliveryClient("preview", o =>
+        _serviceCollection.AddDeliveryClient("preview", d =>
         {
-            o.EnvironmentId = envId2;
-            o.UsePreviewApi = true;
-            o.PreviewApiKey = PreviewApiKey;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = envId2;
+                o.UsePreviewApi = true;
+                o.PreviewApiKey = PreviewApiKey;
+                o.EnableResilience = false;
+            });
         });
 
         // Only enable caching for production
-        _serviceCollection.AddDeliveryMemoryCache("production", keyPrefix: "prod");
 
         var provider = _serviceCollection.BuildServiceProvider();
         var prodCacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -944,22 +954,27 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_SharedUnderlyingMemoryCache()
+    public void UseMemoryCache_SharedUnderlyingMemoryCache()
     {
         // Both clients use the same IMemoryCache but different key prefixes
-        _serviceCollection.AddDeliveryClient("client1", o =>
+        _serviceCollection.AddDeliveryClient("client1", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.KeyPrefix = "prefix1");
         });
-        _serviceCollection.AddDeliveryClient("client2", o =>
+        _serviceCollection.AddDeliveryClient("client2", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache(o => o.KeyPrefix = "prefix2");
         });
-
-        _serviceCollection.AddDeliveryMemoryCache("client1", keyPrefix: "prefix1");
-        _serviceCollection.AddDeliveryMemoryCache("client2", keyPrefix: "prefix2");
 
         var provider = _serviceCollection.BuildServiceProvider();
 
@@ -990,11 +1005,11 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_WithServiceProviderCallback_ResolvesFromContainer()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.EnvironmentIdValue = EnvironmentId);
-        _serviceCollection.AddDeliveryClient((sp, opts) =>
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure<IServiceProvider>((opts, sp) =>
         {
             opts.EnvironmentId = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.EnvironmentIdValue;
             opts.EnableResilience = false;
-        });
+        }));
 
         var provider = _serviceCollection.BuildServiceProvider();
         var monitor = provider.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
@@ -1005,11 +1020,11 @@ public class ServiceCollectionsExtensionsTests
     public void AddDeliveryClient_NamedWithServiceProviderCallback_ResolvesFromContainer()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.EnvironmentIdValue = EnvironmentId);
-        _serviceCollection.AddDeliveryClient("production", (sp, opts) =>
+        _serviceCollection.AddDeliveryClient("production", d => d.Options.Configure<IServiceProvider>((opts, sp) =>
         {
             opts.EnvironmentId = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.EnvironmentIdValue;
             opts.EnableResilience = false;
-        });
+        }));
 
         var provider = _serviceCollection.BuildServiceProvider();
         var monitor = provider.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
@@ -1017,29 +1032,22 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryClient_NullServiceProviderCallback_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryClient(configureOptions: (Action<IServiceProvider, DeliveryOptions>)null!));
-        Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryClient("production", configureOptions: (Action<IServiceProvider, DeliveryOptions>)null!));
-    }
-
-    [Fact]
-    public void AddDeliveryMemoryCache_WithServiceProviderCallback_InvokesCallbackOnResolution()
+    public void UseMemoryCache_WithServiceProviderCallback_InvokesCallbackOnResolution()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.CacheExpiration = TimeSpan.FromHours(3));
-        _serviceCollection.AddDeliveryClient(o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-
         var invokedWithExpiration = TimeSpan.Zero;
-        _serviceCollection.AddDeliveryMemoryCache((sp, opts) =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
-            invokedWithExpiration = opts.DefaultExpiration;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache((sp, opts) =>
+            {
+                opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
+                invokedWithExpiration = opts.DefaultExpiration;
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -1051,20 +1059,22 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_NamedWithServiceProviderCallback_InvokesCallbackOnResolution()
+    public void UseMemoryCache_NamedWithServiceProviderCallback_InvokesCallbackOnResolution()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.CacheExpiration = TimeSpan.FromHours(2));
-        _serviceCollection.AddDeliveryClient("production", o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-
         var invokedWithExpiration = TimeSpan.Zero;
-        _serviceCollection.AddDeliveryMemoryCache("production", (sp, opts) =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
-            invokedWithExpiration = opts.DefaultExpiration;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache((sp, opts) =>
+            {
+                opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
+                invokedWithExpiration = opts.DefaultExpiration;
+            });
         });
 
         var provider = _serviceCollection.BuildServiceProvider();
@@ -1075,18 +1085,21 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_WithServiceProviderCallback_DefersInvocationUntilResolution()
+    public void UseMemoryCache_WithServiceProviderCallback_DefersInvocationUntilResolution()
     {
         var invoked = false;
-        _serviceCollection.AddDeliveryClient(o =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-        _serviceCollection.AddDeliveryMemoryCache((_, opts) =>
-        {
-            invoked = true;
-            opts.DefaultExpiration = TimeSpan.FromMinutes(10);
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache((_, opts) =>
+            {
+                invoked = true;
+                opts.DefaultExpiration = TimeSpan.FromMinutes(10);
+            });
         });
 
         // Not invoked at registration time
@@ -1104,31 +1117,34 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_NullServiceProviderCallback_ThrowsArgumentNullException()
+    public void UseMemoryCache_NullServiceProviderCallback_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache(configureCacheOptions: (Action<IServiceProvider, DeliveryCacheOptions>)null!));
+            _serviceCollection.AddDeliveryClient(d => d.UseMemoryCache((Action<IServiceProvider, DeliveryCacheOptions>)null!)));
         Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache("production", configureCacheOptions: (Action<IServiceProvider, DeliveryCacheOptions>)null!));
+            _serviceCollection.AddDeliveryClient("production", d => d.UseMemoryCache((Action<IServiceProvider, DeliveryCacheOptions>)null!)));
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_WithServiceProviderCallback_InvokesCallbackOnResolution()
+    public void UseHybridCache_WithServiceProviderCallback_InvokesCallbackOnResolution()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.CacheExpiration = TimeSpan.FromHours(4));
-        _serviceCollection.AddDeliveryClient(o =>
+        var invokedWithExpiration = TimeSpan.Zero;
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache((sp, opts) =>
+            {
+                opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
+                invokedWithExpiration = opts.DefaultExpiration;
+            });
         });
         _serviceCollection.AddDistributedMemoryCache();
 
-        var invokedWithExpiration = TimeSpan.Zero;
-        _serviceCollection.AddDeliveryHybridCache((sp, opts) =>
-        {
-            opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
-            invokedWithExpiration = opts.DefaultExpiration;
-        });
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("Default");
@@ -1139,22 +1155,25 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_NamedWithServiceProviderCallback_InvokesCallbackOnResolution()
+    public void UseHybridCache_NamedWithServiceProviderCallback_InvokesCallbackOnResolution()
     {
         _serviceCollection.Configure<SiblingOptions>(o => o.CacheExpiration = TimeSpan.FromHours(6));
-        _serviceCollection.AddDeliveryClient("production", o =>
+        var invokedWithExpiration = TimeSpan.Zero;
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache((sp, opts) =>
+            {
+                opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
+                invokedWithExpiration = opts.DefaultExpiration;
+            });
         });
         _serviceCollection.AddDistributedMemoryCache();
 
-        var invokedWithExpiration = TimeSpan.Zero;
-        _serviceCollection.AddDeliveryHybridCache("production", (sp, opts) =>
-        {
-            opts.DefaultExpiration = sp.GetRequiredService<IOptions<SiblingOptions>>().Value.CacheExpiration;
-            invokedWithExpiration = opts.DefaultExpiration;
-        });
 
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
@@ -1164,25 +1183,28 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_NullServiceProviderCallback_ThrowsArgumentNullException()
+    public void UseHybridCache_NullServiceProviderCallback_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryHybridCache(configureCacheOptions: (Action<IServiceProvider, DeliveryCacheOptions>)null!));
+            _serviceCollection.AddDeliveryClient(d => d.UseHybridCache((Action<IServiceProvider, DeliveryCacheOptions>)null!)));
         Assert.Throws<ArgumentNullException>(() =>
-            _serviceCollection.AddDeliveryHybridCache("production", configureCacheOptions: (Action<IServiceProvider, DeliveryCacheOptions>)null!));
+            _serviceCollection.AddDeliveryClient("production", d => d.UseHybridCache((Action<IServiceProvider, DeliveryCacheOptions>)null!)));
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_WithServiceProviderCallback_DefersValidationUntilResolution()
+    public void UseMemoryCache_WithServiceProviderCallback_DefersValidationUntilResolution()
     {
-        _serviceCollection.AddDeliveryClient(o =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache((_, opts) => opts.DefaultExpiration = TimeSpan.Zero);
         });
 
         // Zero expiration fails [PositiveTimeSpan] validation.
-        _serviceCollection.AddDeliveryMemoryCache((_, opts) => opts.DefaultExpiration = TimeSpan.Zero);
 
         // Registration and provider construction must not throw — validation is deferred.
         var provider = _serviceCollection.BuildServiceProvider();
@@ -1192,31 +1214,35 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
-    public void AddDeliveryMemoryCache_WithInlineCallback_ValidatesEagerlyAtRegistration()
+    public void UseMemoryCache_WithInlineCallback_ValidatesEagerlyAtRegistration()
     {
-        _serviceCollection.AddDeliveryClient(o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        });
-
         // Contrast with the (sp, opts) overload: the plain Action<DeliveryCacheOptions>
         // overload validates at registration time, not at resolution.
         Assert.Throws<ValidationException>(() =>
-            _serviceCollection.AddDeliveryMemoryCache(opts => opts.DefaultExpiration = TimeSpan.Zero));
+            _serviceCollection.AddDeliveryClient(d =>
+            {
+                d.Options.Configure(o =>
+                {
+                    o.EnvironmentId = EnvironmentId;
+                    o.EnableResilience = false;
+                });
+                d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.Zero);
+            }));
     }
 
     [Fact]
-    public void AddDeliveryHybridCache_WithServiceProviderCallback_DefersValidationUntilResolution()
+    public void UseHybridCache_WithServiceProviderCallback_DefersValidationUntilResolution()
     {
-        _serviceCollection.AddDeliveryClient(o =>
+        _serviceCollection.AddDeliveryClient(d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseHybridCache((_, opts) => opts.DefaultExpiration = TimeSpan.Zero);
         });
         _serviceCollection.AddDistributedMemoryCache();
-
-        _serviceCollection.AddDeliveryHybridCache((_, opts) => opts.DefaultExpiration = TimeSpan.Zero);
 
         var provider = _serviceCollection.BuildServiceProvider();
 
@@ -1233,7 +1259,7 @@ public class ServiceCollectionsExtensionsTests
         // DI runtime recurses unboundedly and stack-overflows (uncatchable by design). We use
         // a reentrancy counter to prove the re-entry and surface a catchable exception.
         var depth = 0;
-        _serviceCollection.AddDeliveryClient((sp, opts) =>
+        _serviceCollection.AddDeliveryClient(d => d.Options.Configure<IServiceProvider>((opts, sp) =>
         {
             if (Interlocked.Increment(ref depth) > 1)
             {
@@ -1251,7 +1277,7 @@ public class ServiceCollectionsExtensionsTests
             }
 
             opts.EnvironmentId = EnvironmentId;
-        });
+        }));
 
         var provider = _serviceCollection.BuildServiceProvider();
 
@@ -1293,7 +1319,7 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_DefaultResilience_LiftsTheHttpClientCeiling()
     {
-        _serviceCollection.AddDeliveryClient("production", o => o.EnvironmentId = EnvironmentId);
+        _serviceCollection.AddDeliveryClient("production", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
 
         Assert.Equal(Timeout.InfiniteTimeSpan, ResolveHttpClientTimeout("production"));
     }
@@ -1301,10 +1327,13 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_ResilienceDisabled_StillBoundsTheRequest()
     {
-        _serviceCollection.AddDeliveryClient("production", o =>
+        _serviceCollection.AddDeliveryClient("production", d =>
         {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
         });
 
         var timeout = ResolveHttpClientTimeout("production");
@@ -1316,10 +1345,11 @@ public class ServiceCollectionsExtensionsTests
     [Fact]
     public void AddDeliveryClient_CustomResilience_StillBoundsTheRequest()
     {
-        _serviceCollection.AddDeliveryClient(
-            "production",
-            o => o.EnvironmentId = EnvironmentId,
-            configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>()));
+        _serviceCollection.AddDeliveryClient("production", d =>
+        {
+            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
+            d.ConfigureResilience(builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>()));
+        });
 
         var timeout = ResolveHttpClientTimeout("production");
 
@@ -1343,7 +1373,7 @@ public class ServiceCollectionsExtensionsTests
         // Refit's registration installs a plain HttpClientHandler as the primary. The SDK's connection
         // recycling runs after it and must be what sits at the bottom of the chain.
         var services = new ServiceCollection();
-        services.AddDeliveryClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
         using var provider = services.BuildServiceProvider();
 
         HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Delivery.HttpClient.Default");
@@ -1354,5 +1384,26 @@ public class ServiceCollectionsExtensionsTests
 
         var primary = Assert.IsType<SocketsHttpHandler>(handler);
         Assert.Equal(TimeSpan.FromMinutes(2), primary.PooledConnectionLifetime);
+    }
+
+    [Fact]
+    public void AddDeliveryClient_TheConsumersHttpClientChainRunsLast()
+    {
+        var marker = new HttpClientHandler();
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(d =>
+        {
+            d.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString());
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => marker);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Delivery.HttpClient.Default");
+        while (handler is DelegatingHandler { InnerHandler: { } inner })
+        {
+            handler = inner;
+        }
+
+        Assert.Same(marker, handler);
     }
 }

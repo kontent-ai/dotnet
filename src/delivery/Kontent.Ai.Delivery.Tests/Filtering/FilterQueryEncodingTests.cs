@@ -89,9 +89,7 @@ public class FilterQueryEncodingTests
         // would send "?a=1&a=1" on the second attempt — wrong results, no exception, only under retry.
         var handler = new RetryCaptureHandler();
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString(), EnableResilience = true },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => handler));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString(), EnableResilience = true }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler));
 
         var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
         await client.GetItems<IDynamicElements>()
@@ -106,9 +104,7 @@ public class FilterQueryEncodingTests
     {
         var handler = new CaptureHandler();
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString(), EnableResilience = false },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => handler));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = Guid.NewGuid().ToString(), EnableResilience = false }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler));
 
         var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
         await client.GetItems<IDynamicElements>().Where(filter).ExecuteAsync();

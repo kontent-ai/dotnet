@@ -22,8 +22,7 @@ public class EnumerateItemsLanguageFallbackTests
                     $"Fixtures{Path.DirectorySeparatorChar}DeliveryClient{Path.DirectorySeparatorChar}articles_feed.json")));
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IDeliveryClient>();
@@ -59,8 +58,7 @@ public class EnumerateItemsLanguageFallbackTests
                     $"Fixtures{Path.DirectorySeparatorChar}DeliveryClient{Path.DirectorySeparatorChar}articles_feed.json")));
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IDeliveryClient>();

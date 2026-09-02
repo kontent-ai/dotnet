@@ -20,7 +20,7 @@ public class IncludeTotalCountTests
     private IDeliveryClient CreateClient()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(Options, configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => _mockHttp));
+        services.AddDeliveryClient(Options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 

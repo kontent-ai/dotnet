@@ -182,14 +182,12 @@ public class DefaultRetryPolicyTests
         Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true },
-            configureHttpClient: builder =>
-            {
-                builder.ConfigurePrimaryHttpMessageHandler(() => primary);
-                builder.AddHttpMessageHandler(() => behaviorHandler);
-            },
-            configureResilience: configureResilience);
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true }, d =>
+        {
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => primary);
+            d.HttpClient.AddHttpMessageHandler(() => behaviorHandler);
+            d.ConfigureResilience(configureResilience);
+        });
 
         var provider = services.BuildServiceProvider();
         return (DeliveryClient)provider.GetRequiredService<IDeliveryClient>();
@@ -304,14 +302,11 @@ public class DefaultRetryPolicyTests
         DelegatingHandler behaviorHandler)
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true },
-            configureHttpClient: builder =>
-            {
-                builder.ConfigurePrimaryHttpMessageHandler(() => primary);
-                builder.AddHttpMessageHandler(() => behaviorHandler);
-            },
-            configureResilience: null); // Use default resilience configuration
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = environmentId.ToString(), EnableResilience = true }, d =>
+        {
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => primary);
+            d.HttpClient.AddHttpMessageHandler(() => behaviorHandler);
+        }); // Use default resilience configuration
 
         var provider = services.BuildServiceProvider();
         return (DeliveryClient)provider.GetRequiredService<IDeliveryClient>();

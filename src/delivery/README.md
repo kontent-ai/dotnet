@@ -72,10 +72,10 @@ using Microsoft.Extensions.DependencyInjection;
 // Set up dependency injection
 var services = new ServiceCollection();
 
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 
 var serviceProvider = services.BuildServiceProvider();
 var client = serviceProvider.GetRequiredService<IDeliveryClient>();
@@ -99,10 +99,10 @@ The SDK is designed to work with .NET's dependency injection container. Register
 #### Basic Registration
 
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 ```
 
 #### Registration from Configuration
@@ -117,46 +117,55 @@ services.AddDeliveryClient(options =>
 }
 
 // Program.cs
-services.AddDeliveryClient(configuration);                              // binds "DeliveryOptions"
-services.AddDeliveryClient(configuration, "MyDeliverySection");         // or a differently-named section
-services.AddDeliveryClient(configuration.GetSection("DeliveryOptions"));// or the section itself
+services.AddDeliveryClient(delivery => delivery.Options.BindConfiguration("DeliveryOptions"));        // in a host, from the container's IConfiguration
+services.AddDeliveryClient(delivery => delivery.Options.Bind(configuration.GetSection("MyDeliverySection"))); // or a section you hold
 ```
 
 The default section name is available as `DeliveryOptions.DefaultConfigurationSectionName`, so tooling
 that resolves the SDK's configuration from the same sources does not have to hard-code it.
 
-Binding this way is change-token backed: edits to the underlying source are picked up through
-`IOptionsMonitor<DeliveryOptions>` without rebuilding the container. All configuration overloads accept
-the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones, so
-binding from configuration and customizing the pipeline are not mutually exclusive:
+`Options` is the client's `OptionsBuilder<DeliveryOptions>`, so everything the options system offers is
+there: `Configure`, `Configure<TDependency>`, `Bind`, `BindConfiguration`, `PostConfigure`, `Validate`.
+Binding is change-token backed: edits to the underlying source are picked up through
+`IOptionsMonitor<DeliveryOptions>` without rebuilding the container. Binding from configuration and
+customizing the pipeline are two steps on the same builder:
 
 ```csharp
-services.AddDeliveryClient(
-    configuration,
-    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.BindConfiguration("DeliveryOptions");
+    delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+});
 ```
 
 #### Registration from Other DI Services
 
-Use the `IServiceProvider` overload when Delivery options need values from other registered services:
+Use `Options.Configure<IServiceProvider>` when Delivery options need values from other registered services:
 
 ```csharp
 services.Configure<SiteOptions>(configuration.GetSection("Site"));
 
-services.AddDeliveryClient((sp, options) =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure<IServiceProvider>((options, sp) =>
 {
     var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
     options.EnvironmentId = site.EnvironmentId;
-});
+}));
 ```
 
-#### Using the Builder Pattern
+The callback must not resolve `IDeliveryClient`, `IOptions<DeliveryOptions>` or anything that depends on
+them: doing so re-enters the options factory, and the container recurses without bound.
+
+#### API Mode Helpers
+
+The members that set more than one property come as extension methods on `DeliveryOptions`, usable inside
+`Configure` and on any instance:
 
 ```csharp
-services.AddDeliveryClient(builder =>
-    builder.WithEnvironmentId("your-environment-id")
-           .UseProductionApi()
-           .Build());
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.UsePreviewApi("your-preview-api-key");   // or UseProductionApi(), UseProductionApi(secureAccessApiKey), UseCustomEndpoint(url)
+}));
 ```
 
 #### Source-Generated Type Provider (Recommended)
@@ -169,89 +178,81 @@ When you use the `[ContentTypeCodename]` attribute on your model classes (see [G
 
 ```csharp
 // Just register the delivery client - type provider is auto-discovered
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 ```
 
 The auto-discovery searches the entry assembly and its references for the generated provider.
 
 For predictable auto-discovery, keep your attributed models in a single models project that references `Kontent.Ai.Delivery.SourceGeneration`.
-If your models are intentionally split across multiple projects/compilations, register an explicit `ITypeProvider` before `AddDeliveryClient()` (for example one produced by the Kontent.ai model generator tool).
+If your models are intentionally split across multiple projects/compilations, register an explicit `ITypeProvider` yourself (for example one produced by the Kontent.ai model generator tool).
 
 #### Registering a Custom Type Provider
 
-If you need to override the auto-discovered provider or use a custom implementation, register your type provider **before** calling `AddDeliveryClient()`:
+If you need to override the auto-discovered provider or use a custom implementation, register your type provider on the collection - before the client, or on the builder's `Services`:
 
 ```csharp
-// Register a custom type provider first (takes precedence over auto-discovery)
-services.AddSingleton<ITypeProvider, MyCustomTypeProvider>();
-
-// Then register the delivery client
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Services.AddSingleton<ITypeProvider, MyCustomTypeProvider>();
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
 });
 ```
 
-The SDK uses `TryAddSingleton` internally, so your registration takes precedence over the default type provider.
+The SDK registers its default type provider with `TryAddSingleton`, so your registration takes precedence whether it comes before the client or through the builder.
 
 #### Without Dependency Injection
 
-For console applications, scripts, or scenarios where DI is not available, use `DeliveryClientBuilder` directly:
+For console applications, scripts, or scenarios where DI is not available, build the client with
+`DeliveryClient.Create`. It takes the same builder as `AddDeliveryClient` and runs the same registration
+inside a private container the client owns:
 
 ```csharp
-using Kontent.Ai.Delivery.Configuration;
-
 // Simple usage with Production API
-await using var client = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .UseProductionApi()
-        .Build())
-    .Build();
+await using var client = DeliveryClient.Create(delivery => delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id"));
 
 // With Preview API (preview mode bypasses local cache reads/writes)
-await using var previewClient = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .UsePreviewApi("your-preview-api-key")
-        .Build())
-    .Build();
+await using var previewClient = DeliveryClient.Create(delivery => delivery.Options.Configure(o =>
+{
+    o.EnvironmentId = "your-environment-id";
+    o.UsePreviewApi("your-preview-api-key");
+}));
 
 // With Production API and in-memory caching (requires Kontent.Ai.Delivery.Caching package)
-await using var cachedClient = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .UseProductionApi()
-        .Build())
-    .WithMemoryCache(TimeSpan.FromMinutes(30))
-    .Build();
+await using var cachedClient = DeliveryClient.Create(delivery =>
+{
+    delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id");
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(30));
+});
 
 // Or explicitly provide a type provider if needed
-await using var typedClient = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .Build())
-    .WithTypeProvider(new GeneratedTypeProvider())
-    .Build();
+await using var typedClient = DeliveryClient.Create(delivery =>
+{
+    delivery.Services.AddSingleton<ITypeProvider>(new GeneratedTypeProvider());
+    delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id");
+});
+
+// From a pre-built options instance
+await using var fromOptions = DeliveryClient.Create(new DeliveryOptions { EnvironmentId = "your-environment-id" });
 ```
 
-The builder supports:
-- `.WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions>)` - Configure delivery options (environment ID, API mode, etc.)
-- `.WithTypeProvider(ITypeProvider)` - Custom type provider for strongly-typed models
-- `.ConfigureServices(Action<IServiceCollection>)` - General-purpose extensibility point for registering additional services
-- `.WithMemoryCache(TimeSpan?)` - Enable in-memory caching (requires `Kontent.Ai.Delivery.Caching`)
-- `.WithHybridCache(IDistributedCache, TimeSpan?)` - Enable hybrid caching (requires `Kontent.Ai.Delivery.Caching`)
+The builder is one type in both hosting modes:
+- `.Options` - the client's `OptionsBuilder<DeliveryOptions>` (`Configure`, `Bind`, `BindConfiguration`, ...)
+- `.HttpClient` - the named `IHttpClientBuilder` the transport is built on (`ConfigurePrimaryHttpMessageHandler`, `AddHttpMessageHandler`, ...)
+- `.ConfigureResilience(...)` - replaces the default resilience pipeline
+- `.Services` and `.Name` - what anything else attaches to: a custom `ITypeProvider`, an `ILoggerFactory`, the caching package's `UseMemoryCache` / `UseHybridCache` / `UseCacheManager`
 
-`Build()` returns the concrete `DeliveryClient`, which owns the services it was built from — disposing
-it tears those down, which is why the examples use `await using`. Keep the result as `var` (or
+`Create` returns the concrete `DeliveryClient`, which owns the container it was built from - disposing
+it tears that down, which is why the examples use `await using`. Keep the result as `var` (or
 `DeliveryClient`); widening it to `IDeliveryClient` drops the disposal, because the interface
 deliberately does not carry it. A client resolved from a container is owned by the container, so there
-is nothing for you to dispose there.
+is nothing for you to dispose there. `IDeliveryClientFactory` is the other half of that split: it resolves
+named clients from a container you own, while `Create` builds a standalone one over a container it owns.
+Invalid options surface as `OptionsValidationException` from `Create`.
 
-`IDeliveryOptionsBuilder.WithCustomEndpoint(...)` applies the same endpoint to both Production and Preview URLs. In most real deployments these endpoints differ, so if you need both modes with custom domains, register separate clients (for example named clients) and configure each with its corresponding endpoint.
+`UseCustomEndpoint(...)` applies the same endpoint to both Production and Preview URLs. In most real deployments these endpoints differ, so if you need both modes with custom domains, register separate clients (for example named clients) and configure each with its corresponding endpoint.
 
 ### Retrieving Content
 
@@ -807,7 +808,7 @@ When using source generation with `[ContentTypeCodename]` attributes, the SDK au
 
 ```csharp
 // Type provider is auto-discovered from source generation - no manual registration needed
-services.AddDeliveryClient(options => { ... });
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
 
 // Typeless queries return runtime-typed results
 var result = await client.GetItem("on_roasts").ExecuteAsync();
@@ -1253,15 +1254,18 @@ dotnet add package Kontent.Ai.Delivery.Caching
 
 ```csharp
 // Single client scenario
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-services.AddDeliveryMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
 
-// Multi-client scenario - use named clients
-services.AddDeliveryClient("production", options => { ... });
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromHours(1));
+// Multi-client scenario - each named client attaches its own cache
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
+});
 ```
 
 #### Hybrid Cache (Redis, SQL Server, etc.)
@@ -1274,11 +1278,11 @@ services.AddStackExchangeRedisCache(options =>
 });
 
 // Single client scenario
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
 });
-services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
 ```
 
 > [!IMPORTANT]
@@ -1291,7 +1295,11 @@ services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
 > ```csharp
 > services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
 > services.AddFusionCacheStackExchangeRedisBackplane(o => o.Configuration = "localhost:6379");
-> services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
+> services.AddDeliveryClient(delivery =>
+> {
+>     delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+>     delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
+> });
 > ```
 >
 > A single-instance application needs no backplane.
@@ -1303,17 +1311,20 @@ Use the `IServiceProvider` cache overloads when cache settings need to come from
 ```csharp
 services.Configure<SiteOptions>(configuration.GetSection("Site"));
 
-services.AddDeliveryClient("production", (sp, options) =>
+services.AddDeliveryClient("production", delivery =>
 {
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    options.EnvironmentId = site.EnvironmentId;
-});
+    delivery.Options.Configure<IServiceProvider>((options, sp) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        options.EnvironmentId = site.EnvironmentId;
+    });
 
-services.AddDeliveryMemoryCache("production", (sp, options) =>
-{
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    options.DefaultExpiration = site.CacheExpiration;
-    options.IsFailSafeEnabled = true;
+    delivery.UseMemoryCache((sp, options) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        options.DefaultExpiration = site.CacheExpiration;
+        options.IsFailSafeEnabled = true;
+    });
 });
 ```
 
@@ -1338,18 +1349,22 @@ var result = await client.GetItem<Article>("my-article")
 
 **Cache payloads:** The in-memory cache stores hydrated objects for maximum performance. Hybrid caches store raw JSON payloads (rehydrated on read) to avoid serialization issues with circular references.
 
-The built-in cache registrations (`AddDeliveryMemoryCache` / `AddDeliveryHybridCache`) in the `Kontent.Ai.Delivery.Caching` package use [FusionCache](https://github.com/ZiggyCreatures/FusionCache) internally. `InvalidateAsync` now returns `Task<bool>` (`true` on success, `false` on failure) so callers can detect silent invalidation failures — existing fire-and-forget call sites continue to work without changes.
+The built-in caches (`UseMemoryCache` / `UseHybridCache`) in the `Kontent.Ai.Delivery.Caching` package use [FusionCache](https://github.com/ZiggyCreatures/FusionCache) internally. `InvalidateAsync` now returns `Task<bool>` (`true` on success, `false` on failure) so callers can detect silent invalidation failures — existing fire-and-forget call sites continue to work without changes.
 
 > [!NOTE]
-> **Hybrid caching and the in-memory tier:** FusionCache always has an in-memory tier in front of the distributed one. `AddDeliveryHybridCache` uses it, and a backplane is what keeps it in step across instances - without one, an invalidation reaches only the instance that performed it (see the note above). Either way, hybrid entries are stored as raw JSON — FusionCache [uses the same serialized format in both tiers](https://github.com/ZiggyCreatures/FusionCache/issues/321) — so a hit goes through rehydration. For most workloads that cost is negligible; if you need maximum read throughput and a single instance is enough, `AddDeliveryMemoryCache` keeps hydrated objects and skips rehydration entirely.
+> **Hybrid caching and the in-memory tier:** FusionCache always has an in-memory tier in front of the distributed one. `UseHybridCache` uses it, and a backplane is what keeps it in step across instances - without one, an invalidation reaches only the instance that performed it (see the note above). Either way, hybrid entries are stored as raw JSON — FusionCache [uses the same serialized format in both tiers](https://github.com/ZiggyCreatures/FusionCache/issues/321) — so a hit goes through rehydration. For most workloads that cost is negligible; if you need maximum read throughput and a single instance is enough, `UseMemoryCache` keeps hydrated objects and skips rehydration entirely.
 
 To tune the underlying FusionCache instance, use `ConfigureFusionCache`:
 
 ```csharp
-services.AddDeliveryMemoryCache("production", opts =>
+services.AddDeliveryClient("production", delivery =>
 {
-    opts.DefaultExpiration = TimeSpan.FromMinutes(30);
-    opts.ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = 0.8f);
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(opts =>
+    {
+        opts.DefaultExpiration = TimeSpan.FromMinutes(30);
+        opts.ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = 0.8f);
+    });
 });
 ```
 
@@ -1361,15 +1376,18 @@ directly only if you are configuring the cache from somewhere that cannot see th
 
 If you implement a custom cache manager that stores raw payloads (typical for distributed caches), override the `StorageMode` property to return `CacheStorageMode.RawJson` so the SDK uses the raw JSON caching path.
 
-Register custom cache managers per client using keyed registration:
+Attach a custom cache manager to a client with `UseCacheManager`:
 
 ```csharp
-services.AddDeliveryClient("production", options => { ... });
-services.AddDeliveryCacheManager("production", sp => new CustomHybridCacheManager(
-    sp.GetRequiredService<IDistributedCache>()));
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseCacheManager(sp => new CustomHybridCacheManager(
+        sp.GetRequiredService<IDistributedCache>()));
+});
 ```
 
-If you register multiple cache managers for the same client, the last registration wins.
+If you attach more than one cache to the same client, the last one wins.
 
 #### Detecting Cache Hits
 
@@ -1493,12 +1511,12 @@ The Preview API allows you to retrieve unpublished content for preview purposes.
 #### Enable Preview API
 
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.UsePreviewApi = true;
     options.PreviewApiKey = "your-preview-api-key";
-});
+}));
 ```
 
 When `UsePreviewApi` is enabled, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered. This keeps preview responses fresh by default.
@@ -1508,18 +1526,18 @@ When `UsePreviewApi` is enabled, the SDK always bypasses local cache reads/write
 You can configure named clients for different environments:
 
 ```csharp
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.UsePreviewApi = false;
-});
+}));
 
-services.AddDeliveryClient("preview", options =>
+services.AddDeliveryClient("preview", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.UsePreviewApi = true;
     options.PreviewApiKey = "your-preview-api-key";
-});
+}));
 
 // Inject factory and get appropriate client
 var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
@@ -1567,11 +1585,11 @@ if (result.IsSuccess)
 Configure a default rendition preset to use across all asset URLs:
 
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.DefaultRenditionPreset = "web";  // Apply "web" preset to all assets
-});
+}));
 ```
 
 When set, all asset URLs returned by the SDK will automatically include the specified rendition preset's transformations.
@@ -1587,20 +1605,11 @@ If you serve assets through a custom CDN or domain (e.g. for branding, geo-routi
 #### Configuration
 
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
     options.CustomAssetDomain = "https://assets.example.com";
-});
-```
-
-Or with the builder:
-
-```csharp
-services.AddDeliveryClient(builder =>
-    builder.WithEnvironmentId("your-environment-id")
-           .WithCustomAssetDomain("https://assets.example.com")
-           .Build());
+}));
 ```
 
 When set, all asset URLs returned by the SDK are rewritten from the default Kontent.ai host (e.g. `https://assets-eu-01.kc-usercontent.com/...`) to your custom domain (e.g. `https://assets.example.com/...`). This applies to:
@@ -1751,7 +1760,7 @@ var optimizedHero = new ImageUrlBuilder(imageUrl)
 The `DeliveryOptions` class provides comprehensive configuration:
 
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     // Required: Your Kontent.ai environment ID
     options.EnvironmentId = "your-environment-id";
@@ -1776,31 +1785,26 @@ services.AddDeliveryClient(options =>
     // Custom endpoints (for proxy scenarios, set independently)
     options.ProductionEndpoint = "https://deliver.kontent.ai";
     options.PreviewEndpoint = "https://preview-deliver.kontent.ai";
-});
+}));
 ```
 
-If you configure options with `IDeliveryOptionsBuilder`, `WithCustomEndpoint(...)` is a convenience method that sets both endpoints to the same URL. For distinct preview/production custom domains, configure separate clients and set endpoints per client.
+`options.UseCustomEndpoint(...)` is a convenience method that sets both endpoints to the same URL. For distinct preview/production custom domains, configure separate clients and set endpoints per client.
 
-You can also configure HTTP client behavior:
+The HTTP client and the resilience pipeline are configured on the same builder. `HttpClient` is the
+named `IHttpClientBuilder` the transport is built on, so every `Microsoft.Extensions.Http` extension
+applies, and whatever you configure there runs after the SDK's own setup:
 
 ```csharp
-services.AddDeliveryClient(
-	buildDeliveryOptions: builder => builder.WithEnvironmentId("your-environment-id").Build(),
-    configureHttpClient: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.HttpClient.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(60));
+    delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions
     {
-        builder.ConfigureHttpClient(client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(60);
-        });
-    },
-    configureResilience: builder =>
-    {
-        builder.AddRetry(new HttpRetryStrategyOptions
-        {
-            MaxRetryAttempts = 5,
-            Delay = TimeSpan.FromSeconds(2)
-        });
-    });
+        MaxRetryAttempts = 5,
+        Delay = TimeSpan.FromSeconds(2)
+    }));
+});
 ```
 
 ### Timeouts
@@ -1818,11 +1822,11 @@ so the call runs as long as its retries need; with `EnableResilience = false` or
 Set it and it always wins, whatever the pipeline:
 
 ```csharp
-services.AddDeliveryClient(o =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(o =>
 {
     o.EnvironmentId = "your-environment-id";
     o.Timeout = TimeSpan.FromMinutes(5);
-});
+}));
 ```
 
 `Timeout.InfiniteTimeSpan` removes the ceiling outright. Note that it outranks `Retry-After`: when the API

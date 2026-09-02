@@ -1,4 +1,6 @@
 using Kontent.Ai.Delivery;
+using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
 using Kontent.Ai.ModelGenerator.Core;
 using Kontent.Ai.ModelGenerator.Core.Common;
@@ -72,7 +74,10 @@ internal static class Program
 
     private static Type ConfigureDeliveryMode(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDeliveryClient(configuration);
+        // The options-instance overload is the one registration form the published package and the in-repo
+        // project share, which keeps this tool compiling on both build legs across a Delivery major.
+        var deliveryOptions = configuration.GetSection(DeliveryOptions.DefaultConfigurationSectionName).Get<DeliveryOptions>() ?? new DeliveryOptions();
+        services.AddDeliveryClient(deliveryOptions);
         services.AddTransient<IOutputProvider, FileSystemOutputProvider>();
         services.AddSingleton<IUserMessageLogger, UserMessageLogger>();
         services.AddSingleton<IClassCodeGeneratorFactory, ClassCodeGeneratorFactory>();
@@ -85,7 +90,8 @@ internal static class Program
         // Binds the "ManagementOptions" configuration section (the CLI maps --environmentid / --apikey
         // onto ManagementOptions:EnvironmentId / ManagementOptions:ApiKey) and registers IManagementClient,
         // mirroring AddDeliveryClient. The container owns the client's HttpClient lifetime.
-        services.AddManagementClient(configuration);
+        var managementOptions = configuration.GetSection(ManagementOptions.DefaultConfigurationSectionName).Get<ManagementOptions>() ?? new ManagementOptions();
+        services.AddManagementClient(managementOptions);
 
         services.AddTransient<IOutputProvider, FileSystemOutputProvider>();
         services.AddSingleton<IUserMessageLogger, UserMessageLogger>();

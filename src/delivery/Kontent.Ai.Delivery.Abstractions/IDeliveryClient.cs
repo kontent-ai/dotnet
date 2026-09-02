@@ -13,8 +13,8 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// </para>
 /// <para>
 /// This contract carries no disposal. A client resolved from a container is owned by the container,
-/// which releases it; a client from <c>DeliveryClientBuilder</c> owns the services it was built from
-/// and is returned as the concrete <c>DeliveryClient</c>, which is disposable.
+/// which releases it; a client from <c>DeliveryClient.Create</c> owns the private container it was
+/// built from and is returned as the concrete <c>DeliveryClient</c>, which is disposable.
 /// </para>
 /// </remarks>
 public interface IDeliveryClient

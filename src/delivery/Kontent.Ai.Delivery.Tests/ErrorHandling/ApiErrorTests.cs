@@ -19,7 +19,7 @@ public sealed class ApiErrorTests
     {
         var services = new ServiceCollection();
         var options = new DeliveryOptions { EnvironmentId = _guid.ToString() };
-        services.AddDeliveryClient(options, configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 

@@ -44,7 +44,7 @@ Dynamic item/list builders (`DynamicItemQuery`, `DynamicItemsQuery`) are impleme
 **Core Principles:**
 - **DI-First**: All components designed for dependency injection
 - **Type Safety**: Leverages OneOf, records, and generic types
-- **Configuration**: Uses fluent builders (`DeliveryOptionsBuilder`) for type-safe configuration
+- **Configuration**: One builder per client (`IDeliveryClientBuilder`) exposing `OptionsBuilder<DeliveryOptions>` for type-safe configuration
 - **Async**: Proper async/await throughout, no sync-over-async
 - **Testability**: Interface-based design enables easy mocking
 
@@ -373,10 +373,10 @@ services.AddLogging(logging =>
     logging.AddFilter("Kontent.Ai.Delivery", LogLevel.Debug);
 });
 
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 
 var provider = services.BuildServiceProvider();
 ```
@@ -671,48 +671,52 @@ public sealed class HtmlResolver : IHtmlResolver
 
 ## Builder Patterns
 
-### DeliveryOptionsBuilder
+### IDeliveryClientBuilder
 
-**Location**: `Kontent.Ai.Delivery/Configuration/DeliveryOptionsBuilder.cs`
+**Location**: `Kontent.Ai.Delivery/IDeliveryClientBuilder.cs` (interface), `Kontent.Ai.Delivery/Configuration/DeliveryClientBuilder.cs` (implementation)
 
-Fluent API for configuration:
+One builder per registered client. It is handed to the `AddDeliveryClient` callback and to `DeliveryClient.Create`, and it exposes the container primitives rather than wrapping them:
 
 ```csharp
-public class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
+public interface IDeliveryClientBuilder
 {
-    private DeliveryOptions _options = new();
+    string Name { get; }
+    IServiceCollection Services { get; }
+    OptionsBuilder<DeliveryOptions> Options { get; }
+    IHttpClientBuilder HttpClient { get; }
+    IDeliveryClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure);
+}
+```
 
-    public IDeliveryOptionsBuilder WithEnvironmentId(string environmentId)
-    {
-        _options.EnvironmentId = environmentId;
-        return this;
-    }
+`Options` is the standard `OptionsBuilder<T>`, so `Configure`, `Configure<IServiceProvider>`, `Bind`, `BindConfiguration` and `Validate` all work as they do for any other options type. `HttpClient` is the `IHttpClientBuilder` of the client's named `HttpClient`. `Services` lets the callback register anything else the client needs — a type provider, a cache manager, logging.
 
-    public IDeliveryOptionsBuilder UsePreviewApi(string previewApiKey)
-    {
-        _options.UsePreviewApi = true;
-        _options.PreviewApiKey = previewApiKey;
-        _options.UseSecureAccess = false;
-        return this;
-    }
+The implementation is a thin subclass of the shared `ClientBuilder<TOptions>` from `src/common/Clients`, which Sync and Management subclass in the same way.
 
-    public IDeliveryOptionsBuilder UseProductionApi(string? secureAccessApiKey = null)
-    {
-        _options.UsePreviewApi = false;
-        _options.UseSecureAccess = secureAccessApiKey != null;
-        _options.SecureAccessApiKey = secureAccessApiKey;
-        return this;
-    }
+### DeliveryOptions Extensions
 
-    public DeliveryOptions Build() => _options;
+**Location**: `Kontent.Ai.Delivery.Abstractions/Extensions/DeliveryOptionsExtensions.cs`
+
+The API-mode helpers live on `DeliveryOptions` itself and return the instance for chaining:
+
+```csharp
+public static class DeliveryOptionsExtensions
+{
+    public static DeliveryOptions UseProductionApi(this DeliveryOptions options) { ... }
+    public static DeliveryOptions UseProductionApi(this DeliveryOptions options, string secureAccessApiKey) { ... }
+    public static DeliveryOptions UsePreviewApi(this DeliveryOptions options, string previewApiKey) { ... }
+    public static DeliveryOptions UseCustomEndpoint(this DeliveryOptions options, string endpoint) { ... }
+    public static DeliveryOptions UseCustomEndpoint(this DeliveryOptions options, Uri endpoint) { ... }
 }
 
 // Usage:
-var options = DeliveryOptionsBuilder.CreateInstance()
-    .WithEnvironmentId("...")
-    .UsePreviewApi("preview-key")
-    .Build();
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "...";
+    options.UsePreviewApi("preview-key");
+}));
 ```
+
+Each helper sets the whole group of related flags (`UsePreviewApi`, `UseSecureAccess`, the matching key) so the options never end up half-switched.
 
 ### HtmlResolverBuilder
 
@@ -788,79 +792,67 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
 public static IServiceCollection AddDeliveryClient(
     this IServiceCollection services,
     string name,
-    Action<DeliveryOptions> configureOptions,
-    Action<IHttpClientBuilder>? configureHttpClient = null,
-    Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    Action<IDeliveryClientBuilder> configure)
 {
-    // 1. Validate uniqueness
-    if (services.Any(d => d.ServiceType == typeof(IDeliveryClient) && Equals(d.ServiceKey, name)))
-        throw new InvalidOperationException($"Client '{name}' already registered.");
+    // 1. Shared: validate the name, refuse a duplicate, register named options with
+    //    data-annotation validation (and the unnamed IOptions<DeliveryOptions> mirror for the default client)
+    var builder = ClientRegistration.AddClient<DeliveryOptions, IDeliveryClient, DeliveryClientBuilder>(
+        services, name, "delivery client", GetHttpClientName(name),
+        static (name, services, options) => new DeliveryClientBuilder(name, services, options));
 
-    // 2. Register named options
-    services.Configure<DeliveryOptions>(name, configureOptions);
-    services.AddOptions<DeliveryOptions>(name)
-        .ValidateDataAnnotations()
-        .ValidateOnStart();
+    // 2. Register core dependencies (singleton, only once) and the per-client options accessor
+    var sharedJsonOptions = GetOrCreateSharedJsonOptions(services);
+    RegisterDependencies(services, sharedJsonOptions);
+    services.AddKeyedSingleton<IOptionsAccessor<DeliveryOptions>>(name, (sp, _) =>
+        new MonitorBackedOptionsAccessor<DeliveryOptions>(sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>(), name));
 
-    // 3. Register core dependencies (singleton, only once)
-    RegisterDependencies(services);
+    // 3. Shared: the named HttpClient, Refit client and handler chain
+    builder.HttpClient = ClientRegistration.AddTransport<DeliveryOptions, IDeliveryApi>(
+        builder, Transport(name), CreateRefitSettings(sharedJsonOptions));
 
-    // 4. Register named HTTP client with Refit
-    RegisterNamedHttpClient(services, name, configureHttpClient, configureResilience);
+    // 4. Shared: keyed IDeliveryClient, the factory, and the unkeyed alias for the default client
+    ClientRegistration.AddClientServices<IDeliveryClient, IDeliveryClientFactory, DeliveryClientFactory>(
+        services, name, CreateDeliveryClient);
 
-    // 5. Register keyed IDeliveryClient (.NET 8+)
-    services.AddKeyedSingleton<IDeliveryClient>(name, (sp, key) =>
-    {
-        var clientName = (string)key;
-
-        var api = sp.GetRequiredKeyedService<IDeliveryApi>(clientName);
-        var contentItemMapper = sp.GetRequiredService<ContentItemMapper>();
-        var contentDeserializer = sp.GetRequiredService<ContentDeserializer>();
-        var typeProvider = sp.GetRequiredService<ITypeProvider>();
-        var cacheManager = sp.GetKeyedService<IDeliveryCacheManager>(clientName);
-        var optionsMonitor = sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
-
-        return new DeliveryClient(
-            api,
-            contentItemMapper,
-            contentDeserializer,
-            typeProvider,
-            cacheManager,
-            logger: null,
-            optionsMonitor,
-            clientName);
-    });
-
+    // 5. Only now does the caller's callback run - it sees a fully wired builder
+    configure(builder);
     return services;
 }
 ```
 
+The other two overloads are thin: `AddDeliveryClient(Action<IDeliveryClientBuilder>)` forwards to the default name, and `AddDeliveryClient(DeliveryOptions, Action<IDeliveryClientBuilder>?)` copies the instance onto the named options with `DeliveryOptions.CopyTo` before running the optional callback.
+
+`CreateDeliveryClient(IServiceProvider, string, IDisposable?)` resolves the keyed `IDeliveryApi`, the mappers, the type provider, the keyed cache manager (if any) and the logger, and constructs the client. `DeliveryClient.Create` runs the same `AddDeliveryClient` in a private `ServiceCollection`, builds the provider with `ValidateOnBuild`, and passes that provider as the client's `ownedResources` — so both entry points construct through one path and disposing a standalone client tears down its container.
+
 Cache manager resolution is keyed-only. Unkeyed `IDeliveryCacheManager` registrations are ignored by `DeliveryClient` creation.
-For built-in caching, use `AddDeliveryMemoryCache` / `AddDeliveryHybridCache` from the `Kontent.Ai.Delivery.Caching` package. For custom cache implementations, use `AddDeliveryCacheManager(clientName, factory)` to register per client.
+For built-in caching, use `UseMemoryCache` / `UseHybridCache` on the builder from the `Kontent.Ai.Delivery.Caching` package. For custom cache implementations, `UseCacheManager(sp => ...)` registers the keyed manager for that client.
 Preview cache bypass is enforced by `DeliveryClient` itself (`UsePreviewApi = true` => no cache read/write for that client), not by a cache-manager decorator.
 
 ### Composing Options with `IServiceProvider`
 
-All configure-callback overloads — `AddDeliveryClient`, `AddDeliveryMemoryCache`, `AddDeliveryHybridCache`, and the fluent `WithMemoryCache` / `WithHybridCache` — have a paired overload whose callback takes `IServiceProvider` alongside the options instance. Use this shape when an option value must be read from another service registered in the container, e.g. sibling options bound via `IOptions<T>`.
+`Options` is an `OptionsBuilder<DeliveryOptions>`, so `Configure<IServiceProvider>` is available for values that must be read from another registered service, e.g. sibling options bound via `IOptions<T>`. The caching package's `UseMemoryCache` / `UseHybridCache` have a matching `(IServiceProvider, DeliveryCacheOptions)` overload.
 
 ```csharp
 services.Configure<SiteOptions>(configuration.GetSection("Site"));
 
-services.AddDeliveryClient("production", (sp, opts) =>
+services.AddDeliveryClient("production", delivery =>
 {
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    opts.EnvironmentId = site.EnvironmentId;
-});
+    delivery.Options.Configure<IServiceProvider>((opts, sp) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        opts.EnvironmentId = site.EnvironmentId;
+    });
 
-services.AddDeliveryMemoryCache("production", (sp, opts) =>
-{
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    opts.DefaultExpiration = TimeSpan.FromSeconds(site.CacheExpirationSeconds);
-    opts.IsFailSafeEnabled = true;
+    delivery.UseMemoryCache((sp, opts) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        opts.DefaultExpiration = TimeSpan.FromSeconds(site.CacheExpirationSeconds);
+        opts.IsFailSafeEnabled = true;
+    });
 });
 ```
 
-Timing: for `AddDeliveryClient`, the callback runs when `IOptions<DeliveryOptions>` is first resolved (via `OptionsBuilder.Configure<IServiceProvider>`). For the cache overloads, the callback runs the first time the keyed singleton `IDeliveryCacheManager` is resolved from the root provider. Resolve only singleton-safe dependencies from cache callbacks, such as `IOptions<T>` or `IOptionsMonitor<T>`; do not depend on scoped/request services such as `IOptionsSnapshot<T>`. Validation of `DeliveryCacheOptions` is deferred to resolution time for the `(sp, opts)` cache overloads, whereas the plain `Action<DeliveryCacheOptions>` cache overloads validate eagerly at registration — use the plain overload if you need registration-time failure.
+Timing: the options callback runs when the named `DeliveryOptions` are first materialized by the options factory. The cache callback runs the first time the keyed singleton `IDeliveryCacheManager` is resolved from the root provider. Resolve only singleton-safe dependencies from either, such as `IOptions<T>` or `IOptionsMonitor<T>`; do not depend on scoped/request services such as `IOptionsSnapshot<T>`. Never resolve `IDeliveryClient` or `IOptions<DeliveryOptions>` from the options callback — that re-enters the options factory and the container recurses without bound. Validation of `DeliveryCacheOptions` is deferred to resolution time for the `(sp, opts)` cache overloads, whereas the plain `Action<DeliveryCacheOptions>` cache overloads validate eagerly at registration — use the plain overload if you need registration-time failure.
 
 ### Core Dependencies Registration
 
@@ -890,51 +882,40 @@ Rich text envelope JSON parsing is shared in `RichTextElementEnvelopeReader`, us
 
 ### HTTP Client Registration
 
+**Location**: `Kontent.Ai.Delivery/Extensions/ServiceCollectionExtensions.HttpClient.cs` and `src/common/Clients/ClientRegistration.cs`
+
+Delivery describes its transport as a `TransportRecipe<DeliveryOptions>` and the shared `ClientRegistration.AddTransport` assembles it:
+
 ```csharp
-private static void RegisterNamedHttpClient(
-    IServiceCollection services,
-    string name,
-    Action<IHttpClientBuilder>? configureHttpClient,
-    Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-{
-    var httpClientBuilder = services
-        .AddRefitClient<IDeliveryApi>(RefitSettingsProvider.CreateDefaultSettings())
-        .ConfigureHttpClient(client =>
-        {
-            // Base URL will be rewritten by DeliveryAuthenticationHandler
-            client.BaseAddress = new Uri("https://deliver.kontent.ai");
-        });
-
-    // Add handlers in order (outermost to innermost)
-    if (configureResilience != null)
+private static TransportRecipe<DeliveryOptions> Transport(string name) => new(
+    HttpClientName: GetHttpClientName(name),
+    ResilienceHandlerName: $"delivery_{name}",
+    // Read once, when the HTTP client is created; the authentication handler rewrites the host per request
+    BaseAddress: options => new Uri(options.GetBaseUrl(), UriKind.Absolute),
+    ResilienceEnabled: options => options.EnableResilience,
+    Ceiling: (options, defaultPipeline, fallback) =>
+        HttpClientTimeouts.Resolve(options.Timeout, options.EnableResilience && defaultPipeline, fallback),
+    DefaultPipeline: DefaultResilience.ConfigureReadPipeline,
+    AddHandlers: httpClient =>
     {
-        httpClientBuilder.AddResilienceHandler("delivery-resilience", configureResilience);
-    }
-    else
-    {
-        httpClientBuilder.AddResilienceHandler("delivery-resilience", ConfigureDefaultResilience);
-    }
-
-    httpClientBuilder.AddHttpMessageHandler<TrackingHandler>();
-    httpClientBuilder.AddHttpMessageHandler(sp =>
-    {
-        var monitor = sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>();
-        return new DeliveryAuthenticationHandler(monitor, name);
+        // After the resilience handler, so it re-runs on every retry attempt (it is idempotent)
+        httpClient.AddHttpMessageHandler(static () => new FilterQueryHandler());
+        httpClient.AddHttpMessageHandler(sp => new TrackingHandler(sp.GetService<ILogger<TrackingHandler>>()));
+        httpClient.AddHttpMessageHandler(sp => new DeliveryAuthenticationHandler(
+            sp.GetRequiredKeyedService<IOptionsAccessor<DeliveryOptions>>(name),
+            sp.GetService<ILogger<DeliveryAuthenticationHandler>>()));
     });
-
-    // Allow user customization
-    configureHttpClient?.Invoke(httpClientBuilder);
-
-    // Register keyed Refit interface
-    services.AddKeyedSingleton(name, (sp, _) =>
-    {
-        var factory = sp.GetRequiredService<IHttpClientFactory>();
-        var httpClient = factory.CreateClient(name);
-        var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
-        return RestService.For<IDeliveryApi>(httpClient, refitSettings);
-    });
-}
 ```
+
+`AddTransport` then, in order:
+
+1. Registers the keyed Refit client with `AddKeyedRefitGeneratedClient<IDeliveryApi>(name, refitSettings, httpClientName)` — the source-generated registration; the SDK does not reference `Refit.Reflection`.
+2. Configures the named `HttpClient`'s `BaseAddress` and timeout ceiling from the named `DeliveryOptions`.
+3. Adds the options-gated resilience handler — the caller's `ConfigureResilience` pipeline if one was set, otherwise the read-side default — which is skipped entirely when `EnableResilience` is false.
+4. Runs the recipe's `AddHandlers` (filter query → tracking → authentication).
+5. Applies the shared connection-recycling defaults to the primary handler.
+
+The returned `IHttpClientBuilder` becomes `IDeliveryClientBuilder.HttpClient`, so anything the caller adds through it — `ConfigureHttpClient`, `AddHttpMessageHandler` — lands after the SDK's chain and runs last before the primary handler.
 
 ## Type System & Deserialization
 
@@ -1112,7 +1093,7 @@ public async Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> Execute
 
 ### 1. Configuration via Builders
 
-Configuration uses fluent builders for type-safe setup:
+Configuration is a plain options class plus chainable helpers:
 
 ```csharp
 // DeliveryOptions is a mutable configuration class with validation
@@ -1124,11 +1105,9 @@ public sealed class DeliveryOptions : IValidatableObject
     // ... other properties with data annotations for validation
 }
 
-// Use DeliveryOptionsBuilder for fluent configuration
-var options = DeliveryOptionsBuilder.CreateInstance()
-    .WithEnvironmentId("your-env-id")
-    .UsePreviewApi("your-preview-key")
-    .Build();
+// The API-mode helpers keep related flags consistent
+var options = new DeliveryOptions { EnvironmentId = "your-env-id" }
+    .UsePreviewApi("your-preview-key");
 ```
 
 ### 2. Result Type Pattern
@@ -1231,10 +1210,10 @@ public async Task GetItem_WithValidCodename_ReturnsItem()
         .Respond("application/json", _fixtureJson);
 
     var services = new ServiceCollection();
-    services.AddDeliveryClient(options =>
+    services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
     {
         options.EnvironmentId = "test-env";
-    });
+    }));
     services.AddSingleton(mockHttp.ToHttpClient());
 
     var client = services.BuildServiceProvider()

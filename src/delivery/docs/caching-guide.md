@@ -92,13 +92,17 @@ Built-in hybrid cache invalidation uses dependency tags through [FusionCache](ht
 ```csharp
 services.AddStackExchangeRedisCache(o => o.Configuration = "localhost:6379");
 services.AddFusionCacheStackExchangeRedisBackplane(o => o.Configuration = "localhost:6379");
-services.AddDeliveryHybridCache();
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseHybridCache();
+});
 ```
 
 Without one, part of the invalidation state stays local to each instance, so whether a node observes another's `InvalidateAsync` depends on the order the two read and invalidated in — a node can go on serving content that was already evicted, until the entry expires by itself. A single-instance application needs no backplane.
 
 > [!NOTE]
-> **FusionCache hybrid mode limitation:** When using hybrid caching, FusionCache operates in hybrid (L1+L2) mode but [currently stores the same serialized format in both layers](https://github.com/ZiggyCreatures/FusionCache/issues/321). This means the L1 memory layer also holds raw JSON rather than hydrated objects, so every cache hit goes through rehydration. For most workloads the rehydration cost is negligible. If your scenario demands maximum read throughput, use `AddDeliveryMemoryCache` (pure L1, hydrated objects, no rehydration overhead).
+> **FusionCache hybrid mode limitation:** When using hybrid caching, FusionCache operates in hybrid (L1+L2) mode but [currently stores the same serialized format in both layers](https://github.com/ZiggyCreatures/FusionCache/issues/321). This means the L1 memory layer also holds raw JSON rather than hydrated objects, so every cache hit goes through rehydration. For most workloads the rehydration cost is negligible. If your scenario demands maximum read throughput, use `UseMemoryCache` (pure L1, hydrated objects, no rehydration overhead).
 
 **Cons:**
 - Network latency (still faster than API calls)
@@ -119,7 +123,7 @@ Caching is provided by the standalone `Kontent.Ai.Delivery.Caching` package:
 dotnet add package Kontent.Ai.Delivery.Caching
 ```
 
-This package provides `AddDeliveryMemoryCache`, `AddDeliveryHybridCache`, `AddDeliveryCacheManager` DI extension methods and `DeliveryClientBuilder.WithMemoryCache()` / `.WithHybridCache()` extension methods. All are [FusionCache](https://github.com/ZiggyCreatures/FusionCache)-backed while keeping the same public `IDeliveryCacheManager` contract.
+This package adds `UseMemoryCache`, `UseHybridCache` and `UseCacheManager` to `IDeliveryClientBuilder`, so a client's cache is configured in the same `AddDeliveryClient` (or `DeliveryClient.Create`) callback as its options. All are [FusionCache](https://github.com/ZiggyCreatures/FusionCache)-backed while keeping the same public `IDeliveryCacheManager` contract.
 
 ### Memory Cache Setup
 
@@ -132,11 +136,14 @@ using Microsoft.Extensions.DependencyInjection;
 var services = new ServiceCollection();
 
 // Single client scenario - no name required
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-services.AddDeliveryMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
 
 var serviceProvider = services.BuildServiceProvider();
 ```
@@ -146,12 +153,14 @@ var serviceProvider = services.BuildServiceProvider();
 For multi-client scenarios, use named clients:
 
 ```csharp
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(30));
 });
-
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromMinutes(30));
 ```
 
 #### Advanced Memory Cache Configuration
@@ -163,12 +172,14 @@ services.AddMemoryCache(options =>
     options.CompactionPercentage = 0.25;  // Remove 25% when limit hit
 });
 
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromHours(1));
 ```
 
 ### Hybrid Cache Setup
@@ -186,15 +197,21 @@ services.AddStackExchangeRedisCache(options =>
 });
 
 // Single client scenario
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
 });
-services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
 
 // Or with named clients for multi-client scenarios:
-// services.AddDeliveryClient("production", options => { ... });
-// services.AddDeliveryHybridCache("production", defaultExpiration: TimeSpan.FromHours(2));
+// services.AddDeliveryClient("production", delivery =>
+// {
+//     delivery.Options.Configure(options => { ... });
+//     delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
+// });
 ```
 
 #### Redis with Connection Multiplexer
@@ -216,12 +233,14 @@ services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Kontent_";
 });
 
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
 });
-
-services.AddDeliveryHybridCache("production", defaultExpiration: TimeSpan.FromHours(4));
 ```
 
 #### SQL Server Distributed Cache
@@ -234,12 +253,14 @@ services.AddDistributedSqlServerCache(options =>
     options.TableName = "KontentCache";
 });
 
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-
-services.AddDeliveryHybridCache("production", defaultExpiration: TimeSpan.FromHours(1));
 ```
 
 #### Azure Cache for Redis
@@ -251,12 +272,14 @@ services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Production_Kontent_";
 });
 
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(6));
 });
-
-services.AddDeliveryHybridCache("production", defaultExpiration: TimeSpan.FromHours(6));
 ```
 
 ### Configuring Cache Options from DI Services
@@ -266,17 +289,19 @@ Use the `IServiceProvider` cache overloads when cache settings need to be compos
 ```csharp
 services.Configure<SiteOptions>(configuration.GetSection("Site"));
 
-services.AddDeliveryClient("production", (sp, options) =>
+services.AddDeliveryClient("production", delivery =>
 {
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    options.EnvironmentId = site.EnvironmentId;
-});
-
-services.AddDeliveryMemoryCache("production", (sp, options) =>
-{
-    var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
-    options.DefaultExpiration = site.CacheExpiration;
-    options.IsFailSafeEnabled = true;
+    delivery.Options.Configure<IServiceProvider>((options, sp) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        options.EnvironmentId = site.EnvironmentId;
+    });
+    delivery.UseMemoryCache((sp, options) =>
+    {
+        var site = sp.GetRequiredService<IOptions<SiteOptions>>().Value;
+        options.DefaultExpiration = site.CacheExpiration;
+        options.IsFailSafeEnabled = true;
+    });
 });
 ```
 
@@ -370,12 +395,14 @@ public class CustomHybridCacheManager : IDeliveryCacheManager
 }
 
 // Registration
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseCacheManager(sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
 });
-services.AddDeliveryCacheManager("production",
-    sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
 ```
 
 ## How Caching Works
@@ -465,27 +492,41 @@ When queries include filters, they are hashed using SHA256 (first 12 characters 
 
 **Default (single-client) scenario:**
 ```csharp
-services.AddDeliveryClient(o => o.EnvironmentId = "...");
-services.AddDeliveryMemoryCache();
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(o => o.EnvironmentId = "...");
+    delivery.UseMemoryCache();
+});
 // Keys have NO prefix: item:homepage, items:skip=0:limit=10, etc.
 ```
 
 **Named clients (multi-client scenario):**
 ```csharp
-services.AddDeliveryClient("production", o => o.EnvironmentId = "...");
-services.AddDeliveryMemoryCache("production");
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(o => o.EnvironmentId = "...");
+    delivery.UseMemoryCache();
+});
 // Keys are prefixed with client name: production:item:homepage, etc.
 ```
 
 **Custom prefix:**
 ```csharp
-services.AddDeliveryMemoryCache("production", keyPrefix: "prod");
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(o => o.EnvironmentId = "...");
+    delivery.UseMemoryCache(o => o.KeyPrefix = "prod");
+});
 // Keys become: prod:item:homepage, prod:items:skip=0:limit=10, etc.
 ```
 
 **No prefix (explicit):**
 ```csharp
-services.AddDeliveryMemoryCache("production", keyPrefix: "");
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(o => o.EnvironmentId = "...");
+    delivery.UseMemoryCache(o => o.KeyPrefix = "");
+});
 // Keys have no prefix even for named clients
 ```
 
@@ -550,8 +591,11 @@ Dependency keys are always available — they are collected regardless of whethe
 Cache entries expire after a fixed duration:
 
 ```csharp
-services.AddDeliveryClient("production", options => { ... });
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromHours(2));
+services.AddDeliveryClient("production", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
+});
 ```
 
 #### Sliding Expiration
@@ -875,26 +919,29 @@ The SDK supports per-client cache configuration using keyed services, allowing d
 
 ### Enabling Caching for Named Clients
 
-Use `AddDeliveryMemoryCache`, `AddDeliveryHybridCache`, or `AddDeliveryCacheManager` to enable caching for specific named clients:
+Call `UseMemoryCache`, `UseHybridCache`, or `UseCacheManager` inside the registration of the client that should cache; clients registered without one stay uncached:
 
 ```csharp
-// Register named clients
-services.AddDeliveryClient("production", options =>
+// Production client: cached
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "production-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "production-environment-id";
+    });
+    delivery.UseMemoryCache(o =>
+    {
+        o.KeyPrefix = "prod";
+        o.DefaultExpiration = TimeSpan.FromHours(1);
+    });
 });
 
-services.AddDeliveryClient("preview", options =>
+services.AddDeliveryClient("preview", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "preview-environment-id";
     options.UsePreviewApi = true;
     options.PreviewApiKey = "your-preview-api-key";
-});
-
-// Enable caching ONLY for production client
-services.AddDeliveryMemoryCache("production",
-    keyPrefix: "prod",
-    defaultExpiration: TimeSpan.FromHours(1));
+}));
 
 // Preview client has no cache - always fetches fresh content
 ```
@@ -905,8 +952,17 @@ When multiple clients share the same underlying cache (e.g., same `IMemoryCache`
 
 ```csharp
 // Both clients share IMemoryCache but have isolated entries
-services.AddDeliveryMemoryCache("client1", keyPrefix: "brand-a");
-services.AddDeliveryMemoryCache("client2", keyPrefix: "brand-b");
+services.AddDeliveryClient("client1", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.KeyPrefix = "brand-a");
+});
+
+services.AddDeliveryClient("client2", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.KeyPrefix = "brand-b");
+});
 ```
 
 Key prefixes are automatically applied to all cache keys and dependency tracking.
@@ -921,15 +977,18 @@ services.AddStackExchangeRedisCache(options =>
 });
 
 // Register client
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "production-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "production-environment-id";
+    });
+    delivery.UseHybridCache(o =>
+    {
+        o.KeyPrefix = "prod";
+        o.DefaultExpiration = TimeSpan.FromHours(2);
+    });
 });
-
-// Enable hybrid caching for the client
-services.AddDeliveryHybridCache("production",
-    keyPrefix: "prod",
-    defaultExpiration: TimeSpan.FromHours(2));
 ```
 
 ## Multi-Tenant Caching
@@ -939,20 +998,24 @@ When serving multiple environments or brands, use per-client caching with distin
 ### Complete Multi-Tenant Example
 
 ```csharp
-// Register tenant clients
-services.AddDeliveryClient("tenant-a", options =>
+// Register tenant clients, each with its own cache
+services.AddDeliveryClient("tenant-a", delivery =>
 {
-    options.EnvironmentId = "tenant-a-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "tenant-a-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.KeyPrefix = "tenant-a");
 });
 
-services.AddDeliveryClient("tenant-b", options =>
+services.AddDeliveryClient("tenant-b", delivery =>
 {
-    options.EnvironmentId = "tenant-b-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "tenant-b-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.KeyPrefix = "tenant-b");
 });
-
-// Configure caching for each tenant (order doesn't matter)
-services.AddDeliveryMemoryCache("tenant-a", keyPrefix: "tenant-a");
-services.AddDeliveryMemoryCache("tenant-b", keyPrefix: "tenant-b");
 
 // Access clients via factory
 var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
@@ -986,22 +1049,30 @@ A common pattern is to cache production content while preview stays fresh. Previ
 
 ```csharp
 // Production: cached for performance
-services.AddDeliveryMemoryCache("production",
-    keyPrefix: "prod",
-    defaultExpiration: TimeSpan.FromHours(2));
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseMemoryCache(o =>
+    {
+        o.KeyPrefix = "prod";
+        o.DefaultExpiration = TimeSpan.FromHours(2);
+    });
 });
 
 // Preview: no caching for fresh content during editing
-services.AddDeliveryClient("preview", options =>
+services.AddDeliveryClient("preview", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "your-preview-api-key";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+        options.UsePreviewApi = true;
+        options.PreviewApiKey = "your-preview-api-key";
+    });
+    delivery.UseMemoryCache(); // Optional: preview still bypasses cache reads/writes
 });
-services.AddDeliveryMemoryCache("preview"); // Optional: preview still bypasses cache reads/writes
 ```
 
 ## Best Practices
@@ -1009,17 +1080,19 @@ services.AddDeliveryMemoryCache("preview"); // Optional: preview still bypasses 
 ### 1. Choose Appropriate Expiration Times
 
 ```csharp
+// Inside each client's AddDeliveryClient callback:
+
 // Frequently changing content (news, live data)
-services.AddDeliveryMemoryCache("news-client", defaultExpiration: TimeSpan.FromMinutes(5));
+delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
 
 // Moderately dynamic content (blog posts, products)
-services.AddDeliveryMemoryCache("blog-client", defaultExpiration: TimeSpan.FromHours(1));
+delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 
 // Rarely changing content (about pages, navigation)
-services.AddDeliveryMemoryCache("static-client", defaultExpiration: TimeSpan.FromHours(6));
+delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(6));
 
 // Very stable content (archived content, documentation)
-services.AddDeliveryMemoryCache("docs-client", defaultExpiration: TimeSpan.FromDays(1));
+delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromDays(1));
 ```
 
 ### 2. Implement Webhook Invalidation
@@ -1119,10 +1192,14 @@ services.AddHostedService<CacheWarmupService>();
 The built-in FusionCache-backed cache managers support eager refresh via `DeliveryCacheOptions.EagerRefreshThreshold`. When set, FusionCache proactively refreshes entries in the background before they expire:
 
 ```csharp
-services.AddDeliveryMemoryCache("production", opts =>
+services.AddDeliveryClient("production", delivery =>
 {
-    opts.DefaultExpiration = TimeSpan.FromMinutes(30);
-    opts.EagerRefreshThreshold = 0.8f; // Refresh at 80% of TTL (24 min)
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(opts =>
+    {
+        opts.DefaultExpiration = TimeSpan.FromMinutes(30);
+        opts.EagerRefreshThreshold = 0.8f; // Refresh at 80% of TTL (24 min)
+    });
 });
 ```
 

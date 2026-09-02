@@ -41,11 +41,11 @@ This guide provides comprehensive instructions for migrating from the legacy Kon
 | Query Methods | Breaking | `GetItemAsync<T>()` → `GetItem<T>().ExecuteAsync()` builder pattern |
 | Filtering | Breaking | Parameter classes → Fluent `Where()` syntax |
 | Caching | Breaking | Separate package → New FusionCache-backed implementation in `Kontent.Ai.Delivery.Caching` |
-| Retry Policies | Breaking | `IRetryPolicy` → Polly-based `configureResilience` |
+| Retry Policies | Breaking | `IRetryPolicy` → Polly pipeline via `IDeliveryClientBuilder.ConfigureResilience` |
 | Rich Text | Breaking | `IContentLinkUrlResolver` → `HtmlResolverBuilder` |
 | Response Types | Breaking | Direct response → Result pattern with `IsSuccess`/`Value`/`Error` |
 | Model Structure | Breaking | Flat properties → `IContentItem<T>` wrapper |
-| DI Registration | Moderate | New overloads, keyed services support |
+| DI Registration | Breaking | One `AddDeliveryClient(name, delivery => ...)` builder callback per client; keyed services support |
 | Content Freshness | Breaking | Global `DeliveryOptions.WaitForLoadingNewContent` removed; use per-query `WaitForLoadingNewContent(true)` |
 
 ## Quick Migration Checklist
@@ -58,7 +58,7 @@ Use this checklist to ensure you've addressed all required changes:
 - [ ] Refactor all `GetItemAsync<T>()` calls to `GetItem<T>().ExecuteAsync()`
 - [ ] Refactor all `GetItemsAsync<T>()` calls to `GetItems<T>().ExecuteAsync()`
 - [ ] Migrate all filtering from parameter classes to fluent `Where()` syntax
-- [ ] Update caching registration from `AddDeliveryClientCache()` to `AddDeliveryMemoryCache()` or `AddDeliveryHybridCache()`
+- [ ] Update caching registration from `AddDeliveryClientCache()` to `UseMemoryCache()` or `UseHybridCache()` on the client builder
 - [ ] Replace `IContentLinkUrlResolver` implementations with `HtmlResolverBuilder`
 - [ ] Replace `IInlineContentItemsResolver<T>` implementations with `HtmlResolverBuilder`
 - [ ] Update response handling to use result pattern (`IsSuccess`, `Value`, `Error`)
@@ -486,11 +486,14 @@ services.AddDeliveryClientCache(new DeliveryCacheOptions
 
 **New:**
 ```csharp
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-services.AddDeliveryMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
 ```
 
 ### 3.3 Hybrid Cache Registration (Redis)
@@ -519,11 +522,14 @@ services.AddStackExchangeRedisCache(options =>
 });
 
 // Then register delivery client with hybrid cache
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
 });
-services.AddDeliveryHybridCache(defaultExpiration: TimeSpan.FromHours(2));
 ```
 
 > [!NOTE]
@@ -543,24 +549,27 @@ services.AddDeliveryClientCache("production", new DeliveryCacheOptions
 
 **New:**
 ```csharp
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "production-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "production-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromHours(1));
 ```
 
 ### 3.5 DeliveryCacheOptions Migration
 
-The legacy `DeliveryCacheOptions` (with `CacheType`, `StaleContentExpiration`, `DistributedCacheResilientPolicy`) is gone. A new `DeliveryCacheOptions` shaped around FusionCache lives in `Kontent.Ai.Delivery.Abstractions` and is exposed via the `Action<DeliveryCacheOptions>` overloads of `AddDeliveryMemoryCache()` / `AddDeliveryHybridCache()`.
+The legacy `DeliveryCacheOptions` (with `CacheType`, `StaleContentExpiration`, `DistributedCacheResilientPolicy`) is gone. A new `DeliveryCacheOptions` shaped around FusionCache lives in `Kontent.Ai.Delivery.Abstractions` and is configured through the `Action<DeliveryCacheOptions>` overloads of `UseMemoryCache()` / `UseHybridCache()` on `IDeliveryClientBuilder` (from `Kontent.Ai.Delivery.Caching`).
 
 **Mapping legacy → new:**
 
 | Legacy Option | New Equivalent |
 |--------------|----------------|
-| `CacheType = CacheTypeEnum.Memory` | `AddDeliveryMemoryCache()` |
-| `CacheType = CacheTypeEnum.Distributed` | `AddDeliveryHybridCache()` |
-| `DefaultExpiration` | `DeliveryCacheOptions.DefaultExpiration` (default `1h`) — pass via parameter or configure action. |
+| `CacheType = CacheTypeEnum.Memory` | `delivery.UseMemoryCache()` |
+| `CacheType = CacheTypeEnum.Distributed` | `delivery.UseHybridCache()` (requires an `IDistributedCache` registration) |
+| `DefaultExpiration` | `DeliveryCacheOptions.DefaultExpiration` (default `1h`) — set in the configure action. |
 | `StaleContentExpiration` | Replaced by the per-result `HasStaleContent` flag and FusionCache's eager-refresh / fail-safe mechanisms. |
 | `DistributedCacheResilientPolicy` | Removed — handled by Polly resilience pipeline + FusionCache fail-safe. |
 
@@ -578,13 +587,17 @@ The legacy `DeliveryCacheOptions` (with `CacheType`, `StaleContentExpiration`, `
 | `ConfigureFusionCacheOptions` | `null` | Escape hatch for advanced FusionCache features (backplane, background ops, etc.). Set it through the typed `ConfigureFusionCache` extension in `Kontent.Ai.Delivery.Caching`; the property itself is `object` because Abstractions references no FusionCache types. |
 
 ```csharp
-services.AddDeliveryMemoryCache(opts =>
+services.AddDeliveryClient(delivery =>
 {
-    opts.DefaultExpiration = TimeSpan.FromMinutes(10);
-    opts.JitterMaxDuration = TimeSpan.FromSeconds(30);
-    opts.IsFailSafeEnabled = true;
-    opts.FailSafeMaxDuration = TimeSpan.FromHours(6);
-    opts.EagerRefreshThreshold = 0.8f;
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(opts =>
+    {
+        opts.DefaultExpiration = TimeSpan.FromMinutes(10);
+        opts.JitterMaxDuration = TimeSpan.FromSeconds(30);
+        opts.IsFailSafeEnabled = true;
+        opts.FailSafeMaxDuration = TimeSpan.FromHours(6);
+        opts.EagerRefreshThreshold = 0.8f;
+    });
 });
 ```
 
@@ -631,12 +644,14 @@ await cacheManager.InvalidateAsync([$"taxonomy_{taxonomyCodename}", DeliveryCach
 services.AddSingleton<IDeliveryCacheManager, CustomHybridCacheManager>();
 
 // New (keyed per client)
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "production-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "production-environment-id";
+    });
+    delivery.UseCacheManager(sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
 });
-services.AddDeliveryCacheManager("production",
-    sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
 ```
 
 **Dependency Key Format:**
@@ -702,7 +717,7 @@ if (result.IsSuccess)
 
 `IsCacheHit` returns `true` for both `Cache` and `FailSafe`. `ResponseHeaders` and `RequestUrl` are `null` whenever the response was served from the SDK cache (i.e., the API was not actually called).
 
-### 3.9 Using DeliveryClientBuilder with Caching (Non-DI)
+### 3.9 Standalone Client with Caching (Non-DI)
 
 **Legacy:**
 ```csharp
@@ -716,12 +731,11 @@ var cachedClient = new DeliveryClientCache(
 
 **New:**
 ```csharp
-await using var client = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .Build())
-    .WithMemoryCache(TimeSpan.FromHours(2))
-    .Build();
+await using var client = DeliveryClient.Create(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
+});
 ```
 
 ### 3.10 Per-query Cache Expiration
@@ -757,7 +771,7 @@ The SDK now uses Polly for resilience instead of custom interfaces.
 - `IRetryPolicyProvider`
 - `DefaultRetryPolicyOptions`
 
-**New:** Polly's `ResiliencePipelineBuilder<HttpResponseMessage>` via the `configureResilience` callback.
+**New:** Polly's `ResiliencePipelineBuilder<HttpResponseMessage>` via `ConfigureResilience` on the client builder passed to `AddDeliveryClient` / `DeliveryClient.Create`.
 
 ### 4.2 Default Retry Policy
 
@@ -778,12 +792,13 @@ services.AddDeliveryClient(new DeliveryOptions
 });
 ```
 
-**New:** Use `DisableRetryPolicy()` on the options builder (it sets `EnableResilience = false` internally).
+**New:** Set `EnableResilience = false` on `DeliveryOptions`. The resilience handler is then left out of the pipeline entirely.
 ```csharp
-services.AddDeliveryClient(builder => builder
-    .WithEnvironmentId("env-id")
-    .DisableRetryPolicy()
-    .Build());
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "env-id";
+    options.EnableResilience = false;
+}));
 ```
 
 ### 4.4 Configuration Migration
@@ -802,11 +817,10 @@ services.AddDeliveryClient(builder => builder
 
 **New:**
 ```csharp
-services.AddDeliveryClient(
-    buildDeliveryOptions: builder => builder
-        .WithEnvironmentId("env-id")
-        .Build(),
-    configureResilience: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "env-id");
+    delivery.ConfigureResilience(builder =>
     {
         builder.AddRetry(new HttpRetryStrategyOptions
         {
@@ -816,6 +830,7 @@ services.AddDeliveryClient(
             UseJitter = true
         });
     });
+});
 ```
 
 ### 4.5 Custom Retry Policy Migration
@@ -842,11 +857,10 @@ services.AddDeliveryClient(Configuration);
 
 **New:**
 ```csharp
-services.AddDeliveryClient(
-    buildDeliveryOptions: builder => builder
-        .WithEnvironmentId("env-id")
-        .Build(),
-    configureResilience: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "env-id");
+    delivery.ConfigureResilience(builder =>
     {
         // Custom retry logic using Polly
         builder.AddRetry(new HttpRetryStrategyOptions
@@ -882,6 +896,7 @@ services.AddDeliveryClient(
         // Add timeout
         builder.AddTimeout(TimeSpan.FromSeconds(60));
     });
+});
 ```
 
 ### 4.6 Default Retry Policy Options Mapping
@@ -1499,38 +1514,55 @@ foreach (var item in homepage.Elements.FeaturedContent!)
 
 ### 8.1 Basic Registration
 
-**Legacy (unchanged pattern):**
+Every registration now goes through one shape: `AddDeliveryClient([name,] delivery => { ... })`. The callback receives an `IDeliveryClientBuilder` whose `Options` is a standard `OptionsBuilder<DeliveryOptions>` — so binding, delegates and validation are the ones you already know from `Microsoft.Extensions.Options` — plus `HttpClient` (the `IHttpClientBuilder` of the client's named `HttpClient`), `ConfigureResilience(...)` and `Services`. The Caching package adds `UseMemoryCache` / `UseHybridCache` / `UseCacheManager` to the same builder.
+
+**Legacy:**
 ```csharp
 services.AddDeliveryClient(Configuration);
 ```
 
-**New (same, but also supports new overloads):**
+**New:**
 ```csharp
 // From configuration - section name defaults to DeliveryOptions.DefaultConfigurationSectionName
-services.AddDeliveryClient(configuration);
-services.AddDeliveryClient(configuration, "DeliveryOptions");
+services.AddDeliveryClient(delivery => delivery.Options.BindConfiguration(DeliveryOptions.DefaultConfigurationSectionName));
+services.AddDeliveryClient(delivery => delivery.Options.BindConfiguration("DeliveryOptions"));
 
 // Named, and from a section directly
-services.AddDeliveryClient("production", configuration, "Delivery:Production");
-services.AddDeliveryClient("preview", configuration.GetSection("Delivery:Preview"));
+services.AddDeliveryClient("production", delivery => delivery.Options.BindConfiguration("Delivery:Production"));
+services.AddDeliveryClient("preview", delivery => delivery.Options.Bind(configuration.GetSection("Delivery:Preview")));
 
 // Configuration binding composes with the pipeline hooks
-services.AddDeliveryClient(
-    configuration,
-    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
-
-// From action
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
+    delivery.Options.BindConfiguration("DeliveryOptions");
+    delivery.ConfigureResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
 });
 
-// From builder
-services.AddDeliveryClient(builder =>
-    builder.WithEnvironmentId("your-environment-id")
-           .UseProductionApi()
-           .Build());
+// From a delegate
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+}));
+
+// From an options instance; the API-mode helpers replace the legacy options builder
+services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = "your-environment-id" }.UseProductionApi());
 ```
+
+**Every legacy registration form and its replacement:**
+
+| Legacy | New |
+|--------|-----|
+| `AddDeliveryClient(IConfiguration)` | `AddDeliveryClient(delivery => delivery.Options.BindConfiguration(DeliveryOptions.DefaultConfigurationSectionName))` |
+| `AddDeliveryClient(IConfiguration, "Section")` | `AddDeliveryClient(delivery => delivery.Options.BindConfiguration("Section"))` |
+| `AddDeliveryClient(DeliveryOptions)` | `AddDeliveryClient(DeliveryOptions)` — unchanged; an optional builder callback runs after the instance is copied |
+| `AddDeliveryClient(builder => builder.WithEnvironmentId(...).UsePreviewApi(...).Build())` | `AddDeliveryClient(delivery => delivery.Options.Configure(o => { o.EnvironmentId = ...; o.UsePreviewApi(...); }))` |
+| `AddDeliveryClient("name", IConfiguration, "Section")` | `AddDeliveryClient("name", delivery => delivery.Options.BindConfiguration("Section"))` |
+| `AddDeliveryClient("name", DeliveryOptions instance)` | `AddDeliveryClient("name", delivery => delivery.Options.Configure(instance.CopyTo))` |
+| `AddDeliveryClient("name", builder => ... .Build())` | `AddDeliveryClient("name", delivery => delivery.Options.Configure(o => ...))` |
+| `AddDeliveryClientCache(...)` / `AddDeliveryClientCache("name", ...)` | `delivery.UseMemoryCache(...)` / `delivery.UseHybridCache(...)` inside that client's callback — see [§3](#3-migrating-caching) |
+| `DeliveryOptionsBuilder.CreateInstance().WithEnvironmentId(...).UseProductionApi(secureKey).Build()` | `new DeliveryOptions { EnvironmentId = ... }.UseProductionApi(secureKey)` — `UseProductionApi()`, `UsePreviewApi(key)` and `UseCustomEndpoint(...)` are extension methods on `DeliveryOptions` |
+| `.WithDefaultRetryPolicyOptions(...)` / `EnableRetryPolicy = false` | `delivery.ConfigureResilience(...)` / `options.EnableResilience = false` — see [§4](#4-migrating-retry-policies) |
+| `DeliveryClientBuilder.WithOptions(...).Build()` (non-DI) | `DeliveryClient.Create(delivery => ...)` — see [§8.5](#85-standalone-client-non-di) |
 
 ### 8.2 Custom Services Registration
 
@@ -1552,25 +1584,27 @@ services.AddDeliveryClient(Configuration);
 services.AddSingleton<ITypeProvider, MyCustomTypeProvider>();
 
 // Then register the delivery client
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 
 // Rich text resolution is now done at use site via HtmlResolverBuilder
 // (no global registration)
 
-// Retry policies via configureResilience callback
-services.AddDeliveryClient(
-    buildDeliveryOptions: builder => builder.WithEnvironmentId("env-id").Build(),
-    configureResilience: builder =>
+// Retry policies via the builder's ConfigureResilience
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "env-id");
+    delivery.ConfigureResilience(builder =>
     {
         builder.AddRetry(new HttpRetryStrategyOptions { /* ... */ });
     });
+});
 ```
 
 > [!IMPORTANT]
-> Order matters only when **overriding** `ITypeProvider`. The SDK registers the default `TypeProvider` (which auto-discovers source-generated providers) via `TryAddSingleton`, so a manual `AddSingleton` registered *before* `AddDeliveryClient` will replace it.
+> Order matters only when **overriding** `ITypeProvider`. The SDK registers the default `TypeProvider` (which auto-discovers source-generated providers) via `TryAddSingleton`, so a manual `AddSingleton` registered *before* `AddDeliveryClient` will replace it. Registering it inside the callback — `delivery.Services.AddSingleton<ITypeProvider, MyCustomTypeProvider>()` — also works, and is the form `DeliveryClient.Create` uses.
 
 ### 8.3 Named Clients
 
@@ -1586,16 +1620,16 @@ var client = factory.Get("production");
 
 **New:**
 ```csharp
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "production-env-id";
-});
-services.AddDeliveryClient("preview", options =>
+}));
+services.AddDeliveryClient("preview", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "preview-env-id";
     options.UsePreviewApi = true;
     options.PreviewApiKey = "preview-api-key";
-});
+}));
 
 // Get client via factory (same as before)
 var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
@@ -1613,22 +1647,21 @@ public class MyController(
 
 **Legacy:** v18 didn't expose a public hook for configuring the underlying `HttpClient` — `IDeliveryHttpClient` was registered as a singleton internally and not surfaced as a typed `HttpClient`. Customizing the timeout typically required replacing `IDeliveryHttpClient` wholesale.
 
-**New:** Pass a `configureHttpClient` callback to `AddDeliveryClient`.
+**New:** Use the `HttpClient` property of the client builder.
 ```csharp
-services.AddDeliveryClient(
-    buildDeliveryOptions: builder => builder.WithEnvironmentId("env-id").Build(),
-    configureHttpClient: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "env-id");
+    delivery.HttpClient.ConfigureHttpClient(client =>
     {
-        builder.ConfigureHttpClient(client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(60);
-        });
+        client.Timeout = TimeSpan.FromSeconds(60);
     });
+});
 ```
 
-The callback receives the `IHttpClientBuilder` for the SDK's named `HttpClient`, so you can also chain `.AddHttpMessageHandler(...)`, attach Polly handlers, etc.
+`HttpClient` is the `IHttpClientBuilder` for the SDK's named `HttpClient`, so you can also chain `.AddHttpMessageHandler(...)`, attach Polly handlers, etc. Handlers you add run after the SDK's own chain. The same property is available on `DeliveryClient.Create`.
 
-### 8.5 DeliveryClientBuilder (Non-DI)
+### 8.5 Standalone Client (Non-DI)
 
 **Legacy:**
 ```csharp
@@ -1644,35 +1677,38 @@ var client = DeliveryClientBuilder
 
 **New:**
 ```csharp
-await using var client = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("env-id")
-        .UseProductionApi()
-        .Build())
-    .WithTypeProvider(new GeneratedTypeProvider())
-    .WithLoggerFactory(loggerFactory)            // optional: enable diagnostic logging
-    .WithMemoryCache(TimeSpan.FromHours(1))      // from Kontent.Ai.Delivery.Caching
-    .ConfigureServices(services =>               // general-purpose extensibility hook
+await using var client = DeliveryClient.Create(delivery =>
+{
+    delivery.Options.Configure(options =>
     {
-        services.AddSingleton<IMyCustomDependency, MyImpl>();
-    })
-    .Build();
+        options.EnvironmentId = "env-id";
+        options.UseProductionApi();
+    });
+    delivery.Services.AddSingleton<ITypeProvider>(new GeneratedTypeProvider());
+    delivery.Services.AddLogging(logging => logging.AddConsole());   // optional: enable diagnostic logging
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1)); // from Kontent.Ai.Delivery.Caching
+    delivery.Services.AddSingleton<IMyCustomDependency, MyImpl>();  // anything else the client needs
+});
+
+// Or from a pre-built options instance
+await using var client = DeliveryClient.Create(new DeliveryOptions { EnvironmentId = "env-id" }.UseProductionApi());
 
 // Note: Content link resolution is now done at use site via HtmlResolverBuilder
 ```
 
-The new builder surface is intentionally minimal:
+`DeliveryClient.Create` runs the same registration as `AddDeliveryClient` inside a private container that the returned client owns, so the builder is the same `IDeliveryClientBuilder` and every DI-side feature is available. The returned `DeliveryClient` is disposable; dispose it via `await using`, or keep it as an application-lifetime singleton. The concrete type is what carries disposal — `IDeliveryClient` does not. Invalid options throw `OptionsValidationException` from `Create`.
 
-| Method | Purpose |
-|--------|---------|
-| `WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions>)` | Required. Configures `DeliveryOptions`. |
-| `WithTypeProvider(ITypeProvider)` | Override the default type provider. |
-| `WithLoggerFactory(ILoggerFactory)` | Enable logging (no-op if omitted). |
-| `WithMemoryCache(...)` / `WithHybridCache(...)` | From `Kontent.Ai.Delivery.Caching`. |
-| `ConfigureServices(Action<IServiceCollection>)` | Escape hatch — register anything else into the builder's internal service collection. |
-| `Build()` | Returns a `DeliveryClient` that owns its services; dispose via `await using`. The concrete type is what carries disposal — `IDeliveryClient` does not. |
+| Legacy `DeliveryClientBuilder` member | New |
+|--------|-----|
+| `WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions>)` | `delivery.Options.Configure(...)`, or `DeliveryClient.Create(DeliveryOptions)` |
+| `WithTypeProvider(ITypeProvider)` | `delivery.Services.AddSingleton<ITypeProvider>(provider)` |
+| `WithDeliveryHttpClient(...)` | `delivery.HttpClient.ConfigureHttpClient(...)` / `.AddHttpMessageHandler(...)` |
+| `WithRetryPolicyProvider(...)` | `delivery.ConfigureResilience(...)` |
+| (no legacy equivalent) logging | `delivery.Services.AddLogging(...)` |
+| (no legacy equivalent) caching | `delivery.UseMemoryCache(...)` / `delivery.UseHybridCache(...)` / `delivery.UseCacheManager(...)` from `Kontent.Ai.Delivery.Caching` |
+| `Build()` | The `Create` call itself returns the client. |
 
-Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetryPolicyProvider`, `WithInlineContentItemsResolver<T>`, `WithDeliveryHttpClient`, `WithModelProvider`, `WithInlineContentItemsProcessor`, `WithPropertyMapper`) was removed — see [§9](#9-removed-features--interfaces) for replacements.
+Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithInlineContentItemsResolver<T>`, `WithModelProvider`, `WithInlineContentItemsProcessor`, `WithPropertyMapper`) was removed — see [§9](#9-removed-features--interfaces) for replacements.
 
 ---
 
@@ -1685,9 +1721,9 @@ Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetry
 | `IContentLinkUrlResolver` | `HtmlResolverBuilder.WithContentItemLinkResolver()` |
 | `IInlineContentItemsResolver<T>` | `HtmlResolverBuilder.WithContentResolver<T>()` |
 | `IInlineContentItemsProcessor` | `HtmlResolverBuilder` + `IRichTextContent.ToHtmlAsync(resolver)` |
-| `IRetryPolicy` | Polly `ResiliencePipelineBuilder<HttpResponseMessage>` via `configureResilience` |
-| `IRetryPolicyProvider` | Polly `ResiliencePipelineBuilder<HttpResponseMessage>` via `configureResilience` |
-| `IDeliveryHttpClient` | Configure the underlying `HttpClient` via the `configureHttpClient` callback on `AddDeliveryClient` (see [§8.4](#84-httpclient-configuration)). |
+| `IRetryPolicy` | Polly `ResiliencePipelineBuilder<HttpResponseMessage>` via `delivery.ConfigureResilience(...)` |
+| `IRetryPolicyProvider` | Polly `ResiliencePipelineBuilder<HttpResponseMessage>` via `delivery.ConfigureResilience(...)` |
+| `IDeliveryHttpClient` | Configure the underlying `HttpClient` via `delivery.HttpClient` on the client builder (see [§8.4](#84-httpclient-configuration)). |
 | `IDeliverySyncInitResponse`, `IDeliverySyncResponse`, `IDeliverySyncV2Response` | Sync was extracted to the standalone [`Kontent.Ai.Sync`](https://github.com/kontent-ai/sync-sdk-net) package — see [§11](#11-migrating-the-sync-api). |
 
 ### 9.2 Removed Classes
@@ -1695,9 +1731,9 @@ Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetry
 | Removed Class | Replacement |
 |--------------|-------------|
 | `DefaultRetryPolicyOptions` | `HttpRetryStrategyOptions` from Polly |
-| `DeliveryCacheOptions` (legacy shape with `CacheType`/`StaleContentExpiration`) | Replaced by a new, FusionCache-shaped `DeliveryCacheOptions` exposed via `Action<DeliveryCacheOptions>` overloads of `AddDeliveryMemoryCache()` / `AddDeliveryHybridCache()` (see [§3.2](#32-memory-cache-registration) / [§3.3](#33-hybrid-cache-registration-redis)). |
-| `DeliveryClientCache` | Internal implementation (use `AddDelivery*Cache()` methods) |
-| `CacheManagerFactory` | Use `DeliveryClientBuilder.WithMemoryCache()` or `WithHybridCache()` |
+| `DeliveryCacheOptions` (legacy shape with `CacheType`/`StaleContentExpiration`) | Replaced by a new, FusionCache-shaped `DeliveryCacheOptions` configured via the `Action<DeliveryCacheOptions>` overloads of `delivery.UseMemoryCache()` / `delivery.UseHybridCache()` (see [§3.2](#32-memory-cache-registration) / [§3.3](#33-hybrid-cache-registration-redis)). |
+| `DeliveryClientCache` | Internal implementation (use the `UseMemoryCache()` / `UseHybridCache()` builder methods) |
+| `CacheManagerFactory` | Use `delivery.UseMemoryCache()` or `delivery.UseHybridCache()` inside `DeliveryClient.Create(...)` |
 | `EqualsFilter`, `NotEqualsFilter`, `LessThanFilter`, `LessThanOrEqualFilter`, `GreaterThanFilter`, `GreaterThanOrEqualFilter`, `RangeFilter`, `InFilter`, `NotInFilter`, `ContainsFilter`, `AnyFilter`, `AllFilter`, `EmptyFilter`, `NotEmptyFilter`, `SystemTypeEqualsFilter` | Fluent filter builder via `.Where(f => f.System(...).Is...() / f.Element(...).Is...())` |
 | `LanguageParameter`, `LimitParameter`, `SkipParameter`, `OrderParameter`, `DepthParameter`, `ElementsParameter`, `ExcludeElementsParameter`, `IncludeTotalCountParameter`, `ContinuationTokenParameter` | Fluent query builder methods (`.WithLanguage`, `.Limit`, `.Skip`, `.OrderBy`, `.Depth`, `.WithElements`, `.WithoutElements`, `.WithTotalCount`, automatic feed pagination) |
 | `SortOrder` enum | Replaced by `OrderingMode` (`Ascending` / `Descending`) used with `.OrderBy(...)`. |
@@ -1718,10 +1754,10 @@ Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetry
 | `PostSyncInitAsync(params)`, `GetSyncAsync(token)`, `PostSyncV2InitAsync()`, `GetSyncV2Async(token)` | Sync API moved to the standalone [`Kontent.Ai.Sync`](https://github.com/kontent-ai/sync-sdk-net) package — see [§11](#11-migrating-the-sync-api). |
 | `services.AddDeliveryInlineContentItemsResolver<T>(...)` (and the two-generic-type overload) | Use `HtmlResolverBuilder.WithContentResolver<T>(...)` at use site. |
 | `DeliveryClientBuilder.WithContentLinkUrlResolver()` | Use `HtmlResolverBuilder` at use site |
-| `DeliveryClientBuilder.WithRetryPolicyProvider()` | Use `configureResilience` callback |
+| `DeliveryClientBuilder.WithRetryPolicyProvider()` | Use `delivery.ConfigureResilience(...)` |
 | `DeliveryClientBuilder.WithInlineContentItemsResolver<T>()` | Use `HtmlResolverBuilder` at use site |
 | `DeliveryClientBuilder.WithInlineContentItemsProcessor()` | Use `HtmlResolverBuilder` at use site |
-| `DeliveryClientBuilder.WithDeliveryHttpClient()` | Use `configureHttpClient` callback on `AddDeliveryClient` (DI) — there is no equivalent on the non-DI builder. |
+| `DeliveryClientBuilder.WithDeliveryHttpClient()` | Use `delivery.HttpClient` on the client builder — available in both `AddDeliveryClient` and `DeliveryClient.Create`. |
 | `DeliveryClientBuilder.WithModelProvider()` | Removed — model materialization is internal in 19.0. |
 | `DeliveryClientBuilder.WithPropertyMapper()` | Removed — element-to-property mapping is internal in 19.0. |
 
@@ -1729,8 +1765,8 @@ Anything not listed above (e.g., legacy `WithContentLinkUrlResolver`, `WithRetry
 
 | Removed Property | Replacement |
 |-----------------|-------------|
-| `EnableRetryPolicy` | `DisableRetryPolicy()` on the options builder (sets the new `EnableResilience = false` internally). |
-| `DefaultRetryPolicyOptions` | `configureResilience` callback on `AddDeliveryClient` with Polly's `HttpRetryStrategyOptions`. |
+| `EnableRetryPolicy` | `EnableResilience` on `DeliveryOptions` (`false` leaves the resilience handler out of the pipeline). |
+| `DefaultRetryPolicyOptions` | `delivery.ConfigureResilience(...)` on the client builder with Polly's `HttpRetryStrategyOptions`. |
 | `IncludeTotalCount` | Per-query `.WithTotalCount()` on items / dynamic items queries (no global default any more). |
 | `WaitForLoadingNewContent` | Per-query `.WaitForLoadingNewContent(true)` on every query builder (also bypasses the SDK cache for that single call). |
 
@@ -2077,13 +2113,17 @@ var html = await richText.ToHtmlAsync(resolver);
 
 **Problem:** The legacy caching API has been replaced.
 
-**Solution:** Update your `Kontent.Ai.Delivery.Caching` package to 19.0.0+ and use the new registration methods:
+**Solution:** Update your `Kontent.Ai.Delivery.Caching` package to 19.0.0+ and configure the cache on the client builder:
 ```csharp
 // Before
 services.AddDeliveryClientCache(new DeliveryCacheOptions { CacheType = CacheTypeEnum.Memory });
 
 // After (requires Kontent.Ai.Delivery.Caching 19.0.0+)
-services.AddDeliveryMemoryCache(defaultExpiration: TimeSpan.FromHours(1));
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
+});
 ```
 
 #### "Cannot resolve IDeliveryClient"
@@ -2118,7 +2158,7 @@ A: No. The new SDK requires models generated with Kontent.Ai.ModelGenerator 10.0
 
 **Q: How do I migrate custom retry policies?**
 
-A: Implement your retry logic using Polly's `HttpRetryStrategyOptions` in the `configureResilience` callback. See [Section 4.5](#45-custom-retry-policy-migration) for detailed examples.
+A: Implement your retry logic using Polly's `HttpRetryStrategyOptions` in the client builder's `ConfigureResilience` callback. See [Section 4.5](#45-custom-retry-policy-migration) for detailed examples.
 
 **Q: What happened to `IDeliveryCacheManager.InvalidateEntry()`?**
 

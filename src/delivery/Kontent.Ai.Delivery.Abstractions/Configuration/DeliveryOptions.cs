@@ -97,12 +97,10 @@ public sealed class DeliveryOptions : IValidatableObject
     public string? CustomAssetDomain { get; set; }
 
     /// <summary>
-    /// Copies all configurable values from this instance onto <paramref name="destination"/>.
-    /// Used by DI registration paths that bridge a prebuilt <see cref="DeliveryOptions"/>
-    /// instance into the <c>Action&lt;DeliveryOptions&gt;</c> configurator expected by the
-    /// Options pattern.
+    /// Copies every option onto <paramref name="destination"/>. Reflected rather than listed property by
+    /// property, so an option added later cannot be silently left behind.
     /// </summary>
-    internal void CopyTo(DeliveryOptions destination)
+    public void CopyTo(DeliveryOptions destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 

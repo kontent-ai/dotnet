@@ -443,9 +443,7 @@ public class RichTextIntegrationTests
         mockHttp.When(url).Respond("application/json", emptyResponse);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
@@ -876,9 +874,7 @@ public class RichTextIntegrationTests
         mockHttp.When(url).Respond("application/json", response);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
         var provider = services.BuildServiceProvider();
@@ -939,9 +935,7 @@ public class RichTextIntegrationTests
         mockHttp.When(url).Respond("application/json", response);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
         var provider = services.BuildServiceProvider();
@@ -999,9 +993,7 @@ public class RichTextIntegrationTests
         mockHttp.When(url).Respond("application/json", response);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
         var provider = services.BuildServiceProvider();
@@ -1108,9 +1100,7 @@ public class RichTextIntegrationTests
         mockHttp.When(url).Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 

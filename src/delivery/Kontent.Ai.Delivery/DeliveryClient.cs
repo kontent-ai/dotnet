@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 using Kontent.Ai.Common;
-using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery;
@@ -35,8 +35,8 @@ public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposa
     /// <param name="ownedResources">
     /// Resources whose lifetime this client is responsible for, or <c>null</c> when something else owns them.
     /// A container passes <c>null</c> - it owns the transport and disposes the client itself.
-    /// <see cref="DeliveryClientBuilder"/> passes the private service provider it built, so disposing the
-    /// client tears down that provider and everything registered in it.
+    /// <see cref="Create(Action{IDeliveryClientBuilder})"/> passes the private service provider it built, so
+    /// disposing the client tears down that provider and everything registered in it.
     /// </param>
     internal DeliveryClient(
         IDeliveryApi deliveryApi,
@@ -56,6 +56,56 @@ public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposa
         _logger = logger;
         _optionsAccessor = optionsAccessor;
         _ownedResources = ownedResources;
+    }
+
+    /// <summary>
+    /// Builds a client without a container of your own: the same registration as
+    /// <c>services.AddDeliveryClient(configure)</c>, run inside a private container the client owns - caching,
+    /// a custom <see cref="ITypeProvider"/> and logging are configured through the builder's
+    /// <see cref="IDeliveryClientBuilder.Services"/>. Dispose the client to release it. Use it as a singleton
+    /// for the lifetime of your application.
+    /// </summary>
+    /// <param name="configure">Configures the client: its options, HTTP client, resilience, caching.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static DeliveryClient Create(Action<IDeliveryClientBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        return CreateOwned(services => services.AddDeliveryClient(configure));
+    }
+
+    /// <summary>
+    /// Builds a client without a container of your own, from a pre-built options instance.
+    /// </summary>
+    /// <param name="options">The options to copy.</param>
+    /// <param name="configure">Configures the client further, after the options are copied.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static DeliveryClient Create(DeliveryOptions options, Action<IDeliveryClientBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return CreateOwned(services => services.AddDeliveryClient(options, configure));
+    }
+
+    private static DeliveryClient CreateOwned(Action<IServiceCollection> register)
+    {
+        var services = new ServiceCollection();
+        register(services);
+
+        // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
+        // which this path does not have. The options themselves are validated when first read.
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        try
+        {
+            // Built through the same factory the container uses, handed the provider as the resource it
+            // owns - so disposing this client tears down the provider and everything registered in it.
+            return ServiceCollectionExtensions.CreateDeliveryClient(provider, NamedClients.Default, ownedResources: provider);
+        }
+        catch
+        {
+            provider.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc/>

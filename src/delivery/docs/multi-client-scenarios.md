@@ -91,23 +91,26 @@ using Microsoft.Extensions.DependencyInjection;
 var services = new ServiceCollection();
 
 // Register first client
-services.AddDeliveryClient("brand-a", options =>
+services.AddDeliveryClient("brand-a", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "brand-a-environment-id";
-});
+}));
 
 // Register second client
-services.AddDeliveryClient("brand-b", options =>
+services.AddDeliveryClient("brand-b", delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "brand-b-environment-id";
-});
+}));
 
 // Register third client with caching (requires Kontent.Ai.Delivery.Caching package)
-services.AddDeliveryClient("brand-c", options =>
+services.AddDeliveryClient("brand-c", delivery =>
 {
-    options.EnvironmentId = "brand-c-environment-id";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "brand-c-environment-id";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(1));
 });
-services.AddDeliveryMemoryCache("brand-c", defaultExpiration: TimeSpan.FromHours(1));
 
 var serviceProvider = services.BuildServiceProvider();
 ```
@@ -289,11 +292,14 @@ var tenants = configuration.GetSection("Tenants").Get<List<TenantConfig>>();
 
 foreach (var tenant in tenants)
 {
-    services.AddDeliveryClient(tenant.Name, options =>
+    services.AddDeliveryClient(tenant.Name, delivery =>
     {
-        options.EnvironmentId = tenant.EnvironmentId;
+        delivery.Options.Configure(options =>
+        {
+            options.EnvironmentId = tenant.EnvironmentId;
+        });
+        delivery.UseMemoryCache(o => o.DefaultExpiration = tenant.CacheExpiration);
     });
-    services.AddDeliveryMemoryCache(tenant.Name, defaultExpiration: tenant.CacheExpiration);
 }
 ```
 
@@ -390,18 +396,21 @@ public static class TenantRegistration
 
         foreach (var tenant in tenants)
         {
-            services.AddDeliveryClient(tenant.Name, options =>
+            services.AddDeliveryClient(tenant.Name, delivery =>
             {
-                options.EnvironmentId = tenant.EnvironmentId;
-                options.UsePreviewApi = tenant.UsePreview;
-                options.PreviewApiKey = tenant.PreviewApiKey;
-                options.EnableResilience = tenant.EnableResilience;
-            });
+                delivery.Options.Configure(options =>
+                {
+                    options.EnvironmentId = tenant.EnvironmentId;
+                    options.UsePreviewApi = tenant.UsePreview;
+                    options.PreviewApiKey = tenant.PreviewApiKey;
+                    options.EnableResilience = tenant.EnableResilience;
+                });
 
-            if (tenant.CacheExpiration > TimeSpan.Zero)
-            {
-                services.AddDeliveryMemoryCache(tenant.Name, defaultExpiration: tenant.CacheExpiration);
-            }
+                if (tenant.CacheExpiration > TimeSpan.Zero)
+                {
+                    delivery.UseMemoryCache(o => o.DefaultExpiration = tenant.CacheExpiration);
+                }
+            });
         }
     }
 }
@@ -413,7 +422,7 @@ each section to a named client:
 ```csharp
 foreach (var tenant in configuration.GetSection("Tenants").GetChildren())
 {
-    services.AddDeliveryClient(tenant.Key, tenant);
+    services.AddDeliveryClient(tenant.Key, delivery => delivery.Options.Bind(tenant));
 }
 ```
 
@@ -535,20 +544,26 @@ public class AggregatedContentService
 ### Separate Clients for Preview and Production
 
 ```csharp
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = false;
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+        options.UsePreviewApi = false;
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromHours(2));
 });
-services.AddDeliveryMemoryCache("production", defaultExpiration: TimeSpan.FromHours(2));
 
-services.AddDeliveryClient("preview", options =>
+services.AddDeliveryClient("preview", delivery =>
 {
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "your-preview-api-key";
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = "your-environment-id";
+        options.UsePreviewApi = true;
+        options.PreviewApiKey = "your-preview-api-key";
+    });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
 });
-services.AddDeliveryMemoryCache("preview", defaultExpiration: TimeSpan.FromMinutes(5));
 ```
 
 `UsePreviewApi = true` clients always bypass SDK cache reads/writes. Registering a cache manager for preview is optional and does not change that behavior.
@@ -648,33 +663,42 @@ public static class DeliveryClientRegistration
         if (environment.IsDevelopment())
         {
             // Development: shorter cache, preview API
-            services.AddDeliveryClient("default", options =>
+            services.AddDeliveryClient("default", delivery =>
             {
-                options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                options.UsePreviewApi = true;
-                options.PreviewApiKey = configuration["Kontent:PreviewApiKey"];
+                delivery.Options.Configure(options =>
+                {
+                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
+                    options.UsePreviewApi = true;
+                    options.PreviewApiKey = configuration["Kontent:PreviewApiKey"];
+                });
+                delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
             });
-            services.AddDeliveryMemoryCache("default", defaultExpiration: TimeSpan.FromMinutes(5));
         }
         else if (environment.IsStaging())
         {
             // Staging: moderate cache, production API
-            services.AddDeliveryClient("default", options =>
+            services.AddDeliveryClient("default", delivery =>
             {
-                options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                options.UsePreviewApi = false;
+                delivery.Options.Configure(options =>
+                {
+                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
+                    options.UsePreviewApi = false;
+                });
+                delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(30));
             });
-            services.AddDeliveryMemoryCache("default", defaultExpiration: TimeSpan.FromMinutes(30));
         }
         else // Production
         {
             // Production: hybrid cache, production API, resilience
-            services.AddDeliveryClient("default", options =>
+            services.AddDeliveryClient("default", delivery =>
             {
-                options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                options.EnableResilience = true;
+                delivery.Options.Configure(options =>
+                {
+                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
+                    options.EnableResilience = true;
+                });
+                delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
             });
-            services.AddDeliveryHybridCache("default", defaultExpiration: TimeSpan.FromHours(4));
         }
     }
 }
@@ -706,11 +730,11 @@ public static class DeliveryClientsConfiguration
 
         foreach (var client in clients)
         {
-            services.AddDeliveryClient(client.Name, options =>
+            services.AddDeliveryClient(client.Name, delivery => delivery.Options.Configure(options =>
             {
                 options.EnvironmentId = client.EnvironmentId;
                 // ... other configuration
-            });
+            }));
         }
     }
 }
@@ -855,12 +879,12 @@ catch (InvalidOperationException ex)
 **Solution**: Log and verify environment IDs:
 
 ```csharp
-services.AddDeliveryClient("brand-a", options =>
+services.AddDeliveryClient("brand-a", delivery => delivery.Options.Configure(options =>
 {
     var envId = configuration["BrandA:EnvironmentId"];
     Console.WriteLine($"Registering brand-a with environment: {envId}");
     options.EnvironmentId = envId;
-});
+}));
 ```
 
 ### Cache Collisions
