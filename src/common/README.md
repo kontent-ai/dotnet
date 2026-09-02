@@ -36,6 +36,16 @@ trade — three tags from one pull request is exactly what the monorepo bought.
    says why. Shared source is for what is *identical*, not for what could be unified with enough
    parameters.
 
+## `Clients/`
+
+The client registration every SDK runs: `ClientBuilder<TOptions>` is what each product's public
+`I…ClientBuilder` is implemented over, and `ClientRegistration` is the sequence - the duplicate check,
+validated options, one keyed generated Refit client per transport with its base address, ceiling,
+resilience gate, handlers and connection recycling, then the keyed client and its factory. A product
+supplies a `TransportRecipe<TOptions>` per transport and its handlers; it does not repeat the sequence.
+The order in `ClientRegistration` is the contract, and it is the same for a container the application
+owns and for the private one a product's `Create` builds.
+
 ## Consuming a file
 
 `$(KontentCommonPath)` is defined in the root `Directory.Build.props`.
