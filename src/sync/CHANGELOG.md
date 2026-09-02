@@ -7,7 +7,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
-- **`AddSyncClient` takes a builder, and `SyncClientBuilder` is `SyncClient.Create`.** Eleven overloads of `AddSyncClient` - one per way of supplying options, doubled for named clients, with the HTTP and resilience hooks as trailing parameters - become three: `AddSyncClient(configure)`, `AddSyncClient(name, configure)` and `AddSyncClient(options, configure)`, all taking an `Action<ISyncClientBuilder>`. The builder exposes the client's `OptionsBuilder<SyncOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand, so every option-supplying form and every hook is a chained call on a type Microsoft ships. `SyncClientBuilder`, `ISyncOptionsBuilder` and `SyncOptionsBuilder` are removed; `SyncClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `SyncOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. `SyncOptions.CopyTo` is public. Invalid options throw `OptionsValidationException` from `Create`, the same exception the container raises.
+- **`AddSyncClient` takes a builder, and `SyncClientBuilder` is `SyncClient.Create`.** Eleven overloads of `AddSyncClient` - one per way of supplying options, doubled for named clients, with the HTTP and resilience hooks as trailing parameters - become three: `AddSyncClient(configure)`, `AddSyncClient(name, configure)` and `AddSyncClient(options, configure)`, all taking an `Action<ISyncClientBuilder>`. The builder exposes the client's `OptionsBuilder<SyncOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand, so every option-supplying form and every hook is a chained call on a type Microsoft ships. `SyncClientBuilder`, `ISyncOptionsBuilder` and `SyncOptionsBuilder` are removed; `SyncClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `SyncOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. `SyncOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddSyncClient("name", sync => sync.Options.Configure(instance.CopyTo))`. The options builder's `UseSecureApi(key)`, obsolete since `UseProductionApi(key)` replaced it, goes with the builder. Invalid options throw `OptionsValidationException` from `Create`, the same exception the container raises - `SyncClientBuilder.Build()` threw `ValidationException`, so a `catch (ValidationException)` around standalone construction must change.
 
   ```csharp
   // Before
@@ -43,30 +43,16 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
-- **`SyncOptions.Timeout` bounds the whole call, and `WithTimeout` sets it from the options builder.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `configureResilience` or `WithResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently. A container-free client had no recourse at all, since `configureHttpClient` is a DI-path hook.
+- **`SyncOptions.Timeout` bounds the whole call.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `ConfigureResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently. A container-free client had no recourse at all.
 
   `Timeout` is unset by default and nothing changes for anyone who leaves it alone. Set it and it always wins, whatever the pipeline; `Timeout.InfiniteTimeSpan` removes the ceiling outright. It outranks `Retry-After`: the API's backoff is honoured in full until the budget runs out, then the call is cut short.
 
   ```csharp
-  services.AddSyncClient(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); });
+  services.AddSyncClient(sync => sync.Options.Configure(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); }));
 
   // or, container-free
-  SyncClientBuilder.WithOptions(o => o.WithEnvironmentId("…").WithTimeout(TimeSpan.FromMinutes(5)).Build())
+  await using var client = SyncClient.Create(sync => sync.Options.Configure(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); }));
   ```
-
-### Deprecated
-
-- **`ISyncOptionsBuilder.UseSecureApi(apiKey)` is obsolete; use `UseProductionApi(secureAccessApiKey)`.** Secure access is production access with a Delivery API key, and the Delivery SDK has always spelled it as an overload of `UseProductionApi`. Two SDKs naming one concept differently is a papercut for anyone using both, so Sync adopts Delivery's spelling. The old method still works and still delegates to the new one; it will be removed in 3.0.
-
-  ```csharp
-  // Before
-  .UseSecureApi("secure-access-api-key")
-
-  // After
-  .UseProductionApi("secure-access-api-key")
-  ```
-
-  `SyncOptions` is unchanged — `ApiMode` and a single `ApiKey` stay as they are. Only the builder's spelling moves.
 
 ### Changed
 
@@ -74,15 +60,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
-- **Standalone clients are built through the same registration as container-resolved ones.** `SyncClientBuilder.Build()` assembled a second copy of the HTTP pipeline by hand. They now run the same `AddSyncClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. Nothing on the public surface changes and the client still owns its `HttpClient` — disposing it still fails every further request. Two differences a consumer can observe. Pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved. And the `SyncOptions` instance handed to `WithOptions` is copied into the container, as `AddSyncClient(SyncOptions)` has always done, so a change made to that instance after `Build()` no longer reaches the client - previously the standalone client read the caller's object on every request, so an API key rotated on it took effect on the next call. That was never documented and neither the container path nor the Delivery SDK's standalone client did it; to rotate a key, build a new client or register through a container and reconfigure the options there.
+- **Standalone clients are built through the same registration as container-resolved ones.** The container-free client assembled a second copy of the HTTP pipeline by hand. `SyncClient.Create` runs the same `AddSyncClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. The client still owns its `HttpClient` — disposing it still fails every further request. Two differences a consumer can observe. Pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved. And the `SyncOptions` instance handed to `Create(options)` is copied into the container, as `AddSyncClient(SyncOptions)` has always done, so a change made to that instance after `Create` no longer reaches the client - previously the standalone client read the caller's object on every request, so an API key rotated on it took effect on the next call. That was never documented and neither the container path nor the Delivery SDK's standalone client did it; to rotate a key, build a new client or register through a container and reconfigure the options there.
 
 - **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
 
 - **A cancellation raised while a response body is being read is thrown, not reported as a failed result.** Refit captures it with the 2xx status already in hand, so it arrived as "the response body could not be read" with the cancellation buried in `Error.Exception` - and `Task.IsCanceled` stayed unset for anything awaiting the call. It now throws `OperationCanceledException` like a cancellation anywhere else in the SDK, matching the Delivery and Management SDKs.
 
 - **Walking the delta feed stops if the API repeats a continuation token.** Every response carries a fresh one, and the walk advances by storing it — so a response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
-
-- **`SyncClientBuilder.Build()` documents the exception it actually throws.** It advertised `InvalidOperationException` for a validation failure, but options that fail validation raise `ValidationException`. `InvalidOperationException` is the separate case of calling `Build()` without `WithOptions()`; both are now listed.
 
 - **`SyncOptions` describes what its properties do.** The two endpoint properties were documented as a "format", carried over from the Delivery SDK where they are format strings — here they are plain base URLs. `EnableResilience` now records that it is read once when the HTTP pipeline is built and that switching it off also restores `HttpClient`'s 100-second ceiling over the whole call. `Validate`'s summary no longer claims that yielding is what lets the attribute-based validations run.
 
