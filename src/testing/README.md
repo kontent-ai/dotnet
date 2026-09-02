@@ -42,6 +42,12 @@ read-side delay and pipeline nor the timeout rule - so the same assertions run a
 assembly's own copy, and a change to shared code cannot pass one product's suite while breaking
 another's.
 
+`Clients/ClientRegistrationTests.cs` pins `src/common/Clients/ClientRegistration.cs` the same way, with
+probe types of its own: the name and duplicate checks, options validated on read, the unnamed mirror of
+the default client's options and the reload that reaches it, startup validation reporting a failure
+once, the factory registered once and the default alias. The transport step needs a generated Refit
+client, so its ordering is pinned by each product's DI tests.
+
 The rule is the same as for the printer: a shared test file pins the shared file and nothing else.
 What a product composes out of it - its default pipeline, its idempotency rule, how it reads its
 own source-tracking attribute - stays in that product's tests. A shared test names no product type;
