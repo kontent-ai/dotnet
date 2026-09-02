@@ -24,13 +24,15 @@ public sealed class SyncTransportTests : IDisposable
     private ISyncClient CreateClient(Action<SyncOptions>? configureOptions = null)
     {
         var services = new ServiceCollection();
-        services.AddSyncClient(
-            options =>
+        services.AddSyncClient(sync =>
+        {
+            sync.Options.Configure(options =>
             {
                 options.EnvironmentId = EnvironmentId;
                 configureOptions?.Invoke(options);
-            },
-            http => http.ConfigurePrimaryHttpMessageHandler(() => _http));
+            });
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http);
+        });
 
         _provider = services.BuildServiceProvider();
         return _provider.GetRequiredService<ISyncClient>();

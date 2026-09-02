@@ -24,6 +24,14 @@ public interface ISyncClient
     Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Sync
+public interface ISyncClientBuilder
+    IHttpClientBuilder HttpClient { get; }
+    IServiceCollection Services { get; }
+    OptionsBuilder<SyncOptions> Options { get; }
+    String Name { get; }
+    ISyncClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
+
+// Kontent.Ai.Sync
 public interface ISyncClientFactory
     ISyncClient Get()
     ISyncClient Get(String name)
@@ -34,20 +42,6 @@ public interface ISyncDeltaResponse
     IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; }
     IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; }
     IReadOnlyList<SyncChange<SyncTypeData>> Types { get; }
-
-// Kontent.Ai.Sync
-public interface ISyncOptionsBuilder
-    ISyncOptionsBuilder DisableRetryPolicy()
-    ISyncOptionsBuilder UsePreviewApi(String apiKey)
-    ISyncOptionsBuilder UseProductionApi()
-    ISyncOptionsBuilder UseProductionApi(String secureAccessApiKey)
-    ISyncOptionsBuilder UseSecureApi(String apiKey)
-    ISyncOptionsBuilder WithCustomEndpoint(String endpoint)
-    ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
-    ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
-    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
-    ISyncOptionsBuilder WithTimeout(TimeSpan timeout)
-    SyncOptions Build()
 
 // Kontent.Ai.Sync
 public interface ISyncResult
@@ -64,17 +58,9 @@ public interface ISyncResult`1<T> : ISyncResult
 
 // Kontent.Ai.Sync
 public static class ServiceCollectionExtensions
-    static IServiceCollection AddSyncClient(IServiceCollection services, Action<IServiceProvider, SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions)
-    static IServiceCollection AddSyncClient(IServiceCollection services, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<IServiceProvider, SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<SyncOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions syncOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddSyncClient(IServiceCollection services, Action<ISyncClientBuilder> configure)
+    static IServiceCollection AddSyncClient(IServiceCollection services, String name, Action<ISyncClientBuilder> configure)
+    static IServiceCollection AddSyncClient(IServiceCollection services, SyncOptions options, Action<ISyncClientBuilder>? configure)
 
 // Kontent.Ai.Sync
 public sealed class SyncChange`1<TData> : IEquatable<SyncChange<TData>>
@@ -95,6 +81,8 @@ public sealed class SyncClient : IAsyncDisposable, IDisposable, ISyncClient
     Task<ISyncResult> InitializeSyncAsync(CancellationToken cancellationToken)
     ValueTask DisposeAsync()
     Void Dispose()
+    static SyncClient Create(Action<ISyncClientBuilder> configure)
+    static SyncClient Create(SyncOptions options, Action<ISyncClientBuilder>? configure)
 
 // Kontent.Ai.Sync
 public sealed class SyncItemData : IEquatable<SyncItemData>
@@ -158,11 +146,17 @@ public sealed class SyncOptions : IValidatableObject
     String? ApiKey { get; set; }
     TimeSpan? Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    Void CopyTo(SyncOptions destination)
 
 // Kontent.Ai.Sync
 public static class SyncOptionsExtensions
     static String GetBaseUrl(SyncOptions options)
     static String? GetApiKey(SyncOptions options)
+    static SyncOptions UseCustomEndpoint(SyncOptions options, String endpoint)
+    static SyncOptions UseCustomEndpoint(SyncOptions options, Uri endpoint)
+    static SyncOptions UsePreviewApi(SyncOptions options, String previewApiKey)
+    static SyncOptions UseProductionApi(SyncOptions options)
+    static SyncOptions UseProductionApi(SyncOptions options, String secureAccessApiKey)
 
 // Kontent.Ai.Sync
 public sealed class SyncSourceTrackingHeaderAttribute : Attribute
@@ -221,26 +215,4 @@ public sealed class SyncTypeSystem : IEquatable<SyncTypeSystem>
     Int32 GetHashCode()
     String ToString()
     SyncTypeSystem <Clone>$()
-
-// Kontent.Ai.Sync.Configuration
-public sealed class SyncClientBuilder
-    SyncClient Build()
-    SyncClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
-    SyncClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static SyncClientBuilder WithOptions(Func<ISyncOptionsBuilder, SyncOptions> buildSyncOptions)
-
-// Kontent.Ai.Sync.Configuration
-public sealed class SyncOptionsBuilder : ISyncOptionsBuilder
-    ISyncOptionsBuilder DisableRetryPolicy()
-    ISyncOptionsBuilder UsePreviewApi(String apiKey)
-    ISyncOptionsBuilder UseProductionApi()
-    ISyncOptionsBuilder UseProductionApi(String secureAccessApiKey)
-    ISyncOptionsBuilder UseSecureApi(String apiKey)
-    ISyncOptionsBuilder WithCustomEndpoint(String endpoint)
-    ISyncOptionsBuilder WithCustomEndpoint(Uri endpoint)
-    ISyncOptionsBuilder WithEnvironmentId(Guid environmentId)
-    ISyncOptionsBuilder WithEnvironmentId(String environmentId)
-    ISyncOptionsBuilder WithTimeout(TimeSpan timeout)
-    SyncOptions Build()
-    static ISyncOptionsBuilder CreateInstance()
 

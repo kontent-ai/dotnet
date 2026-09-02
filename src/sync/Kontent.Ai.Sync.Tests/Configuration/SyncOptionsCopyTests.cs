@@ -1,14 +1,13 @@
 using System.Reflection;
 using AwesomeAssertions;
 using Kontent.Ai.Common;
-using Kontent.Ai.Sync.Configuration;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
 
 /// <summary>
-/// <see cref="SyncOptionsBuilder.Build"/> used to list the properties it carried, which keeps compiling
-/// when an option is added and silently stops carrying it. Reflected here for the same reason the build
-/// is: naming them would leave a new one uncovered in exactly the case that matters.
+/// <see cref="SyncOptions.CopyTo"/> is reflected rather than listing the properties it carries, which would
+/// keep compiling when an option is added and silently stop carrying it. Reflected here for the same
+/// reason: naming them would leave a new one uncovered in exactly the case that matters.
 /// </summary>
 public class SyncOptionsCopyTests
 {
@@ -37,16 +36,16 @@ public class SyncOptionsCopyTests
     }
 
     [Fact]
-    public void Build_CarriesWhatTheBuilderWasTold()
+    public void CopyTo_CarriesTheValues()
     {
-        var built = SyncOptionsBuilder.CreateInstance()
-            .WithEnvironmentId("11111111-1111-1111-1111-111111111111")
-            .UsePreviewApi("preview-key")
-            .Build();
+        var source = new SyncOptions { EnvironmentId = "11111111-1111-1111-1111-111111111111" }.UsePreviewApi("preview-key");
+        var target = new SyncOptions();
 
-        built.EnvironmentId.Should().Be("11111111-1111-1111-1111-111111111111");
-        built.ApiKey.Should().Be("preview-key");
-        built.ApiMode.Should().Be(ApiMode.Preview);
+        source.CopyTo(target);
+
+        target.EnvironmentId.Should().Be("11111111-1111-1111-1111-111111111111");
+        target.ApiKey.Should().Be("preview-key");
+        target.ApiMode.Should().Be(ApiMode.Preview);
     }
 
     // A value that differs from the property's default, so a property the copy skips fails the comparison.
