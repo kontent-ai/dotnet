@@ -110,7 +110,7 @@ If the named rendition is not present on the asset, the tag helper silently fall
 
 #### Custom asset domain
 
-The Delivery SDK handles custom asset domains at mapping time — configure it with `WithCustomAssetDomain("https://cdn.example.com")` when building the `DeliveryClient`. By the time assets reach the tag helper, their `Url` already points at the custom domain, so the `<img>` element emitted by `<img-asset>` uses that domain without any extra configuration in this package.
+The Delivery SDK handles custom asset domains at mapping time — set `DeliveryOptions.CustomAssetDomain` to `"https://cdn.example.com"` where you configure the Delivery client. By the time assets reach the tag helper, their `Url` already points at the custom domain, so the `<img>` element emitted by `<img-asset>` uses that domain without any extra configuration in this package.
 
 ### `rich-text` tag helper
 

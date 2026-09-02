@@ -21,8 +21,8 @@ public static class DeliveryCacheOptionsExtensions
     /// <returns>The same instance, for chaining.</returns>
     /// <example>
     /// <code>
-    /// services.AddDeliveryHybridCache(options => options
-    ///     .ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.AllowBackgroundBackplaneOperations = true));
+    /// services.AddDeliveryClient(delivery => delivery.UseHybridCache(cache => cache
+    ///     .ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.AllowBackgroundBackplaneOperations = true)));
     /// </code>
     /// </example>
     public static DeliveryCacheOptions ConfigureFusionCache(

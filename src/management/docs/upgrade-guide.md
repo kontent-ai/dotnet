@@ -69,7 +69,7 @@ The package name is unchanged — `Kontent.Ai.Management`. The modernized API is
 
 ## 1. Creating the Client
 
-The constructor still works exactly as before, so the simplest migration is a no-op here. What's new is **two additional entry points** and **client disposability**.
+The constructor still works exactly as before, so the simplest migration is a no-op here. What's new is **one builder in two hosting modes** - `AddManagementClient` for a container, `ManagementClient.Create` without one - and **client disposability**.
 
 ### 1.1 Standalone constructor (unchanged, but now disposable)
 
@@ -91,19 +91,19 @@ await using var client = new ManagementClient(new ManagementOptions
 });
 ```
 
-A standalone client now owns its `HttpClient` instances, and the concrete `ManagementClient` implements both `IDisposable` and `IAsyncDisposable` — dispose it when you're done (hence `await using`). Keep the builder result as `var` or `ManagementClient`; widening it to `IManagementClient` drops the disposal.
+A standalone client now owns its `HttpClient` instances, and the concrete `ManagementClient` implements both `IDisposable` and `IAsyncDisposable` — dispose it when you're done (hence `await using`). Keep the result as `var` or `ManagementClient`; widening it to `IManagementClient` drops the disposal.
 
 ### 1.2 Dependency injection (new, recommended for apps)
 
 ```csharp
-services.AddManagementClient(options =>
+services.AddManagementClient(management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
     options.ApiKey = "<YOUR_API_KEY>";
-});
+}));
 ```
 
-`IManagementClient` is then resolvable from the container, which owns its lifetime and `HttpClient` pipeline via `IHttpClientFactory`. Bind from configuration instead with `services.AddManagementClient(configuration)` (default section `ManagementOptions`).
+`IManagementClient` is then resolvable from the container, which owns its lifetime and `HttpClient` pipeline via `IHttpClientFactory`. The builder's `Options` is the client's `OptionsBuilder<ManagementOptions>`, so binding from configuration is `management.Options.BindConfiguration("ManagementOptions")`, and a pre-built instance goes in as `services.AddManagementClient(options)` - or, for a named client, `management.Options.Configure(options.CopyTo)`.
 
 > [!NOTE]
 > A DI-resolved client is owned by the container — do **not** dispose it yourself. Disposal is a no-op on DI-managed instances.
@@ -111,30 +111,31 @@ services.AddManagementClient(options =>
 Register multiple named clients and resolve them through `IManagementClientFactory`:
 
 ```csharp
-services.AddManagementClient("production", o => { o.EnvironmentId = "…"; o.ApiKey = "…"; });
-services.AddManagementClient("staging",    o => { o.EnvironmentId = "…"; o.ApiKey = "…"; });
+services.AddManagementClient("production", m => m.Options.Configure(o => { o.EnvironmentId = "…"; o.ApiKey = "…"; }));
+services.AddManagementClient("staging",    m => m.Options.Configure(o => { o.EnvironmentId = "…"; o.ApiKey = "…"; }));
 
 // var production = clientFactory.Get("production");
 ```
 
-### 1.3 Fluent builder (new, non-DI customization)
+### 1.3 Standalone `Create` (new, non-DI customization)
 
-When you are not using DI but need to customize the resilience pipeline or Refit settings:
+When you are not using DI but need more than the constructor offers - the resilience pipeline, a handler on the transport, a service the client should see - `ManagementClient.Create` takes the same builder as `AddManagementClient` and runs it over a private container the client owns:
 
 ```csharp
-await using var client = ManagementClientBuilder
-    .WithOptions(options =>
+await using var client = ManagementClient.Create(management =>
+{
+    management.Options.Configure(options =>
     {
         options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
         options.ApiKey = "<YOUR_API_KEY>";
-    })
-    .WithResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromSeconds(30)))
-    .Build();
+    });
+    management.ConfigureResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromSeconds(30)));
+});
 ```
 
 ### 1.4 Options changes
 
-`ManagementOptions` keeps `EnvironmentId`, `ApiKey`, and `SubscriptionId`. The new `EnableResilience` flag (default `true`) toggles the built-in retry pipeline. Options now validate on use — a missing/malformed `EnvironmentId` or `ApiKey` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.
+`ManagementOptions` keeps `EnvironmentId`, `ApiKey`, and `SubscriptionId`. The new `EnableResilience` flag (default `true`) toggles the built-in retry pipeline. Options now validate on use — a missing/malformed `EnvironmentId` or `ApiKey` surfaces as an `OptionsValidationException`: from the constructor and from `Create`, or at host startup when the container validates its options.
 
 The endpoint override was renamed **`EndpointV2` → `Endpoint`** (the SDK appends the versioned, scoped path itself). This matters especially for **configuration binding**: a config file carrying an `EndpointV2` key binds to nothing and silently falls back to the production endpoint — rename the key when migrating.
 

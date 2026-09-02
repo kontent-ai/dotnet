@@ -46,6 +46,12 @@ supplies a `TransportRecipe<TOptions>` per transport and its handlers; it does n
 The order in `ClientRegistration` is the contract, and it is the same for a container the application
 owns and for the private one a product's `Create` builds.
 
+`ClientRegistration` depends on `OptionsCopier<TOptions>`: the mirror that serves the default client's
+options under the unnamed `IOptions<T>` copies the named values across with it. A product that
+compiles `Clients/` must therefore compile `OptionsCopier.cs` too, or see it through
+`InternalsVisibleTo` as Delivery does from its Abstractions assembly - a second copy in the same
+assembly would be the ambiguity the compiler reports as CS0436.
+
 ## Consuming a file
 
 `$(KontentCommonPath)` is defined in the root `Directory.Build.props`.
