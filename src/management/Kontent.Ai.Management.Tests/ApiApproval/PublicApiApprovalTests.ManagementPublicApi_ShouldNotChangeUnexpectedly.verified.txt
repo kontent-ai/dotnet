@@ -125,6 +125,15 @@ public interface IManagementClient
     Task<IManagementResult> UnpublishLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
 
 // Kontent.Ai.Management
+public interface IManagementClientBuilder
+    IHttpClientBuilder HttpClient { get; }
+    IHttpClientBuilder SubscriptionHttpClient { get; }
+    IServiceCollection Services { get; }
+    OptionsBuilder<ManagementOptions> Options { get; }
+    String Name { get; }
+    IManagementClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
+
+// Kontent.Ai.Management
 public interface IManagementClientFactory
     IManagementClient Get()
     IManagementClient Get(String name)
@@ -257,6 +266,8 @@ public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagemen
     Task<IManagementResult> UnpublishLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken)
     ValueTask DisposeAsync()
     Void Dispose()
+    static ManagementClient Create(Action<IManagementClientBuilder> configure)
+    static ManagementClient Create(ManagementOptions options, Action<IManagementClientBuilder>? configure)
 
 // Kontent.Ai.Management
 public static class ManagementErrorCodes
@@ -333,13 +344,6 @@ public sealed class SourceTrackingHeaderAttribute : Attribute
     String? PreReleaseLabel { get; }
 
 // Kontent.Ai.Management.Configuration
-public sealed class ManagementClientBuilder
-    ManagementClient Build()
-    ManagementClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    static ManagementClientBuilder WithOptions(Action<ManagementOptions> configureOptions)
-    static ManagementClientBuilder WithOptions(ManagementOptions options)
-
-// Kontent.Ai.Management.Configuration
 public sealed class ManagementOptions : IValidatableObject
     const String DefaultConfigurationSectionName = ManagementOptions
     .ctor()
@@ -350,6 +354,7 @@ public sealed class ManagementOptions : IValidatableObject
     String? SubscriptionId { get; set; }
     TimeSpan Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    Void CopyTo(ManagementOptions destination)
 
 // Kontent.Ai.Management.Extensions
 public static class AssetExtensions
@@ -394,16 +399,9 @@ public static class ModelReferenceExtensions
 
 // Kontent.Ai.Management.Extensions
 public static class ServiceCollectionExtensions
-    static IServiceCollection AddManagementClient(IServiceCollection services, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions)
-    static IServiceCollection AddManagementClient(IServiceCollection services, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, ManagementOptions managementOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<IServiceProvider, ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<ManagementOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddManagementClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    static IServiceCollection AddManagementClient(IServiceCollection services, Action<IManagementClientBuilder> configure)
+    static IServiceCollection AddManagementClient(IServiceCollection services, ManagementOptions options, Action<IManagementClientBuilder>? configure)
+    static IServiceCollection AddManagementClient(IServiceCollection services, String name, Action<IManagementClientBuilder> configure)
 
 // Kontent.Ai.Management.Extensions
 public static class VariantIdentifierExtensions

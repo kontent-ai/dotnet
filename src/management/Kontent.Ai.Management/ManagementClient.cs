@@ -1,10 +1,8 @@
-using System.ComponentModel.DataAnnotations;
 using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using Polly;
 
 namespace Kontent.Ai.Management;
 
@@ -33,28 +31,44 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         ?? throw new InvalidOperationException(ManagementOptionsExtensions.SubscriptionIdMissingMessage);
 
     /// <summary>
-    /// Creates a client against the environment described by <paramref name="managementOptions"/>. The returned
-    /// instance owns its <see cref="HttpClient"/>s and the private container they were drawn from — dispose it
-    /// when you're done. Throws
-    /// <see cref="ValidationException"/> if the options fail validation. For DI scenarios prefer
-    /// <c>services.AddManagementClient(...)</c>, which hands lifetime management to the container.
+    /// Creates a client from a pre-built options instance, without a container of your own: the same
+    /// registration as <c>services.AddManagementClient(options)</c>, run inside a private container the
+    /// client owns. Dispose it when you're done. Equivalent to <see cref="Create(ManagementOptions, Action{IManagementClientBuilder})"/>.
     /// </summary>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
     public ManagementClient(ManagementOptions managementOptions)
-        : this(managementOptions, configureResilience: null)
+        : this(BuildOwned(services => services.AddManagementClient(managementOptions)))
     {
     }
 
-    internal ManagementClient(
-        ManagementOptions managementOptions,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    /// <summary>
+    /// Builds a client without a container of your own: the same registration as
+    /// <c>services.AddManagementClient(configure)</c>, run inside a private container the client owns. Dispose
+    /// the client to release it. Use it as a singleton for the lifetime of your application.
+    /// </summary>
+    /// <param name="configure">Configures the client: its options, HTTP clients and resilience.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static ManagementClient Create(Action<IManagementClientBuilder> configure)
     {
-        var (api, subscriptionApi, ownedResources) = BuildDependencies(managementOptions, configureResilience);
+        ArgumentNullException.ThrowIfNull(configure);
+        return new ManagementClient(BuildOwned(services => services.AddManagementClient(configure)));
+    }
 
-        _managementApi = api;
-        _subscriptionApi = subscriptionApi;
-        _ownedResources = ownedResources;
-        _contentConverter = new Conversion.ContentItemEnvelopeConverter();
-        _autoScanContentTypes = true;
+    /// <summary>
+    /// Builds a client without a container of your own, from a pre-built options instance.
+    /// </summary>
+    /// <param name="options">The options to copy.</param>
+    /// <param name="configure">Configures the client further, after the options are copied.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static ManagementClient Create(ManagementOptions options, Action<IManagementClientBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return new ManagementClient(BuildOwned(services => services.AddManagementClient(options, configure)));
+    }
+
+    private ManagementClient((IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) owned)
+        : this(owned.Api, owned.SubscriptionApi, owned.OwnedResources)
+    {
     }
 
     internal ManagementClient(
@@ -99,18 +113,15 @@ public sealed partial class ManagementClient : IManagementClient, IDisposable, I
         }
     }
 
-    // Runs the same registration as AddManagementClient inside a private container and draws the clients
-    // from it. Validates first so every standalone construction path surfaces ValidationException, rather
-    // than the options pipeline's own exception for the same fault once the container reads them.
-    private static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) BuildDependencies(
-        ManagementOptions options,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
+    // Runs the registration inside a private container and draws the clients from it. The options are
+    // validated when first read, which CreateOwnedApis does, so every standalone path fails the same way.
+    private static (IManagementApi? Api, ISubscriptionApi? SubscriptionApi, IDisposable OwnedResources) BuildOwned(
+        Action<IServiceCollection> register)
     {
-        ArgumentNullException.ThrowIfNull(options);
-        Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true);
+        ArgumentNullException.ThrowIfNull(register);
 
         var services = new ServiceCollection();
-        services.AddManagementClient(options, configureHttpClient: null, configureResilience);
+        register(services);
 
         // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
         // which this path does not have.
