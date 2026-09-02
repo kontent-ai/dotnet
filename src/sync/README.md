@@ -23,13 +23,17 @@ dotnet add package Kontent.Ai.Sync
 ```csharp
 using Kontent.Ai.Sync;
 
-services.AddSyncClient(options =>
+services.AddSyncClient(sync => sync.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-    options.ApiMode = ApiMode.Preview;
-    options.ApiKey = "your-preview-api-key";
-});
+    options.UsePreviewApi("your-preview-api-key");
+}));
 ```
+
+`AddSyncClient` hands you a builder for the one client being registered. `Options` is its
+`OptionsBuilder<SyncOptions>`, so everything the options pattern offers - `Configure`, `Bind`,
+`BindConfiguration`, `Validate` - is available without the SDK wrapping it; the rest of this README
+shows the pieces as they come up.
 
 ### 2. Initialize sync
 
@@ -125,48 +129,47 @@ which is why the four payloads are separate types rather than one.
 
 ## Configuration
 
+The builder passed to `AddSyncClient` (and to `SyncClient.Create`, below) has four members and one method:
+
+| Member | What it is |
+|---|---|
+| `Options` | The client's `OptionsBuilder<SyncOptions>` - `Configure`, `Configure<TDependency>`, `Bind`, `BindConfiguration`, `Validate`, `PostConfigure` |
+| `HttpClient` | The `IHttpClientBuilder` the transport is built on - every `Microsoft.Extensions.Http` extension applies |
+| `ConfigureResilience(...)` | Replaces the default resilience pipeline |
+| `Services`, `Name` | The service collection and the client's registration key, for anything you attach to this client yourself |
+
+One step fits an expression lambda; several go in a statement lambda. Whatever you chain runs after
+the SDK's own setup, so it wins.
+
 ### API modes
+
+`SyncOptions.ApiMode` and `ApiKey` decide the API; the extension methods set the two together.
 
 ```csharp
 // Public Production API
-services.AddSyncClient(o =>
+services.AddSyncClient(sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "your-environment-id";
-    o.ApiMode = ApiMode.Public;
-});
+    o.UseProductionApi();
+}));
 
 // Preview API
-services.AddSyncClient(o =>
+services.AddSyncClient(sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "your-environment-id";
-    o.ApiMode = ApiMode.Preview;
-    o.ApiKey = "preview-api-key";
-});
+    o.UsePreviewApi("preview-api-key");
+}));
 
-// Secure Production API
-services.AddSyncClient(o =>
+// Secure Production API - a Delivery API key with secure access enabled
+services.AddSyncClient(sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "your-environment-id";
-    o.ApiMode = ApiMode.Secure;
-    o.ApiKey = "secure-access-api-key";
-});
+    o.UseProductionApi("secure-access-api-key");
+}));
 ```
 
-### Options builder
-
-```csharp
-services.AddSyncClient(builder => builder
-    .WithEnvironmentId("your-environment-id")
-    .UsePreviewApi("preview-api-key")
-    .DisableRetryPolicy()
-    .Build());
-
-// Secure production access takes a Delivery API key with secure access enabled:
-services.AddSyncClient(builder => builder
-    .WithEnvironmentId("your-environment-id")
-    .UseProductionApi("secure-access-api-key")
-    .Build());
-```
+`UseCustomEndpoint(...)` points both API modes at one endpoint. Single settings are plain properties:
+`EnableResilience`, `Timeout`, `ProductionEndpoint`, `PreviewEndpoint`.
 
 ### Configuration binding
 
@@ -183,26 +186,33 @@ services.AddSyncClient(builder => builder
 }
 ```
 
-Registration — pass the whole configuration and let the SDK find its section, or hand it the section
-directly:
+Bind the section, or - in a host, where `IConfiguration` is in the container - name it:
 
 ```csharp
-services.AddSyncClient(configuration);                              // binds "SyncOptions"
-services.AddSyncClient(configuration, "MySyncSection");             // or a differently-named section
-services.AddSyncClient(configuration.GetSection("SyncOptions"));    // or the section itself
+services.AddSyncClient(sync => sync.Options.Bind(configuration.GetSection("SyncOptions")));
+services.AddSyncClient(sync => sync.Options.BindConfiguration("MySyncSection"));
 ```
 
 The default section name is available as `SyncOptions.DefaultConfigurationSectionName`, so tooling that
 resolves the SDK's configuration from the same sources does not have to hard-code it.
 
 Binding this way is change-token backed: edits to the underlying source are picked up through
-`IOptionsMonitor<SyncOptions>` without rebuilding the container. All configuration overloads accept the
-same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones:
+`IOptionsMonitor<SyncOptions>` without rebuilding the container. Binding and the other steps combine
+freely:
 
 ```csharp
-services.AddSyncClient(
-    configuration,
-    configureResilience: builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+services.AddSyncClient(sync =>
+{
+    sync.Options.BindConfiguration("SyncOptions");
+    sync.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+});
+```
+
+A pre-built instance works too; its values are copied onto the options the container materializes, and
+the object itself is not registered:
+
+```csharp
+services.AddSyncClient(new SyncOptions { EnvironmentId = "your-environment-id" }.UsePreviewApi("preview-api-key"));
 ```
 
 ### Timeouts
@@ -220,11 +230,11 @@ so the call runs as long as its retries need; with `EnableResilience = false` or
 Set it and it always wins, whatever the pipeline:
 
 ```csharp
-services.AddSyncClient(o =>
+services.AddSyncClient(sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "your-environment-id";
     o.Timeout = TimeSpan.FromMinutes(5);
-});
+}));
 ```
 
 `Timeout.InfiniteTimeSpan` removes the ceiling outright. Note that it outranks `Retry-After`: when the API
@@ -233,83 +243,96 @@ your ceiling runs out first.
 
 ### Options from other registered services
 
-When the options depend on something else in the container — a secret store, a tenant resolver — use the
-overload that hands you the `IServiceProvider`:
+When the options depend on something else in the container — a secret store, a tenant resolver — use
+`Configure<TDependency>` on the options builder:
 
 ```csharp
-services.AddSyncClient((sp, options) =>
+services.AddSyncClient(sync => sync.Options.Configure<ISecretStore>((options, secrets) =>
 {
-    var secrets = sp.GetRequiredService<ISecretStore>();
     options.EnvironmentId = secrets.EnvironmentId;
     options.ApiKey = secrets.SyncApiKey;
+}));
+```
+
+### The HTTP client
+
+`HttpClient` is the named `IHttpClientBuilder` the SDK registered, after the SDK's own handlers are on
+it, so a handler or primary handler you add runs on top of them:
+
+```csharp
+services.AddSyncClient(sync =>
+{
+    sync.Options.Configure(o => o.EnvironmentId = "your-environment-id");
+    sync.HttpClient.AddHttpMessageHandler<MyAuditingHandler>();
 });
 ```
 
 ## Standalone client (without DI)
 
-For console apps, Azure Functions isolated workers, scripts, or tests where a full DI container is not available, use `SyncClientBuilder` to construct a client directly. It runs the same registration as `AddSyncClient` inside a private container the built client owns, so the client must be disposed.
+For console apps, Azure Functions isolated workers, scripts, or tests where a container of your own is not
+available, `SyncClient.Create` takes the same builder and runs the same registration inside a private
+container the built client owns, so the client must be disposed.
 
 ```csharp
-using Kontent.Ai.Sync.Configuration;
-
-await using var client = SyncClientBuilder
-    .WithOptions(opts => opts
-        .WithEnvironmentId("your-environment-id")
-        .UsePreviewApi("preview-api-key")
-        .Build())
-    .Build();
+await using var client = SyncClient.Create(sync => sync.Options.Configure(o =>
+{
+    o.EnvironmentId = "your-environment-id";
+    o.UsePreviewApi("preview-api-key");
+}));
 
 var result = await client.InitializeSyncAsync();
 ```
 
-Optional configuration:
+Logging, resilience and anything else the container path can do are the same calls:
 
 ```csharp
-await using var client = SyncClientBuilder
-    .WithOptions(opts => opts.WithEnvironmentId("env-id").UseProductionApi().Build())
-    .WithLoggerFactory(loggerFactory)
-    .WithResilience(builder => builder.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }))
-    .Build();
+await using var client = SyncClient.Create(sync =>
+{
+    sync.Services.AddSingleton(loggerFactory);
+    sync.Options.Configure(o => o.EnvironmentId = "env-id");
+    sync.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+});
 ```
 
-`SyncOptions.Timeout` applies here too — it is the only way to bound a builder-built client, since the
-`configureHttpClient` hook is a DI-path feature:
+`SyncOptions.Timeout` applies here too, and matters with a pipeline of your own:
 
 ```csharp
-await using var client = SyncClientBuilder
-    .WithOptions(opts => opts
-        .WithEnvironmentId("your-environment-id")
-        .UseProductionApi()
-        .WithTimeout(TimeSpan.FromMinutes(5))
-        .Build())
-    .WithResilience(builder => builder.AddTimeout(TimeSpan.FromMinutes(2)))
-    .Build();
+await using var client = SyncClient.Create(sync =>
+{
+    sync.Options.Configure(o =>
+    {
+        o.EnvironmentId = "your-environment-id";
+        o.Timeout = TimeSpan.FromMinutes(5);
+    });
+    sync.ConfigureResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromMinutes(2)));
+});
 ```
 
-Without the `WithTimeout` line, supplying your own pipeline leaves `HttpClient`'s 100-second default in
+Without the `Timeout` line, supplying your own pipeline leaves `HttpClient`'s 100-second default in
 charge, which would cut the two-minute attempt short.
 
 The returned client is thread-safe and should be used as a singleton for the lifetime of your
-application. Each `Build()` call creates an independent client that owns the `HttpClient` it drew and the
+application. Each `Create` call builds an independent client that owns the `HttpClient` it drew and the
 private container behind it, which is why it is disposable — dispose it and no further request goes out;
 the pooled connections close once the HTTP client factory releases the handler. A client resolved from
 your own container is owned by that container instead, so there is nothing for you to dispose there.
+`ISyncClientFactory`, below, is the other thing with a similar name: it resolves a *named* client from
+your container, while `Create` builds a standalone one.
 
 ## Named Clients
 
 ```csharp
-services.AddSyncClient("production", o =>
+services.AddSyncClient("production", sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "prod-environment-id";
-    o.ApiMode = ApiMode.Public;
-});
+    o.UseProductionApi();
+}));
 
-services.AddSyncClient("preview", o =>
+services.AddSyncClient("preview", sync => sync.Options.Configure(o =>
 {
     o.EnvironmentId = "preview-environment-id";
-    o.ApiMode = ApiMode.Preview;
-    o.ApiKey = "preview-api-key";
-});
+    o.UsePreviewApi("preview-api-key");
+}));
 
 public sealed class MultiEnvironmentService(ISyncClientFactory factory)
 {
@@ -318,11 +341,11 @@ public sealed class MultiEnvironmentService(ISyncClientFactory factory)
 }
 ```
 
-Every registration form has a named counterpart, so named clients can bind from configuration too:
+The name is the only difference, so named clients bind from configuration the same way:
 
 ```csharp
-services.AddSyncClient("production", configuration, "Sync:Production");
-services.AddSyncClient("preview", configuration.GetSection("Sync:Preview"));
+services.AddSyncClient("production", sync => sync.Options.BindConfiguration("Sync:Production"));
+services.AddSyncClient("preview", sync => sync.Options.Bind(configuration.GetSection("Sync:Preview")));
 ```
 
 ## Error Handling

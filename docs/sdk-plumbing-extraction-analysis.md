@@ -333,6 +333,9 @@ catch drift in it.
    site per product to work on.
 2. **3.1** — done.
 3. **2.1, 2.2, 2.3, 2.4** — done, in one commit. 2.5 and 2.9 are done too.
+4. **The registration surface itself** — done on `client-builders`, by
+   `docs/client-registration-builder-plan.md`: one builder per client, implemented once in
+   `src/common/Clients`, which is where 2.1 and 2.3 ended up living.
 4. **2.7** and **2.8** — each self-contained, each with the approval snapshot as the check that no
    public surface moved.
 5. **5.1** then **5.2** — Delivery only, `TypeQuery`/`TaxonomyQuery` first as the plan sequences it.

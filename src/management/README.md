@@ -87,28 +87,31 @@ else
 
 ## Creating the Client
 
-There are three entry points, in order of preference: **dependency injection** for applications, the **standalone constructor** for scripts and simple consumers, and the **fluent builder** when a non-DI consumer needs to customize the HTTP pipeline.
+There are two entry points: **dependency injection** for applications, and **`ManagementClient.Create`** (or the
+constructor) for scripts and simple consumers. Both take the same builder.
 
 ### With Dependency Injection
 
 Register the client on your `IServiceCollection`:
 
 ```csharp
-services.AddManagementClient(options =>
+services.AddManagementClient(management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
     options.ApiKey = "<YOUR_API_KEY>";
-});
+}));
 ```
 
 `IManagementClient` is then resolvable from the container — inject it into your own services. This is the recommended approach: the container owns the client's lifetime and its underlying `HttpClient` pipeline (via `IHttpClientFactory`).
+
+The builder handed to you has four members and one method: `Options` (the client's `OptionsBuilder<ManagementOptions>` - `Configure`, `Bind`, `BindConfiguration`, `Validate`), `HttpClient` and `SubscriptionHttpClient` (the `IHttpClientBuilder` of each scope's transport), `ConfigureResilience(...)`, and `Services` / `Name` for anything you attach to this client yourself. One step fits an expression lambda; several go in a statement lambda, and whatever you chain runs after the SDK's own setup.
 
 > [!NOTE]
 > A DI-resolved client is owned by the container — do **not** dispose it yourself. Disposal is a no-op on DI-managed instances; the container releases the underlying HTTP resources.
 
 ### Standalone
 
-For scripts and simple consumers, construct the client directly:
+For scripts and simple consumers, build the client directly:
 
 ```csharp
 await using var client = new ManagementClient(new ManagementOptions
@@ -116,26 +119,20 @@ await using var client = new ManagementClient(new ManagementOptions
     EnvironmentId = "<YOUR_ENVIRONMENT_ID>",
     ApiKey = "<YOUR_API_KEY>"
 });
-```
 
-A standalone client owns its `HttpClient` instances — dispose it when you are done. `ManagementClientBuilder.Build()` and the `ManagementClient` constructor both hand back the concrete `ManagementClient`, which implements `IDisposable` and `IAsyncDisposable` (hence the `await using` above). The `IManagementClient` interface deliberately does not: a client resolved from a container is owned by the container, and nothing you inject should be disposed by you.
-
-### Fluent Builder
-
-When you are **not** using DI but still need to customize the resilience pipeline, use `ManagementClientBuilder`:
-
-```csharp
-await using var client = ManagementClientBuilder
-    .WithOptions(options =>
+// or, with the same builder the container path takes
+await using var client = ManagementClient.Create(management =>
+{
+    management.Options.Configure(options =>
     {
         options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
         options.ApiKey = "<YOUR_API_KEY>";
-    })
-    .WithResilience(pipeline => /* customize the Polly pipeline */ pipeline.AddTimeout(TimeSpan.FromSeconds(30)))
-    .Build();
+    });
+    management.ConfigureResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromSeconds(30)));
+});
 ```
 
-The builder is a thin wrapper over the resource-owning constructor. Both run the same registration as `AddManagementClient` inside a private container, and the built client owns the `HttpClient`s it drew and that container, so dispose it. Disposal stops every further request; the pooled connections close once the HTTP client factory releases the handlers.
+Both run the same registration as `AddManagementClient` inside a private container, and the built client owns the `HttpClient`s it drew and that container — dispose it when you are done. The concrete `ManagementClient` implements `IDisposable` and `IAsyncDisposable` (hence the `await using` above); the `IManagementClient` interface deliberately does not, because a client resolved from a container is owned by the container. Disposal stops every further request; the pooled connections close once the HTTP client factory releases the handlers. Invalid options throw `OptionsValidationException` from either entry point. `IManagementClientFactory`, below, is the other thing with a similar name: it resolves a *named* client from your container, while `Create` builds a standalone one.
 
 ### From Configuration
 
@@ -151,15 +148,19 @@ Bind the options from an `IConfiguration` section — `ManagementOptions` by def
 ```
 
 ```csharp
-services.AddManagementClient(configuration);
-// or bind a differently-named section:
-services.AddManagementClient(configuration, "MyManagementSection");
+services.AddManagementClient(management => management.Options.Bind(configuration.GetSection("ManagementOptions")));
+// or, in a host where IConfiguration is in the container, by name:
+services.AddManagementClient(management => management.Options.BindConfiguration("MyManagementSection"));
 ```
 
-The configuration-based overloads accept the same optional `configureHttpClient` / `configureResilience` hooks as the action-based ones, and every form has a named counterpart:
+Binding combines with the other steps, and the name is the only difference for a named client:
 
 ```csharp
-services.AddManagementClient("production", configuration, "Management:Production");
+services.AddManagementClient("production", management =>
+{
+    management.Options.BindConfiguration("Management:Production");
+    management.ConfigureResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromMinutes(1)));
+});
 ```
 
 You can also hand over a pre-built options instance, or configure options from other registered services:
@@ -171,12 +172,11 @@ services.AddManagementClient(new ManagementOptions
     ApiKey = "<YOUR_API_KEY>",
 });
 
-services.AddManagementClient((sp, options) =>
+services.AddManagementClient(management => management.Options.Configure<ISecretStore>((options, secrets) =>
 {
-    var secrets = sp.GetRequiredService<ISecretStore>();
     options.EnvironmentId = secrets.EnvironmentId;
     options.ApiKey = secrets.ManagementApiKey;
-});
+}));
 ```
 
 The instance's values are copied onto the options the container materializes — the object itself is not registered, so mutating it afterwards has no effect once the options have been read.
@@ -186,17 +186,17 @@ The instance's values are copied onto the options the container materializes —
 Register more than one client by giving each a unique name:
 
 ```csharp
-services.AddManagementClient("production", options =>
+services.AddManagementClient("production", management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<PRODUCTION_ENVIRONMENT_ID>";
     options.ApiKey = "<PRODUCTION_API_KEY>";
-});
+}));
 
-services.AddManagementClient("staging", options =>
+services.AddManagementClient("staging", management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<STAGING_ENVIRONMENT_ID>";
     options.ApiKey = "<STAGING_API_KEY>";
-});
+}));
 ```
 
 Resolve a named client through `IManagementClientFactory`:
@@ -217,19 +217,22 @@ public class ContentMigrator(IManagementClientFactory clientFactory)
 
 Every client comes with a built-in resilience pipeline (powered by [`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience)): retries on transient failures and `429` responses, exponential backoff with jitter, and `Retry-After` handling. Set `EnableResilience = false` to turn it into a passthrough.
 
-To replace the pipeline wholesale, use the `configureResilience` hook on the DI overload, or `WithResilience(...)` on the builder:
+To replace the pipeline wholesale, call `ConfigureResilience` on the builder - it applies to both the environment-scoped and the subscription-scoped transport:
 
 ```csharp
-services.AddManagementClient(
-    options => { options.EnvironmentId = "..."; options.ApiKey = "..."; },
-    configureHttpClient: null,
-    configureResilience: pipeline => pipeline
+services.AddManagementClient(management =>
+{
+    management.Options.Configure(options => { options.EnvironmentId = "..."; options.ApiKey = "..."; });
+    management.ConfigureResilience(pipeline => pipeline
         .AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 })
         .AddTimeout(TimeSpan.FromSeconds(30)));
+});
 ```
 
+The two `IHttpClientBuilder`s are there for anything else: `management.HttpClient.AddHttpMessageHandler<MyAuditingHandler>()` puts a handler on the environment-scoped transport, `management.SubscriptionHttpClient` on the subscription-scoped one.
+
 > [!NOTE]
-> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one via the hooks above if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 30 minutes and covers every attempt plus the waits between them — enough to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link. Raise it for slower links, or lower it if you would rather fail fast.
+> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one through `ConfigureResilience` if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 30 minutes and covers every attempt plus the waits between them — enough to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link. Raise it for slower links, or lower it if you would rather fail fast.
 
 #### Uploading a file
 
