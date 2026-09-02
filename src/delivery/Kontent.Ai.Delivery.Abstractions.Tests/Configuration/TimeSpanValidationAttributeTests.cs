@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Kontent.Ai.Delivery.Abstractions;
 
-namespace Kontent.Ai.Delivery.Tests.Builders.Configuration;
+namespace Kontent.Ai.Delivery.Abstractions.Tests.Configuration;
 
 public class PositiveTimeSpanAttributeTests
 {
