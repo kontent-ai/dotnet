@@ -7,8 +7,8 @@ using Polly;
 namespace Kontent.Ai.Common.Http;
 
 /// <summary>
-/// Installs the resilience handler the way every SDK does: gated on the client's options, replaced
-/// wholesale by the consumer's hook when one is supplied, otherwise the product's default pipeline.
+/// Installs the resilience handler the way every SDK does: gated on the client's options, and built
+/// only when the HTTP handler chain is - so a pipeline the consumer supplies after registration counts.
 /// </summary>
 internal static class ResilienceHandlers
 {
@@ -16,15 +16,13 @@ internal static class ResilienceHandlers
     /// <param name="handlerName">The resilience handler's name, unique per client.</param>
     /// <param name="clientName">The name the client's options are registered under.</param>
     /// <param name="isEnabled">Reads the option that switches resilience off.</param>
-    /// <param name="configure">The consumer's replacement pipeline, if any.</param>
-    /// <param name="configureDefault">The product's default pipeline.</param>
+    /// <param name="configure">Builds the pipeline; runs when the HTTP handler chain is first built.</param>
     internal static void AddOptionsGated<TOptions>(
         IHttpClientBuilder httpClientBuilder,
         string handlerName,
         string clientName,
         Func<TOptions, bool> isEnabled,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configure,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureDefault)
+        Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
         where TOptions : class
     {
         httpClientBuilder.AddResilienceHandler(handlerName, (builder, context) =>
@@ -36,7 +34,7 @@ internal static class ResilienceHandlers
                 return;
             }
 
-            (configure ?? configureDefault)(builder);
+            configure(builder);
         });
     }
 }

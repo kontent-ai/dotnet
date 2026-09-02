@@ -15,9 +15,9 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_DuplicateName_ThrowsInvalidOperationException()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient("production", options => options.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddSyncClient("production", sync => sync.Options.Configure(options => options.EnvironmentId = Guid.NewGuid().ToString()));
 
-        Action act = () => services.AddSyncClient("production", options => options.EnvironmentId = Guid.NewGuid().ToString());
+        Action act = () => services.AddSyncClient("production", sync => sync.Options.Configure(options => options.EnvironmentId = Guid.NewGuid().ToString()));
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*already been registered*");
@@ -34,7 +34,7 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        Action act = () => services.AddSyncClient(name!, options => options.EnvironmentId = Guid.NewGuid().ToString());
+        Action act = () => services.AddSyncClient(name!, sync => sync.Options.Configure(options => options.EnvironmentId = Guid.NewGuid().ToString()));
 
         act.Should().Throw<ArgumentException>();
     }
@@ -44,17 +44,17 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        services.AddSyncClient(options =>
+        services.AddSyncClient(sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
-        services.AddSyncClient("preview", options =>
+        services.AddSyncClient("preview", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
             options.ApiMode = ApiMode.Preview;
             options.ApiKey = "preview-key";
-        });
+        }));
 
         var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISyncClientFactory>();
@@ -73,8 +73,8 @@ public class ServiceCollectionExtensionsTests
         namedFromFactory.Should().NotBeSameAs(unkeyedDefault);
     }
 
-    // The instance and builder-func overloads copy values onto the options the container materializes,
-    // rather than registering the caller's object.
+    // The instance overload copies values onto the options the container materializes, rather than
+    // registering the caller's object.
     [Fact]
     public void AddSyncClient_WithOptionsInstance_CopiesTheValues()
     {
@@ -97,13 +97,14 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddSyncClient_WithOptionsBuilder_CopiesTheValues()
+    public void AddSyncClient_WithOptionsExtensions_ConfiguresTheValues()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient(builder => builder
-            .WithEnvironmentId(EnvironmentId)
-            .UsePreviewApi("preview-key")
-            .Build());
+        services.AddSyncClient(sync => sync.Options.Configure(options =>
+        {
+            options.EnvironmentId = EnvironmentId;
+            options.UsePreviewApi("preview-key");
+        }));
 
         using var provider = services.BuildServiceProvider();
         var registered = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("Default");
@@ -128,7 +129,7 @@ public class ServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddSyncClient(configuration.GetSection("Sync"));
+        services.AddSyncClient(sync => sync.Options.Bind(configuration.GetSection("Sync")));
 
         var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>().CurrentValue;
@@ -154,9 +155,11 @@ public class ServiceCollectionExtensionsTests
         var resilienceConfigured = false;
 
         var services = new ServiceCollection();
-        services.AddSyncClient(
-            configuration,
-            configureResilience: _ => resilienceConfigured = true);
+        services.AddSyncClient(sync =>
+        {
+            sync.Options.Bind(configuration.GetSection(SyncOptions.DefaultConfigurationSectionName));
+            sync.ConfigureResilience(_ => resilienceConfigured = true);
+        });
 
         using var provider = services.BuildServiceProvider();
         var monitor = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
@@ -183,11 +186,11 @@ public class ServiceCollectionExtensionsTests
         var environmentId = Guid.NewGuid().ToString();
 
         var services = new ServiceCollection();
-        services.AddSyncClient("dynamic", options =>
+        services.AddSyncClient("dynamic", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = environmentId;
             options.ApiMode = ApiMode.Public;
-        });
+        }));
 
         var provider1 = services.BuildServiceProvider();
         var options1 = provider1.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("dynamic");
@@ -216,7 +219,7 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_DefaultResilience_LiftsTheHttpClientCeiling()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient("production", options => options.EnvironmentId = EnvironmentId));
+            services.AddSyncClient("production", sync => sync.Options.Configure(options => options.EnvironmentId = EnvironmentId)));
 
         timeout.Should().Be(Timeout.InfiniteTimeSpan);
     }
@@ -225,11 +228,11 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_ResilienceDisabled_StillBoundsTheRequest()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient("production", options =>
+            services.AddSyncClient("production", sync => sync.Options.Configure(options =>
             {
                 options.EnvironmentId = EnvironmentId;
                 options.EnableResilience = false;
-            }));
+            })));
 
         timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
         timeout.Should().BeGreaterThan(TimeSpan.Zero);
@@ -239,10 +242,11 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_CustomResilience_StillBoundsTheRequest()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient(
-                "production",
-                options => options.EnvironmentId = EnvironmentId,
-                configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>())));
+            services.AddSyncClient("production", sync =>
+            {
+                sync.Options.Configure(options => options.EnvironmentId = EnvironmentId);
+                sync.ConfigureResilience(builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>()));
+            }));
 
         timeout.Should().NotBe(Timeout.InfiniteTimeSpan);
         timeout.Should().BeGreaterThan(TimeSpan.Zero);
@@ -252,11 +256,11 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_ExplicitTimeout_OutranksTheDefaultPipelineLift()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient("production", options =>
+            services.AddSyncClient("production", sync => sync.Options.Configure(options =>
             {
                 options.EnvironmentId = EnvironmentId;
                 options.Timeout = TimeSpan.FromMinutes(5);
-            }));
+            })));
 
         timeout.Should().Be(TimeSpan.FromMinutes(5));
     }
@@ -265,14 +269,15 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_ExplicitTimeout_AppliesWithACustomPipelineToo()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient(
-                "production",
-                options =>
+            services.AddSyncClient("production", sync =>
+            {
+                sync.Options.Configure(options =>
                 {
                     options.EnvironmentId = EnvironmentId;
                     options.Timeout = TimeSpan.FromMinutes(5);
-                },
-                configureResilience: builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>())));
+                });
+                sync.ConfigureResilience(builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>()));
+            }));
 
         timeout.Should().Be(TimeSpan.FromMinutes(5));
     }
@@ -281,12 +286,12 @@ public class ServiceCollectionExtensionsTests
     public void AddSyncClient_InfiniteTimeout_RemovesTheCeilingWithResilienceDisabled()
     {
         var timeout = ResolveHttpClientTimeout(services =>
-            services.AddSyncClient("production", options =>
+            services.AddSyncClient("production", sync => sync.Options.Configure(options =>
             {
                 options.EnvironmentId = EnvironmentId;
                 options.EnableResilience = false;
                 options.Timeout = Timeout.InfiniteTimeSpan;
-            }));
+            })));
 
         timeout.Should().Be(Timeout.InfiniteTimeSpan);
     }
@@ -309,7 +314,7 @@ public class ServiceCollectionExtensionsTests
         // Refit's registration installs a plain HttpClientHandler as the primary. The SDK's connection
         // recycling runs after it and must be what sits at the bottom of the chain.
         var services = new ServiceCollection();
-        services.AddSyncClient(o => o.EnvironmentId = Guid.NewGuid().ToString());
+        services.AddSyncClient(sync => sync.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString()));
         using var provider = services.BuildServiceProvider();
 
         HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Sync.HttpClient.Default");
@@ -320,5 +325,28 @@ public class ServiceCollectionExtensionsTests
 
         handler.Should().BeOfType<SocketsHttpHandler>()
             .Which.PooledConnectionLifetime.Should().Be(TimeSpan.FromMinutes(2));
+    }
+
+    // The consumer's chain runs after the SDK's own setup, so what it puts on the HTTP client wins. This is
+    // what the old "configureHttpClient is applied last" guarantee became.
+    [Fact]
+    public void AddSyncClient_TheConsumersHttpClientChainRunsLast()
+    {
+        var marker = new HttpClientHandler();
+        var services = new ServiceCollection();
+        services.AddSyncClient(sync =>
+        {
+            sync.Options.Configure(o => o.EnvironmentId = Guid.NewGuid().ToString());
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => marker);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Sync.HttpClient.Default");
+        while (handler is DelegatingHandler { InnerHandler: { } inner })
+        {
+            handler = inner;
+        }
+
+        handler.Should().BeSameAs(marker);
     }
 }

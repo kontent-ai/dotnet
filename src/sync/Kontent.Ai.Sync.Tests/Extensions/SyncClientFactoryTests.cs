@@ -9,10 +9,10 @@ public class SyncClientFactoryTests
     public void Get_WithRegisteredNamedClient_ReturnsClient()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient("production", options =>
+        services.AddSyncClient("production", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
@@ -27,10 +27,10 @@ public class SyncClientFactoryTests
     public void Get_DefaultClient_ReturnsSameInstanceAsUnkeyedResolution()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient(options =>
+        services.AddSyncClient(sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
@@ -47,10 +47,10 @@ public class SyncClientFactoryTests
     public void Get_WithUnregisteredClient_ThrowsInvalidOperationException()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient("production", options =>
+        services.AddSyncClient("production", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
@@ -69,10 +69,10 @@ public class SyncClientFactoryTests
     public void Get_WithInvalidName_ThrowsArgumentException(string? invalidName)
     {
         var services = new ServiceCollection();
-        services.AddSyncClient("production", options =>
+        services.AddSyncClient("production", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
@@ -86,10 +86,10 @@ public class SyncClientFactoryTests
     public void Get_CalledMultipleTimesForSameName_ReturnsSameSingletonInstance()
     {
         var services = new ServiceCollection();
-        services.AddSyncClient("production", options =>
+        services.AddSyncClient("production", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
@@ -105,15 +105,15 @@ public class SyncClientFactoryTests
     {
         var services = new ServiceCollection();
 
-        services.AddSyncClient("client1", options =>
+        services.AddSyncClient("client1", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
-        services.AddSyncClient("client2", options =>
+        services.AddSyncClient("client2", sync => sync.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
-        });
+        }));
 
         var serviceProvider = services.BuildServiceProvider();
         var factories = serviceProvider.GetServices<ISyncClientFactory>().ToList();

@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Api;
 using Kontent.Ai.Sync.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kontent.Ai.Sync;
 
@@ -10,9 +11,9 @@ namespace Kontent.Ai.Sync;
 /// </summary>
 /// <remarks>
 /// Two ways in, one constructor. A container supplies a Refit client it owns and passes nothing to
-/// dispose, so disposing this type releases nothing. <see cref="Configuration.SyncClientBuilder"/> runs the same
-/// registration in a private container and hands the client the <see cref="HttpClient"/> it drew from
-/// it and the container itself - which is what makes disposal meaningful on that path.
+/// dispose, so disposing this type releases nothing. <see cref="Create(Action{ISyncClientBuilder})"/> runs
+/// the same registration in a private container and hands the client the <see cref="HttpClient"/> it drew
+/// from it and the container itself - which is what makes disposal meaningful on that path.
 /// </remarks>
 public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
 {
@@ -35,6 +36,45 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
         _syncApi = syncApi ?? throw new ArgumentNullException(nameof(syncApi));
         _optionsAccessor = optionsAccessor ?? throw new ArgumentNullException(nameof(optionsAccessor));
         _ownedResources = ownedResources;
+    }
+
+    /// <summary>
+    /// Builds a client without a container of your own: the same registration as
+    /// <c>services.AddSyncClient(configure)</c>, run inside a private container the client owns. Dispose the
+    /// client to release it. Use it as a singleton for the lifetime of your application.
+    /// </summary>
+    /// <param name="configure">Configures the client: its options, HTTP client and resilience.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static SyncClient Create(Action<ISyncClientBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        return CreateOwned(services => services.AddSyncClient(configure));
+    }
+
+    /// <summary>
+    /// Builds a client without a container of your own, from a pre-built options instance.
+    /// </summary>
+    /// <param name="options">The options to copy.</param>
+    /// <param name="configure">Configures the client further, after the options are copied.</param>
+    /// <exception cref="Microsoft.Extensions.Options.OptionsValidationException">The options fail validation.</exception>
+    public static SyncClient Create(SyncOptions options, Action<ISyncClientBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return CreateOwned(services => services.AddSyncClient(options, configure));
+    }
+
+    private static SyncClient CreateOwned(Action<IServiceCollection> register)
+    {
+        var services = new ServiceCollection();
+        register(services);
+
+        // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
+        // which this path does not have. The options themselves are validated when first read, which
+        // CreateOwnedSyncClient does.
+        var provider = services.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        return ServiceCollectionExtensions.CreateOwnedSyncClient(provider, NamedClients.Default);
     }
 
     private string EnvironmentId => _optionsAccessor.Current.EnvironmentId;
