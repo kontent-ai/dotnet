@@ -64,7 +64,6 @@ public static class DeliveryOptionsExtensions
         return options.UseCustomEndpoint(endpoint.AbsoluteUri);
     }
 
-
     /// <summary>
     /// Gets the base URL for the delivery API.
     /// </summary>

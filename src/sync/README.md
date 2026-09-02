@@ -257,7 +257,8 @@ services.AddSyncClient(sync => sync.Options.Configure<ISecretStore>((options, se
 ### The HTTP client
 
 `HttpClient` is the named `IHttpClientBuilder` the SDK registered, after the SDK's own handlers are on
-it, so a handler or primary handler you add runs on top of them:
+it. A handler you add is therefore innermost: a request reaches it after the SDK's own handlers, and a
+retry runs it again. A primary handler you set replaces the SDK's:
 
 ```csharp
 services.AddSyncClient(sync =>
@@ -312,8 +313,8 @@ Without the `Timeout` line, supplying your own pipeline leaves `HttpClient`'s 10
 charge, which would cut the two-minute attempt short.
 
 The returned client is thread-safe and should be used as a singleton for the lifetime of your
-application. Each `Create` call builds an independent client that owns the `HttpClient` it drew and the
-private container behind it, which is why it is disposable — dispose it and no further request goes out;
+application. Each `Create` call builds an independent client that owns the private container it was
+built over, which is why it is disposable — dispose it and no further request goes out;
 the pooled connections close once the HTTP client factory releases the handler. A client resolved from
 your own container is owned by that container instead, so there is nothing for you to dispose there.
 `ISyncClientFactory`, below, is the other thing with a similar name: it resolves a *named* client from
