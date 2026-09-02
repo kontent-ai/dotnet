@@ -41,6 +41,8 @@ Ordered by what each one buys beyond line count.
 
 ### 2.1 `OptionsRegistration.RegisterValidated<TOptions>` — closes a gap
 
+> **Done on `unify-registration`**, as `src/common/OptionsRegistration.cs`; all three products call it.
+
 `RegisterOptions` now exists, identically, in Sync and Management (the Management copy landed in
 `6aae6e94c`), and Delivery still writes the same block inline twice. One generic:
 
@@ -56,6 +58,8 @@ through `OptionsAccessor.cs` and DI through `KeyedClients.cs`, so no new depende
 helpers and Delivery's inline pair; every product's default-name behaviour then comes from one place.
 
 ### 2.2 `HttpClientTimeouts.Resolve` — the rule is stated three times
+
+> **Done on `unify-registration`**, as `src/common/Http/HttpClientTimeouts.cs`, pinned by a shared test. Two call sites remain after 2.6, Delivery and Sync.
 
 Delivery's DI path, Sync's DI path and Sync's standalone factory each carry this expression and the
 same three-line comment above it:
@@ -74,6 +78,8 @@ silently between a DI and a standalone path, and the test that pins it can then 
 
 ### 2.3 `ResilienceHandlers.AddOptionsGated<TOptions>` — identical in all three
 
+> **Done on `unify-registration`**, as `src/common/Http/ResilienceHandlers.cs`; Management passes its own default pipeline.
+
 `ConfigureResilienceHandler` reads the named options off the monitor, returns early when resilience is
 disabled, and otherwise runs the caller's hook or the default. Three copies, identical modulo the
 options type and the default delegate:
@@ -89,6 +95,8 @@ internal static void AddOptionsGated<TOptions>(
 Management keeps passing its own `ConfigureDefaultResilience`; the gate is the same for a write API.
 
 ### 2.4 `DefaultResilience.ConfigureReadPipeline` — Delivery and Sync are the same file
+
+> **Done on `unify-registration`**, as `src/common/Http/DefaultResilience.cs`, with Sync's three composed-pipeline tests moved to a shared test source that Delivery now runs too.
 
 Both build retry with the same options, the shared predicates, the shared `Retry-After` delay
 generator, then a 30-second per-attempt timeout. Byte-identical apart from a comment. One shared
@@ -324,8 +332,7 @@ catch drift in it.
    standalone factories and pipeline builders outright, so everything after it has one composition
    site per product to work on.
 2. **3.1** — done.
-3. **2.1, 2.2, 2.3, 2.4** together — the DI registration files of all three products change in
-   one PR, each getting shorter, each behaviour already tested per product. 2.5 and 2.9 are done.
+3. **2.1, 2.2, 2.3, 2.4** — done, in one commit. 2.5 and 2.9 are done too.
 4. **2.7** and **2.8** — each self-contained, each with the approval snapshot as the check that no
    public surface moved.
 5. **5.1** then **5.2** — Delivery only, `TypeQuery`/`TaxonomyQuery` first as the plan sequences it.

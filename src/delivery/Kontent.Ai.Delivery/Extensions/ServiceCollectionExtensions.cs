@@ -335,19 +335,8 @@ public static partial class ServiceCollectionExtensions
 
         KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
 
-        services.AddOptions<DeliveryOptions>(name)
-            .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        // Also configure unnamed options for backward compatibility if this is the default name
-        if (name == NamedClients.Default)
-        {
-            services.AddOptions<DeliveryOptions>()
-                .Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts))
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-        }
+        OptionsRegistration.RegisterValidated<DeliveryOptions>(services, name, builder =>
+            builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
@@ -365,20 +354,7 @@ public static partial class ServiceCollectionExtensions
 
         KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
 
-        // Configure named options from configuration with change-token support.
-        services.Configure<DeliveryOptions>(name, configuration);
-        services.AddOptions<DeliveryOptions>(name)
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
-
-        // Also configure unnamed options for backward compatibility if this is the default name.
-        if (name == NamedClients.Default)
-        {
-            services.Configure<DeliveryOptions>(configuration);
-            services.AddOptions<DeliveryOptions>()
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
-        }
+        OptionsRegistration.RegisterValidated<DeliveryOptions>(services, name, builder => builder.Bind(configuration));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
