@@ -28,10 +28,14 @@
     <Compile Include="$(KontentCommonPath)Http\RefitResponses.cs" Link="Common\RefitResponses.cs" />
     <Compile Include="$(KontentCommonPath)Http\RefitErrorParsing.cs" Link="Common\RefitErrorParsing.cs" />
     <Compile Include="$(KontentCommonPath)Http\HttpClientDefaults.cs" Link="Common\HttpClientDefaults.cs" />
+    <Compile Include="$(KontentCommonPath)Http\HttpClientTimeouts.cs" Link="Common\HttpClientTimeouts.cs" />
+    <Compile Include="$(KontentCommonPath)Http\ResilienceHandlers.cs" Link="Common\ResilienceHandlers.cs" />
+    <Compile Include="$(KontentCommonPath)Http\DefaultResilience.cs" Link="Common\DefaultResilience.cs" />
     <Compile Include="$(KontentCommonPath)FatalExceptions.cs" Link="Common\FatalExceptions.cs" />
     <Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
     <Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />
     <Compile Include="$(KontentCommonPath)OptionsAccessor.cs" Link="Common\OptionsAccessor.cs" />
+    <Compile Include="$(KontentCommonPath)OptionsRegistration.cs" Link="Common\OptionsRegistration.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -33,7 +33,13 @@ public static partial class ServiceCollectionExtensions
 
         // Resilience first → resilience sits outermost so each retry re-runs tracking + auth fresh (matters when
         // tokens rotate). Diverges from delivery/sync by omitting AddTimeout — see ConfigureDefaultResilience.
-        ConfigureResilienceHandler(httpClientBuilder, $"management_{typeof(T).Name}_{clientName}", clientName, configureResilience);
+        ResilienceHandlers.AddOptionsGated<ManagementOptions>(
+            httpClientBuilder,
+            $"management_{typeof(T).Name}_{clientName}",
+            clientName,
+            options => options.EnableResilience,
+            configureResilience,
+            ConfigureDefaultResilience);
         AddMessageHandlers(httpClientBuilder, clientName);
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
@@ -86,32 +92,6 @@ public static partial class ServiceCollectionExtensions
             provider.Dispose();
             throw;
         }
-    }
-
-    private static void ConfigureResilienceHandler(
-        IHttpClientBuilder httpClientBuilder,
-        string resilienceHandlerName,
-        string clientName,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    {
-        httpClientBuilder.AddResilienceHandler(resilienceHandlerName, (builder, context) =>
-        {
-            var options = context.ServiceProvider.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(clientName);
-
-            if (!options.EnableResilience)
-            {
-                return;
-            }
-
-            if (configureResilience is not null)
-            {
-                configureResilience(builder);
-            }
-            else
-            {
-                ConfigureDefaultResilience(builder);
-            }
-        });
     }
 
     private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)

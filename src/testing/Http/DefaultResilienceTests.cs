@@ -1,23 +1,23 @@
+// Shared test source, compiled into each test assembly - see src/testing/README.md.
+
 using System.Net;
 using System.Net.Http.Headers;
 using AwesomeAssertions;
+using Kontent.Ai.Common.Http;
 using Polly;
 using Polly.Timeout;
 
-namespace Kontent.Ai.Sync.Tests.Handlers;
+namespace Kontent.Ai.Testing.Http;
 
 /// <summary>
-/// The composed default pipeline. The shared predicates and delay generator it is built from are
-/// pinned by the shared test sources under <c>Testing/Http</c>.
+/// Pins the composed read pipeline in every product that compiles <see cref="DefaultResilience"/>.
 /// </summary>
-public class ResiliencePipelineTests
+public class DefaultResilienceTests
 {
     [Fact]
-    public async Task ConfigureDefaultResilience_RetriesOnTransientStatusCode()
+    public async Task ConfigureReadPipeline_RetriesOnTransientStatusCode()
     {
-        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        ServiceCollectionExtensions.ConfigureDefaultResilience(builder);
-        var pipeline = builder.Build();
+        var pipeline = Build();
 
         var attempts = 0;
         var response = await pipeline.ExecuteAsync(_ =>
@@ -33,11 +33,9 @@ public class ResiliencePipelineTests
     }
 
     [Fact]
-    public async Task ConfigureDefaultResilience_DoesNotRetryOnNonRetryableStatusCode()
+    public async Task ConfigureReadPipeline_DoesNotRetryOnNonRetryableStatusCode()
     {
-        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        ServiceCollectionExtensions.ConfigureDefaultResilience(builder);
-        var pipeline = builder.Build();
+        var pipeline = Build();
 
         var attempts = 0;
         var response = await pipeline.ExecuteAsync(_ =>
@@ -51,11 +49,9 @@ public class ResiliencePipelineTests
     }
 
     [Fact]
-    public async Task ConfigureDefaultResilience_RetriesAnAttemptTheTimeoutRejected()
+    public async Task ConfigureReadPipeline_RetriesAnAttemptTheTimeoutRejected()
     {
-        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        ServiceCollectionExtensions.ConfigureDefaultResilience(builder);
-        var pipeline = builder.Build();
+        var pipeline = Build();
 
         var attempts = 0;
         var response = await pipeline.ExecuteAsync<HttpResponseMessage>(_ =>
@@ -69,6 +65,13 @@ public class ResiliencePipelineTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         attempts.Should().Be(2);
+    }
+
+    private static ResiliencePipeline<HttpResponseMessage> Build()
+    {
+        var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
+        DefaultResilience.ConfigureReadPipeline(builder);
+        return builder.Build();
     }
 
     private static HttpResponseMessage WithRetryAfter(HttpResponseMessage response, TimeSpan delta)

@@ -6,7 +6,6 @@ using Kontent.Ai.Sync.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -219,7 +218,7 @@ public static class ServiceCollectionExtensions
 
         KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
-        RegisterOptions(services, name, builder => builder.Configure(configureOptions));
+        OptionsRegistration.RegisterValidated<SyncOptions>(services, name, builder => builder.Configure(configureOptions));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
     }
@@ -265,7 +264,7 @@ public static class ServiceCollectionExtensions
 
         KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
-        RegisterOptions(services, name, builder =>
+        OptionsRegistration.RegisterValidated<SyncOptions>(services, name, builder =>
             builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
@@ -284,32 +283,9 @@ public static class ServiceCollectionExtensions
 
         KeyedClients.EnsureNotRegistered<ISyncClient>(services, name, "sync client", GetHttpClientName(name));
 
-        RegisterOptions(services, name, builder => builder.Bind(configuration));
+        OptionsRegistration.RegisterValidated<SyncOptions>(services, name, builder => builder.Bind(configuration));
 
         return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers and validates the options under <paramref name="name"/>, and unnamed as well for the
-    /// default client so <c>IOptions&lt;SyncOptions&gt;</c> resolves without one.
-    /// </summary>
-    private static void RegisterOptions(
-        IServiceCollection services,
-        string name,
-        Action<OptionsBuilder<SyncOptions>> configure)
-    {
-        Register(services.AddOptions<SyncOptions>(name));
-
-        if (name == NamedClients.Default)
-        {
-            Register(services.AddOptions<SyncOptions>());
-        }
-
-        void Register(OptionsBuilder<SyncOptions> builder)
-        {
-            configure(builder);
-            builder.ValidateDataAnnotations().ValidateOnStart();
-        }
     }
 
     private static IServiceCollection CompleteClientRegistration(
@@ -365,16 +341,19 @@ public static class ServiceCollectionExtensions
                 var options = optionsMonitor.Get(name);
                 httpClient.BaseAddress = new Uri(options.GetBaseUrl(), UriKind.Absolute);
 
-                // A value set on the options is the ceiling, whatever the pipeline. Unset, the SDK's own
-                // pipeline is the only one known to bound each attempt, so only it earns an unbounded call;
-                // otherwise HttpClient's default stays and a black-holed connection fails rather than hanging.
-                httpClient.Timeout = options.Timeout
-                    ?? (options.EnableResilience && configureResilience is null
-                        ? System.Threading.Timeout.InfiniteTimeSpan
-                        : httpClient.Timeout);
+                httpClient.Timeout = HttpClientTimeouts.Resolve(
+                    options.Timeout,
+                    defaultPipelineBoundsAttempts: options.EnableResilience && configureResilience is null,
+                    httpClient.Timeout);
             });
 
-        ConfigureResilienceHandler(httpClientBuilder, $"sync_{name}", name, configureResilience);
+        ResilienceHandlers.AddOptionsGated<SyncOptions>(
+            httpClientBuilder,
+            $"sync_{name}",
+            name,
+            options => options.EnableResilience,
+            configureResilience,
+            DefaultResilience.ConfigureReadPipeline);
         AddMessageHandlers(httpClientBuilder, name);
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
         // Applied last, so a consumer can still replace anything set above.
@@ -408,36 +387,6 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configures the resilience handler for an HTTP client.
-    /// </summary>
-    private static void ConfigureResilienceHandler(
-        IHttpClientBuilder httpClientBuilder,
-        string resilienceHandlerName,
-        string clientName,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    {
-        httpClientBuilder.AddResilienceHandler(resilienceHandlerName, (builder, context) =>
-        {
-            var optionsMonitor = context.ServiceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
-            var options = optionsMonitor.Get(clientName);
-
-            if (!options.EnableResilience)
-            {
-                return;
-            }
-
-            if (configureResilience is not null)
-            {
-                configureResilience(builder);
-            }
-            else
-            {
-                ConfigureDefaultResilience(builder);
-            }
-        });
-    }
-
-    /// <summary>
     /// Adds tracking and authentication message handlers to an HTTP client.
     /// </summary>
     private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)
@@ -448,23 +397,5 @@ public static class ServiceCollectionExtensions
         httpClientBuilder.AddHttpMessageHandler(sp => new SyncAuthenticationHandler(
             new MonitorBackedOptionsAccessor<SyncOptions>(sp.GetRequiredService<IOptionsMonitor<SyncOptions>>(), clientName),
             sp.GetService<ILogger<SyncAuthenticationHandler>>()));
-    }
-
-    internal static void ConfigureDefaultResilience(ResiliencePipelineBuilder<HttpResponseMessage> builder)
-    {
-        builder.AddRetry(new HttpRetryStrategyOptions
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(1),
-            BackoffType = DelayBackoffType.Exponential,
-            UseJitter = true,
-            ShouldHandle = args => ValueTask.FromResult(
-                HttpRetryPredicates.IsTransientException(args.Outcome.Exception, args.Context.CancellationToken) ||
-                (args.Outcome.Result?.IsSuccessStatusCode == false &&
-                 HttpRetryPredicates.IsRetryableStatusCode(args.Outcome.Result?.StatusCode))),
-            DelayGenerator = HttpRetryDelay.FromRetryAfterHeader
-        });
-
-        builder.AddTimeout(TimeSpan.FromSeconds(30));
     }
 }

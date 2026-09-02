@@ -20,6 +20,8 @@
     <Compile Include="$(KontentTestingPath)Http\HttpRetryPredicatesTests.cs" Link="Testing\Http\HttpRetryPredicatesTests.cs" />
     <Compile Include="$(KontentTestingPath)Http\HttpRetryDelayTests.cs" Link="Testing\Http\HttpRetryDelayTests.cs" />
     <Compile Include="$(KontentTestingPath)Http\SdkTrackingHeadersTests.cs" Link="Testing\Http\SdkTrackingHeadersTests.cs" />
+    <Compile Include="$(KontentTestingPath)Http\DefaultResilienceTests.cs" Link="Testing\Http\DefaultResilienceTests.cs" />
+    <Compile Include="$(KontentTestingPath)Http\HttpClientTimeoutsTests.cs" Link="Testing\Http\HttpClientTimeoutsTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
