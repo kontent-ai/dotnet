@@ -12,8 +12,8 @@ namespace Kontent.Ai.Sync;
 /// <remarks>
 /// Two ways in, one constructor. A container supplies a Refit client it owns and passes nothing to
 /// dispose, so disposing this type releases nothing. <see cref="Create(Action{ISyncClientBuilder})"/> runs
-/// the same registration in a private container and hands the client the <see cref="HttpClient"/> it drew
-/// from it and the container itself - which is what makes disposal meaningful on that path.
+/// the same registration in a private container and hands the client that container to own - which is
+/// what makes disposal meaningful on that path.
 /// </remarks>
 public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
 {
@@ -29,7 +29,7 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
     /// <param name="optionsAccessor">Supplies the effective options at request time.</param>
     /// <param name="ownedResources">
     /// What this client is responsible for disposing, or <c>null</c> when something else owns the
-    /// transport - a container passes nothing, the builder passes what it built.
+    /// transport - a container passes nothing, <c>Create</c> passes the private container it built.
     /// </param>
     internal SyncClient(ISyncApi syncApi, IOptionsAccessor<SyncOptions> optionsAccessor, IDisposable? ownedResources = null)
     {
@@ -69,12 +69,21 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
         register(services);
 
         // ValidateOnBuild checks every registration can be constructed; ValidateOnStart needs a host,
-        // which this path does not have. The options themselves are validated when first read, which
-        // CreateOwnedSyncClient does.
+        // which this path does not have. The options themselves are validated when first read.
         var provider = services.BuildServiceProvider(
             new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
 
-        return ServiceCollectionExtensions.CreateOwnedSyncClient(provider, NamedClients.Default);
+        try
+        {
+            // Built through the same factory the container uses, handed the provider as the resource it
+            // owns - so disposing this client tears down the provider and everything registered in it.
+            return ServiceCollectionExtensions.CreateSyncClient(provider, NamedClients.Default, ownedResources: provider);
+        }
+        catch
+        {
+            provider.Dispose();
+            throw;
+        }
     }
 
     private string EnvironmentId => _optionsAccessor.Current.EnvironmentId;

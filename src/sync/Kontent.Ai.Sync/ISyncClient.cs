@@ -5,8 +5,8 @@ namespace Kontent.Ai.Sync;
 /// </summary>
 /// <remarks>
 /// This contract carries no disposal. A client resolved from a container is owned by the container,
-/// which releases it; a client from <c>SyncClientBuilder</c> owns its transport and is returned as the
-/// concrete <c>SyncClient</c>, which is disposable.
+/// which releases it; a client from <c>SyncClient.Create</c> owns the private container it was built
+/// over and is returned as the concrete <c>SyncClient</c>, which is disposable.
 /// </remarks>
 public interface ISyncClient
 {
