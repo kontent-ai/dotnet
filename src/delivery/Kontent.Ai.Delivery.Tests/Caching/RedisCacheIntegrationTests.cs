@@ -221,12 +221,15 @@ public class RedisCacheIntegrationTests
                 options.Configuration = GetRedisConnectionString());
         }
 
-        services.AddDeliveryClient(ClientName, options =>
+        services.AddDeliveryClient(ClientName, d =>
         {
-            options.EnvironmentId = _guid.ToString();
-        }, configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
-
-        services.AddDeliveryHybridCache(ClientName, keyPrefix: keyPrefix, defaultExpiration: TimeSpan.FromMinutes(5));
+            d.Options.Configure(options =>
+            {
+                options.EnvironmentId = _guid.ToString();
+            });
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp);
+            d.UseHybridCache(o => { o.KeyPrefix = keyPrefix; o.DefaultExpiration = TimeSpan.FromMinutes(5); });
+        });
         return services.BuildServiceProvider();
     }
 

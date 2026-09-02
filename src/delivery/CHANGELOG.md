@@ -10,6 +10,32 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
+- **`AddDeliveryClient` takes a builder; `DeliveryClientBuilder` is `DeliveryClient.Create`; caching attaches to the builder.** Twelve overloads of `AddDeliveryClient` become three: `AddDeliveryClient(configure)`, `AddDeliveryClient(name, configure)` and `AddDeliveryClient(options, configure)`, all taking an `Action<IDeliveryClientBuilder>`. The builder exposes the client's `OptionsBuilder<DeliveryOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand - a custom `ITypeProvider`, a logger factory, a cache. `DeliveryClientBuilder`, `IDeliveryOptionsBuilder` and `DeliveryOptionsBuilder` are removed; `DeliveryClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `DeliveryOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. `DeliveryOptions.CopyTo` is public.
+
+  In `Kontent.Ai.Delivery.Caching`, the twelve `AddDeliveryMemoryCache` / `AddDeliveryHybridCache` / `AddDeliveryCacheManager` overloads on `IServiceCollection` and the six `WithMemoryCache` / `WithHybridCache` methods on the old builder become five methods on `IDeliveryClientBuilder`: `UseMemoryCache`, `UseHybridCache` (each with a plain and a provider-aware configure delegate) and `UseCacheManager`. A cache is configured where its client is registered, in both hosting modes; the client name and key prefix come from the builder. `UseHybridCache` reads the `IDistributedCache` registered on `Services` instead of taking the instance as a parameter.
+
+  ```csharp
+  // Before
+  services.AddDeliveryClient("preview", o => { o.EnvironmentId = "…"; o.UsePreviewApi = true; o.PreviewApiKey = "…"; });
+  services.AddDeliveryMemoryCache("preview", defaultExpiration: TimeSpan.FromMinutes(30));
+  await using var client = DeliveryClientBuilder.WithOptions(b => b.WithEnvironmentId("…").UseProductionApi().Build()).WithTypeProvider(tp).WithMemoryCache().Build();
+
+  // After
+  services.AddDeliveryClient("preview", delivery =>
+  {
+      delivery.Options.Configure(o => { o.EnvironmentId = "…"; o.UsePreviewApi("…"); });
+      delivery.UseMemoryCache(cache => cache.DefaultExpiration = TimeSpan.FromMinutes(30));
+  });
+  await using var client = DeliveryClient.Create(delivery =>
+  {
+      delivery.Options.Configure(o => o.EnvironmentId = "…");
+      delivery.Services.AddSingleton<ITypeProvider>(tp);
+      delivery.UseMemoryCache();
+  });
+  ```
+
+  The upgrade guide maps every removed form to its replacement. `Create` throws `OptionsValidationException` on invalid options, as the old builder did. Whatever is chained after `AddDeliveryClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes.
+
 - **Feed and used-in enumeration surfaces a failed page instead of silently truncating.** `EnumerateAsync()` ended its loop when a page request failed and yielded nothing to say so, so an interrupted walk was indistinguishable from a finished one — an export or a search-index build could quietly persist a partial result. It now throws `DeliveryRequestException`, carrying the status code, the API's `IError` and the request ID.
 
   This is the point of the change rather than a side effect: the defect could not be fixed without a behaviour break, because *not throwing* is precisely what was wrong. Code that relied on the documented graceful stop must now catch, or move to the single-request `ExecuteAsync`, which still reports failure as a value.

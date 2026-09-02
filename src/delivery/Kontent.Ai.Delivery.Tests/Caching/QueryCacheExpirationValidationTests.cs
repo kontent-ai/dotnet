@@ -16,12 +16,15 @@ public sealed class QueryCacheExpirationValidationTests : IDisposable
         var services = new ServiceCollection();
         var mockHttp = new MockHttpMessageHandler();
 
-        services.AddDeliveryClient(ClientName, options =>
+        services.AddDeliveryClient(ClientName, d =>
         {
-            options.EnvironmentId = Guid.NewGuid().ToString();
-        }, configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
-
-        services.AddDeliveryMemoryCache(ClientName);
+            d.Options.Configure(options =>
+            {
+                options.EnvironmentId = Guid.NewGuid().ToString();
+            });
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp);
+            d.UseMemoryCache();
+        });
 
         _serviceProvider = services.BuildServiceProvider();
         _client = _serviceProvider.GetRequiredKeyedService<IDeliveryClient>(ClientName);

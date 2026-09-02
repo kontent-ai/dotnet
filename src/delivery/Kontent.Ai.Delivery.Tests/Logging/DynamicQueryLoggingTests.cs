@@ -535,9 +535,7 @@ public class DynamicQueryLoggingTests
             builder.AddProvider(loggerProvider);
         });
 
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = env },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }

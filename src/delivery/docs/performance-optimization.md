@@ -161,8 +161,11 @@ Always configure caching in production:
 
 ```csharp
 // Development: Short cache
-services.AddDeliveryClient("dev", options => { ... });
-services.AddDeliveryMemoryCache("dev", defaultExpiration: TimeSpan.FromMinutes(5));
+services.AddDeliveryClient("dev", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
+});
 
 // Production: Longer cache with distributed storage
 services.AddStackExchangeRedisCache(options =>
@@ -170,8 +173,11 @@ services.AddStackExchangeRedisCache(options =>
     options.Configuration = "redis:6379";
 });
 
-services.AddDeliveryClient("prod", options => { ... });
-services.AddDeliveryHybridCache("prod", defaultExpiration: TimeSpan.FromHours(4));
+services.AddDeliveryClient("prod", delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
+});
 ```
 
 ### Cache Warming
@@ -292,22 +298,22 @@ public class CachedItem<T>
 Configure HTTP client for optimal performance:
 
 ```csharp
-services.AddDeliveryClient(
-    options =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options =>
     {
         options.EnvironmentId = "your-environment-id";
-    },
-    configureHttpClient: builder =>
-    {
-        builder.ConfigureHttpClient(client =>
-        {
-            // Timeout
-            client.Timeout = TimeSpan.FromSeconds(30);
-
-            // Headers
-            client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
-        });
     });
+
+    delivery.HttpClient.ConfigureHttpClient(client =>
+    {
+        // Timeout
+        client.Timeout = TimeSpan.FromSeconds(30);
+
+        // Headers
+        client.DefaultRequestHeaders.Add("User-Agent", "MyApp/1.0");
+    });
+});
 ```
 
 ### Connection Pooling
@@ -326,9 +332,11 @@ Use HTTP client factory for proper connection pooling (handled automatically by 
 Configure resilience policies for transient failures:
 
 ```csharp
-services.AddDeliveryClient(
-    options => { ... },
-    configureResilience: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+
+    delivery.ConfigureResilience(builder =>
     {
         builder.AddRetry(new HttpRetryStrategyOptions
         {
@@ -340,6 +348,7 @@ services.AddDeliveryClient(
 
         builder.AddTimeout(TimeSpan.FromSeconds(30));
     });
+});
 ```
 
 ## Parallel Operations
@@ -432,9 +441,11 @@ public class RateLimitMonitor
 The SDK's retry policy handles 429 responses automatically:
 
 ```csharp
-services.AddDeliveryClient(
-    options => { ... },
-    configureResilience: builder =>
+services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.Configure(options => { ... });
+
+    delivery.ConfigureResilience(builder =>
     {
         builder.AddRetry(new HttpRetryStrategyOptions
         {
@@ -443,6 +454,7 @@ services.AddDeliveryClient(
             BackoffType = DelayBackoffType.Exponential
         });
     });
+});
 ```
 
 ### Rate Limit Mitigation
@@ -648,18 +660,21 @@ services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Production_";
 });
 
-services.AddDeliveryClient("production", options =>
+services.AddDeliveryClient("production", delivery =>
 {
-    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-    options.EnableResilience = true;
+    delivery.Options.Configure(options =>
+    {
+        options.EnvironmentId = configuration["Kontent:EnvironmentId"];
+        options.EnableResilience = true;
+    });
+    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
 });
-services.AddDeliveryHybridCache("production", defaultExpiration: TimeSpan.FromHours(4));
 ```
 
 ### 2. Configure Retry Policies
 
 ```csharp
-configureResilience: builder =>
+delivery.ConfigureResilience(builder =>
 {
     builder.AddRetry(new HttpRetryStrategyOptions
     {
@@ -668,7 +683,7 @@ configureResilience: builder =>
         BackoffType = DelayBackoffType.Exponential,
         UseJitter = true
     });
-}
+});
 ```
 
 ### 3. Implement Health Checks

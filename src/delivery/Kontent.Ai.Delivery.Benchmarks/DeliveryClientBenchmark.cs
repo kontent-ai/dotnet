@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Benchmarks.ContentTypes;
-using Kontent.Ai.Delivery.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RichardSzalay.MockHttp;
 
@@ -15,7 +14,7 @@ public class DeliveryClientBenchmark
     {
         var services = new ServiceCollection();
 
-        services.AddDeliveryClient(options, configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 
@@ -36,8 +35,7 @@ public class DeliveryClientBenchmark
             .Respond("application/json",
                 await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory, $"Fixtures{Path.DirectorySeparatorChar}full_articles.json")));
 
-        var _deliveryOptions = DeliveryOptionsBuilder.CreateInstance().WithEnvironmentId(environmentId).UseProductionApi().Build();
-        _client = CreateClient(mockHttp, _deliveryOptions);
+        _client = CreateClient(mockHttp, new DeliveryOptions { EnvironmentId = environmentId.ToString() });
     }
 
     [Benchmark]

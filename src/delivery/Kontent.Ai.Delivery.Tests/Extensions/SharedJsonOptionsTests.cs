@@ -85,8 +85,8 @@ public class SharedJsonOptionsTests
     public void SecondClient_SharesTheFirstClientsOptionsInstance()
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient("first", o => o.EnvironmentId = EnvironmentId);
-        services.AddDeliveryClient("second", o => o.EnvironmentId = EnvironmentId);
+        services.AddDeliveryClient("first", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
+        services.AddDeliveryClient("second", d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
 
         // One instance keeps System.Text.Json's per-options metadata cache shared across clients.
         Assert.NotNull(ResolveSdkOptions(services.BuildServiceProvider()));
@@ -96,7 +96,7 @@ public class SharedJsonOptionsTests
     {
         var services = new ServiceCollection();
         registerApplicationServices?.Invoke(services);
-        services.AddDeliveryClient(o => o.EnvironmentId = EnvironmentId);
+        services.AddDeliveryClient(d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
 
         return services.BuildServiceProvider();
     }

@@ -256,9 +256,7 @@ public class StronglyTypedLinkedItemsTests
         }
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = guid },
-            configureHttpClient: builder => builder.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = guid }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
