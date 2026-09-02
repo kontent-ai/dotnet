@@ -20,6 +20,12 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers the default Sync client.
     /// </summary>
+    /// <remarks>
+    /// The client's options are also the unnamed <see cref="IOptions{TOptions}"/> / <see cref="IOptionsMonitor{TOptions}"/>
+    /// of <see cref="SyncOptions"/>: a copy of the named ones that follows their reloads. Configuring the unnamed
+    /// options directly does not reach the client - a <c>services.Configure&lt;SyncOptions&gt;(...)</c> registered
+    /// before this call is overwritten by the copy, and one registered after it changes only the copy.
+    /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Configures the client: its options, HTTP client and resilience.</param>
     /// <returns>The service collection for chaining.</returns>
@@ -30,8 +36,9 @@ public static class ServiceCollectionExtensions
     /// Registers the default Sync client from a pre-built options instance.
     /// </summary>
     /// <remarks>
-    /// The instance's values are copied onto the options the container materializes; the object itself is
-    /// not registered.
+    /// The instance's values are copied onto the options the container materializes, when those are first
+    /// built; the object itself is not registered. A change made to the instance before that point is
+    /// included, one made after it is not.
     /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="options">The options to copy.</param>
@@ -101,41 +108,27 @@ public static class ServiceCollectionExtensions
         });
 
     private static ISyncClient CreateSyncClient(IServiceProvider serviceProvider, object? key)
+        => CreateSyncClient(serviceProvider, (string)key!);
+
+    /// <summary>
+    /// Builds a client from services already registered in <paramref name="serviceProvider"/>.
+    /// </summary>
+    /// <param name="serviceProvider">The provider to resolve dependencies from.</param>
+    /// <param name="clientName">The name the client's services were registered under.</param>
+    /// <param name="ownedResources">
+    /// Handed to the client as its own to dispose. The container passes nothing - it owns what it built.
+    /// <see cref="SyncClient.Create(Action{ISyncClientBuilder})"/> passes the provider itself, which is what
+    /// makes the client it returns disposable. Both entry points construct through here so they cannot
+    /// drift apart.
+    /// </param>
+    internal static SyncClient CreateSyncClient(IServiceProvider serviceProvider, string clientName, IDisposable? ownedResources = null)
     {
-        var clientName = (string)key!;
         var syncApi = serviceProvider.GetRequiredKeyedService<ISyncApi>(clientName);
         var optionsAccessor = new MonitorBackedOptionsAccessor<SyncOptions>(
             serviceProvider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
             clientName);
 
-        return new SyncClient(syncApi, optionsAccessor);
-    }
-
-    /// <summary>
-    /// Builds the client <see cref="SyncClient.Create(Action{ISyncClientBuilder})"/> returns: the same
-    /// registration the container path runs, drawn from a provider the caller assembled, with the client
-    /// owning what it drew and the provider itself. Takes ownership of <paramref name="provider"/> even
-    /// when construction fails.
-    /// </summary>
-    internal static SyncClient CreateOwnedSyncClient(ServiceProvider provider, string name)
-    {
-        try
-        {
-            var httpClient = provider.GetRequiredService<IHttpClientFactory>().CreateClient(GetHttpClientName(name));
-            var syncApi = RestService.For<ISyncApi>(httpClient, RefitSettingsProvider.CreateDefaultSettings());
-            var optionsAccessor = new MonitorBackedOptionsAccessor<SyncOptions>(
-                provider.GetRequiredService<IOptionsMonitor<SyncOptions>>(),
-                name);
-
-            // The HttpClient before the provider: a request after disposal then fails at once, whatever
-            // the factory-owned handler behind it is still doing.
-            return new SyncClient(syncApi, optionsAccessor, new CompositeDisposable(httpClient, provider));
-        }
-        catch
-        {
-            provider.Dispose();
-            throw;
-        }
+        return new SyncClient(syncApi, optionsAccessor, ownedResources);
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";

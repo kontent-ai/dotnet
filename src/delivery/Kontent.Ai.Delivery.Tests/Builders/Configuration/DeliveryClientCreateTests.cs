@@ -1,18 +1,30 @@
+using System.Collections.Concurrent;
+using System.Net;
 using System.Reflection;
+using System.Text;
 using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Caching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Delivery.Tests.Builders.Configuration;
 
-public class DeliveryClientCreateTests
+public sealed class DeliveryClientCreateTests : IDisposable
 {
     private const string EnvironmentId = "550cec62-90a6-4ab3-b3e4-3d0bb4c04f5c";
     private const string TestPreviewApiKey = "preview.api.key";
     private const string TestSecureApiKey = "secure.api.key";
+    private const string ProductionItemsUrl = $"https://deliver.kontent.ai/{EnvironmentId}/items";
+    private const string PreviewItemsUrl = $"https://preview-deliver.kontent.ai/{EnvironmentId}/items";
+
+    private static readonly string ItemsJson = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Fixtures", "DeliveryClient", "items.json"));
+
+    private readonly MockHttpMessageHandler _http = new();
+
+    public void Dispose() => _http.Dispose();
 
     [Fact]
     public void Create_NullDelegate_ThrowsArgumentNullException()
@@ -27,110 +39,140 @@ public class DeliveryClientCreateTests
     }
 
     [Fact]
-    public async Task Create_ProductionApi_CreatesClient()
+    public async Task Create_ProductionApi_SendsToTheProductionEndpointWithoutAKey()
     {
-        await using var client = DeliveryClient.Create(d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
+        var captured = ExpectItems(ProductionItemsUrl);
 
-        Assert.NotNull(client);
-        Assert.IsAssignableFrom<IDeliveryClient>(client);
+        await using var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Null(captured.Request!.Headers.Authorization);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public async Task Create_PreviewApi_CreatesClient()
+    public async Task Create_PreviewApi_SendsToThePreviewEndpointWithTheKey()
     {
-        await using var client = DeliveryClient.Create(d => d.Options.Configure(o =>
+        var captured = ExpectItems(PreviewItemsUrl);
+
+        await using var client = CreateClient(o =>
         {
             o.EnvironmentId = EnvironmentId;
             o.UsePreviewApi(TestPreviewApiKey);
-        }));
+        });
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Equal(TestPreviewApiKey, captured.Request!.Headers.Authorization?.Parameter);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public async Task Create_SecureAccess_CreatesClient()
+    public async Task Create_SecureAccess_SendsToTheProductionEndpointWithTheKey()
     {
-        await using var client = DeliveryClient.Create(d => d.Options.Configure(o =>
+        var captured = ExpectItems(ProductionItemsUrl);
+
+        await using var client = CreateClient(o =>
         {
             o.EnvironmentId = EnvironmentId;
             o.UseProductionApi(TestSecureApiKey);
-        }));
+        });
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Equal(TestSecureApiKey, captured.Request!.Headers.Authorization?.Parameter);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
     public async Task Create_FromOptionsInstance_CopiesTheValues()
     {
+        var captured = ExpectItems(PreviewItemsUrl);
         var options = new DeliveryOptions { EnvironmentId = EnvironmentId }.UsePreviewApi(TestPreviewApiKey);
 
-        await using var client = DeliveryClient.Create(options);
+        await using var client = DeliveryClient.Create(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http));
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Equal(TestPreviewApiKey, captured.Request!.Headers.Authorization?.Parameter);
+        _http.VerifyNoOutstandingExpectation();
+    }
+
+    // The copy contract: the instance is copied, not held, so a change to it after Create stays with the caller.
+    [Fact]
+    public async Task Create_FromOptionsInstance_MutatingItAfterwardsDoesNotReachTheClient()
+    {
+        var captured = ExpectItems(ProductionItemsUrl);
+        var options = new DeliveryOptions { EnvironmentId = EnvironmentId };
+        await using var client = DeliveryClient.Create(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http));
+
+        options.UsePreviewApi(TestPreviewApiKey);
+
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Null(captured.Request!.Headers.Authorization);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public async Task Create_WithDisabledResilience_CreatesClient()
+    public async Task Create_WithDisabledResilience_DoesNotRetry()
     {
-        await using var client = DeliveryClient.Create(d => d.Options.Configure(o =>
-        {
-            o.EnvironmentId = EnvironmentId;
-            o.EnableResilience = false;
-        }));
+        _http.When(HttpMethod.Get, ProductionItemsUrl).Respond(HttpStatusCode.InternalServerError);
+        var attempts = new AttemptCounter();
 
-        Assert.NotNull(client);
+        await using var client = CreateClient(
+            o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            },
+            d => d.HttpClient.AddHttpMessageHandler(() => attempts));
+
+        var result = await client.GetItems().ExecuteAsync();
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(1, attempts.Count);
     }
 
     [Fact]
-    public async Task Create_WithTypeProvider_CreatesClient()
+    public async Task Create_WithTypeProvider_ConsultsItForEveryContentType()
     {
-        var typeProvider = new TestTypeProvider();
+        ExpectItems(ProductionItemsUrl);
+        var typeProvider = new RecordingTypeProvider();
 
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.Services.AddSingleton<ITypeProvider>(typeProvider);
-        });
+        await using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            d => d.Services.AddSingleton<ITypeProvider>(typeProvider));
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Contains("article", typeProvider.Requested);
     }
 
     [Fact]
-    public async Task Create_WithLoggerFactory_CreatesClient()
+    public async Task Create_WithLoggerFactory_LogsThroughIt()
     {
-        using var loggerFactory = LoggerFactory.Create(b => { });
+        ExpectItems(ProductionItemsUrl);
+        var entries = new CollectingLoggerProvider();
+        using var loggerFactory = LoggerFactory.Create(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(entries));
 
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Services.AddSingleton(loggerFactory);
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-        });
+        await using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            d => d.Services.AddSingleton(loggerFactory));
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Contains(entries.Categories, category => category.StartsWith("Kontent.Ai.Delivery", StringComparison.Ordinal));
     }
 
     [Fact]
-    public async Task Create_WithMemoryCache_CreatesClient()
+    public async Task Create_WithMemoryCache_ServesARepeatedQueryFromTheCache()
     {
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(30));
-        });
+        // One expectation: the second query can only succeed if the cache serves it.
+        ExpectItems(ProductionItemsUrl);
 
-        Assert.NotNull(client);
-    }
+        await using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            d => d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(30)));
 
-    [Fact]
-    public async Task Create_WithMemoryCacheDefaultExpiration_CreatesClient()
-    {
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.UseMemoryCache();
-        });
-
-        Assert.NotNull(client);
+        Assert.IsType<MemoryCacheManager>(GetCacheManager(client));
+        Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
@@ -186,18 +228,23 @@ public class DeliveryClientCreateTests
     }
 
     [Fact]
-    public async Task Create_WithHybridCache_CreatesClient()
+    public async Task Create_WithHybridCache_ServesARepeatedQueryFromTheCache()
     {
+        ExpectItems(ProductionItemsUrl);
         var distributedCache = new TestDistributedCache();
 
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.Services.AddSingleton<IDistributedCache>(distributedCache);
-            d.UseHybridCache(opts => opts.DefaultExpiration = TimeSpan.FromHours(1));
-        });
+        await using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            d =>
+            {
+                d.Services.AddSingleton<IDistributedCache>(distributedCache);
+                d.UseHybridCache(opts => opts.DefaultExpiration = TimeSpan.FromHours(1));
+            });
 
-        Assert.NotNull(client);
+        Assert.IsType<HybridCacheManager>(GetCacheManager(client));
+        Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
@@ -212,22 +259,27 @@ public class DeliveryClientCreateTests
     }
 
     [Fact]
-    public async Task Create_WithAllOptions_CreatesClient()
+    public async Task Create_WithAllOptions_AppliesEachOfThem()
     {
-        var typeProvider = new TestTypeProvider();
+        ExpectItems(ProductionItemsUrl);
+        var typeProvider = new RecordingTypeProvider();
 
-        await using var client = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o =>
+        await using var client = CreateClient(
+            o =>
             {
                 o.EnvironmentId = EnvironmentId;
                 o.DefaultRenditionPreset = "mobile";
+            },
+            d =>
+            {
+                d.Services.AddSingleton<ITypeProvider>(typeProvider);
+                d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(15));
             });
-            d.Services.AddSingleton<ITypeProvider>(typeProvider);
-            d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(15));
-        });
 
-        Assert.NotNull(client);
+        Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        Assert.Contains("article", typeProvider.Requested);
+        Assert.IsType<MemoryCacheManager>(GetCacheManager(client));
+        Assert.Equal("mobile", OwnedServices(client).GetRequiredService<IOptionsMonitor<DeliveryOptions>>().Get("Default").DefaultRenditionPreset);
     }
 
     [Fact]
@@ -283,53 +335,74 @@ public class DeliveryClientCreateTests
         Assert.Same(seen, afterCache);
     }
 
+    // Each client owns its own container, so disposing one must leave the other usable.
     [Fact]
     public async Task Create_MultipleClients_AreIndependent()
     {
-        await using var client1 = DeliveryClient.Create(d => d.Options.Configure(o => o.EnvironmentId = EnvironmentId));
+        _http.When(HttpMethod.Get, ProductionItemsUrl).Respond("application/json", ItemsJson);
+        var client1 = CreateClient(o => o.EnvironmentId = EnvironmentId);
+        await using var client2 = CreateClient(o => o.EnvironmentId = EnvironmentId, d => d.UseMemoryCache());
 
-        await using var client2 = DeliveryClient.Create(d =>
-        {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.UseMemoryCache();
-        });
-
-        Assert.NotNull(client1);
-        Assert.NotNull(client2);
         Assert.NotSame(client1, client2);
+        await client1.DisposeAsync();
+
+        Assert.True((await client2.GetItems().ExecuteAsync()).IsSuccess);
+    }
+
+    // The point of Create handing the client its container: disposing the client tears the transport down.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DisposingTheClient_FailsEveryFurtherRequest(bool enableResilience)
+    {
+        _http.When(HttpMethod.Get, ProductionItemsUrl).Respond("application/json", ItemsJson);
+        DeliveryClient client;
+        await using (client = CreateClient(o =>
+        {
+            o.EnvironmentId = EnvironmentId;
+            o.EnableResilience = enableResilience;
+        }))
+        {
+            Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        }
+
+        var afterDispose = await client.GetItems().ExecuteAsync();
+
+        Assert.False(afterDispose.IsSuccess);
+        Assert.True(HasObjectDisposed(afterDispose.Error?.Exception), afterDispose.Error?.Exception?.ToString());
     }
 
     [Fact]
-    public async Task Create_WithMemoryCacheAdvanced_CreatesClient()
+    public async Task DisposingTheClientSynchronously_FailsEveryFurtherRequest()
     {
-        await using var client = DeliveryClient.Create(d =>
+        _http.When(HttpMethod.Get, ProductionItemsUrl).Respond("application/json", ItemsJson);
+        DeliveryClient client;
+        using (client = CreateClient(o => o.EnvironmentId = EnvironmentId))
         {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.UseMemoryCache(opts =>
-            {
-                opts.DefaultExpiration = TimeSpan.FromMinutes(15);
-                opts.IsFailSafeEnabled = true;
-            });
-        });
+            Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
+        }
 
-        Assert.NotNull(client);
-        Assert.IsAssignableFrom<IDeliveryClient>(client);
+        var afterDispose = await client.GetItems().ExecuteAsync();
+
+        Assert.False(afterDispose.IsSuccess);
+        Assert.True(HasObjectDisposed(afterDispose.Error?.Exception), afterDispose.Error?.Exception?.ToString());
     }
 
+    // Create builds a container and only then finds the options invalid; the container must not leak.
     [Fact]
-    public async Task Create_WithHybridCacheAdvanced_CreatesClient()
+    public void Create_WhenConstructionFails_DisposesThePrivateContainer()
     {
-        var distributedCache = new TestDistributedCache();
+        DisposableProbe? probe = null;
 
-        await using var client = DeliveryClient.Create(d =>
+        var act = () => DeliveryClient.Create(d =>
         {
-            d.Options.Configure(o => o.EnvironmentId = EnvironmentId);
-            d.Services.AddSingleton<IDistributedCache>(distributedCache);
-            d.UseHybridCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(30));
+            d.Services.AddSingleton(_ => probe = new DisposableProbe());
+            d.Options.Configure<DisposableProbe>((o, _) => o.EnvironmentId = "not-a-guid");
         });
 
-        Assert.NotNull(client);
-        Assert.IsAssignableFrom<IDeliveryClient>(client);
+        Assert.Throws<OptionsValidationException>(act);
+        Assert.NotNull(probe);
+        Assert.True(probe.Disposed);
     }
 
     private sealed class BuilderSiblingOptions
@@ -419,11 +492,101 @@ public class DeliveryClientCreateTests
         Assert.Contains("EnvironmentId", exception.Message);
     }
 
-    // Simple test implementation of ITypeProvider
-    private class TestTypeProvider : ITypeProvider
+    private DeliveryClient CreateClient(Action<DeliveryOptions> configureOptions, Action<IDeliveryClientBuilder>? configure = null)
+        => DeliveryClient.Create(d =>
+        {
+            d.Options.Configure(configureOptions);
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http);
+            configure?.Invoke(d);
+        });
+
+    private CapturedRequest ExpectItems(string url)
     {
-        public Type? GetType(string contentType) => null;
+        var captured = new CapturedRequest();
+        _http.Expect(HttpMethod.Get, url).Respond(request =>
+        {
+            captured.Request = request;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(ItemsJson, Encoding.UTF8, "application/json"),
+            };
+        });
+        return captured;
+    }
+
+    private static bool HasObjectDisposed(Exception? exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is ObjectDisposedException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Create hands the client its own container as the resource it owns, one field away.
+    private static IServiceProvider OwnedServices(DeliveryClient client)
+    {
+        var field = typeof(DeliveryClient).GetField("_ownedResources", BindingFlags.Instance | BindingFlags.NonPublic);
+        return Assert.IsAssignableFrom<IServiceProvider>(field!.GetValue(client));
+    }
+
+    private sealed class CapturedRequest
+    {
+        public HttpRequestMessage? Request { get; set; }
+    }
+
+    private sealed class AttemptCounter : DelegatingHandler
+    {
+        public int Count { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Count++;
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
+
+    private sealed class RecordingTypeProvider : ITypeProvider
+    {
+        public List<string> Requested { get; } = [];
+
+        public Type? GetType(string contentType)
+        {
+            Requested.Add(contentType);
+            return null;
+        }
+
         public string? GetCodename(Type contentType) => null;
+    }
+
+    private sealed class DisposableProbe : IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class CollectingLoggerProvider : ILoggerProvider
+    {
+        public ConcurrentBag<string> Categories { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => new CollectingLogger(categoryName, Categories);
+
+        public void Dispose() { }
+
+        private sealed class CollectingLogger(string category, ConcurrentBag<string> categories) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+                => categories.Add(category);
+        }
     }
 
     // Create hands back the DeliveryClient itself, so the cache manager it captured is one field away -

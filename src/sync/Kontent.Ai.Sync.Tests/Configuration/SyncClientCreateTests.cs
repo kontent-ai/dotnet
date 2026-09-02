@@ -1,13 +1,22 @@
+using System.Collections.Concurrent;
+using System.Net;
 using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
 
-public class SyncClientCreateTests
+public sealed class SyncClientCreateTests : IDisposable
 {
     private const string EnvironmentId = "550cec62-90a6-4ab3-b3e4-3d0bb4c04f5c";
+    private const string ProductionSyncUrl = $"https://deliver.kontent.ai/v2/{EnvironmentId}/sync";
+    private const string PreviewSyncUrl = $"https://preview-deliver.kontent.ai/v2/{EnvironmentId}/sync";
+
+    private readonly MockHttpMessageHandler _http = new();
+
+    public void Dispose() => _http.Dispose();
 
     [Fact]
     public void Create_NullDelegate_Throws()
@@ -26,45 +35,75 @@ public class SyncClientCreateTests
     }
 
     [Fact]
-    public void Create_ProductionApi_ReturnsClient()
+    public async Task Create_ProductionApi_SendsToTheProductionEndpointWithoutAKey()
     {
-        using var client = SyncClient.Create(sync => sync.Options.Configure(o => o.EnvironmentId = EnvironmentId));
+        var captured = ExpectDelta(ProductionSyncUrl);
 
-        client.Should().BeAssignableTo<ISyncClient>();
+        using var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.Authorization.Should().BeNull();
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public void Create_PreviewApi_ReturnsClient()
+    public async Task Create_PreviewApi_SendsToThePreviewEndpointWithTheKey()
     {
-        using var client = SyncClient.Create(sync => sync.Options.Configure(o =>
+        var captured = ExpectDelta(PreviewSyncUrl);
+
+        using var client = CreateClient(o =>
         {
             o.EnvironmentId = EnvironmentId;
             o.UsePreviewApi("preview.api.key");
-        }));
+        });
 
-        client.Should().NotBeNull();
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.Authorization!.Parameter.Should().Be("preview.api.key");
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public void Create_SecureApi_ReturnsClient()
+    public async Task Create_SecureApi_SendsToTheProductionEndpointWithTheKey()
     {
-        using var client = SyncClient.Create(sync => sync.Options.Configure(o =>
+        var captured = ExpectDelta(ProductionSyncUrl);
+
+        using var client = CreateClient(o =>
         {
             o.EnvironmentId = EnvironmentId;
             o.UseProductionApi("secure.api.key");
-        }));
+        });
 
-        client.Should().NotBeNull();
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.Authorization!.Parameter.Should().Be("secure.api.key");
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
-    public void Create_FromOptionsInstance_CopiesTheValues()
+    public async Task Create_FromOptionsInstance_CopiesTheValues()
     {
+        var captured = ExpectDelta(PreviewSyncUrl);
         var options = new SyncOptions { EnvironmentId = EnvironmentId }.UsePreviewApi("preview.api.key");
 
-        using var client = SyncClient.Create(options);
+        using var client = SyncClient.Create(options, sync => sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http));
 
-        client.Should().NotBeNull();
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.Authorization!.Parameter.Should().Be("preview.api.key");
+        _http.VerifyNoOutstandingExpectation();
+    }
+
+    // The copy contract: the instance is copied, not held, so a change to it after Create stays with the caller.
+    [Fact]
+    public async Task Create_FromOptionsInstance_MutatingItAfterwardsDoesNotReachTheClient()
+    {
+        var captured = ExpectDelta(ProductionSyncUrl);
+        var options = new SyncOptions { EnvironmentId = EnvironmentId };
+        using var client = SyncClient.Create(options, sync => sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http));
+
+        options.UsePreviewApi("preview.api.key");
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.Authorization.Should().BeNull();
+        _http.VerifyNoOutstandingExpectation();
     }
 
     [Fact]
@@ -76,17 +115,35 @@ public class SyncClientCreateTests
     }
 
     [Fact]
-    public void Create_WithLoggerFactory_CreatesClient()
+    public async Task Create_WithLoggerFactory_LogsThroughIt()
     {
-        using var loggerFactory = LoggerFactory.Create(_ => { });
+        ExpectDelta(ProductionSyncUrl);
+        var entries = new CollectingLoggerProvider();
+        using var loggerFactory = LoggerFactory.Create(b => b.SetMinimumLevel(LogLevel.Trace).AddProvider(entries));
 
-        using var client = SyncClient.Create(sync =>
+        using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            sync => sync.Services.AddSingleton(loggerFactory));
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        entries.Categories.Should().Contain(category => category.StartsWith("Kontent.Ai.Sync", StringComparison.Ordinal));
+    }
+
+    // Create builds a container and only then finds the options invalid; the container must not leak.
+    [Fact]
+    public void Create_WhenConstructionFails_DisposesThePrivateContainer()
+    {
+        DisposableProbe? probe = null;
+
+        var act = () => SyncClient.Create(sync =>
         {
-            sync.Services.AddSingleton(loggerFactory);
-            sync.Options.Configure(o => o.EnvironmentId = EnvironmentId);
+            sync.Services.AddSingleton(_ => probe = new DisposableProbe());
+            sync.Options.Configure<DisposableProbe>((o, _) => o.EnvironmentId = "not-a-guid");
         });
 
-        client.Should().NotBeNull();
+        act.Should().Throw<OptionsValidationException>();
+        probe.Should().NotBeNull();
+        probe.Disposed.Should().BeTrue();
     }
 
     [Fact]
@@ -133,5 +190,63 @@ public class SyncClientCreateTests
             sync.HttpClient.Name.Should().Be("Kontent.Ai.Sync.HttpClient.Default");
             sync.Options.Configure(o => o.EnvironmentId = EnvironmentId);
         });
+    }
+
+    private SyncClient CreateClient(Action<SyncOptions> configureOptions, Action<ISyncClientBuilder>? configure = null)
+        => SyncClient.Create(sync =>
+        {
+            sync.Options.Configure(configureOptions);
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http);
+            configure?.Invoke(sync);
+        });
+
+    private CapturedRequest ExpectDelta(string url)
+    {
+        var captured = new CapturedRequest();
+        _http.Expect(HttpMethod.Get, url).Respond(request =>
+        {
+            captured.Request = request;
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"items":[],"types":[],"languages":[],"taxonomies":[]}""",
+                    System.Text.Encoding.UTF8,
+                    "application/json"),
+            };
+            response.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
+            return response;
+        });
+        return captured;
+    }
+
+    private sealed class CapturedRequest
+    {
+        public HttpRequestMessage? Request { get; set; }
+    }
+
+    private sealed class DisposableProbe : IDisposable
+    {
+        public bool Disposed { get; private set; }
+
+        public void Dispose() => Disposed = true;
+    }
+
+    private sealed class CollectingLoggerProvider : ILoggerProvider
+    {
+        public ConcurrentBag<string> Categories { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => new CollectingLogger(categoryName, Categories);
+
+        public void Dispose() { }
+
+        private sealed class CollectingLogger(string category, ConcurrentBag<string> categories) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+                => categories.Add(category);
+        }
     }
 }
