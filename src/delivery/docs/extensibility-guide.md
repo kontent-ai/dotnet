@@ -200,10 +200,10 @@ When using source generation with `[ContentTypeCodename]` attributes, the SDK au
 
 ```csharp
 // Just register the delivery client - type provider is auto-discovered
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 ```
 
 #### Explicit Registration with Dependency Injection
@@ -218,10 +218,10 @@ services.AddSingleton<ITypeProvider, CustomTypeProvider>();
 services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
 // Then register the delivery client
-services.AddDeliveryClient(options =>
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
-});
+}));
 ```
 
 The SDK uses `TryAddSingleton` internally, so your registration takes precedence.
@@ -230,19 +230,15 @@ The SDK uses `TryAddSingleton` internally, so your registration takes precedence
 
 ```csharp
 // Type provider is auto-discovered from source generation
-await using var client = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .Build())
-    .Build();
+await using var client = DeliveryClient.Create(delivery =>
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id"));
 
-// Or explicitly provide a type provider
-await using var client = DeliveryClientBuilder
-    .WithOptions(builder => builder
-        .WithEnvironmentId("your-environment-id")
-        .Build())
-    .WithTypeProvider(new CustomTypeProvider())
-    .Build();
+// Or explicitly provide a type provider through the client's own services
+await using var client = DeliveryClient.Create(delivery =>
+{
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.Services.AddSingleton<ITypeProvider>(new CustomTypeProvider());
+});
 ```
 
 ### Auto-Discovery
@@ -354,10 +350,10 @@ When using source generation, type provider registration is automatic. However, 
 ```csharp
 // ✅ Correct order (when overriding auto-discovery)
 services.AddSingleton<ITypeProvider, CustomTypeProvider>();
-services.AddDeliveryClient(options => { ... });
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
 
 // ❌ Wrong order - custom provider may not be used
-services.AddDeliveryClient(options => { ... });
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
 services.AddSingleton<ITypeProvider, CustomTypeProvider>();
 ```
 

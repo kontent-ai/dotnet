@@ -26,7 +26,7 @@ public sealed class QueryParameterTests
         }
 
         var opts = options ?? new DeliveryOptions { EnvironmentId = _env };
-        services.AddDeliveryClient(opts, configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(opts, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 

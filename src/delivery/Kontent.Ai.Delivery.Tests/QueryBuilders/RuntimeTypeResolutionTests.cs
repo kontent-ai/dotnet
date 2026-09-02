@@ -23,9 +23,7 @@ public class RuntimeTypeResolutionTests
     private IDeliveryClient CreateClientWithTypeProvider(MockHttpMessageHandler mockHttp)
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = _guid.ToString() },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = _guid.ToString() }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
@@ -36,9 +34,7 @@ public class RuntimeTypeResolutionTests
     private IDeliveryClient CreateClientWithoutTypeProvider(MockHttpMessageHandler mockHttp)
     {
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            new DeliveryOptions { EnvironmentId = _guid.ToString() },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = _guid.ToString() }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 

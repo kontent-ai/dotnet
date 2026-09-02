@@ -16,7 +16,7 @@ public class DeliveryClientTests
     {
         var services = new ServiceCollection();
         var opts = options ?? new DeliveryOptions { EnvironmentId = _guid.ToString() };
-        services.AddDeliveryClient(opts, configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(opts, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 
@@ -526,22 +526,24 @@ public class DeliveryClientTests
             .Respond("application/json", responseJson);
 
         var services = new ServiceCollection();
-        services.AddDeliveryClient(
-            "with-preset",
-            options =>
-            {
-                options.EnvironmentId = _guid.ToString();
-                options.DefaultRenditionPreset = "default";
-            },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mock));
+        services.AddDeliveryClient("with-preset", d =>
+        {
+            d.Options.Configure(options =>
+                {
+                    options.EnvironmentId = _guid.ToString();
+                    options.DefaultRenditionPreset = "default";
+                });
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock);
+        });
 
-        services.AddDeliveryClient(
-            "without-preset",
-            options =>
-            {
-                options.EnvironmentId = _guid.ToString();
-            },
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mock));
+        services.AddDeliveryClient("without-preset", d =>
+        {
+            d.Options.Configure(options =>
+                {
+                    options.EnvironmentId = _guid.ToString();
+                });
+            d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock);
+        });
 
         using var provider = services.BuildServiceProvider();
         var withPresetClient = provider.GetRequiredKeyedService<IDeliveryClient>("with-preset");

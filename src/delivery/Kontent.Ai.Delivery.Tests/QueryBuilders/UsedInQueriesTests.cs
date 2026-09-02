@@ -299,9 +299,7 @@ public sealed class UsedInQueriesTests
         }
 
         options ??= new DeliveryOptions { EnvironmentId = env };
-        services.AddDeliveryClient(
-            options,
-            configureHttpClient: b => b.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+        services.AddDeliveryClient(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }

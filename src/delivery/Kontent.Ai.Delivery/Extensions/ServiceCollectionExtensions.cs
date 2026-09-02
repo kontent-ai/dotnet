@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Kontent.Ai.Common;
+using Kontent.Ai.Common.Clients;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -12,394 +12,99 @@ using Microsoft.Extensions.Options;
 namespace Kontent.Ai.Delivery;
 
 /// <summary>
-/// Extension methods for registering Kontent.ai Delivery SDK services.
+/// Registers Kontent.ai Delivery clients.
 /// </summary>
 public static partial class ServiceCollectionExtensions
 {
     private const string HttpClientNamePrefix = "Kontent.Ai.Delivery.HttpClient.";
 
     /// <summary>
-    /// Registers the Kontent.ai Delivery client with the specified options instance.
+    /// Registers the default Delivery client.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="deliveryOptions">The delivery options instance.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
+    /// <param name="configure">Configures the client: its options, HTTP client, resilience, caching.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        DeliveryOptions deliveryOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(deliveryOptions);
-
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            deliveryOptions.CopyTo,
-            configureHttpClient,
-            configureResilience);
-    }
+    public static IServiceCollection AddDeliveryClient(this IServiceCollection services, Action<IDeliveryClientBuilder> configure)
+        => services.AddDeliveryClient(NamedClients.Default, configure);
 
     /// <summary>
-    /// Registers the Kontent.ai Delivery client with the specified options builder.
+    /// Registers the default Delivery client from a pre-built options instance.
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="buildDeliveryOptions">A function to build the delivery options.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(buildDeliveryOptions);
-
-        var builder = DeliveryOptionsBuilder.CreateInstance();
-        var options = buildDeliveryOptions(builder);
-
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            options.CopyTo,
-            configureHttpClient,
-            configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Delivery client using configuration.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configuration">The configuration instance.</param>
-    /// <param name="configurationSectionName">The configuration section name. Defaults to "DeliveryOptions".</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        string configurationSectionName = DeliveryOptions.DefaultConfigurationSectionName,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-        => services.AddDeliveryClient(
-            NamedClients.Default,
-            configuration,
-            configurationSectionName,
-            configureHttpClient,
-            configureResilience);
-
-    /// <summary>
-    /// Registers a named Kontent.ai Delivery client using configuration.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">The name of the client.</param>
-    /// <param name="configuration">The configuration instance.</param>
-    /// <param name="configurationSectionName">The configuration section name. Defaults to "DeliveryOptions".</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        string name,
-        IConfiguration configuration,
-        string configurationSectionName = DeliveryOptions.DefaultConfigurationSectionName,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var section = string.IsNullOrWhiteSpace(configurationSectionName)
-            ? configuration
-            : configuration.GetSection(configurationSectionName);
-
-        return services.AddDeliveryClientFromConfiguration(
-            name,
-            section,
-            configureHttpClient,
-            configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Delivery client using a configuration section.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configurationSection">The configuration section containing delivery options.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        IConfigurationSection configurationSection,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-        => services.AddDeliveryClient(
-            NamedClients.Default,
-            configurationSection,
-            configureHttpClient,
-            configureResilience);
-
-    /// <summary>
-    /// Registers a named Kontent.ai Delivery client using a configuration section.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">The name of the client.</param>
-    /// <param name="configurationSection">The configuration section containing delivery options.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        string name,
-        IConfigurationSection configurationSection,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configurationSection);
-
-        return services.AddDeliveryClientFromConfiguration(
-            name,
-            configurationSection,
-            configureHttpClient,
-            configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Delivery client with configuration action.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Action to configure the delivery options.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        Action<DeliveryOptions> configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            configureOptions);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Delivery client with a configuration action that can resolve services from the container.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Action to configure the delivery options with access to the <see cref="IServiceProvider"/>.</param>
-    /// <returns>The service collection for chaining.</returns>
     /// <remarks>
-    /// <para>
-    /// Use this overload when the options need to read values from other services registered in the container,
-    /// e.g. <c>sp.GetRequiredService&lt;IOptions&lt;SiteOptions&gt;&gt;().Value</c>.
-    /// </para>
-    /// <para>
-    /// <b>Avoid circular dependencies:</b> the callback must not resolve <c>IDeliveryClient</c>, <c>IDeliveryApi</c>, or any
-    /// service that transitively depends on them — doing so will recurse through options resolution when the client is built.
-    /// </para>
+    /// The instance's values are copied onto the options the container materializes; the object itself is
+    /// not registered.
     /// </remarks>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        Action<IServiceProvider, DeliveryOptions> configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            configureOptions);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Delivery client with advanced configuration options.
-    /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Action to configure the delivery options.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
+    /// <param name="options">The options to copy.</param>
+    /// <param name="configure">Configures the client further, after the options are copied.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        Action<DeliveryOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    public static IServiceCollection AddDeliveryClient(this IServiceCollection services, DeliveryOptions options, Action<IDeliveryClientBuilder>? configure = null)
     {
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            configureOptions,
-            configureHttpClient,
-            configureResilience);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return services.AddDeliveryClient(NamedClients.Default, delivery =>
+        {
+            delivery.Options.Configure(options.CopyTo);
+            configure?.Invoke(delivery);
+        });
     }
 
     /// <summary>
-    /// Registers the Kontent.ai Delivery client with advanced configuration options and access to the <see cref="IServiceProvider"/>.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Action to configure the delivery options with access to the <see cref="IServiceProvider"/>.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        Action<IServiceProvider, DeliveryOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        return services.AddDeliveryClient(
-            NamedClients.Default,
-            configureOptions,
-            configureHttpClient,
-            configureResilience);
-    }
-
-    /// <summary>
-    /// Registers a named Kontent.ai Delivery client with the specified configuration.
+    /// Registers a named Delivery client, resolvable through <see cref="IDeliveryClientFactory"/> or as a
+    /// keyed service under <paramref name="name"/>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The registered client can be accessed in two ways:
-    /// <list type="bullet">
-    /// <item>Via <see cref="IDeliveryClientFactory"/>: <c>factory.Get("name")</c></item>
-    /// <item>Via keyed services injection: <c>[FromKeyedServices("name")] IDeliveryClient client</c></item>
-    /// </list>
+    /// The options are read per request through <see cref="IOptionsMonitor{TOptions}"/>, so a reloaded API
+    /// key or a switched endpoint takes effect without rebuilding the client. The resilience pipeline is
+    /// read once, when the HTTP client is first created.
     /// </para>
     /// <para>
-    /// The client supports reactive configuration updates via <see cref="Microsoft.Extensions.Options.IOptionsMonitor{TOptions}"/>.
-    /// Changes to API keys and other options will be picked up automatically at runtime.
-    /// </para>
-    /// <para>
-    /// Note: The HTTP client's BaseAddress and resilience pipeline (including <see cref="DeliveryOptions.EnableResilience"/>)
-    /// are set once during initialization and will not update with runtime configuration changes.
-    /// However, the authentication handler monitors options changes to support scenarios like
-    /// API key rotation and endpoint switching.
+    /// A callback that resolves services - <c>Options.Configure&lt;IServiceProvider&gt;</c> - must not resolve
+    /// <c>IDeliveryClient</c>, <c>IOptions&lt;DeliveryOptions&gt;</c> or anything that depends on them: doing
+    /// so re-enters the options factory, and the container recurses without bound.
     /// </para>
     /// </remarks>
     /// <param name="services">The service collection.</param>
-    /// <param name="name">The name of the client. Must be unique across all registrations.</param>
-    /// <param name="configureOptions">Action to configure the delivery options.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
+    /// <param name="name">The client's name. Must be unique across all registrations.</param>
+    /// <param name="configure">Configures the client: its options, HTTP client, resilience, caching.</param>
     /// <returns>The service collection for chaining.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        string name,
-        Action<DeliveryOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    /// <exception cref="InvalidOperationException">A client with the same name is already registered.</exception>
+    public static IServiceCollection AddDeliveryClient(this IServiceCollection services, string name, Action<IDeliveryClientBuilder> configure)
     {
-        ArgumentNullException.ThrowIfNull(configureOptions);
+        ArgumentNullException.ThrowIfNull(configure);
 
-        return services.AddDeliveryClient(
+        var builder = ClientRegistration.AddClient<DeliveryOptions, IDeliveryClient, DeliveryClientBuilder>(
+            services,
             name,
-            (_, opts) => configureOptions(opts),
-            configureHttpClient,
-            configureResilience);
-    }
+            "delivery client",
+            GetHttpClientName(name),
+            static (name, services, options) => new DeliveryClientBuilder(name, services, options));
 
-    /// <summary>
-    /// Registers a named Kontent.ai Delivery client with a configuration action that can resolve services from the container.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Use this overload when the options need to read values from other services registered in the container.
-    /// The callback is invoked when <see cref="Microsoft.Extensions.Options.IOptions{TOptions}"/> is first resolved,
-    /// allowing composition with sibling options such as <c>IOptions&lt;SiteOptions&gt;</c>.
-    /// </para>
-    /// <para>
-    /// See the <see cref="AddDeliveryClient(IServiceCollection, string, Action{DeliveryOptions}, Action{IHttpClientBuilder}?, Action{Polly.ResiliencePipelineBuilder{HttpResponseMessage}}?)"/>
-    /// overload for registration semantics (keyed services, factory access, options monitoring).
-    /// </para>
-    /// <para>
-    /// <b>Avoid circular dependencies:</b> the callback must not resolve <c>IDeliveryClient</c>, <c>IDeliveryApi</c>, or any
-    /// service that transitively depends on them — doing so will recurse through options resolution when the client is built.
-    /// </para>
-    /// </remarks>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">The name of the client. Must be unique across all registrations.</param>
-    /// <param name="configureOptions">Action to configure the delivery options with access to the <see cref="IServiceProvider"/>.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action to configure resilience policies.</param>
-    /// <returns>The service collection for chaining.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
-    public static IServiceCollection AddDeliveryClient(
-        this IServiceCollection services,
-        string name,
-        Action<IServiceProvider, DeliveryOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        NamedClients.ValidateName(name);
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
-
-        OptionsRegistration.RegisterValidated<DeliveryOptions>(services, name, builder =>
-            builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
-
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    private static IServiceCollection AddDeliveryClientFromConfiguration(
-        this IServiceCollection services,
-        string name,
-        IConfiguration configuration,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        NamedClients.ValidateName(name);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        KeyedClients.EnsureNotRegistered<IDeliveryClient>(services, name, "delivery client", GetHttpClientName(name));
-
-        OptionsRegistration.RegisterValidated<DeliveryOptions>(services, name, builder => builder.Bind(configuration));
-
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    private static IServiceCollection CompleteClientRegistration(
-        IServiceCollection services,
-        string name,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<Polly.ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
         // Create shared JSON options once and use for both DI and Refit (avoids two divergent instances)
         var sharedJsonOptions = GetOrCreateSharedJsonOptions(services);
-
-        // Register dependencies (only once)
         RegisterDependencies(services, sharedJsonOptions);
 
         // Per-client options accessor — bridges named IOptionsMonitor reads to the rest of the SDK.
         services.AddKeyedSingleton<IOptionsAccessor<DeliveryOptions>>(name, (sp, _) =>
             new MonitorBackedOptionsAccessor<DeliveryOptions>(sp.GetRequiredService<IOptionsMonitor<DeliveryOptions>>(), name));
 
-        // Register named HTTP client and Refit API
-        RegisterNamedHttpClient(services, name, sharedJsonOptions, configureHttpClient, configureResilience);
+        builder.HttpClient = ClientRegistration.AddTransport<DeliveryOptions, IDeliveryApi>(
+            builder,
+            Transport(name),
+            CreateRefitSettings(sharedJsonOptions));
 
-        // Register keyed IDeliveryClient
-        services.AddKeyedSingleton<IDeliveryClient>(name, CreateDeliveryClient);
+        ClientRegistration.AddClientServices<IDeliveryClient, IDeliveryClientFactory, DeliveryClientFactory>(services, name, CreateDeliveryClient);
 
-        // Register factory
-        services.TryAddSingleton<IDeliveryClientFactory, DeliveryClientFactory>();
-
-        // Register default client accessors if this is the default name (backward compatibility)
         if (name == NamedClients.Default)
         {
-            services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<IDeliveryApi>(NamedClients.Default));
-
-            services.TryAddSingleton(sp =>
-                sp.GetRequiredKeyedService<IDeliveryClient>(NamedClients.Default));
+            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IDeliveryApi>(NamedClients.Default));
         }
 
+        configure(builder);
         return services;
     }
 
-    /// <summary>
-    /// Factory method for creating keyed DeliveryClient instances.
-    /// </summary>
     private static IDeliveryClient CreateDeliveryClient(IServiceProvider sp, object? key)
         => CreateDeliveryClient(sp, (string)key!);
 
@@ -410,8 +115,9 @@ public static partial class ServiceCollectionExtensions
     /// <param name="clientName">The name the client's services were registered under.</param>
     /// <param name="ownedResources">
     /// Handed to the client as its own to dispose. The container passes nothing - it owns what it built.
-    /// <see cref="DeliveryClientBuilder"/> passes the provider itself, which is what makes the client it
-    /// returns disposable. Both entry points construct through here so they cannot drift apart.
+    /// <see cref="DeliveryClient.Create(Action{IDeliveryClientBuilder})"/> passes the provider itself, which
+    /// is what makes the client it returns disposable. Both entry points construct through here so they
+    /// cannot drift apart.
     /// </param>
     internal static DeliveryClient CreateDeliveryClient(
         IServiceProvider sp,
@@ -424,7 +130,7 @@ public static partial class ServiceCollectionExtensions
         var typeProvider = sp.GetRequiredService<ITypeProvider>();
         var optionsAccessor = sp.GetRequiredKeyedService<IOptionsAccessor<DeliveryOptions>>(clientName);
 
-        // Resolve keyed cache manager for this client (registered via AddDeliveryMemoryCache/AddDeliveryHybridCache/AddDeliveryCacheManager)
+        // Resolve keyed cache manager for this client (registered via the caching package's Use… methods)
         var cacheManager = sp.GetKeyedService<IDeliveryCacheManager>(clientName);
 
         // Resolve logger (optional - will be null if no logging is configured)
@@ -460,5 +166,4 @@ public static partial class ServiceCollectionExtensions
     }
 
     private static string GetHttpClientName(string name) => $"{HttpClientNamePrefix}{name}";
-
 }

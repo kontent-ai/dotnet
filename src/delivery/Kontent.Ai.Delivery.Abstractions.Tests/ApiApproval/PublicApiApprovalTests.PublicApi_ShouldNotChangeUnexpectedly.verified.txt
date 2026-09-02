@@ -75,9 +75,15 @@ public sealed class DeliveryOptions : IValidatableObject
     String? SecureAccessApiKey { get; set; }
     TimeSpan? Timeout { get; set; }
     IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    Void CopyTo(DeliveryOptions destination)
 
 // Kontent.Ai.Delivery.Abstractions
 public static class DeliveryOptionsExtensions
+    static DeliveryOptions UseCustomEndpoint(DeliveryOptions options, String endpoint)
+    static DeliveryOptions UseCustomEndpoint(DeliveryOptions options, Uri endpoint)
+    static DeliveryOptions UsePreviewApi(DeliveryOptions options, String previewApiKey)
+    static DeliveryOptions UseProductionApi(DeliveryOptions options)
+    static DeliveryOptions UseProductionApi(DeliveryOptions options, String secureAccessApiKey)
     static String GetBaseUrl(DeliveryOptions options)
     static String? GetApiKey(DeliveryOptions options)
 
@@ -257,22 +263,6 @@ public interface IDeliveryLanguageListingResponse : IPageable
     Boolean HasNextPage { get; }
     IReadOnlyList<ILanguage> Languages { get; }
     Task<IDeliveryResult<IDeliveryLanguageListingResponse>?> FetchNextPageAsync(CancellationToken cancellationToken)
-
-// Kontent.Ai.Delivery.Abstractions
-public interface IDeliveryOptionsBuilder
-    DeliveryOptions Build()
-    IDeliveryOptionsBuilder DisableRetryPolicy()
-    IDeliveryOptionsBuilder UsePreviewApi(String previewApiKey)
-    IDeliveryOptionsBuilder UseProductionApi()
-    IDeliveryOptionsBuilder UseProductionApi(String secureAccessApiKey)
-    IDeliveryOptionsBuilder WithCustomAssetDomain(String customDomain)
-    IDeliveryOptionsBuilder WithCustomAssetDomain(Uri customDomain)
-    IDeliveryOptionsBuilder WithCustomEndpoint(String endpoint)
-    IDeliveryOptionsBuilder WithCustomEndpoint(Uri endpoint)
-    IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
-    IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
-    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
-    IDeliveryOptionsBuilder WithTimeout(TimeSpan timeout)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryResult`1<T>

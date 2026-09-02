@@ -16,6 +16,8 @@ public sealed class DeliveryClient : IAsyncDisposable, IDeliveryClient, IDisposa
     ITypesQuery GetTypes()
     ValueTask DisposeAsync()
     Void Dispose()
+    static DeliveryClient Create(Action<IDeliveryClientBuilder> configure)
+    static DeliveryClient Create(DeliveryOptions options, Action<IDeliveryClientBuilder>? configure)
 
 // Kontent.Ai.Delivery
 public sealed class DeliverySourceTrackingHeaderAttribute : Attribute
@@ -28,6 +30,14 @@ public sealed class DeliverySourceTrackingHeaderAttribute : Attribute
     Int32 PatchVersion { get; }
     String? PackageName { get; }
     String? PreReleaseLabel { get; }
+
+// Kontent.Ai.Delivery
+public interface IDeliveryClientBuilder
+    IHttpClientBuilder HttpClient { get; }
+    IServiceCollection Services { get; }
+    OptionsBuilder<DeliveryOptions> Options { get; }
+    String Name { get; }
+    IDeliveryClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
 
 // Kontent.Ai.Delivery
 public static class QueryCacheExtensions
@@ -52,43 +62,9 @@ public static class RichTextExtensions
 
 // Kontent.Ai.Delivery
 public static class ServiceCollectionExtensions
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions deliveryOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IServiceProvider, DeliveryOptions> configureOptions, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfiguration configuration, String configurationSectionName, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, IConfigurationSection configurationSection, Action<IHttpClientBuilder>? configureHttpClient, Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-
-// Kontent.Ai.Delivery.Configuration
-public sealed class DeliveryClientBuilder
-    DeliveryClient Build()
-    DeliveryClientBuilder ConfigureServices(Action<IServiceCollection> configure)
-    DeliveryClientBuilder WithLoggerFactory(ILoggerFactory loggerFactory)
-    DeliveryClientBuilder WithTypeProvider(ITypeProvider typeProvider)
-    static DeliveryClientBuilder WithOptions(Func<IDeliveryOptionsBuilder, DeliveryOptions> buildDeliveryOptions)
-
-// Kontent.Ai.Delivery.Configuration
-public sealed class DeliveryOptionsBuilder : IDeliveryOptionsBuilder
-    DeliveryOptions Build()
-    IDeliveryOptionsBuilder DisableRetryPolicy()
-    IDeliveryOptionsBuilder UsePreviewApi(String previewApiKey)
-    IDeliveryOptionsBuilder UseProductionApi()
-    IDeliveryOptionsBuilder UseProductionApi(String secureAccessApiKey)
-    IDeliveryOptionsBuilder WithCustomAssetDomain(String customDomain)
-    IDeliveryOptionsBuilder WithCustomAssetDomain(Uri customDomain)
-    IDeliveryOptionsBuilder WithCustomEndpoint(String endpoint)
-    IDeliveryOptionsBuilder WithCustomEndpoint(Uri endpoint)
-    IDeliveryOptionsBuilder WithDefaultRenditionPreset(String presetCodename)
-    IDeliveryOptionsBuilder WithEnvironmentId(Guid environmentId)
-    IDeliveryOptionsBuilder WithEnvironmentId(String environmentId)
-    IDeliveryOptionsBuilder WithTimeout(TimeSpan timeout)
-    static IDeliveryOptionsBuilder CreateInstance()
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, Action<IDeliveryClientBuilder> configure)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, DeliveryOptions options, Action<IDeliveryClientBuilder>? configure)
+    static IServiceCollection AddDeliveryClient(IServiceCollection services, String name, Action<IDeliveryClientBuilder> configure)
 
 // Kontent.Ai.Delivery.ContentItems
 public sealed class Asset : IAsset, IEquatable<Asset>
