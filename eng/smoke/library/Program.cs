@@ -12,11 +12,11 @@ var environmentId = Guid.NewGuid().ToString();
 
 var services = new ServiceCollection();
 services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = environmentId });
-services.AddManagementClient(options =>
+services.AddManagementClient(management => management.Options.Configure(options =>
 {
     options.EnvironmentId = environmentId;
     options.ApiKey = "smoke";
-});
+}));
 services.AddSyncClient(new SyncOptions { EnvironmentId = environmentId, ApiKey = "smoke" });
 
 var provider = services.BuildServiceProvider();
