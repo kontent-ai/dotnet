@@ -1,6 +1,6 @@
 using AwesomeAssertions;
 using Kontent.Ai.Management.Configuration;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Management.Tests.ManagementClientTests;
 
@@ -44,7 +44,7 @@ public class ConstructorTests
     }
 
     [Fact]
-    public void Ctor_NeitherEnvironmentIdNorSubscriptionId_ThrowsValidationException()
+    public void Ctor_NeitherEnvironmentIdNorSubscriptionId_ThrowsOptionsValidationException()
     {
         // Scoped to nothing, so it could not call anything - worth failing at registration rather than
         // on the first request.
@@ -52,7 +52,7 @@ public class ConstructorTests
 
         Action act = () => new ManagementClient(options);
 
-        act.Should().Throw<ValidationException>();
+        act.Should().Throw<OptionsValidationException>();
     }
 
     [Fact]
@@ -92,10 +92,11 @@ public class ConstructorTests
     [InlineData("no-guid", "key")]                                         // non-GUID env id (IValidatableObject)
     [InlineData("00000000-0000-0000-0000-000000000000", "key")]            // Guid.Empty (IValidatableObject)
     [InlineData("4ee3d5cc-2e5b-4c81-9f4c-6a8f7b5d3c1e", null)]              // missing api key ([Required])
-    public void Ctor_InvalidOptions_ThrowsValidationException(string? envId, string? apiKey)
+    public void Ctor_InvalidOptions_ThrowsOptionsValidationException(string? envId, string? apiKey)
     {
         // Validation goes through Validator.ValidateObject inside BuildDependencies, surfacing as
-        // ValidationException — consistent with the builder path and with the standard .NET options pattern.
+        // OptionsValidationException: the constructor runs the same registration as Create and the container,
+        // so every path fails the same way, through the options pipeline.
         var options = new ManagementOptions
         {
             EnvironmentId = envId!,
@@ -104,20 +105,20 @@ public class ConstructorTests
 
         Action act = () => new ManagementClient(options);
 
-        act.Should().Throw<ValidationException>();
+        act.Should().Throw<OptionsValidationException>();
     }
 
     [Theory]
     [InlineData(0)]      // no time to do anything
     [InlineData(-1)]     // not a duration
-    public void Ctor_NonPositiveTimeout_ThrowsValidationException(int minutes)
+    public void Ctor_NonPositiveTimeout_ThrowsOptionsValidationException(int minutes)
     {
         var options = ValidOptions();
         options.Timeout = TimeSpan.FromMinutes(minutes);
 
         Action act = () => new ManagementClient(options);
 
-        act.Should().Throw<ValidationException>().WithMessage("*Timeout*");
+        act.Should().Throw<OptionsValidationException>().WithMessage("*Timeout*");
     }
 
     [Fact]
@@ -141,7 +142,7 @@ public class ConstructorTests
     [Theory]
     [InlineData("not-a-guid")]
     [InlineData("00000000-0000-0000-0000-000000000000")]
-    public void Ctor_InvalidSubscriptionId_ThrowsValidationException(string subscriptionId)
+    public void Ctor_InvalidSubscriptionId_ThrowsOptionsValidationException(string subscriptionId)
     {
         var options = new ManagementOptions
         {
@@ -152,7 +153,7 @@ public class ConstructorTests
 
         Action act = () => new ManagementClient(options);
 
-        act.Should().Throw<ValidationException>().WithMessage("*subscription identifier*");
+        act.Should().Throw<OptionsValidationException>().WithMessage("*subscription identifier*");
     }
 
     [Fact]
