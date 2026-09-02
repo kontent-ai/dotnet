@@ -20,7 +20,6 @@ The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/lea
 - [Creating the Client](#creating-the-client)
   - [With Dependency Injection](#with-dependency-injection)
   - [Standalone](#standalone)
-  - [Fluent Builder](#fluent-builder)
   - [From Configuration](#from-configuration)
   - [Multiple Named Clients](#multiple-named-clients)
   - [Resilience and the HTTP Pipeline](#resilience-and-the-http-pipeline)
@@ -132,7 +131,7 @@ await using var client = ManagementClient.Create(management =>
 });
 ```
 
-Both run the same registration as `AddManagementClient` inside a private container, and the built client owns the `HttpClient`s it drew and that container — dispose it when you are done. The concrete `ManagementClient` implements `IDisposable` and `IAsyncDisposable` (hence the `await using` above); the `IManagementClient` interface deliberately does not, because a client resolved from a container is owned by the container. Disposal stops every further request; the pooled connections close once the HTTP client factory releases the handlers. Invalid options throw `OptionsValidationException` from either entry point. `IManagementClientFactory`, below, is the other thing with a similar name: it resolves a *named* client from your container, while `Create` builds a standalone one.
+Both run the same registration as `AddManagementClient` inside a private container, and the built client owns that container — dispose it when you are done. The concrete `ManagementClient` implements `IDisposable` and `IAsyncDisposable` (hence the `await using` above); the `IManagementClient` interface deliberately does not, because a client resolved from a container is owned by the container. Disposal stops every further request; the pooled connections close once the HTTP client factory releases the handlers. Invalid options throw `OptionsValidationException` from either entry point. `IManagementClientFactory`, below, is the other thing with a similar name: it resolves a *named* client from your container, while `Create` builds a standalone one.
 
 ### From Configuration
 

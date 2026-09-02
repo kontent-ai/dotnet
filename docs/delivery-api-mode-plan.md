@@ -9,6 +9,12 @@ Sync SDK already uses, without breaking anyone.
 > names in Sync's favour of Delivery; this one asks whether the *options* should settle in Sync's
 > favour. The two are independent — nothing here is a prerequisite for shipping Delivery 20.
 
+> [!NOTE]
+> **Builder section superseded (2026-09-02).** `IDeliveryOptionsBuilder` was removed on
+> `client-builders`; `UseProductionApi`, `UsePreviewApi` and `UseCustomEndpoint` are extension
+> methods on `DeliveryOptions` now. The "deprecate nothing" recommendation below applies to those
+> methods rather than to a builder.
+
 **Verdict: worth doing, but only in a major, and the deprecation must be scoped to the options —
 not the builder.** The builder is already mode-shaped; it is the raw options surface that leaks.
 

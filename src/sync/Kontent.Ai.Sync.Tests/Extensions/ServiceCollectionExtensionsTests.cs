@@ -4,6 +4,7 @@ using Polly.Retry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Sync.Tests.Extensions;
 
@@ -348,5 +349,54 @@ public class ServiceCollectionExtensionsTests
         }
 
         handler.Should().BeSameAs(marker);
+    }
+
+    // The instance overload copies when the options are first built, not at registration.
+    [Fact]
+    public void AddSyncClient_WithOptionsInstance_CopiesWhenTheOptionsAreFirstBuilt()
+    {
+        var options = new SyncOptions { EnvironmentId = EnvironmentId };
+        var replacement = Guid.NewGuid().ToString();
+        var services = new ServiceCollection();
+        services.AddSyncClient(options);
+
+        options.EnvironmentId = replacement;                      // before the first read: included
+        using var provider = services.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>();
+        monitor.Get("Default").EnvironmentId.Should().Be(replacement);
+
+        options.EnvironmentId = Guid.NewGuid().ToString();        // after it: not
+        monitor.Get("Default").EnvironmentId.Should().Be(replacement);
+    }
+
+    [Fact]
+    public async Task AddSyncClient_BindConfiguration_BindsTheSectionTheClientSendsTo()
+    {
+        using var mockHttp = new MockHttpMessageHandler();
+        mockHttp.Expect(HttpMethod.Get, $"https://deliver.kontent.ai/v2/{EnvironmentId}/sync").Respond(_ =>
+        {
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"items":[],"types":[],"languages":[],"taxonomies":[]}""", System.Text.Encoding.UTF8, "application/json"),
+            };
+            response.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
+            return response;
+        });
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Sync:EnvironmentId"] = EnvironmentId })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddSyncClient(sync =>
+        {
+            sync.Options.BindConfiguration("Sync");
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var result = await provider.GetRequiredService<ISyncClient>().GetDeltaAsync("token");
+
+        result.IsSuccess.Should().BeTrue();
+        mockHttp.VerifyNoOutstandingExpectation();
     }
 }

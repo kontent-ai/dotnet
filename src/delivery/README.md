@@ -1792,13 +1792,15 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 
 The HTTP client and the resilience pipeline are configured on the same builder. `HttpClient` is the
 named `IHttpClientBuilder` the transport is built on, so every `Microsoft.Extensions.Http` extension
-applies, and whatever you configure there runs after the SDK's own setup:
+applies, and whatever you configure there runs after the SDK's own setup. Leave `HttpClient.Timeout`
+alone: the SDK sets it as the ceiling on the whole call, and `DeliveryOptions.Timeout` is the way to
+change that ceiling, so an override there silently caps the retry sequence:
 
 ```csharp
 services.AddDeliveryClient(delivery =>
 {
     delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
-    delivery.HttpClient.ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(60));
+    delivery.HttpClient.ConfigureHttpClient(client => client.DefaultRequestHeaders.Add("X-App", "my-app"));
     delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions
     {
         MaxRetryAttempts = 5,
