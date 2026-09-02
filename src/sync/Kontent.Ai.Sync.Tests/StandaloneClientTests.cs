@@ -115,7 +115,7 @@ public sealed class StandaloneClientTests : IDisposable
     }
 
     // The point of the standalone path owning its HttpClient: disposing the client releases it.
-    // DisposeAsync delegates to Dispose, so this covers both.
+    // DisposeAsync and Dispose are separate paths through the owned resources, so each is pinned.
     [Fact]
     public async Task DisposingTheClient_ReleasesItsHttpClient()
     {
@@ -127,8 +127,27 @@ public sealed class StandaloneClientTests : IDisposable
             (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
         }
 
-        // The transport failure is reported as a result rather than thrown, as every non-cancellation
-        // failure in this SDK is; what matters here is that the request no longer reaches the handler.
+        await AssertRequestsFail(client);
+    }
+
+    [Fact]
+    public async Task DisposingTheClientSynchronously_ReleasesItsHttpClient()
+    {
+        _http.When(HttpMethod.Get, SyncUrl).Respond(_ => EmptyDelta());
+
+        SyncClient client;
+        using (client = CreateClient(Options()))
+        {
+            (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        }
+
+        await AssertRequestsFail(client);
+    }
+
+    // The transport failure is reported as a result rather than thrown, as every non-cancellation
+    // failure in this SDK is; what matters here is that the request no longer reaches the handler.
+    private static async Task AssertRequestsFail(SyncClient client)
+    {
         var afterDispose = await client.GetDeltaAsync("token");
 
         afterDispose.IsSuccess.Should().BeFalse();

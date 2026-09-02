@@ -50,7 +50,7 @@ handed the provider as the resource it owns. The hand-built pieces are deleted, 
 | Preview mode targets the preview endpoint | `StandaloneClientTests.PreviewMode_TargetsThePreviewEndpoint` | Base address comes from the registration's `ConfigureHttpClient`, already tested on the DI path. |
 | Public surface | Approval snapshots in both products | `SyncClient`, `SyncClientBuilder`, `ManagementClient` including its `.ctor(ManagementOptions)`, and `ManagementClientBuilder` keep every public member. Only internal constructors and internal types move. |
 
-### 1.3 The one delta, stated once
+### 1.3 The two deltas, stated once
 
 A standalone client today disposes an `HttpClient` that owns its handler chain, so `Dispose` closes
 the pooled connections synchronously. A factory-created `HttpClient` is constructed with
@@ -59,6 +59,14 @@ the handler lifetime expires and the tracking entry is collected. Requests stop 
 `HttpClient` is disposed — but sockets close a little later, and process exit closes them anyway.
 This is the DI path's behaviour today in all three SDKs and Delivery's standalone behaviour too.
 It goes in both changelogs, worded as above.
+
+The second delta was found in review, after the change landed. The hand-built path held the
+caller's options object - Management's `SnapshotOptionsAccessor` and Sync's constructor took the
+instance itself - so a property changed on it after `Build()` was read on the next request. The
+container path copies the instance, as `Add…Client(options)` always has, and reads its own copy
+through `IOptionsMonitor`. A key rotated on the caller's object after `Build()` therefore no longer
+reaches the client. Nothing documented the aliasing and Delivery's standalone client never had it;
+it is recorded in both changelogs as the behaviour change it is.
 
 ### 1.4 History — this question has been decided before, in both directions on the same day
 
@@ -136,7 +144,10 @@ Two decisions inside that shape, each taken for one reason:
   private `CompositeDisposable` is the right shape and Sync needs the same one. It moves to
   `src/common/CompositeDisposable.cs` — it references no product type, and after this change it is
   identical in both products, which is the README's bar. Delivery does not take it: its provider
-  is the only thing it owns.
+  is the only thing it owns. That difference is kept on purpose, not left over. Sync and Management
+  had the disposed-client-fails-at-once invariant before this plan and §1.2 pins it, so they keep
+  the `HttpClient` handle that makes it true; Delivery resolves its Refit client from the container,
+  never held the `HttpClient`, and never promised more than releasing the container.
 
 The public `ManagementClient(ManagementOptions)` constructor stays. It chains to a private
 constructor taking the tuple that a static `BuildOwned(options, configureResilience)` returns, which
