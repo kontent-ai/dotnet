@@ -35,10 +35,12 @@ differs per product is not a guard rail.
 ## Shared tests for shared source
 
 `Http/` holds one test file per `src/common/Http` file: `HttpRetryPredicatesTests`,
-`HttpRetryDelayTests`, `SdkTrackingHeadersTests`. Each product's test project includes the files
-for the source files its product compiles - Management omits `HttpRetryDelayTests` because it does
-not compile `HttpRetryDelay.cs` - so the same assertions run against each assembly's own copy, and
-a change to shared code cannot pass one product's suite while breaking another's.
+`HttpRetryDelayTests`, `SdkTrackingHeadersTests`, `DefaultResilienceTests`,
+`HttpClientTimeoutsTests`. Each product's test project includes the files for the source files its
+product compiles - Management takes only the first and third, because it compiles neither the
+read-side delay and pipeline nor the timeout rule - so the same assertions run against each
+assembly's own copy, and a change to shared code cannot pass one product's suite while breaking
+another's.
 
 The rule is the same as for the printer: a shared test file pins the shared file and nothing else.
 What a product composes out of it - its default pipeline, its idempotency rule, how it reads its

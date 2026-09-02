@@ -51,12 +51,14 @@ internal static class MockClientFactory
             EnvironmentId = EnvironmentId,
             SubscriptionId = SubscriptionId,
         };
-        options.EnableResilience = false;
-
         var services = new ServiceCollection();
         services.AddManagementClient(
             options,
             configureHttpClient: http => http.ConfigurePrimaryHttpMessageHandler(() => primaryHandler));
+
+        // Resilience stays off for every mock client, as it was in the hand-built factory this replaced.
+        // It is set on the container's copy of the options, so the caller's instance is left as it was.
+        services.PostConfigure<ManagementOptions>(NamedClients.Default, o => o.EnableResilience = false);
 
         var provider = services.BuildServiceProvider(
             new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
