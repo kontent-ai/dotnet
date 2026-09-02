@@ -237,6 +237,34 @@ public class DeliveryOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_CustomAssetDomain_WithQueryString_Fails()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = _guid.ToString(),
+            CustomAssetDomain = "https://assets.example.com?version=2"
+        };
+
+        var results = options.Validate(new ValidationContext(options)).ToList();
+
+        Assert.Contains(results, r => r.ErrorMessage == "CustomAssetDomain must not contain a query string.");
+    }
+
+    [Fact]
+    public void Validate_CustomAssetDomain_WithFragment_Fails()
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = _guid.ToString(),
+            CustomAssetDomain = "https://assets.example.com#section"
+        };
+
+        var results = options.Validate(new ValidationContext(options)).ToList();
+
+        Assert.Contains(results, r => r.ErrorMessage == "CustomAssetDomain must not contain a fragment.");
+    }
+
+    [Fact]
     public void Validate_CustomAssetDomain_WithPath_Fails()
     {
         var options = new DeliveryOptions

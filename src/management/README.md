@@ -249,7 +249,7 @@ The upload endpoint needs the file's size up front, so `FileContentSource` accep
 | `Timeout` | No | `30 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. Sized against the 2 GB asset limit. Use `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address; the SDK appends the versioned, scoped path. Override only when targeting a non-production endpoint. |
 
-`ManagementOptions` validates on use: a missing `ApiKey`, a malformed identifier, or configuring **neither** `EnvironmentId` nor `SubscriptionId` surfaces as a `ValidationException` from the constructor/builder, or an `OptionsValidationException` when DI options validation runs during host startup.
+`ManagementOptions` validates on use: a missing `ApiKey`, a malformed identifier, or configuring **neither** `EnvironmentId` nor `SubscriptionId` surfaces as an `OptionsValidationException` - from the constructor and from `Create`, or at host startup when the container validates its options.
 
 Configure the scope you actually call. Each is built only when its identifier is present, so a client scoped to one and used for the other fails immediately, naming the missing option, rather than sending a request to a path with an empty segment:
 

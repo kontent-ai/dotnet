@@ -233,6 +233,7 @@ it: `Options` (the client's `OptionsBuilder<SyncOptions>`), `HttpClient` (its `I
 | `AddSyncClient(configuration)`, `(configuration, "Section")` | `sync.Options.BindConfiguration("SyncOptions")` in a host; otherwise `sync.Options.Bind(configuration.GetSection(…))` |
 | `AddSyncClient(section)` | `sync.Options.Bind(section)` |
 | `AddSyncClient(options)` | unchanged |
+| `AddSyncClient("name", options)` | `AddSyncClient("name", sync => sync.Options.Configure(options.CopyTo))` |
 | `AddSyncClient("name", …)` | `AddSyncClient("name", sync => …)` |
 | `configureHttpClient: b => …` | `sync.HttpClient.…` |
 | `configureResilience: p => …` | `sync.ConfigureResilience(p => …)` |
