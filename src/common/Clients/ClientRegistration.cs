@@ -6,6 +6,7 @@ using Kontent.Ai.Common.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Polly;
 
 namespace Kontent.Ai.Common.Clients;
@@ -24,7 +25,7 @@ namespace Kontent.Ai.Common.Clients;
 /// </param>
 /// <param name="DefaultPipeline">The product's default resilience pipeline.</param>
 /// <param name="AddHandlers">The product's delegating handlers, outermost first.</param>
-internal readonly record struct TransportRecipe<TOptions>(
+internal sealed record TransportRecipe<TOptions>(
     string HttpClientName,
     string ResilienceHandlerName,
     Func<TOptions, Uri> BaseAddress,
@@ -45,7 +46,10 @@ internal static class ClientRegistration
     /// <summary>
     /// Registers the client's options under <paramref name="name"/>, validated at startup, and returns the
     /// product's builder over them. For the default client the unnamed options resolve as well, as a copy
-    /// of the named ones, so whatever the consumer configures on the builder reaches both.
+    /// of the named ones that follows their reloads, so whatever the consumer configures on the builder
+    /// reaches both. The unnamed copy is validated on read but not at startup: the mirror builds it through
+    /// the named factory, which already validates, and a second startup validation would report the one
+    /// failure twice.
     /// </summary>
     internal static TBuilder AddClient<TOptions, TClient, TBuilder>(
         IServiceCollection services,
@@ -68,9 +72,8 @@ internal static class ClientRegistration
         if (name == NamedClients.Default)
         {
             services.AddTransient<IConfigureOptions<TOptions>, DefaultClientOptionsMirror<TOptions>>();
-            services.AddOptions<TOptions>()
-                .ValidateDataAnnotations()
-                .ValidateOnStart();
+            services.AddSingleton<IOptionsChangeTokenSource<TOptions>, DefaultClientChangeTokenSource<TOptions>>();
+            services.AddOptions<TOptions>().ValidateDataAnnotations();
         }
 
         return createBuilder(name, services, options);
@@ -98,6 +101,30 @@ internal static class ClientRegistration
     }
 
     /// <summary>
+    /// Forwards the default client's reload signal to the unnamed options. The options monitor invalidates
+    /// a cached instance only when a change token source registered under that instance's name fires, and
+    /// <c>BindConfiguration</c> registers its source under the client's name - so without this the mirror's
+    /// copy would be rebuilt on the named side and served stale on the unnamed one. The sources are looked
+    /// up inside <see cref="GetChangeToken"/>, never in the constructor, for the same reason the mirror
+    /// resolves nothing in its own.
+    /// </summary>
+    private sealed class DefaultClientChangeTokenSource<TOptions>(IServiceProvider serviceProvider) : IOptionsChangeTokenSource<TOptions>
+        where TOptions : class
+    {
+        public string? Name => Microsoft.Extensions.Options.Options.DefaultName;
+
+        public IChangeToken GetChangeToken()
+        {
+            var tokens = serviceProvider.GetServices<IOptionsChangeTokenSource<TOptions>>()
+                .Where(source => source.Name == NamedClients.Default)
+                .Select(source => source.GetChangeToken())
+                .ToArray();
+
+            return new CompositeChangeToken(tokens);
+        }
+    }
+
+    /// <summary>
     /// Registers one transport for <paramref name="builder"/>'s client: the keyed generated Refit client over
     /// a named HTTP client, its base address and ceiling, the options-gated resilience handler, the product's
     /// handlers, and connection recycling.
@@ -110,6 +137,7 @@ internal static class ClientRegistration
         where TApi : class
     {
         var name = builder.Name;
+        var resilience = builder.Resilience;
 
         var httpClientBuilder = builder.Services
             .AddKeyedRefitGeneratedClient<TApi>(name, refitSettings, recipe.HttpClientName)
@@ -117,7 +145,7 @@ internal static class ClientRegistration
             {
                 var options = serviceProvider.GetRequiredService<IOptionsMonitor<TOptions>>().Get(name);
                 httpClient.BaseAddress = recipe.BaseAddress(options);
-                httpClient.Timeout = recipe.Ceiling(options, builder.Resilience is null, httpClient.Timeout);
+                httpClient.Timeout = recipe.Ceiling(options, resilience.Configure is null, httpClient.Timeout);
             });
 
         ResilienceHandlers.AddOptionsGated<TOptions>(
@@ -125,7 +153,7 @@ internal static class ClientRegistration
             recipe.ResilienceHandlerName,
             name,
             recipe.ResilienceEnabled,
-            pipeline => (builder.Resilience ?? recipe.DefaultPipeline)(pipeline));
+            pipeline => (resilience.Configure ?? recipe.DefaultPipeline)(pipeline));
 
         recipe.AddHandlers(httpClientBuilder);
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);

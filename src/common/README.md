@@ -52,6 +52,14 @@ compiles `Clients/` must therefore compile `OptionsCopier.cs` too, or see it thr
 `InternalsVisibleTo` as Delivery does from its Abstractions assembly - a second copy in the same
 assembly would be the ambiguity the compiler reports as CS0436.
 
+Two details of the sequence are easy to undo by accident. The transport's closures capture a
+`ResilienceOverride` holder - the one field `ConfigureResilience` writes - rather than the builder, so
+the handler chain does not keep the service collection reachable. And for the default client a
+change-token source registered under the unnamed name composes the tokens of every source registered
+under the client's name, which is what makes the unnamed copy follow the named options' configuration
+reloads; the copy is validated on read but not at startup, since the mirror already validates through
+the named factory.
+
 ## Consuming a file
 
 `$(KontentCommonPath)` is defined in the root `Directory.Build.props`.

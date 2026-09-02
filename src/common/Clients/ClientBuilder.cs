@@ -28,13 +28,23 @@ internal abstract class ClientBuilder<TOptions>(string name, IServiceCollection 
 
     /// <summary>
     /// The consumer's replacement pipeline, if any. Read when the HTTP client is first created, not when
-    /// the builder is configured, so it counts whatever the consumer chained after registration.
+    /// the builder is configured, so it counts whatever the consumer chained after registration. A holder
+    /// of its own so the transport's closures capture it and not the builder, which would keep the service
+    /// collection reachable for as long as the handler chain lives.
     /// </summary>
-    internal Action<ResiliencePipelineBuilder<HttpResponseMessage>>? Resilience { get; private set; }
+    internal ResilienceOverride Resilience { get; } = new();
 
     protected void SetResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
-        Resilience = configure;
+        Resilience.Configure = configure;
     }
+}
+
+/// <summary>
+/// The slot <see cref="ClientBuilder{TOptions}.Resilience"/> is; see there.
+/// </summary>
+internal sealed class ResilienceOverride
+{
+    public Action<ResiliencePipelineBuilder<HttpResponseMessage>>? Configure { get; set; }
 }

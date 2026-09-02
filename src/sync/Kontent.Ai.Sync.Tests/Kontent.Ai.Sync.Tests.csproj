@@ -23,6 +23,7 @@
     <Compile Include="$(KontentTestingPath)Http\SdkTrackingHeadersTests.cs" Link="Testing\Http\SdkTrackingHeadersTests.cs" />
     <Compile Include="$(KontentTestingPath)Http\DefaultResilienceTests.cs" Link="Testing\Http\DefaultResilienceTests.cs" />
     <Compile Include="$(KontentTestingPath)Http\HttpClientTimeoutsTests.cs" Link="Testing\Http\HttpClientTimeoutsTests.cs" />
+    <Compile Include="$(KontentTestingPath)Clients\ClientRegistrationTests.cs" Link="Testing\Clients\ClientRegistrationTests.cs" />
   </ItemGroup>
 
   <ItemGroup>
