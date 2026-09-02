@@ -21,9 +21,9 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_DuplicateName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient("production", ConfigureValidOptions);
+        services.AddManagementClient("production", management => management.Options.Configure(ConfigureValidOptions));
 
-        Action act = () => services.AddManagementClient("production", ConfigureValidOptions);
+        Action act = () => services.AddManagementClient("production", management => management.Options.Configure(ConfigureValidOptions));
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*already been registered*");
@@ -40,7 +40,7 @@ public class ServiceCollectionExtensionsTests
     {
         var services = new ServiceCollection();
 
-        Action act = () => services.AddManagementClient(name!, ConfigureValidOptions);
+        Action act = () => services.AddManagementClient(name!, management => management.Options.Configure(ConfigureValidOptions));
 
         act.Should().Throw<ArgumentException>();
     }
@@ -49,7 +49,7 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_Default_RegistersUnkeyedAndKeyedClient()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(ConfigureValidOptions);
+        services.AddManagementClient(management => management.Options.Configure(ConfigureValidOptions));
 
         using var provider = services.BuildServiceProvider();
 
@@ -65,11 +65,11 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_NamedClient_ResolvableByFactoryAndKey()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient("alt", options =>
+        services.AddManagementClient("alt", management => management.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
             options.ApiKey = "alt-key";
-        });
+        }));
 
         using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<IManagementClientFactory>();
@@ -84,12 +84,12 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_DefaultAndNamed_AreIndependent()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(ConfigureValidOptions);
-        services.AddManagementClient("alt", options =>
+        services.AddManagementClient(management => management.Options.Configure(ConfigureValidOptions));
+        services.AddManagementClient("alt", management => management.Options.Configure(options =>
         {
             options.EnvironmentId = Guid.NewGuid().ToString();
             options.ApiKey = "alt-key";
-        });
+        }));
 
         using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<IManagementClientFactory>();
@@ -101,7 +101,7 @@ public class ServiceCollectionExtensionsTests
     public void Factory_Get_UnregisteredName_Throws()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(ConfigureValidOptions);
+        services.AddManagementClient(management => management.Options.Configure(ConfigureValidOptions));
 
         using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<IManagementClientFactory>();
@@ -124,7 +124,7 @@ public class ServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddManagementClient(configuration.GetSection("Management"));
+        services.AddManagementClient(management => management.Options.Bind(configuration.GetSection("Management")));
 
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptionsMonitor<ManagementOptions>>().CurrentValue;
@@ -140,11 +140,11 @@ public class ServiceCollectionExtensionsTests
         // HttpClient's 100-second default bounds the whole call, retries and backoff included, so it capped
         // exactly the long uploads this SDK's missing per-attempt timeout is meant to allow.
         var services = new ServiceCollection();
-        services.AddManagementClient(options =>
+        services.AddManagementClient(management => management.Options.Configure(options =>
         {
             ConfigureValidOptions(options);
             options.Timeout = TimeSpan.FromMinutes(42);
-        });
+        }));
 
         using var provider = services.BuildServiceProvider();
         var httpClient = provider.GetRequiredService<IHttpClientFactory>()
@@ -164,11 +164,11 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_RegistersManagementApiAndSubscriptionApi()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(options =>
+        services.AddManagementClient(management => management.Options.Configure(options =>
         {
             ConfigureValidOptions(options);
             options.SubscriptionId = Guid.NewGuid().ToString();
-        });
+        }));
 
         using var provider = services.BuildServiceProvider();
 
@@ -182,7 +182,7 @@ public class ServiceCollectionExtensionsTests
     public async Task AddManagementClient_WithoutSubscriptionId_ClientResolvesButSubscriptionEndpointsThrow()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(ConfigureValidOptions);
+        services.AddManagementClient(management => management.Options.Configure(ConfigureValidOptions));
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IManagementClient>();
@@ -196,7 +196,7 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_WithoutSubscriptionId_ResolvingSubscriptionApiThrows()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(ConfigureValidOptions);
+        services.AddManagementClient(management => management.Options.Configure(ConfigureValidOptions));
 
         using var provider = services.BuildServiceProvider();
 
@@ -218,10 +218,12 @@ public class ServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
-        services.AddManagementClient(
-            configuration.GetSection("Management"),
-            configureHttpClient: httpClientBuilder => httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => stub),
-            configureResilience: _ => { });
+        services.AddManagementClient(management =>
+        {
+            management.Options.Bind(configuration.GetSection("Management"));
+            management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => stub);
+            management.ConfigureResilience(_ => { });
+        });
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IManagementClient>();
@@ -242,9 +244,11 @@ public class ServiceCollectionExtensionsTests
             : EnvironmentInformationResponse());
 
         var services = new ServiceCollection();
-        services.AddManagementClient(
-            ConfigureValidOptions,
-            httpClientBuilder => httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => stub));
+        services.AddManagementClient(management =>
+        {
+            management.Options.Configure(ConfigureValidOptions);
+            management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => stub);
+        });
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IManagementClient>();
@@ -267,13 +271,15 @@ public class ServiceCollectionExtensionsTests
         var stub = new RecordingPrimaryHandler(_ => TooManyRequestsResponse());
 
         var services = new ServiceCollection();
-        services.AddManagementClient(
-            options =>
+        services.AddManagementClient(management =>
+        {
+            management.Options.Configure(options =>
             {
                 ConfigureValidOptions(options);
                 options.EnableResilience = false;
-            },
-            httpClientBuilder => httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() => stub));
+            });
+            management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => stub);
+        });
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IManagementClient>();
@@ -289,11 +295,11 @@ public class ServiceCollectionExtensionsTests
     public async Task AddManagementClient_SubscriptionIdOnly_ResolvesAndFailsOnlyOnEnvironmentCalls()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(options =>
+        services.AddManagementClient(management => management.Options.Configure(options =>
         {
             options.SubscriptionId = Guid.NewGuid().ToString();
             options.ApiKey = ValidApiKey;
-        });
+        }));
         var provider = services.BuildServiceProvider();
 
         var client = provider.GetRequiredService<IManagementClient>();
@@ -312,7 +318,7 @@ public class ServiceCollectionExtensionsTests
     public void AddManagementClient_NeitherEnvironmentIdNorSubscriptionId_FailsValidation()
     {
         var services = new ServiceCollection();
-        services.AddManagementClient(options => options.ApiKey = ValidApiKey);
+        services.AddManagementClient(management => management.Options.Configure(options => options.ApiKey = ValidApiKey));
         var provider = services.BuildServiceProvider();
 
         Action act = () => provider.GetRequiredService<IManagementClient>();
@@ -367,11 +373,11 @@ public class ServiceCollectionExtensionsTests
         // Refit's registration installs a plain HttpClientHandler as the primary. The SDK's connection
         // recycling runs after it and must be what sits at the bottom of the chain.
         var services = new ServiceCollection();
-        services.AddManagementClient(o =>
+        services.AddManagementClient(management => management.Options.Configure(o =>
         {
             o.EnvironmentId = Guid.NewGuid().ToString();
             o.ApiKey = "dummy";
-        });
+        }));
         using var provider = services.BuildServiceProvider();
 
         HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Management.HttpClient.Default");
@@ -382,5 +388,28 @@ public class ServiceCollectionExtensionsTests
 
         handler.Should().BeOfType<SocketsHttpHandler>()
             .Which.PooledConnectionLifetime.Should().Be(TimeSpan.FromMinutes(2));
+    }
+
+    // The consumer's chain runs after the SDK's own setup, so what it puts on the HTTP client wins. This is
+    // what the old "configureHttpClient is applied last" guarantee became.
+    [Fact]
+    public void AddManagementClient_TheConsumersHttpClientChainRunsLast()
+    {
+        var marker = new HttpClientHandler();
+        var services = new ServiceCollection();
+        services.AddManagementClient(management =>
+        {
+            management.Options.Configure(ConfigureValidOptions);
+            management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => marker);
+        });
+        using var provider = services.BuildServiceProvider();
+
+        HttpMessageHandler handler = provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Kontent.Ai.Management.HttpClient.Default");
+        while (handler is DelegatingHandler { InnerHandler: { } inner })
+        {
+            handler = inner;
+        }
+
+        handler.Should().BeSameAs(marker);
     }
 }

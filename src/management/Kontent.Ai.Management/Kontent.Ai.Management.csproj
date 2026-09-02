@@ -31,7 +31,8 @@
 		<Compile Include="$(KontentCommonPath)NamedClients.cs" Link="Common\NamedClients.cs" />
 		<Compile Include="$(KontentCommonPath)KeyedClients.cs" Link="Common\KeyedClients.cs" />
 		<Compile Include="$(KontentCommonPath)OptionsAccessor.cs" Link="Common\OptionsAccessor.cs" />
-		<Compile Include="$(KontentCommonPath)OptionsRegistration.cs" Link="Common\OptionsRegistration.cs" />
+		<Compile Include="$(KontentCommonPath)Clients\ClientBuilder.cs" Link="Common\Clients\ClientBuilder.cs" />
+		<Compile Include="$(KontentCommonPath)Clients\ClientRegistration.cs" Link="Common\Clients\ClientRegistration.cs" />
 		<Compile Include="$(KontentCommonPath)OptionsCopier.cs" Link="Common\OptionsCopier.cs" />
 	</ItemGroup>
 

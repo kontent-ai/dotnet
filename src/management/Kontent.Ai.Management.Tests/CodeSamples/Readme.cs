@@ -193,11 +193,11 @@ public class Readme
 
     public void RegisterWithDependencyInjection(IServiceCollection services)
     {
-        services.AddManagementClient(options =>
+        services.AddManagementClient(management => management.Options.Configure(options =>
         {
             options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
             options.ApiKey = "<YOUR_API_KEY>";
-        });
+        }));
     }
 
     public async Task BuildStandalone()
@@ -211,45 +211,47 @@ public class Readme
 
     public async Task BuildWithBuilder()
     {
-        await using var client = ManagementClientBuilder
-            .WithOptions(options =>
+        await using var client = ManagementClient.Create(management =>
+        {
+            management.Options.Configure(options =>
             {
                 options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
                 options.ApiKey = "<YOUR_API_KEY>";
-            })
-            .WithResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromSeconds(30)))
-            .Build();
+            });
+            management.ConfigureResilience(pipeline => pipeline.AddTimeout(TimeSpan.FromSeconds(30)));
+        });
     }
 
     public void RegisterFromConfiguration(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddManagementClient(configuration);
-        services.AddManagementClient(configuration, "MyManagementSection");
+        services.AddManagementClient(management => management.Options.Bind(configuration.GetSection(ManagementOptions.DefaultConfigurationSectionName)));
+        services.AddManagementClient("named", management => management.Options.Bind(configuration.GetSection("MyManagementSection")));
     }
 
     public void RegisterNamedClients(IServiceCollection services)
     {
-        services.AddManagementClient("production", options =>
+        services.AddManagementClient("production", management => management.Options.Configure(options =>
         {
             options.EnvironmentId = "<PRODUCTION_ENVIRONMENT_ID>";
             options.ApiKey = "<PRODUCTION_API_KEY>";
-        });
+        }));
 
-        services.AddManagementClient("staging", options =>
+        services.AddManagementClient("staging", management => management.Options.Configure(options =>
         {
             options.EnvironmentId = "<STAGING_ENVIRONMENT_ID>";
             options.ApiKey = "<STAGING_API_KEY>";
-        });
+        }));
     }
 
     public void RegisterWithResilience(IServiceCollection services)
     {
-        services.AddManagementClient(
-            options => { options.EnvironmentId = "..."; options.ApiKey = "..."; },
-            configureHttpClient: null,
-            configureResilience: pipeline => pipeline
+        services.AddManagementClient(management =>
+        {
+            management.Options.Configure(options => { options.EnvironmentId = "..."; options.ApiKey = "..."; });
+            management.ConfigureResilience(pipeline => pipeline
                 .AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 })
                 .AddTimeout(TimeSpan.FromSeconds(30)));
+        });
     }
 
     public async Task ResultPattern(IManagementClient client)

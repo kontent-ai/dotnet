@@ -1,4 +1,5 @@
 using System.Net;
+using Kontent.Ai.Common.Clients;
 using Kontent.Ai.Common.Http;
 using Kontent.Ai.Common;
 using Kontent.Ai.Management.Api;
@@ -13,38 +14,26 @@ namespace Kontent.Ai.Management.Extensions;
 
 public static partial class ServiceCollectionExtensions
 {
-    private static void RegisterRefitClient<T>(
-        IServiceCollection services,
-        string clientName,
-        string httpClientName,
-        Func<ManagementOptions, string> scopePathSelector,
-        RefitSettings refitSettings,
-        Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience) where T : class
-    {
-        var httpClientBuilder = services
-            .AddKeyedRefitGeneratedClient<T>(clientName, refitSettings, httpClientName)
-            .ConfigureHttpClient((sp, httpClient) =>
-            {
-                var options = sp.GetRequiredService<IOptionsMonitor<ManagementOptions>>().Get(clientName);
-                httpClient.BaseAddress = options.ScopedEndpoint(scopePathSelector(options));
-                httpClient.Timeout = options.Timeout;
-            });
-
-        // Resilience first → resilience sits outermost so each retry re-runs tracking + auth fresh (matters when
-        // tokens rotate). Diverges from delivery/sync by omitting AddTimeout — see ConfigureDefaultResilience.
-        ResilienceHandlers.AddOptionsGated<ManagementOptions>(
-            httpClientBuilder,
-            $"management_{typeof(T).Name}_{clientName}",
-            clientName,
-            options => options.EnableResilience,
-            configureResilience,
-            ConfigureDefaultResilience);
-        AddMessageHandlers(httpClientBuilder, clientName);
-        HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);
-        // Applied last, so a consumer can still replace anything set above.
-        configureHttpClient?.Invoke(httpClientBuilder);
-    }
+    /// <summary>
+    /// One scope's transport. Diverges from Delivery and Sync in two documented ways: the ceiling is always the
+    /// configured <see cref="ManagementOptions.Timeout"/>, since no per-attempt timeout is installed, and the
+    /// default pipeline is the idempotency-aware one below.
+    /// </summary>
+    private static TransportRecipe<ManagementOptions> Transport<T>(string httpClientName, string clientName, Func<ManagementOptions, string> scopePath) => new(
+        HttpClientName: httpClientName,
+        ResilienceHandlerName: $"management_{typeof(T).Name}_{clientName}",
+        BaseAddress: options => options.ScopedEndpoint(scopePath(options)),
+        ResilienceEnabled: options => options.EnableResilience,
+        Ceiling: (options, _, _) => options.Timeout,
+        DefaultPipeline: ConfigureDefaultResilience,
+        AddHandlers: httpClient =>
+        {
+            httpClient.AddHttpMessageHandler(_ => new TrackingHandler());
+            httpClient.AddHttpMessageHandler(sp => new ManagementAuthenticationHandler(
+                new MonitorBackedOptionsAccessor<ManagementOptions>(
+                    sp.GetRequiredService<IOptionsMonitor<ManagementOptions>>(),
+                    clientName)));
+        });
 
     private static T CreateApi<T>(HttpClient httpClient, RefitSettings refitSettings) where T : class
         => RestService.For<T>(httpClient, refitSettings);
@@ -92,15 +81,6 @@ public static partial class ServiceCollectionExtensions
             provider.Dispose();
             throw;
         }
-    }
-
-    private static void AddMessageHandlers(IHttpClientBuilder httpClientBuilder, string clientName)
-    {
-        httpClientBuilder.AddHttpMessageHandler(_ => new TrackingHandler());
-        httpClientBuilder.AddHttpMessageHandler(sp => new ManagementAuthenticationHandler(
-            new MonitorBackedOptionsAccessor<ManagementOptions>(
-                sp.GetRequiredService<IOptionsMonitor<ManagementOptions>>(),
-                clientName)));
     }
 
     /// <summary>

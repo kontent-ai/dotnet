@@ -1,16 +1,15 @@
 using Kontent.Ai.Common;
+using Kontent.Ai.Common.Clients;
 using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Configuration;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Polly;
 
 namespace Kontent.Ai.Management.Extensions;
 
 /// <summary>
-/// Registers the Kontent.ai Management client and its dependencies on an <see cref="IServiceCollection"/>.
+/// Registers Kontent.ai Management clients.
 /// </summary>
 public static partial class ServiceCollectionExtensions
 {
@@ -18,281 +17,80 @@ public static partial class ServiceCollectionExtensions
     private const string SubscriptionHttpClientPrefix = "Kontent.Ai.Management.SubscriptionHttpClient.";
 
     /// <summary>
-    /// Registers the management client using an <see cref="IConfiguration"/> section. Defaults to section
-    /// <c>"ManagementOptions"</c> if the name is omitted.
+    /// Registers the default Management client.
     /// </summary>
     /// <param name="services">The service collection.</param>
-    /// <param name="configuration">The configuration to bind <see cref="ManagementOptions"/> from.</param>
-    /// <param name="configurationSectionName">The section to bind; the whole configuration when empty.</param>
-    /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
-    /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        string configurationSectionName = ManagementOptions.DefaultConfigurationSectionName,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var section = string.IsNullOrWhiteSpace(configurationSectionName)
-            ? configuration
-            : configuration.GetSection(configurationSectionName);
-
-        return services.AddManagementClientFromConfiguration(NamedClients.Default, section, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers a named management client using an <see cref="IConfiguration"/> section.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">Client name. Must be unique across all registrations.</param>
-    /// <param name="configuration">The configuration to bind <see cref="ManagementOptions"/> from.</param>
-    /// <param name="configurationSectionName">The section to bind; the whole configuration when empty.</param>
-    /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
-    /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        string name,
-        IConfiguration configuration,
-        string configurationSectionName = ManagementOptions.DefaultConfigurationSectionName,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configuration);
-
-        var section = string.IsNullOrWhiteSpace(configurationSectionName)
-            ? configuration
-            : configuration.GetSection(configurationSectionName);
-
-        return services.AddManagementClientFromConfiguration(name, section, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the management client using an <see cref="IConfigurationSection"/>.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configurationSection">The configuration section to bind <see cref="ManagementOptions"/> from.</param>
-    /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
-    /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        IConfigurationSection configurationSection,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configurationSection);
-
-        return services.AddManagementClientFromConfiguration(NamedClients.Default, configurationSection, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers a named management client using an <see cref="IConfigurationSection"/>.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">Client name. Must be unique across all registrations.</param>
-    /// <param name="configurationSection">The configuration section to bind <see cref="ManagementOptions"/> from.</param>
-    /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
-    /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        string name,
-        IConfigurationSection configurationSection,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(configurationSection);
-
-        return services.AddManagementClientFromConfiguration(name, configurationSection, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the default management client with an options-configuration action.
-    /// </summary>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        Action<ManagementOptions> configureOptions)
-    {
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        return services.AddManagementClient(NamedClients.Default, configureOptions);
-    }
-
-    /// <summary>
-    /// Registers the default management client with options + HTTP/resilience customisation.
-    /// </summary>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        Action<ManagementOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        return services.AddManagementClient(
-            NamedClients.Default,
-            configureOptions,
-            configureHttpClient,
-            configureResilience);
-    }
-
-    /// <summary>
-    /// Registers a named management client. This is the primary overload all others delegate to.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">Client name. Must be unique across all registrations.</param>
-    /// <param name="configureOptions">Action to configure the management options.</param>
-    /// <param name="configureHttpClient">Optional hook on the underlying <see cref="IHttpClientBuilder"/> (both env and subscription clients).</param>
-    /// <param name="configureResilience">Optional hook to replace the default resilience pipeline.</param>
-    /// <exception cref="InvalidOperationException">A client with the same name is already registered.</exception>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        string name,
-        Action<ManagementOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        NamedClients.ValidateName(name);
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
-
-        OptionsRegistration.RegisterValidated<ManagementOptions>(services, name, builder => builder.Configure(configureOptions));
-
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Management client, configuring options with access to the <see cref="IServiceProvider"/>.
-    /// </summary>
-    /// <remarks>
-    /// Use when the options depend on something else in the container - a secret store, a tenant resolver.
-    /// </remarks>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <param name="configure">Configures the client: its options, HTTP clients and resilience.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        Action<IServiceProvider, ManagementOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-        => services.AddManagementClient(NamedClients.Default, configureOptions, configureHttpClient, configureResilience);
+    public static IServiceCollection AddManagementClient(this IServiceCollection services, Action<IManagementClientBuilder> configure)
+        => services.AddManagementClient(NamedClients.Default, configure);
 
     /// <summary>
-    /// Registers a named Kontent.ai Management client, configuring options with access to the <see cref="IServiceProvider"/>.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="name">The name of the client. Must be unique across all registrations.</param>
-    /// <param name="configureOptions">Action to configure the options with access to the <see cref="IServiceProvider"/>.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
-    /// <returns>The service collection for chaining.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a client with the same name is already registered.</exception>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        string name,
-        Action<IServiceProvider, ManagementOptions> configureOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-        NamedClients.ValidateName(name);
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
-
-        OptionsRegistration.RegisterValidated<ManagementOptions>(services, name, builder =>
-            builder.Configure<IServiceProvider>((opts, sp) => configureOptions(sp, opts)));
-
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    /// <summary>
-    /// Registers the Kontent.ai Management client with the specified options instance.
+    /// Registers the default Management client from a pre-built options instance.
     /// </summary>
     /// <remarks>
     /// The instance's values are copied onto the options the container materializes; the object itself is
     /// not registered.
     /// </remarks>
     /// <param name="services">The service collection.</param>
-    /// <param name="managementOptions">The management options instance.</param>
-    /// <param name="configureHttpClient">Optional action to configure the HTTP client.</param>
-    /// <param name="configureResilience">Optional action replacing the default resilience pipeline.</param>
+    /// <param name="options">The options to copy.</param>
+    /// <param name="configure">Configures the client further, after the options are copied.</param>
     /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddManagementClient(
-        this IServiceCollection services,
-        ManagementOptions managementOptions,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    public static IServiceCollection AddManagementClient(this IServiceCollection services, ManagementOptions options, Action<IManagementClientBuilder>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(managementOptions);
+        ArgumentNullException.ThrowIfNull(options);
 
-        return services.AddManagementClient(
-            NamedClients.Default,
-            options => OptionsCopier<ManagementOptions>.Copy(managementOptions, options),
-            configureHttpClient,
-            configureResilience);
+        return services.AddManagementClient(NamedClients.Default, management =>
+        {
+            management.Options.Configure(options.CopyTo);
+            configure?.Invoke(management);
+        });
     }
 
-    private static IServiceCollection AddManagementClientFromConfiguration(
-        this IServiceCollection services,
-        string name,
-        IConfiguration configuration,
-        Action<IHttpClientBuilder>? configureHttpClient = null,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience = null)
+    /// <summary>
+    /// Registers a named Management client, resolvable through <see cref="IManagementClientFactory"/> or as a
+    /// keyed service under <paramref name="name"/>.
+    /// </summary>
+    /// <remarks>
+    /// The API key is read per request through <see cref="IOptionsMonitor{TOptions}"/>, so a rotated key
+    /// takes effect without rebuilding the client. The base addresses and the resilience pipeline are read
+    /// once, when each HTTP client is first created.
+    /// </remarks>
+    /// <param name="services">The service collection.</param>
+    /// <param name="name">The client's name. Must be unique across all registrations.</param>
+    /// <param name="configure">Configures the client: its options, HTTP clients and resilience.</param>
+    /// <returns>The service collection for chaining.</returns>
+    /// <exception cref="InvalidOperationException">A client with the same name is already registered.</exception>
+    public static IServiceCollection AddManagementClient(this IServiceCollection services, string name, Action<IManagementClientBuilder> configure)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        NamedClients.ValidateName(name);
-        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(configure);
 
-        KeyedClients.EnsureNotRegistered<IManagementClient>(services, name, "management client");
+        var builder = ClientRegistration.AddClient<ManagementOptions, IManagementClient, ManagementClientBuilder>(
+            services,
+            name,
+            "management client",
+            httpClientName: null,
+            static (name, services, options) => new ManagementClientBuilder(name, services, options));
 
-        OptionsRegistration.RegisterValidated<ManagementOptions>(services, name, builder => builder.Bind(configuration));
-
-        return CompleteClientRegistration(services, name, configureHttpClient, configureResilience);
-    }
-
-    private static IServiceCollection CompleteClientRegistration(
-        IServiceCollection services,
-        string name,
-        Action<IHttpClientBuilder>? configureHttpClient,
-        Action<ResiliencePipelineBuilder<HttpResponseMessage>>? configureResilience)
-    {
         var refitSettings = RefitSettingsProvider.CreateDefaultSettings();
+        builder.HttpClient = ClientRegistration.AddTransport<ManagementOptions, IManagementApi>(
+            builder,
+            Transport<IManagementApi>(EnvironmentHttpClientName(name), name, o => o.EnvironmentScopePath()),
+            refitSettings);
+        builder.SubscriptionHttpClient = ClientRegistration.AddTransport<ManagementOptions, ISubscriptionApi>(
+            builder,
+            Transport<ISubscriptionApi>(SubscriptionHttpClientName(name), name, o => o.SubscriptionScopePath()),
+            refitSettings);
 
-        RegisterRefitClient<IManagementApi>(
-            services,
-            name,
-            EnvironmentHttpClientName(name),
-            o => o.EnvironmentScopePath(),
-            refitSettings,
-            configureHttpClient,
-            configureResilience);
-
-        RegisterRefitClient<ISubscriptionApi>(
-            services,
-            name,
-            SubscriptionHttpClientName(name),
-            o => o.SubscriptionScopePath(),
-            refitSettings,
-            configureHttpClient,
-            configureResilience);
-
-        services.AddKeyedSingleton<IManagementClient>(name, CreateManagementClient);
-        services.TryAddSingleton<IManagementClientFactory, ManagementClientFactory>();
+        ClientRegistration.AddClientServices<IManagementClient, IManagementClientFactory, ManagementClientFactory>(services, name, CreateManagementClient);
 
         if (name == NamedClients.Default)
         {
-            services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementClient>(NamedClients.Default));
             services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IManagementApi>(NamedClients.Default));
             services.TryAddSingleton(sp => sp.GetRequiredKeyedService<ISubscriptionApi>(NamedClients.Default));
         }
 
+        configure(builder);
         return services;
     }
 
@@ -312,5 +110,4 @@ public static partial class ServiceCollectionExtensions
     private static string EnvironmentHttpClientName(string name) => $"{ManagementHttpClientPrefix}{name}";
 
     private static string SubscriptionHttpClientName(string name) => $"{SubscriptionHttpClientPrefix}{name}";
-
 }

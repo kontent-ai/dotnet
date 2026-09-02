@@ -43,11 +43,11 @@ public class DisposeTests
         // DI-resolved instances. The concrete ManagementClient implements IDisposable, and its Dispose must be safe
         // (no factory corruption) when the container ultimately disposes the singleton.
         var services = new ServiceCollection();
-        services.AddManagementClient(o =>
+        services.AddManagementClient(management => management.Options.Configure(o =>
         {
             o.EnvironmentId = Guid.NewGuid().ToString();
             o.ApiKey = "dummy";
-        });
+        }));
 
         using var provider = services.BuildServiceProvider();
         var client = (ManagementClient)provider.GetRequiredService<IManagementClient>();

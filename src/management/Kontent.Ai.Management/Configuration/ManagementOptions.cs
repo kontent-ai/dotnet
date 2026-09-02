@@ -57,6 +57,16 @@ public sealed class ManagementOptions : IValidatableObject
     /// </remarks>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(30);
 
+    /// <summary>
+    /// Copies every option onto <paramref name="destination"/>. Reflected rather than listed property by
+    /// property, so an option added later cannot be silently left behind.
+    /// </summary>
+    public void CopyTo(ManagementOptions destination)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        Kontent.Ai.Common.OptionsCopier<ManagementOptions>.Copy(this, destination);
+    }
+
     /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {

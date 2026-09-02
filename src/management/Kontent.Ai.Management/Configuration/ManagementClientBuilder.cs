@@ -1,80 +1,21 @@
+using Kontent.Ai.Common.Clients;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Kontent.Ai.Management.Configuration;
 
-/// <summary>
-/// Fluent, dependency-injection-free entry point for building an <see cref="IManagementClient"/>.
-/// </summary>
-/// <remarks>
-/// <para>
-/// <see cref="Build"/> runs the same registration as <c>services.AddManagementClient(...)</c> inside a
-/// private container, and the built client owns the <see cref="HttpClient"/>s it draws from it and the
-/// container itself. Dispose it when you are done:
-/// <c>await using var client = ManagementClientBuilder.WithOptions(...).Build();</c>.
-/// </para>
-/// <para>
-/// This is a thin wrapper over the resource-owning <see cref="ManagementClient"/> constructor. For
-/// applications using dependency injection, prefer <c>services.AddManagementClient(...)</c>, which hands
-/// lifetime to your container and integrates with named/keyed clients, and reads the API key per request
-/// so a rotated key takes effect without a rebuild.
-/// </para>
-/// </remarks>
-public sealed class ManagementClientBuilder
+internal sealed class ManagementClientBuilder(string name, IServiceCollection services, OptionsBuilder<ManagementOptions> options)
+    : ClientBuilder<ManagementOptions>(name, services, options), IManagementClientBuilder
 {
-    private readonly ManagementOptions _options;
-    private Action<ResiliencePipelineBuilder<HttpResponseMessage>>? _configureResilience;
-
-    private ManagementClientBuilder(ManagementOptions options) => _options = options;
-
     /// <summary>
-    /// Starts a builder, configuring the options on a fresh <see cref="ManagementOptions"/> instance.
+    /// Assigned by the transport registration before the builder reaches the consumer.
     /// </summary>
-    /// <param name="configureOptions">Delegate that sets the required environment ID, API key, and any optional settings.</param>
-    /// <returns>A builder for optional further configuration.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="configureOptions"/> is null.</exception>
-    public static ManagementClientBuilder WithOptions(Action<ManagementOptions> configureOptions)
+    public IHttpClientBuilder SubscriptionHttpClient { get; internal set; } = null!;
+
+    public IManagementClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
     {
-        ArgumentNullException.ThrowIfNull(configureOptions);
-
-        var options = new ManagementOptions();
-        configureOptions(options);
-        return new ManagementClientBuilder(options);
-    }
-
-    /// <summary>
-    /// Starts a builder from a pre-built <see cref="ManagementOptions"/> instance (e.g. one bound from configuration).
-    /// </summary>
-    /// <param name="options">The management options.</param>
-    /// <returns>A builder for optional further configuration.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
-    public static ManagementClientBuilder WithOptions(ManagementOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        return new ManagementClientBuilder(options);
-    }
-
-    /// <summary>
-    /// Replaces the default resilience pipeline with a custom one. Has no effect when
-    /// <see cref="ManagementOptions.EnableResilience"/> is <c>false</c> (matching the DI behaviour).
-    /// </summary>
-    /// <param name="configureResilience">Delegate that configures the resilience pipeline.</param>
-    /// <returns>The builder, for chaining.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="configureResilience"/> is null.</exception>
-    public ManagementClientBuilder WithResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configureResilience)
-    {
-        ArgumentNullException.ThrowIfNull(configureResilience);
-
-        _configureResilience = configureResilience;
+        SetResilience(configure);
         return this;
     }
-
-
-    /// <summary>
-    /// Builds a configured <see cref="IManagementClient"/> that owns its underlying <see cref="HttpClient"/>s and the private container they came from.
-    /// </summary>
-    /// <returns>A new client. Dispose it (or <c>await using</c> it) to release the HTTP resources.</returns>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">The options fail validation (e.g. missing or malformed environment ID or API key).</exception>
-    public ManagementClient Build()
-        => new ManagementClient(_options, _configureResilience);
 }
