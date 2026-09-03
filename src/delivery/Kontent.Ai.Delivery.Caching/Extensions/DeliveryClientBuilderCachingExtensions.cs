@@ -4,6 +4,7 @@ using Kontent.Ai.Delivery.Caching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ZiggyCreatures.Caching.Fusion;
@@ -116,6 +117,14 @@ public static class DeliveryClientBuilderCachingExtensions
     {
         RemoveExistingCacheManagerRegistration(builder.Services, builder.Name);
         builder.Services.AddKeyedSingleton<IDeliveryCacheManager>(builder.Name, (sp, _) => createCacheManager(sp));
+
+        // The default client's manager resolves unkeyed as well, the way the client itself does, so a
+        // webhook handler asks for IDeliveryCacheManager and never learns the default client's key.
+        if (builder.Name == NamedClients.Default)
+        {
+            builder.Services.TryAddSingleton(sp => sp.GetRequiredKeyedService<IDeliveryCacheManager>(NamedClients.Default));
+        }
+
         return builder;
     }
 
