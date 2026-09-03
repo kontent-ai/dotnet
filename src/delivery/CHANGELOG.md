@@ -81,6 +81,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
+- **The cache manager is reachable without knowing the default client's key, and on a standalone client at all.** The manager was registered only as a keyed service under the client's name, which for the default client is an internal constant no document names - so a webhook handler for the common `AddDeliveryClient(delivery => delivery.UseMemoryCache())` setup had no route to `InvalidateAsync` but a guessed string. It now resolves unkeyed as well, `GetRequiredService<IDeliveryCacheManager>()`, the way the client itself does; named clients keep their keyed registration. A client built with `DeliveryClient.Create` owns its container and exposed nothing inside it, so its cache could be filled but never invalidated; `DeliveryClient.CacheManager` is the manager it was registered with, or `null` when it caches nothing.
+
 - **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.
 
 - **`ContinuationToken` on `IDeliveryItemsFeedResponse` and `IDeliveryItemsFeedResponse<T>`**, making the feed's result-based route resumable across a process restart, which `FetchNextPageAsync` cannot be. `HasNextPage` is unchanged and remains equivalent to the token being present.

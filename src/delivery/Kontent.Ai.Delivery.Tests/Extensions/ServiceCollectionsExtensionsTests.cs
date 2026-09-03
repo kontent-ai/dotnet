@@ -472,6 +472,45 @@ public class ServiceCollectionsExtensionsTests
     }
 
     [Fact]
+    public void UseMemoryCache_DefaultClient_RegistersTheManagerUnkeyedToo()
+    {
+        // The route a webhook handler takes for the default client: IDeliveryCacheManager, no key.
+        _serviceCollection.AddDeliveryClient(d =>
+        {
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
+        });
+
+        var provider = _serviceCollection.BuildServiceProvider();
+
+        Assert.Same(
+            provider.GetRequiredKeyedService<IDeliveryCacheManager>("Default"),
+            provider.GetRequiredService<IDeliveryCacheManager>());
+    }
+
+    [Fact]
+    public void UseMemoryCache_NamedClient_RegistersNoUnkeyedManager()
+    {
+        _serviceCollection.AddDeliveryClient("production", d =>
+        {
+            d.Options.Configure(o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            });
+            d.UseMemoryCache();
+        });
+
+        var provider = _serviceCollection.BuildServiceProvider();
+
+        Assert.Null(provider.GetService<IDeliveryCacheManager>());
+    }
+
+    [Fact]
     public void UseHybridCache_RegistersKeyedCacheManager()
     {
         _serviceCollection.AddDeliveryClient("production", d =>

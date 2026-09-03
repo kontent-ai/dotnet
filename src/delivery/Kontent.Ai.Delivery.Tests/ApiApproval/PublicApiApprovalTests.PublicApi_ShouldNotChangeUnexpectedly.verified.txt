@@ -1,5 +1,6 @@
 ﻿// Kontent.Ai.Delivery
 public sealed class DeliveryClient : IAsyncDisposable, IDeliveryClient, IDisposable
+    IDeliveryCacheManager? CacheManager { get; }
     IAssetUsedInQuery GetAssetUsedIn(String codename)
     IDynamicEnumerateItemsQuery GetItemsFeed()
     IDynamicItemQuery GetItem(String codename)
