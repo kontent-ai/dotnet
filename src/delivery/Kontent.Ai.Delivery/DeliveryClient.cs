@@ -85,6 +85,14 @@ public sealed class DeliveryClient : IDeliveryClient, IDisposable, IAsyncDisposa
         return CreateOwned(services => services.AddDeliveryClient(options, configure));
     }
 
+    /// <summary>
+    /// The cache this client was registered with, or <c>null</c> when it caches nothing. A client resolved
+    /// from a container has its manager registered there too, keyed by the client's name and unkeyed for
+    /// the default client; a client from <see cref="Create(Action{IDeliveryClientBuilder})"/> owns its
+    /// container, so this is how its cache is invalidated or purged.
+    /// </summary>
+    public IDeliveryCacheManager? CacheManager => _cacheManager;
+
     private static DeliveryClient CreateOwned(Action<IServiceCollection> register)
     {
         var services = new ServiceCollection();

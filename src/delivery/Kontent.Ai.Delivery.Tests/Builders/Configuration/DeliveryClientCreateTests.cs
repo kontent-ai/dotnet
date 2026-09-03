@@ -111,6 +111,46 @@ public sealed class DeliveryClientCreateTests : IDisposable
     }
 
     [Fact]
+    public async Task Create_WithMemoryCache_ExposesTheCacheManager()
+    {
+        // A standalone client owns its container, so the client is the only way to reach the cache
+        // inside it - and a webhook handler has to, to invalidate.
+        _http.When(HttpMethod.Get, $"https://deliver.kontent.ai/{EnvironmentId}/types")
+            .Respond("application/json", """{"types":[],"pagination":{"skip":0,"limit":0,"count":0,"next_page":""}}""");
+        var attempts = new AttemptCounter();
+
+        await using var client = CreateClient(
+            o =>
+            {
+                o.EnvironmentId = EnvironmentId;
+                o.EnableResilience = false;
+            },
+            d =>
+            {
+                d.HttpClient.AddHttpMessageHandler(() => attempts);
+                d.UseMemoryCache();
+            });
+
+        await client.GetTypes().ExecuteAsync();
+        await client.GetTypes().ExecuteAsync();
+        Assert.Equal(1, attempts.Count);
+
+        Assert.NotNull(client.CacheManager);
+        await client.CacheManager.InvalidateAsync([DeliveryCacheDependencies.TypesListScope]);
+        await client.GetTypes().ExecuteAsync();
+
+        Assert.Equal(2, attempts.Count);
+    }
+
+    [Fact]
+    public async Task Create_WithoutACache_HasNoCacheManager()
+    {
+        await using var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        Assert.Null(client.CacheManager);
+    }
+
+    [Fact]
     public async Task Create_WithDisabledResilience_DoesNotRetry()
     {
         _http.When(HttpMethod.Get, ProductionItemsUrl).Respond(HttpStatusCode.InternalServerError);
