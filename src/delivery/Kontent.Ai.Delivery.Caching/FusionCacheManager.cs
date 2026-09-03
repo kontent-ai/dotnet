@@ -292,6 +292,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
                     if (factoryResult is null)
                     {
+                        // The origin has no value for this key. Fail-safe is for an origin that cannot be
+                        // reached, which arrives as a thrown exception; an answer must not be papered over
+                        // with a stale copy, so this call opts out of it and the copy is removed below.
+                        ctx.Options.IsFailSafeEnabled = false;
                         throw new CacheFactoryFailedException();
                     }
 
@@ -322,8 +326,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         }
         catch (CacheFactoryFailedException)
         {
-            // Factory returned null and no stale entry was available for fail-safe.
+            // Opting out of fail-safe keeps the stale copy in the store, where the next call with
+            // fail-safe on would find it - so it goes explicitly.
             _failSafeActiveKeys.TryRemove(formattedKey, out var _);
+            await _cache.RemoveAsync(formattedKey, _baseInvalidateOptions, cancellationToken).ConfigureAwait(false);
             return null;
         }
         catch
@@ -335,11 +341,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     }
 
     /// <summary>
-    /// Sentinel exception thrown inside the FusionCache factory when the upstream
-    /// factory returns <c>null</c>.  This allows FusionCache fail-safe to kick in
-    /// and serve a stale entry when one is available.  The exception never leaves
-    /// <see cref="GetOrSetAsync{T}"/> — it is caught immediately after the
-    /// <c>GetOrSetAsync</c> call.
+    /// Sentinel thrown inside the FusionCache factory when the upstream factory returns <c>null</c>, so
+    /// FusionCache abandons the call without storing anything. It never leaves
+    /// <see cref="GetOrSetAsync{T}"/> - it is caught immediately after the <c>GetOrSetAsync</c> call.
     /// </summary>
 #pragma warning disable S3871 // Intentionally private sentinel — never leaves this class
     private sealed class CacheFactoryFailedException : Exception;
