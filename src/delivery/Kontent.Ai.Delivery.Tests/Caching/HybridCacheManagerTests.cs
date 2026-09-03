@@ -73,6 +73,35 @@ public class HybridCacheManagerTests
     }
 
     [Fact]
+    public async Task GetOrSetAsync_FactoryReturnsNullAfterInvalidation_DropsTheStaleEntryFromBothTiers()
+    {
+        // Null is the origin's answer, not an outage: the stale copy an invalidation left behind for
+        // fail-safe is not served for it and does not survive it, in memory or in the distributed tier.
+        var distributedCache = new MockDistributedCache();
+        var manager = new HybridCacheManager(distributedCache, new DeliveryCacheOptions
+        {
+            IsFailSafeEnabled = true,
+            FailSafeMaxDuration = TimeSpan.FromMinutes(5),
+            FailSafeThrottleDuration = TimeSpan.Zero
+        });
+
+        await manager.GetOrSetAsync("gone_key", _ =>
+            Task.FromResult<CacheEntry<TestCacheValue>?>(new CacheEntry<TestCacheValue>(new TestCacheValue { Id = 1, Name = "Gone" }, ["item_gone"])));
+        await manager.InvalidateAsync(["item_gone"]);
+
+        var answer = await manager.GetOrSetAsync<TestCacheValue>("gone_key", _ =>
+            Task.FromResult<CacheEntry<TestCacheValue>?>(null));
+
+        Assert.Null(answer);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            manager.GetOrSetAsync<TestCacheValue>("gone_key", _ => throw new InvalidOperationException("Simulated API failure")));
+
+        var freshNode = new HybridCacheManager(distributedCache, new DeliveryCacheOptions { IsFailSafeEnabled = true });
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            freshNode.GetOrSetAsync<TestCacheValue>("gone_key", _ => throw new InvalidOperationException("Simulated API failure")));
+    }
+
+    [Fact]
     public async Task GetOrSetAsync_OverwritesCachedValue_OnNextMiss()
     {
         var value1 = new TestCacheValue { Id = 1, Name = "First" };

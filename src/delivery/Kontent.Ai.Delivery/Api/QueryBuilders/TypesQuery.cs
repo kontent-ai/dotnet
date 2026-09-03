@@ -85,7 +85,10 @@ internal sealed class TypesQuery(
                     var result = await FetchFromApiAsync(waitForLoadingNewContent, factoryToken).ConfigureAwait(false);
                     captureApiResult(result);
                     if (!result.IsSuccess)
+                    {
+                        CachedQueryExecutor.ThrowIfOriginUnavailable(result);
                         return null;
+                    }
 
                     return new CacheEntry<DeliveryTypeListingResponse>(result.Value, BuildDependencies(result.Value.Types));
                 },

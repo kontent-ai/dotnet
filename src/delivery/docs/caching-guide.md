@@ -311,7 +311,7 @@ Because the cache manager is a singleton, resolve only singleton-safe dependenci
 
 ### Custom Cache Manager
 
-For advanced scenarios, implement a custom cache manager. The `IDeliveryCacheManager` interface uses a factory-based `GetOrSetAsync` pattern — the factory is invoked on cache miss and returns a `CacheEntry<T>?` (null signals "don't cache"). The method returns `CacheResult<T>?` (a record containing the `Value` and the collected `DependencyKeys`) so that downstream consumers can access dependency metadata.
+For advanced scenarios, implement a custom cache manager. The `IDeliveryCacheManager` interface uses a factory-based `GetOrSetAsync` pattern — the factory is invoked on cache miss and returns a `CacheEntry<T>?`. A `null` means the origin has no value for the key: don't cache, and drop any stale copy you keep for fail-safe. A thrown exception means the origin could not be reached: serve a stale copy if you keep one, otherwise let it propagate. The method returns `CacheResult<T>?` (a record containing the `Value` and the collected `DependencyKeys`) so that downstream consumers can access dependency metadata.
 
 Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-object caching (memory), or override `StorageMode` to `CacheStorageMode.RawJson` for raw JSON payload caching (distributed).
 

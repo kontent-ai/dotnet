@@ -1,3 +1,4 @@
+using Kontent.Ai.Common.Http;
 using Kontent.Ai.Delivery.Caching;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
@@ -62,8 +63,20 @@ internal static class CachedQueryExecutor
         where TApi : class
     {
         IDeliveryResult<TApi>? apiResult = null;
+        CacheResult<TCached>? cached;
 
-        var cached = await runCachedFetch(result => apiResult = result, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            cached = await runCachedFetch(result => apiResult = result, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OriginUnavailableException unavailable)
+        {
+            // The manager had no stale copy to fall back on, so the outage is this call's answer.
+            return new CachedQueryOutcome<TCached, TApi>(
+                CachedQuerySource.Fetched,
+                Cached: null,
+                (IDeliveryResult<TApi>)unavailable.Result);
+        }
 
         if (cached is not null && !cached.FromFactory)
         {
@@ -77,5 +90,20 @@ internal static class CachedQueryExecutor
         }
 
         return new CachedQueryOutcome<TCached, TApi>(CachedQuerySource.Fetched, cached, apiResult);
+    }
+
+    /// <summary>
+    /// What a factory does with a failed fetch. An outage - no response at all, or a status the SDK's own
+    /// pipeline would retry - is thrown, so a cache manager with fail-safe can serve a stale copy. Anything
+    /// else is the origin's answer, and the factory returns <c>null</c> for it: nothing to cache, and no
+    /// stale copy either, or an unpublished item would keep being served for as long as fail-safe allows.
+    /// </summary>
+    internal static void ThrowIfOriginUnavailable<TApi>(IDeliveryResult<TApi> result)
+        where TApi : class
+    {
+        if (result.StatusCode == default || HttpRetryPredicates.IsRetryableStatusCode(result.StatusCode))
+        {
+            throw new OriginUnavailableException(result);
+        }
     }
 }

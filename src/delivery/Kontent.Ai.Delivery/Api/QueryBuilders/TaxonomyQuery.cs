@@ -58,7 +58,10 @@ internal sealed class TaxonomyQuery(
                     var result = await FetchFromApiAsync(waitForLoadingNewContent, factoryToken).ConfigureAwait(false);
                     captureApiResult(result);
                     if (!result.IsSuccess)
+                    {
+                        CachedQueryExecutor.ThrowIfOriginUnavailable(result);
                         return null;
+                    }
 
                     return new CacheEntry<TaxonomyGroup>((TaxonomyGroup)result.Value, BuildDependencies(result.Value));
                 },
