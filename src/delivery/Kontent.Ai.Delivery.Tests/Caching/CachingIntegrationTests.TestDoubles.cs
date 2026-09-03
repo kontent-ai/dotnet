@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.Tests.Caching;
 
@@ -45,6 +46,31 @@ public partial class CachingIntegrationTests
             public string Key { get; set; } = "";
             public object? Value { get; set; }
             public List<string> Dependencies { get; set; } = [];
+        }
+    }
+
+    private sealed class CategoryCollectingLoggerProvider : ILoggerProvider
+    {
+        private readonly ConcurrentQueue<(string Category, LogLevel Level, string Message)> _entries = new();
+
+        public IReadOnlyCollection<(string Category, LogLevel Level, string Message)> Entries => _entries.ToArray();
+
+        public ILogger CreateLogger(string categoryName) => new CategoryCollectingLogger(categoryName, _entries);
+
+        public void Dispose()
+        {
+        }
+
+        private sealed class CategoryCollectingLogger(
+            string categoryName,
+            ConcurrentQueue<(string Category, LogLevel Level, string Message)> entries) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+                => entries.Enqueue((categoryName, logLevel, formatter(state, exception)));
         }
     }
 

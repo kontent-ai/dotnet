@@ -102,6 +102,31 @@ public class HybridCacheManagerTests
     }
 
     [Fact]
+    public async Task GetOrSetAsync_DistributedCacheThrows_AnswersFromTheFactoryAndThenFromMemory()
+    {
+        // A distributed tier that is down is worked around: the factory answers the first call, the
+        // memory tier the next, and nothing is thrown out of the query.
+        var manager = new HybridCacheManager(new ThrowingDistributedCache(), new DeliveryCacheOptions());
+        var factoryCalls = 0;
+
+        var first = await manager.GetOrSetAsync("outage_key", _ =>
+        {
+            factoryCalls++;
+            return Task.FromResult<CacheEntry<TestCacheValue>?>(new CacheEntry<TestCacheValue>(new TestCacheValue { Id = 1, Name = "Origin" }, ["dep1"]));
+        });
+        var second = await manager.GetOrSetAsync("outage_key", _ =>
+        {
+            factoryCalls++;
+            return Task.FromResult<CacheEntry<TestCacheValue>?>(null);
+        });
+
+        Assert.Equal(1, factoryCalls);
+        Assert.True(first!.FromFactory);
+        Assert.False(second!.FromFactory);
+        Assert.Equal("Origin", second.Value.Name);
+    }
+
+    [Fact]
     public async Task GetOrSetAsync_OverwritesCachedValue_OnNextMiss()
     {
         var value1 = new TestCacheValue { Id = 1, Name = "First" };
