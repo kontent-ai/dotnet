@@ -120,10 +120,9 @@ internal sealed class TaxonomyQuery(
     }
 
     private static string[] BuildDependencies(ITaxonomyGroup taxonomyGroup)
-    {
-        var dependency = CacheDependencyKeyBuilder.BuildTaxonomyDependencyKey(taxonomyGroup.System.Codename);
-        return dependency is null ? [] : [dependency];
-    }
+        => string.IsNullOrWhiteSpace(taxonomyGroup.System.Codename)
+            ? []
+            : [DeliveryCacheDependencies.ForTaxonomy(taxonomyGroup.System.Codename)];
 
     private static IDeliveryResult<ITaxonomyGroup> WrapSuccess(
         ITaxonomyGroup taxonomyGroup,

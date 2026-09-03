@@ -167,11 +167,10 @@ internal sealed class TypesQuery(
 
         foreach (var type in types)
         {
-            var dependency = CacheDependencyKeyBuilder.BuildTypeDependencyKey(type.System.Codename);
-            if (dependency is null)
-                continue;
-
-            dependencies.Add(dependency);
+            if (!string.IsNullOrWhiteSpace(type.System.Codename))
+            {
+                dependencies.Add(DeliveryCacheDependencies.ForType(type.System.Codename));
+            }
         }
 
         return [.. dependencies];

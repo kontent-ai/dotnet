@@ -127,10 +127,9 @@ internal sealed class TypeQuery(
     }
 
     private static string[] BuildDependencies(IContentType contentType)
-    {
-        var dependency = CacheDependencyKeyBuilder.BuildTypeDependencyKey(contentType.System.Codename);
-        return dependency is null ? [] : [dependency];
-    }
+        => string.IsNullOrWhiteSpace(contentType.System.Codename)
+            ? []
+            : [DeliveryCacheDependencies.ForType(contentType.System.Codename)];
 
     private static IDeliveryResult<IContentType> WrapSuccess(
         IContentType contentType,
