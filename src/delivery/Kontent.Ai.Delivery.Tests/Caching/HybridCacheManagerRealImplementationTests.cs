@@ -6,13 +6,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Kontent.Ai.Delivery.Tests.Caching;
 
 /// <summary>
-/// Integration tests for HybridCacheManager using Microsoft's official AddDistributedMemoryCache implementation.
+/// Integration tests for FusionCacheManager using Microsoft's official AddDistributedMemoryCache implementation.
 /// These tests verify that the hybrid cache manager works correctly with a real IDistributedCache implementation,
 /// not just our custom mock.
 /// </summary>
 public class HybridCacheManagerRealImplementationTests
 {
-    private readonly HybridCacheManager _cacheManager;
+    private readonly FusionCacheManager _cacheManager;
 
     public HybridCacheManagerRealImplementationTests()
     {
@@ -22,7 +22,7 @@ public class HybridCacheManagerRealImplementationTests
         var serviceProvider = services.BuildServiceProvider();
 
         var distributedCache = serviceProvider.GetRequiredService<IDistributedCache>();
-        _cacheManager = new HybridCacheManager(distributedCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
+        _cacheManager = FusionCacheManager.CreateHybrid(distributedCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
     }
 
     #region Basic Operations

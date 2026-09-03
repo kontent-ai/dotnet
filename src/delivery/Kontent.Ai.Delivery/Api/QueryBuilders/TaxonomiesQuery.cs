@@ -70,8 +70,6 @@ internal sealed class TaxonomiesQuery(
         var cacheKey = CacheKeyBuilder.BuildTaxonomiesKey(_params, _serializedFilters);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<DeliveryTaxonomyListingResponse, DeliveryTaxonomyListingResponse>(
-            cacheManager,
-            cacheKey,
             (captureApiResult, ct) => cacheManager.GetOrSetAsync(
                 cacheKey,
                 async factoryToken =>
@@ -152,23 +150,13 @@ internal sealed class TaxonomiesQuery(
         return await response.ToDeliveryResultAsync(logger).ConfigureAwait(false);
     }
 
-    private static string[] BuildDependencies(IReadOnlyList<TaxonomyGroup> taxonomies)
-    {
-        var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            DeliveryCacheDependencies.TaxonomiesListScope
-        };
-
-        foreach (var taxonomy in taxonomies)
-        {
-            if (!string.IsNullOrWhiteSpace(taxonomy.System.Codename))
-            {
-                dependencies.Add(DeliveryCacheDependencies.ForTaxonomy(taxonomy.System.Codename));
-            }
-        }
-
-        return [.. dependencies];
-    }
+    private static string[] BuildDependencies(IReadOnlyList<TaxonomyGroup> taxonomies) =>
+    [
+        DeliveryCacheDependencies.TaxonomiesListScope,
+        .. taxonomies
+            .Where(taxonomy => !string.IsNullOrWhiteSpace(taxonomy.System.Codename))
+            .Select(taxonomy => DeliveryCacheDependencies.ForTaxonomy(taxonomy.System.Codename)),
+    ];
 
     private static IDeliveryResult<IDeliveryTaxonomyListingResponse> WrapSuccess(
         DeliveryTaxonomyListingResponse response,

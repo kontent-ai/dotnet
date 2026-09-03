@@ -76,8 +76,6 @@ internal sealed class TypesQuery(
         var cacheKey = CacheKeyBuilder.BuildTypesKey(_params, _serializedFilters);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<DeliveryTypeListingResponse, DeliveryTypeListingResponse>(
-            cacheManager,
-            cacheKey,
             (captureApiResult, ct) => cacheManager.GetOrSetAsync(
                 cacheKey,
                 async factoryToken =>
@@ -158,23 +156,13 @@ internal sealed class TypesQuery(
         return await response.ToDeliveryResultAsync(logger).ConfigureAwait(false);
     }
 
-    private static string[] BuildDependencies(IReadOnlyList<ContentType> types)
-    {
-        var dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            DeliveryCacheDependencies.TypesListScope
-        };
-
-        foreach (var type in types)
-        {
-            if (!string.IsNullOrWhiteSpace(type.System.Codename))
-            {
-                dependencies.Add(DeliveryCacheDependencies.ForType(type.System.Codename));
-            }
-        }
-
-        return [.. dependencies];
-    }
+    private static string[] BuildDependencies(IReadOnlyList<ContentType> types) =>
+    [
+        DeliveryCacheDependencies.TypesListScope,
+        .. types
+            .Where(type => !string.IsNullOrWhiteSpace(type.System.Codename))
+            .Select(type => DeliveryCacheDependencies.ForType(type.System.Codename)),
+    ];
 
     private static IDeliveryResult<IDeliveryTypeListingResponse> WrapSuccess(
         DeliveryTypeListingResponse response,

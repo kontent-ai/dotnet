@@ -85,6 +85,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`DeliveryCacheDependencies` composes dependency keys, and invalidation matches them case-insensitively.** A webhook handler had to write `"item_" + codename` by hand, and the SDK compared the result ordinally against tags it had composed lower-case, so a key copied from a payload in another casing evicted nothing and said nothing. `ForItem`, `ForType`, `ForTaxonomy` and `ForAsset` now sit next to the scope constants and produce the exact strings the SDK tags with, trimmed and lower-cased; `InvalidateAsync` normalizes what it is given the same way.
 
+- **`CacheResult<T>.IsStale` says whether fail-safe served a stale copy.** It is what turns a cache hit into `ResponseSource.FailSafe`, and it belongs with the value: the cache is the only component that knows what it handed back, and the call it handed it to is the only one the answer applies to. The SDK's managers record it per call, on the async context of the read, which replaces a process-wide table of keys in fail-safe that any concurrent read of the same key could overwrite. A custom manager sets it on the results it returns.
+
 - **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.
 
 - **`ContinuationToken` on `IDeliveryItemsFeedResponse` and `IDeliveryItemsFeedResponse<T>`**, making the feed's result-based route resumable across a process restart, which `FetchNextPageAsync` cannot be. `HasNextPage` is unchanged and remains equivalent to the token being present.
@@ -127,6 +129,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 ### Changed
 
 - **Distributed cache keys carry a format version, and lose the `cache:` and `dep:` segments.** A Redis outlives a deployment, so an entry written by one version of the SDK is read by the next; with nothing in the key to say what shape it has, a payload change between releases made every stale hit throw `FusionCacheSerializationException` until the entry expired. A hybrid client's keys are now `{KeyPrefix}:{EnvironmentId}:v1:{key}`, the version to be bumped whenever a cached type or FusionCache's own entry format changes, so an upgraded node misses on old entries instead. The `cache:` and `dep:` segments are gone with it - FusionCache keeps tag data under keys of its own, so the two could never collide - and the tag data is now stored under the client's prefix as well. Entries written by a previous prerelease are not read; they expire on their own.
+
+- **The SDK's cache logs under one category, `Kontent.Ai.Delivery.Caching.FusionCacheManager`.** `MemoryCacheManager` and `HybridCacheManager` were two forwarding classes over one implementation, distinguishable only by their logger categories; they are folded into it. The public surface is untouched - both were internal - and `IDeliveryCacheManager.StorageMode` still says which kind a manager is.
 
 - **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
 

@@ -78,8 +78,8 @@ public class HybridCacheCoherenceTests
         Assert.Equal("v1", fromB!.Value.Value);
     }
 
-    private static HybridCacheManager NewNode(IDistributedCache cache, MemoryBackplane? backplane) =>
-        new(cache, new DeliveryCacheOptions(), backplane: backplane);
+    private static FusionCacheManager NewNode(IDistributedCache cache, MemoryBackplane? backplane) =>
+        FusionCacheManager.CreateHybrid(cache, new DeliveryCacheOptions(), backplane: backplane);
 
     // Both nodes join one in-process channel, standing in for a shared Redis backplane.
     private static MemoryBackplane NewBackplane(string channel) =>

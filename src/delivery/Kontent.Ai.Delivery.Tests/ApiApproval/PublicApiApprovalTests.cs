@@ -10,5 +10,5 @@ public class PublicApiApprovalTests
 
     [Fact]
     public Task CachingPublicApi_ShouldNotChangeUnexpectedly()
-        => Verify(PublicApiApproval.Surface(typeof(Kontent.Ai.Delivery.Caching.MemoryCacheManager).Assembly));
+        => Verify(PublicApiApproval.Surface(typeof(Kontent.Ai.Delivery.DeliveryClientBuilderCachingExtensions).Assembly));
 }

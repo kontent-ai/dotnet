@@ -9,18 +9,18 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace Kontent.Ai.Delivery.Tests.Caching;
 
 /// <summary>
-/// Comprehensive tests for HybridCacheManager (hybrid L1+L2 cache) implementation.
+/// Comprehensive tests for FusionCacheManager (hybrid L1+L2 cache) implementation.
 /// Tests cover: basic operations, dependency tracking, invalidation, serialization, concurrency, and error handling.
 /// </summary>
 public class HybridCacheManagerTests
 {
     private readonly MockDistributedCache _mockCache;
-    private readonly HybridCacheManager _cacheManager;
+    private readonly FusionCacheManager _cacheManager;
 
     public HybridCacheManagerTests()
     {
         _mockCache = new MockDistributedCache();
-        _cacheManager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
+        _cacheManager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
     }
 
     #region Basic Operations Tests
@@ -78,7 +78,7 @@ public class HybridCacheManagerTests
         // Null is the origin's answer, not an outage: the stale copy an invalidation left behind for
         // fail-safe is not served for it and does not survive it, in memory or in the distributed tier.
         var distributedCache = new MockDistributedCache();
-        var manager = new HybridCacheManager(distributedCache, new DeliveryCacheOptions
+        var manager = FusionCacheManager.CreateHybrid(distributedCache, new DeliveryCacheOptions
         {
             IsFailSafeEnabled = true,
             FailSafeMaxDuration = TimeSpan.FromMinutes(5),
@@ -96,7 +96,7 @@ public class HybridCacheManagerTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             manager.GetOrSetAsync<TestCacheValue>("gone_key", _ => throw new InvalidOperationException("Simulated API failure")));
 
-        var freshNode = new HybridCacheManager(distributedCache, new DeliveryCacheOptions { IsFailSafeEnabled = true });
+        var freshNode = FusionCacheManager.CreateHybrid(distributedCache, new DeliveryCacheOptions { IsFailSafeEnabled = true });
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             freshNode.GetOrSetAsync<TestCacheValue>("gone_key", _ => throw new InvalidOperationException("Simulated API failure")));
     }
@@ -106,7 +106,7 @@ public class HybridCacheManagerTests
     {
         // A distributed tier that is down is worked around: the factory answers the first call, the
         // memory tier the next, and nothing is thrown out of the query.
-        var manager = new HybridCacheManager(new ThrowingDistributedCache(), new DeliveryCacheOptions());
+        var manager = FusionCacheManager.CreateHybrid(new ThrowingDistributedCache(), new DeliveryCacheOptions());
         var factoryCalls = 0;
 
         var first = await manager.GetOrSetAsync("outage_key", _ =>
@@ -133,14 +133,14 @@ public class HybridCacheManagerTests
         // never reads it - not even on a node of its own that has yet to read anything, which is the node
         // that would go to the shared tier for it.
         var shared = new MockDistributedCache();
-        var a = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "a" });
-        var b = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
+        var a = FusionCacheManager.CreateHybrid(shared, new DeliveryCacheOptions { KeyPrefix = "a" });
+        var b = FusionCacheManager.CreateHybrid(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
         await PopulateCache("k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"], a);
         await PopulateCache("k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"], b);
 
         await ((IDeliveryCachePurger)a).PurgeAsync();
 
-        var freshNodeOfB = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
+        var freshNodeOfB = FusionCacheManager.CreateHybrid(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
         Assert.False(await IsFactoryCalledAsync("k", freshNodeOfB));
         Assert.False(await IsFactoryCalledAsync("k", b));
         Assert.True(await IsFactoryCalledAsync("k", a));
@@ -176,14 +176,14 @@ public class HybridCacheManagerTests
     public void Constructor_WithDefaultExpiration_AcceptsValue()
     {
         var expiration = TimeSpan.FromMinutes(30);
-        var manager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { DefaultExpiration = expiration });
+        var manager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { DefaultExpiration = expiration });
 
         Assert.NotNull(manager);
     }
 
     [Fact]
     public void Constructor_WithNullExpiration_UsesDefaultOneHour() =>
-        Assert.NotNull(new HybridCacheManager(_mockCache, new DeliveryCacheOptions()));
+        Assert.NotNull(FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions()));
 
     [Fact]
     public async Task GetOrSetAsync_WithCustomExpiration_DoesNotThrow()
@@ -201,7 +201,7 @@ public class HybridCacheManagerTests
     [Fact]
     public async Task GetOrSetAsync_ExpirationPassedToCacheEntry()
     {
-        var manager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromHours(2) });
+        var manager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromHours(2) });
         var value = new TestCacheValue { Id = 1, Name = "Test" };
 
         await manager.GetOrSetAsync("test_key", _ =>
@@ -221,7 +221,7 @@ public class HybridCacheManagerTests
     public async Task GetOrSetAsync_WithoutCustomExpiration_UsesDefaultExpiration()
     {
         var defaultExpiration = TimeSpan.FromMilliseconds(80);
-        var manager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { DefaultExpiration = defaultExpiration });
+        var manager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { DefaultExpiration = defaultExpiration });
         var value = new TestCacheValue { Id = 1, Name = "Test" };
 
         await manager.GetOrSetAsync("test_key", _ =>
@@ -371,7 +371,7 @@ public class HybridCacheManagerTests
     [Fact]
     public async Task GetOrSetAsync_SameDependencyWithShorterTtl_StillInvalidatesAllEntries()
     {
-        var manager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
+        var manager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
         var dependency = "dep_shared";
 
         await manager.GetOrSetAsync("long_ttl_key", _ =>
@@ -586,7 +586,7 @@ public class HybridCacheManagerTests
     public async Task GetOrSetAsync_WithPrefixedManager_DoesNotLeakToDefaultNamespace()
     {
         var value = new TestCacheValue { Id = 1, Name = "Test" };
-        var prefixedManager = new HybridCacheManager(_mockCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
+        var prefixedManager = FusionCacheManager.CreateHybrid(_mockCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
 
         await PopulateCache("test_key", value, [], prefixedManager);
 
@@ -659,8 +659,8 @@ public class HybridCacheManagerTests
     public async Task GetOrSetAsync_WithDifferentPrefixes_IsolatesCacheEntries()
     {
         var sharedCache = new MockDistributedCache();
-        var manager1 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        var manager2 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        var manager1 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        var manager2 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var value1 = new TestCacheValue { Id = 1, Name = "Client1Value" };
         var value2 = new TestCacheValue { Id = 2, Name = "Client2Value" };
@@ -683,8 +683,8 @@ public class HybridCacheManagerTests
     public async Task InvalidateAsync_WithDifferentPrefixes_OnlyAffectsOwnEntries()
     {
         var sharedCache = new MockDistributedCache();
-        var manager1 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        var manager2 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        var manager1 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        var manager2 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var dependency = "same_dep";
         var value1 = new TestCacheValue { Id = 1, Name = "Client1Value" };
@@ -703,8 +703,8 @@ public class HybridCacheManagerTests
     public async Task GetOrSetAsync_WithDifferentPrefixes_DoesNotCrossContaminate()
     {
         var sharedCache = new MockDistributedCache();
-        var manager1 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        var manager2 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        var manager1 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        var manager2 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var value = new TestCacheValue { Id = 1, Name = "OnlyInClient1" };
         await PopulateCache("unique_key", value, [], manager1);
@@ -717,8 +717,8 @@ public class HybridCacheManagerTests
     public async Task GetOrSetAsync_WithNullPrefix_UsesUnprefixedKeys()
     {
         var sharedCache = new MockDistributedCache();
-        var managerNoPrefix = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = null });
-        var managerWithPrefix = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
+        var managerNoPrefix = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = null });
+        var managerWithPrefix = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
 
         var value1 = new TestCacheValue { Id = 1, Name = "NoPrefix" };
         var value2 = new TestCacheValue { Id = 2, Name = "WithPrefix" };
@@ -739,8 +739,8 @@ public class HybridCacheManagerTests
     public async Task InvalidateAsync_WithSharedDependencyName_OnlyInvalidatesOwnPrefix()
     {
         var sharedCache = new MockDistributedCache();
-        var manager1 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prod" });
-        var manager2 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "preview" });
+        var manager1 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prod" });
+        var manager2 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "preview" });
 
         var dependency = "content_type_article";
 
@@ -761,8 +761,8 @@ public class HybridCacheManagerTests
     public async Task ConcurrentOperations_WithDifferentPrefixes_MaintainsIsolation()
     {
         var sharedCache = new MockDistributedCache();
-        var manager1 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        var manager2 = new HybridCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        var manager1 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        var manager2 = FusionCacheManager.CreateHybrid(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var dependency = "shared_dep_name";
 
@@ -788,8 +788,8 @@ public class HybridCacheManagerTests
     public async Task Constructor_WithKeyPrefix_IsolatesEntries()
     {
         var cache = new MockDistributedCache();
-        var manager = new HybridCacheManager(cache, new DeliveryCacheOptions { KeyPrefix = "my-prefix" });
-        var defaultManager = new HybridCacheManager(cache, new DeliveryCacheOptions());
+        var manager = FusionCacheManager.CreateHybrid(cache, new DeliveryCacheOptions { KeyPrefix = "my-prefix" });
+        var defaultManager = FusionCacheManager.CreateHybrid(cache, new DeliveryCacheOptions());
 
         await PopulateCache("test", new TestCacheValue { Id = 1 }, [], manager);
         Assert.False(await IsFactoryCalledAsync("test", manager));

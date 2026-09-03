@@ -125,11 +125,24 @@ internal sealed class ItemsQuery<TModel>(
         var cacheKey = BuildCacheKey(cacheManager.StorageMode);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<DeliveryItemListingResponse<TModel>, DeliveryItemListingResponse<TModel>>(
-            cacheManager,
-            cacheKey,
-            (captureApiResult, ct) => cacheManager.StorageMode == CacheStorageMode.RawJson
-                ? ExecuteWithRawJsonCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, captureApiResult, ct)
-                : ExecuteWithHydratedCacheAsync(cacheManager, cacheKey, waitForLoadingNewContent, captureApiResult, ct),
+            (captureApiResult, ct) => CachedItemsFetch.ExecuteAsync<DeliveryItemListingResponse<TModel>, DeliveryItemListingResponse<TModel>>(
+                cacheManager,
+                cacheKey,
+                CacheExpiration,
+                fetch: token => FetchFromApiAsync(waitForLoadingNewContent, token),
+                captureApiResult,
+                process: ProcessItemsAsync,
+                toPayload: (response, _) => CachedRawItemsPayload.FromListing(response),
+                rehydrate: (payload, token) => CachePayloadHelper.RehydrateListingAsync<TModel>(
+                    payload,
+                    contentDeserializer,
+                    contentItemMapper,
+                    IsDynamicModel,
+                    defaultRenditionPreset,
+                    customAssetDomain,
+                    logger,
+                    token),
+                ct),
             cancellationToken).ConfigureAwait(false);
 
         var cached = outcome.Cached;
@@ -156,87 +169,6 @@ internal sealed class ItemsQuery<TModel>(
         _log.LogQueryCompleted(stopwatch, apiResult.StatusCode, cacheHit: false, apiResult.HasStaleContent);
         var response = cached?.Value ?? apiResult.Value;
         return WrapSuccess(WithNextPageFetcher(response), apiResult, cached?.DependencyKeys);
-    }
-
-    private async Task<CacheResult<DeliveryItemListingResponse<TModel>>?> ExecuteWithRawJsonCacheAsync(
-        IDeliveryCacheManager cacheManager,
-        string cacheKey,
-        bool? waitForLoadingNewContent,
-        Action<IDeliveryResult<DeliveryItemListingResponse<TModel>>> captureApiResult,
-        CancellationToken cancellationToken)
-    {
-        DeliveryItemListingResponse<TModel>? hydratedHere = null;
-
-        var cached = await cacheManager.GetOrSetAsync(
-            cacheKey,
-            async ct =>
-            {
-                var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
-                captureApiResult(result);
-                if (!result.IsSuccess)
-                {
-                    CachedQueryExecutor.ThrowIfOriginUnavailable(result);
-                    return null;
-                }
-
-                var (response, deps) = await ProcessItemsAsync(result.Value, ct).ConfigureAwait(false);
-                hydratedHere = response;
-                var rawPayload = CachedRawItemsPayload.FromListing(response);
-                return new CacheEntry<CachedRawItemsPayload>(rawPayload, deps);
-            },
-            CacheExpiration,
-            cancellationToken).ConfigureAwait(false);
-
-        if (cached is null)
-            return null;
-
-        // Hydrating a miss twice is what this avoids: the factory already built the value in order to
-        // collect the dependency keys, and rehydrating parses and maps the very same payload again. Only
-        // this call's own factory result can be reused - FromFactory is false for a cache hit and for a
-        // background refresh, both of which still rehydrate.
-        if (cached.FromFactory && hydratedHere is not null)
-        {
-            return new CacheResult<DeliveryItemListingResponse<TModel>>(hydratedHere, cached.DependencyKeys) { FromFactory = true };
-        }
-
-        var response = await CachePayloadHelper.RehydrateListingAsync<TModel>(
-            cached.Value,
-            contentDeserializer,
-            contentItemMapper,
-            IsDynamicModel,
-            defaultRenditionPreset,
-            customAssetDomain,
-            logger,
-            cancellationToken).ConfigureAwait(false);
-
-        // The rehydrated value replaces the stored payload, so provenance has to be carried across.
-        return new CacheResult<DeliveryItemListingResponse<TModel>>(response, cached.DependencyKeys) { FromFactory = cached.FromFactory };
-    }
-
-    private async Task<CacheResult<DeliveryItemListingResponse<TModel>>?> ExecuteWithHydratedCacheAsync(
-        IDeliveryCacheManager cacheManager,
-        string cacheKey,
-        bool? waitForLoadingNewContent,
-        Action<IDeliveryResult<DeliveryItemListingResponse<TModel>>> captureApiResult,
-        CancellationToken cancellationToken)
-    {
-        return await cacheManager.GetOrSetAsync(
-            cacheKey,
-            async ct =>
-            {
-                var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
-                captureApiResult(result);
-                if (!result.IsSuccess)
-                {
-                    CachedQueryExecutor.ThrowIfOriginUnavailable(result);
-                    return null;
-                }
-
-                var (response, deps) = await ProcessItemsAsync(result.Value, ct).ConfigureAwait(false);
-                return new CacheEntry<DeliveryItemListingResponse<TModel>>(response, deps);
-            },
-            CacheExpiration,
-            cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> ExecuteWithoutCacheAsync(

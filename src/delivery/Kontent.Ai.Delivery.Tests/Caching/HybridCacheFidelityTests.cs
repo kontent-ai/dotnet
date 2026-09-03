@@ -30,7 +30,7 @@ public class HybridCacheFidelityTests
         _distributedCache = services.BuildServiceProvider().GetRequiredService<IDistributedCache>();
     }
 
-    private HybridCacheManager Node() => new(
+    private FusionCacheManager Node() => FusionCacheManager.CreateHybrid(
         _distributedCache,
         new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
 
@@ -116,8 +116,8 @@ public class HybridCacheFidelityTests
         // environment. Sharing one Redis between apps pointing at different environments then serves one
         // app the other's content - the environment has to be part of the key, not just the query.
         var options = new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) };
-        using var production = new HybridCacheManager(_distributedCache, options, environmentId: "11111111-1111-1111-1111-111111111111");
-        using var staging = new HybridCacheManager(_distributedCache, options, environmentId: "22222222-2222-2222-2222-222222222222");
+        using var production = FusionCacheManager.CreateHybrid(_distributedCache, options, environmentId: "11111111-1111-1111-1111-111111111111");
+        using var staging = FusionCacheManager.CreateHybrid(_distributedCache, options, environmentId: "22222222-2222-2222-2222-222222222222");
 
         var fromProduction = await production.GetOrSetAsync(
             "items:article",
