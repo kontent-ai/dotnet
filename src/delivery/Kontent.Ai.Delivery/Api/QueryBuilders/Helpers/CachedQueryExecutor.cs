@@ -1,5 +1,4 @@
 using Kontent.Ai.Common.Http;
-using Kontent.Ai.Delivery.Caching;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 
@@ -42,21 +41,17 @@ internal readonly record struct CachedQueryOutcome<TCached, TApi>(
 /// Nothing the factory records can be trusted here. With eager refresh enabled, FusionCache returns the
 /// stale-but-valid value immediately and runs the factory on a background thread, so a captured local may
 /// be written by a different call than the one reading it. The cache is the only component that knows
-/// which value it handed back, so the decision comes from <see cref="CacheResult{T}.FromFactory"/> and,
-/// for staleness, from the manager's fail-safe state.
+/// which value it handed back, so the decision comes from <see cref="CacheResult{T}.FromFactory"/> and
+/// <see cref="CacheResult{T}.IsStale"/>.
 /// </remarks>
 internal static class CachedQueryExecutor
 {
-    /// <param name="cacheManager">The manager to read through.</param>
-    /// <param name="cacheKey">The key being read, used to probe fail-safe state.</param>
     /// <param name="runCachedFetch">
     /// Performs the <c>GetOrSetAsync</c> call. Receives the callback the factory must use to record what
     /// it fetched; the storage-mode split and any post-processing stay with the caller.
     /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     internal static async Task<CachedQueryOutcome<TCached, TApi>> ExecuteAsync<TCached, TApi>(
-        IDeliveryCacheManager cacheManager,
-        string cacheKey,
         Func<Action<IDeliveryResult<TApi>>, CancellationToken, Task<CacheResult<TCached>?>> runCachedFetch,
         CancellationToken cancellationToken)
         where TCached : class
@@ -80,11 +75,8 @@ internal static class CachedQueryExecutor
 
         if (cached is not null && !cached.FromFactory)
         {
-            var isFailSafe = cacheManager is IFailSafeStateProvider failSafeProvider
-                && failSafeProvider.IsFailSafeActive(cacheKey);
-
             return new CachedQueryOutcome<TCached, TApi>(
-                isFailSafe ? CachedQuerySource.FailSafeHit : CachedQuerySource.CacheHit,
+                cached.IsStale ? CachedQuerySource.FailSafeHit : CachedQuerySource.CacheHit,
                 cached,
                 ApiResult: null);
         }

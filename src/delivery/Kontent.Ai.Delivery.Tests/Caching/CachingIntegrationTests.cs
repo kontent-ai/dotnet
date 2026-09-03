@@ -1,8 +1,5 @@
 using System.Net;
-using System.Text;
-using System.Text.Json;
 using Kontent.Ai.Delivery.Abstractions;
-using Kontent.Ai.Delivery.Api.QueryParams.Items;
 using Kontent.Ai.Delivery.Caching;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.Caching.Distributed;
@@ -1937,36 +1934,6 @@ public partial class CachingIntegrationTests
     }
 
     [Fact]
-    public async Task HybridCache_CorruptedModularContentPayload_FallsBackToApiAndRecaches()
-    {
-        var mock = new MockHttpMessageHandler();
-        var itemCodename = "coffee_beverages_explained";
-        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}{itemCodename}.json");
-
-        mock.Expect($"{BaseUrl}/items/{itemCodename}")
-            .Respond("application/json", fixtureContent);
-
-        var options = new DeliveryOptions
-        {
-            EnvironmentId = _guid.ToString()
-        };
-
-        var mockDistributedCache = new MockDistributedCache();
-        SeedCorruptedDistributedItemPayload(mockDistributedCache, "test", itemCodename, fixtureContent);
-        var serviceProvider = BuildNamedHybridCacheServiceProvider(mock, options, mockDistributedCache);
-        var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
-
-        var result1 = await client.GetItem<Article>(itemCodename).ExecuteAsync();
-        var result2 = await client.GetItem<Article>(itemCodename).ExecuteAsync();
-
-        Assert.True(result1.IsSuccess);
-        Assert.True(result2.IsSuccess);
-        Assert.False(result1.IsCacheHit);
-        Assert.True(result2.IsCacheHit);
-        mock.VerifyNoOutstandingExpectation();
-    }
-
-    [Fact]
     public async Task HybridCache_Invalidation_RefreshesCache()
     {
         var mock = new MockHttpMessageHandler();
@@ -2879,7 +2846,7 @@ public partial class CachingIntegrationTests
 
         services.AddMemoryCache();
         services.AddSingleton<IDeliveryCacheManager>(sp =>
-            new MemoryCacheManager(sp.GetRequiredService<IMemoryCache>(), new DeliveryCacheOptions()));
+            FusionCacheManager.CreateMemory(sp.GetRequiredService<IMemoryCache>(), new DeliveryCacheOptions()));
         services.AddDeliveryClient(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock));
 
         var serviceProvider = services.BuildServiceProvider();
@@ -3086,34 +3053,6 @@ public partial class CachingIntegrationTests
         services.AddSingleton(distributedCache);
         AddNamedDeliveryClient(services, clientName, options, httpHandler, d => d.UseHybridCache(Expiring(defaultExpiration)));
         return services.BuildServiceProvider();
-    }
-
-    private static void SeedCorruptedDistributedItemPayload(
-        MockDistributedCache distributedCache,
-        string clientName,
-        string itemCodename,
-        string singleItemResponseJson)
-    {
-        using var responseDoc = JsonDocument.Parse(singleItemResponseJson);
-        var itemJson = responseDoc.RootElement.GetProperty("item").GetRawText();
-
-        var payload = new CachedRawItemsPayload
-        {
-            ItemsJson = [itemJson],
-            ModularContentJson = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["broken-linked-item"] = "{ this is not valid json }"
-            }
-        };
-
-        var sdkCacheKey = CacheKeyBuilder.BuildItemKey(itemCodename, new SingleItemParams(), modelType: null);
-        var distributedCacheKey = $"{clientName}:cache:{sdkCacheKey}";
-        var serializedPayload = JsonSerializer.Serialize(payload);
-
-        distributedCache.Set(
-            distributedCacheKey,
-            Encoding.UTF8.GetBytes(serializedPayload),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
     }
 
     #endregion

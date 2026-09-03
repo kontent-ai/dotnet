@@ -468,7 +468,7 @@ public class ServiceCollectionsExtensionsTests
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
 
         Assert.NotNull(cacheManager);
-        Assert.IsType<MemoryCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.HydratedObject, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -528,7 +528,7 @@ public class ServiceCollectionsExtensionsTests
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
 
         Assert.NotNull(cacheManager);
-        Assert.IsType<HybridCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.RawJson, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -682,7 +682,7 @@ public class ServiceCollectionsExtensionsTests
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 
-        Assert.IsType<MemoryCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.HydratedObject, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -705,7 +705,7 @@ public class ServiceCollectionsExtensionsTests
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 
-        Assert.IsType<HybridCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.RawJson, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -749,7 +749,7 @@ public class ServiceCollectionsExtensionsTests
         var provider = _serviceCollection.BuildServiceProvider();
         var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 
-        Assert.IsType<MemoryCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.HydratedObject, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -773,7 +773,7 @@ public class ServiceCollectionsExtensionsTests
         var sharedMemoryCache = provider.GetRequiredService<IMemoryCache>();
         // Same environment, no client name: the default client adds nothing of its own, so this manager
         // sees its entries. A named client would prefix them and this would miss.
-        using var unprefixedManager = new MemoryCacheManager(
+        using var unprefixedManager = FusionCacheManager.CreateMemory(
             sharedMemoryCache,
             new DeliveryCacheOptions
             {
@@ -875,7 +875,7 @@ public class ServiceCollectionsExtensionsTests
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("production");
 
         Assert.NotNull(cacheManager);
-        Assert.IsType<MemoryCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.HydratedObject, cacheManager.StorageMode);
     }
 
     [Fact]
@@ -1094,7 +1094,7 @@ public class ServiceCollectionsExtensionsTests
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("Default");
 
         Assert.NotNull(cacheManager);
-        Assert.IsType<MemoryCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.HydratedObject, cacheManager.StorageMode);
         Assert.Equal(TimeSpan.FromHours(3), invokedWithExpiration);
     }
 
@@ -1190,7 +1190,7 @@ public class ServiceCollectionsExtensionsTests
         var cacheManager = provider.GetKeyedService<IDeliveryCacheManager>("Default");
 
         Assert.NotNull(cacheManager);
-        Assert.IsType<HybridCacheManager>(cacheManager);
+        Assert.Equal(CacheStorageMode.RawJson, cacheManager.StorageMode);
         Assert.Equal(TimeSpan.FromHours(4), invokedWithExpiration);
     }
 

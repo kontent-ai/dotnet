@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Text.Json;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.Logging;
@@ -13,9 +12,11 @@ using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
 namespace Kontent.Ai.Delivery.Caching;
 
 /// <summary>
-/// Shared FusionCache-backed implementation of SDK cache manager behavior.
+/// The SDK's cache manager over FusionCache, in one of two shapes: <see cref="CreateMemory"/> caches
+/// hydrated objects in the application's memory cache, <see cref="CreateHybrid"/> caches raw payloads in
+/// a memory tier of its own in front of a distributed cache.
 /// </summary>
-internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCachePurger, IFailSafeStateProvider, IDisposable
+internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCachePurger, IDisposable
 {
     private readonly IFusionCache _cache;
     private readonly CacheStorageMode _storageMode;
@@ -23,16 +24,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     private readonly string _keyPrefix;
     private readonly ILogger? _logger;
     private readonly FusionCacheEntryOptions _baseWriteOptions;
-    private readonly ConcurrentDictionary<string, byte> _failSafeActiveKeys = new(StringComparer.Ordinal);
-
-    /// <summary>
-    /// Hard cap for <see cref="_failSafeActiveKeys"/>. In hybrid mode (L2-only, no L1 memory cache),
-    /// memory eviction events never fire, so entries can accumulate if they enter fail-safe but are
-    /// never re-requested or invalidated. Clearing at this threshold is safe because
-    /// <see cref="IFailSafeStateProvider.IsFailSafeActive"/> is metadata-only (affects ResponseSource,
-    /// not correctness) and stale entries will be re-tracked on the next stale hit.
-    /// </summary>
-    private const int FailSafeTrackingCapacity = 10_000;
 
     /// <summary>
     /// What every entry weighs under a <see cref="MemoryCacheOptions.SizeLimit"/>. The application's
@@ -50,11 +41,16 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// </summary>
     private const string DistributedFormatVersion = "v1:";
 
+    /// <summary>
+    /// The <see cref="GetOrSetAsync{T}"/> call in flight on the current async context. FusionCache raises
+    /// its events inline (<see cref="FusionCacheOptions.EnableSyncEventHandlersExecution"/>), so a stale
+    /// hit or a fail-safe activation it reports while a call awaits it belongs to that call, and the
+    /// handlers record it there. Nothing outlives the call: no shared state, nothing to cap or evict.
+    /// </summary>
+    private static readonly AsyncLocal<StaleObservation?> CurrentCall = new();
+
     private readonly EventHandler<FusionCacheEntryEventArgs> _failSafeActivateHandler;
-    private readonly EventHandler<FusionCacheEntryEventArgs> _factorySuccessHandler;
     private readonly EventHandler<FusionCacheEntryHitEventArgs> _hitHandler;
-    private readonly EventHandler<FusionCacheEntryEventArgs> _removeHandler;
-    private readonly EventHandler<FusionCacheEntryEvictionEventArgs> _evictionHandler;
     private int _disposeState;
 
     private FusionCacheManager(
@@ -73,11 +69,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         _baseWriteOptions = baseWriteOptions;
 
         _failSafeActivateHandler = HandleFailSafeActivate;
-        _factorySuccessHandler = HandleFactorySuccess;
         _hitHandler = HandleHit;
-        _removeHandler = HandleRemove;
-        _evictionHandler = HandleEviction;
-        SubscribeFailSafeStateEvents();
+        _cache.Events.FailSafeActivate += _failSafeActivateHandler;
+        _cache.Events.Hit += _hitHandler;
     }
 
     /// <summary>
@@ -309,28 +303,17 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         CancellationToken cancellationToken = default)
         where T : class
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cacheKey);
+        ArgumentNullException.ThrowIfNull(factory);
         ThrowIfDisposed();
-
-        if (string.IsNullOrWhiteSpace(cacheKey))
-        {
-            var entry = await factory(cancellationToken).ConfigureAwait(false);
-            if (entry is null)
-                return null;
-
-            var deps = entry.Dependencies
-                .Where(d => !string.IsNullOrWhiteSpace(d))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-            return new CacheResult<T>(entry.Value, deps) { FromFactory = true };
-        }
-
-        var formattedKey = _keyPrefix + cacheKey;
 
         // The only reliable way to tell whether the value we get back was produced by *this* call:
         // FusionCache runs the factory on a background thread for eager refresh while returning the
         // stale value immediately, so a flag set inside the factory says nothing about which call it
         // belongs to. The envelope instance does - it comes back only if this invocation produced it.
         CacheEnvelope<T>? producedHere = null;
+        var observation = new StaleObservation(cacheKey, _keyPrefix + cacheKey);
+        CurrentCall.Value = observation;
 
         try
         {
@@ -359,8 +342,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
                     ctx.Tags = deps;
                     ctx.Options.Duration = expiration ?? _defaultExpiration;
-                    _failSafeActiveKeys.TryRemove(formattedKey, out var _);
-                    _failSafeActiveKeys.TryRemove(cacheKey, out var _);
                     return producedHere = new CacheEnvelope<T>(factoryResult.Value, deps);
                 },
                 _baseWriteOptions,
@@ -369,24 +350,24 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             if (envelope is null)
                 return null;
 
+            var fromFactory = ReferenceEquals(envelope, producedHere);
+
             return new CacheResult<T>(envelope.Value, envelope.DependencyKeys)
             {
-                FromFactory = ReferenceEquals(envelope, producedHere),
+                FromFactory = fromFactory,
+                IsStale = !fromFactory && observation.Stale,
             };
         }
         catch (CacheFactoryFailedException)
         {
             // Opting out of fail-safe keeps the stale copy in the store, where the next call with
             // fail-safe on would find it - so it goes explicitly.
-            _failSafeActiveKeys.TryRemove(formattedKey, out var _);
             await _cache.RemoveAsync(cacheKey, _baseWriteOptions, cancellationToken).ConfigureAwait(false);
             return null;
         }
-        catch
+        finally
         {
-            // Factory threw and no stale entry was available for fail-safe.
-            _failSafeActiveKeys.TryRemove(formattedKey, out var _);
-            throw;
+            CurrentCall.Value = null;
         }
     }
 
@@ -398,6 +379,23 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 #pragma warning disable S3871 // Intentionally private sentinel — never leaves this class
     private sealed class CacheFactoryFailedException : Exception;
 #pragma warning restore S3871
+
+    /// <summary>
+    /// What the event handlers record for the call in flight: whether FusionCache served it a stale
+    /// value. The key is compared in both the form the SDK passed and the form FusionCache stores.
+    /// </summary>
+    private sealed class StaleObservation(string key, string prefixedKey)
+    {
+        public bool Stale { get; private set; }
+
+        public void Observe(string eventKey)
+        {
+            if (eventKey == key || eventKey == prefixedKey)
+            {
+                Stale = true;
+            }
+        }
+    }
 
     public async Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
     {
@@ -460,25 +458,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
                 options: null,
                 cancellationToken)
             .ConfigureAwait(false);
-
-        // Only clear fail-safe tracking when entries are permanently removed.
-        // When allowFailSafe is true, entries remain for fail-safe and should
-        // continue to be reported as ResponseSource.FailSafe.
-        if (!allowFailSafe)
-        {
-            _failSafeActiveKeys.Clear();
-        }
-    }
-
-    bool IFailSafeStateProvider.IsFailSafeActive(string cacheKey)
-    {
-        if (string.IsNullOrWhiteSpace(cacheKey))
-        {
-            return false;
-        }
-
-        return _failSafeActiveKeys.ContainsKey(cacheKey)
-            || _failSafeActiveKeys.ContainsKey(_keyPrefix + cacheKey);
     }
 
     public void Dispose()
@@ -486,56 +465,22 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)
             return;
 
-        UnsubscribeFailSafeStateEvents();
+        _cache.Events.FailSafeActivate -= _failSafeActivateHandler;
+        _cache.Events.Hit -= _hitHandler;
         _cache.Dispose();
     }
 
     private void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, nameof(FusionCacheManager));
 
-    private void SubscribeFailSafeStateEvents()
-    {
-        _cache.Events.FailSafeActivate += _failSafeActivateHandler;
-        _cache.Events.FactorySuccess += _factorySuccessHandler;
-        _cache.Events.Hit += _hitHandler;
-        _cache.Events.Remove += _removeHandler;
-        _cache.Events.Memory.Eviction += _evictionHandler;
-    }
+    private static void HandleFailSafeActivate(object? sender, FusionCacheEntryEventArgs eventArgs)
+        => CurrentCall.Value?.Observe(eventArgs.Key);
 
-    private void UnsubscribeFailSafeStateEvents()
-    {
-        _cache.Events.FailSafeActivate -= _failSafeActivateHandler;
-        _cache.Events.FactorySuccess -= _factorySuccessHandler;
-        _cache.Events.Hit -= _hitHandler;
-        _cache.Events.Remove -= _removeHandler;
-        _cache.Events.Memory.Eviction -= _evictionHandler;
-    }
-
-    private void HandleFailSafeActivate(object? sender, FusionCacheEntryEventArgs eventArgs)
-    {
-        if (_failSafeActiveKeys.Count >= FailSafeTrackingCapacity)
-            _failSafeActiveKeys.Clear();
-
-        _failSafeActiveKeys[eventArgs.Key] = 1;
-    }
-
-    private void HandleFactorySuccess(object? sender, FusionCacheEntryEventArgs eventArgs)
-        => _failSafeActiveKeys.TryRemove(eventArgs.Key, out var _);
-
-    private void HandleHit(object? sender, FusionCacheEntryHitEventArgs eventArgs)
+    private static void HandleHit(object? sender, FusionCacheEntryHitEventArgs eventArgs)
     {
         if (eventArgs.IsStale)
         {
-            _failSafeActiveKeys[eventArgs.Key] = 1;
-            return;
+            CurrentCall.Value?.Observe(eventArgs.Key);
         }
-
-        _failSafeActiveKeys.TryRemove(eventArgs.Key, out var _);
     }
-
-    private void HandleRemove(object? sender, FusionCacheEntryEventArgs eventArgs)
-        => _failSafeActiveKeys.TryRemove(eventArgs.Key, out var _);
-
-    private void HandleEviction(object? sender, FusionCacheEntryEvictionEventArgs eventArgs)
-        => _failSafeActiveKeys.TryRemove(eventArgs.Key, out var _);
 }
