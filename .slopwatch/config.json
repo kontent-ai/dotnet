@@ -14,6 +14,11 @@
       "ruleId": "SW004",
       "pattern": "**/Caching/RedisCacheIntegrationTests.cs",
       "justification": "Same reason as HybridCacheCoherenceTests, against real Redis: the backplane notification is asynchronous and has no awaitable completion, so the assertion polls to a deadline and exits as soon as the invalidation lands."
+    },
+    {
+      "ruleId": "SW004",
+      "pattern": "**/Caching/MemoryCacheManagerTests.cs",
+      "justification": "One test pins how long an invalidation is remembered, which is the lifetime of FusionCache's tag data. That lifetime is observable only by letting it lapse: any read while it is live is what applies the invalidation and removes the entry, so the test cannot poll. It shortens the lifetime through the consumer hook and waits past it once."
     }
   ],
   "globalSuppressions": []
