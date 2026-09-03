@@ -89,7 +89,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         IMemoryCache memoryCache,
         DeliveryCacheOptions cacheOptions,
         ILogger? logger = null,
-        string? environmentId = null)
+        string? environmentId = null,
+        ILogger<FusionCache>? fusionCacheLogger = null)
     {
         ArgumentNullException.ThrowIfNull(memoryCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
@@ -116,13 +117,14 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             EnableSyncEventHandlersExecution = true,
             DefaultEntryOptions = defaultEntryOptions
         };
+        fusionCacheOptions.TagsDefaultEntryOptions.Size = EntrySize;
 
         cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
 
         var fusion = new FusionCache(
             Options.Create(fusionCacheOptions),
             memoryCache,
-            logger: null);
+            fusionCacheLogger);
 
         var baseWriteOptions = new FusionCacheEntryOptions
         {
@@ -147,6 +149,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             baseInvalidateOptions: new FusionCacheEntryOptions
             {
                 IsFailSafeEnabled = false,
+                Size = EntrySize,
                 SkipDistributedCacheRead = true,
                 SkipDistributedCacheWrite = true,
                 ReThrowDistributedCacheExceptions = false,
@@ -173,7 +176,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         JsonSerializerOptions? serializerOptions = null,
         ILogger? logger = null,
         IFusionCacheBackplane? backplane = null,
-        string? environmentId = null)
+        string? environmentId = null,
+        ILogger<FusionCache>? fusionCacheLogger = null)
     {
         ArgumentNullException.ThrowIfNull(distributedCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
@@ -198,15 +202,20 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
             // Required for deterministic fail-safe source propagation in query builders.
             EnableSyncEventHandlersExecution = true,
+            // A distributed cache that is down is worked around, not retried on every request: while the
+            // breaker is open the memory tier and the origin carry the load, and FusionCache re-syncs the
+            // distributed tier when it comes back.
+            DistributedCacheCircuitBreakerDuration = TimeSpan.FromSeconds(2),
             DefaultEntryOptions = defaultEntryOptions
         };
+        fusionCacheOptions.TagsDefaultEntryOptions.Size = EntrySize;
 
         cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
 
         var fusion = new FusionCache(
             Options.Create(fusionCacheOptions),
             memoryCache: null,
-            logger: null);
+            fusionCacheLogger);
 
         // Falls back to the SDK's own serializer rather than plain defaults. What this tier stores is wire
         // types, and content type elements are polymorphic: without ContentElementConverter the L2 payload
@@ -221,9 +230,12 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             fusion.SetupBackplane(backplane);
         }
 
+        // A distributed-cache failure is worked around - the factory or the memory tier answers and
+        // FusionCache logs it - rather than thrown out of every cached query. A serialization failure is
+        // still thrown: that is a defect in the SDK's own payloads, and hiding it would hide the defect.
         var baseWriteOptions = new FusionCacheEntryOptions
         {
-            ReThrowDistributedCacheExceptions = true,
+            ReThrowDistributedCacheExceptions = false,
             ReThrowSerializationExceptions = true,
             ReThrowBackplaneExceptions = false,
             AllowBackgroundBackplaneOperations = false,
@@ -242,6 +254,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             baseInvalidateOptions: new FusionCacheEntryOptions
             {
                 IsFailSafeEnabled = false,
+                Size = EntrySize,
                 ReThrowDistributedCacheExceptions = false,
                 ReThrowSerializationExceptions = false,
                 ReThrowBackplaneExceptions = false,
@@ -440,6 +453,13 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, nameof(FusionCacheManager));
 
     /// <summary>
+    /// What every entry weighs under a <see cref="MemoryCacheOptions.SizeLimit"/>. The application's
+    /// memory cache may have one, and a cache with a limit refuses any entry that declares no size - so
+    /// every entry the SDK writes, tag-expiration entries included, declares this one.
+    /// </summary>
+    private const long EntrySize = 1;
+
+    /// <summary>
     /// Applies fail-safe, jitter, and eager-refresh policy from <see cref="DeliveryCacheOptions"/>
     /// to a <see cref="FusionCacheEntryOptions"/> instance.
     /// </summary>
@@ -448,6 +468,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         DeliveryCacheOptions cacheOptions,
         TimeSpan duration)
     {
+        options.Size = EntrySize;
         options.Duration = duration;
         options.IsFailSafeEnabled = cacheOptions.IsFailSafeEnabled;
         options.FailSafeMaxDuration = cacheOptions.FailSafeMaxDuration;

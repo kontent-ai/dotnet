@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace Kontent.Ai.Delivery.Caching;
 
@@ -10,14 +11,16 @@ internal sealed class MemoryCacheManager(
     IMemoryCache memoryCache,
     DeliveryCacheOptions cacheOptions,
     ILogger<MemoryCacheManager>? logger = null,
-    string? environmentId = null)
+    string? environmentId = null,
+    ILogger<FusionCache>? fusionCacheLogger = null)
     : IDeliveryCacheManager, IDeliveryCachePurger, IFailSafeStateProvider, IDisposable
 {
     private readonly FusionCacheManager _inner = FusionCacheManager.CreateMemory(
         memoryCache,
         cacheOptions,
         logger,
-        environmentId);
+        environmentId,
+        fusionCacheLogger);
 
     /// <inheritdoc />
     public CacheStorageMode StorageMode => _inner.StorageMode;

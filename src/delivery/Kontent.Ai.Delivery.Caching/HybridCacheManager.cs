@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace Kontent.Ai.Delivery.Caching;
 
@@ -20,7 +21,8 @@ internal sealed class HybridCacheManager(
     JsonSerializerOptions? jsonSerializerOptions = null,
     ILogger<HybridCacheManager>? logger = null,
     IFusionCacheBackplane? backplane = null,
-    string? environmentId = null)
+    string? environmentId = null,
+    ILogger<FusionCache>? fusionCacheLogger = null)
     : IDeliveryCacheManager, IDeliveryCachePurger, IFailSafeStateProvider, IDisposable
 {
     private readonly FusionCacheManager _inner = FusionCacheManager.CreateHybrid(
@@ -29,7 +31,8 @@ internal sealed class HybridCacheManager(
         jsonSerializerOptions,
         logger,
         backplane,
-        environmentId);
+        environmentId,
+        fusionCacheLogger);
 
     /// <inheritdoc />
     public CacheStorageMode StorageMode => _inner.StorageMode;

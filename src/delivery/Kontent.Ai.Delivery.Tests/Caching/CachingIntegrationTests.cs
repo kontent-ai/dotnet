@@ -8,6 +8,7 @@ using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RichardSzalay.MockHttp;
 
@@ -267,6 +268,48 @@ public partial class CachingIntegrationTests
         Assert.True(served.IsSuccess);
         Assert.Equal(ResponseSource.FailSafe, served.ResponseSource);
         mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HybridCache_DistributedCacheOutage_QueriesStillSucceed()
+    {
+        // The distributed tier is down. The origin answers the first query and the memory tier the
+        // second; the outage is FusionCache's to log, not the caller's to catch.
+        var mock = new MockHttpMessageHandler();
+        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}types_accessory.json");
+        mock.Expect($"{BaseUrl}/types").Respond("application/json", fixtureContent);
+        var options = new DeliveryOptions { EnvironmentId = _guid.ToString() };
+        var provider = BuildNamedHybridCacheServiceProvider(mock, options, new ThrowingDistributedCache());
+        var client = provider.GetRequiredKeyedService<IDeliveryClient>("test");
+
+        var first = await client.GetTypes().ExecuteAsync();
+        var second = await client.GetTypes().ExecuteAsync();
+
+        Assert.True(first.IsSuccess);
+        Assert.Equal(ResponseSource.Origin, first.ResponseSource);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(ResponseSource.Cache, second.ResponseSource);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task HybridCache_DistributedCacheOutage_IsLoggedByFusionCache()
+    {
+        // Working the outage around is only acceptable if it is visible: FusionCache logs it under its own
+        // category once it is handed the application's logger.
+        var mock = new MockHttpMessageHandler();
+        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}types_accessory.json");
+        mock.When($"{BaseUrl}/types").Respond("application/json", fixtureContent);
+        var logs = new CategoryCollectingLoggerProvider();
+        var services = new ServiceCollection();
+        services.AddLogging(logging => logging.AddProvider(logs));
+        services.AddSingleton<IDistributedCache>(new ThrowingDistributedCache());
+        AddNamedDeliveryClient(services, "test", new DeliveryOptions { EnvironmentId = _guid.ToString() }, mock, d => d.UseHybridCache());
+        var client = services.BuildServiceProvider().GetRequiredKeyedService<IDeliveryClient>("test");
+
+        Assert.True((await client.GetTypes().ExecuteAsync()).IsSuccess);
+
+        Assert.Contains(logs.Entries, e => e.Category == "ZiggyCreatures.Caching.Fusion.FusionCache" && e.Level >= LogLevel.Warning);
     }
 
     [Fact]
