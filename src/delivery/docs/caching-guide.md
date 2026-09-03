@@ -77,6 +77,8 @@ Kontent.ai enforces rate limits on API requests:
 - Development and testing
 - Low to moderate traffic applications
 
+**What a hit hands back:** the memory cache stores the hydrated objects themselves, so every hit returns the same instances the previous caller received, with the client's `DefaultRenditionPreset` and `CustomAssetDomain` already applied. Treat cached models as read-only - a mutation is visible to every later caller - and purge after changing either option at runtime, since cached entries keep the values they were built with.
+
 ### Hybrid Cache
 
 **Pros:**
@@ -102,7 +104,11 @@ services.AddDeliveryClient(delivery =>
 Without one, part of the invalidation state stays local to each instance, so whether a node observes another's `InvalidateAsync` depends on the order the two read and invalidated in — a node can go on serving content that was already evicted, until the entry expires by itself. A single-instance application needs no backplane.
 
 > [!NOTE]
-> **FusionCache hybrid mode limitation:** When using hybrid caching, FusionCache operates in hybrid (L1+L2) mode but [currently stores the same serialized format in both layers](https://github.com/ZiggyCreatures/FusionCache/issues/321). This means the L1 memory layer also holds raw JSON rather than hydrated objects, so every cache hit goes through rehydration. For most workloads the rehydration cost is negligible. If your scenario demands maximum read throughput, use `UseMemoryCache` (pure L1, hydrated objects, no rehydration overhead).
+> **Every hybrid hit rehydrates.** The SDK stores the raw payload in both tiers, so that a value can move between them unchanged; a hit therefore parses the JSON and maps the elements again, rich text HTML parse included. That is measurable on a hot path serving large rich-text items, and it is also what makes every hit a fresh instance. If maximum read throughput matters more than sharing the cache across instances, use `UseMemoryCache`.
+
+Two costs worth knowing about the distributed tier. Every dependency key is a tag, and FusionCache verifies an entry's tags on each read against tag data it keeps in memory - a node that has never seen a tag reads it from the distributed cache once, so the first hit on a fresh node costs one round trip per tag (a listing of a hundred items with their types, assets and taxonomies carries several hundred). And an invalidation is remembered for as long as that tag data lives: ten days by default, adjustable through `ConfigureFusionCache(f => f.TagsDefaultEntryOptions.Duration = …)`, which must stay above your longest expiration, per-query overrides included.
+
+If the distributed cache is unreachable, the SDK works around it: the memory tier or the origin answers, a two-second circuit breaker keeps a dead Redis from being retried on every request, and FusionCache re-syncs the tier when it is back. Nothing is thrown out of a query for it; enable the `ZiggyCreatures.Caching.Fusion.FusionCache` log category to see it happen.
 
 **Cons:**
 - Network latency (still faster than API calls)
@@ -165,10 +171,12 @@ services.AddDeliveryClient("production", delivery =>
 
 #### Advanced Memory Cache Configuration
 
+The SDK uses the application's `IMemoryCache`, so its options apply. Under a `SizeLimit` every entry the SDK writes counts as one unit, so the limit bounds the number of cached responses rather than their bytes:
+
 ```csharp
 services.AddMemoryCache(options =>
 {
-    options.SizeLimit = 1024;  // Limit cache size
+    options.SizeLimit = 1024;  // At most 1024 cached responses
     options.CompactionPercentage = 0.25;  // Remove 25% when limit hit
 });
 
@@ -307,13 +315,25 @@ services.AddDeliveryClient("production", delivery =>
 
 Timing matters: the plain `Action<DeliveryCacheOptions>` overloads run immediately during service registration and validate cache options immediately. The `(IServiceProvider, DeliveryCacheOptions)` overloads run later, when the keyed singleton `IDeliveryCacheManager` is first resolved from the root provider, so validation is deferred to that first resolution.
 
+#### Reaching into FusionCache
+
+`ConfigureFusionCache` hands you the `FusionCacheOptions` the SDK built, after its defaults are applied. Every SDK operation starts from the `DefaultEntryOptions` you leave there, so a `Size`, a distributed-cache timeout or the background-operation flags take effect; `TagsDefaultEntryOptions` is what an invalidation is stored with. What the SDK decides stays decided: the duration, fail-safe, jitter and eager-refresh policy come from `DeliveryCacheOptions`, serialization failures are thrown, distributed-cache and backplane failures are not.
+
+```csharp
+delivery.UseHybridCache(cache => cache.ConfigureFusionCache(fusion =>
+{
+    fusion.DefaultEntryOptions.AllowBackgroundBackplaneOperations = true;
+    fusion.TagsDefaultEntryOptions.Duration = TimeSpan.FromDays(30);
+}));
+```
+
 Because the cache manager is a singleton, resolve only singleton-safe dependencies from cache callbacks, such as `IOptions<T>`, `IOptionsMonitor<T>`, configuration, or loggers. Do not depend on scoped/request services such as `IOptionsSnapshot<T>`, `DbContext`, tenant request context, or per-request `HttpContext` state.
 
 ### Custom Cache Manager
 
 For advanced scenarios, implement a custom cache manager. The `IDeliveryCacheManager` interface uses a factory-based `GetOrSetAsync` pattern — the factory is invoked on cache miss and returns a `CacheEntry<T>?`. A `null` means the origin has no value for the key: don't cache, and drop any stale copy you keep for fail-safe. A thrown exception means the origin could not be reached: serve a stale copy if you keep one, otherwise let it propagate. The method returns `CacheResult<T>?` (a record containing the `Value` and the collected `DependencyKeys`) so that downstream consumers can access dependency metadata.
 
-Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-object caching (memory), or override `StorageMode` to `CacheStorageMode.RawJson` for raw JSON payload caching (distributed).
+Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-object caching (memory), or override `StorageMode` to `CacheStorageMode.RawJson` for raw JSON payload caching (distributed). A manager that serves stale copies while the origin is unreachable sets `IsStale` on the results it serves that way; the SDK reports them as `ResponseSource.FailSafe`.
 
 #### Hydrated-object cache manager (memory style)
 
@@ -417,6 +437,8 @@ When `WaitForLoadingNewContent(true)` is enabled for a query, the SDK bypasses l
 
 When a client is configured with `UsePreviewApi = true`, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered.
 
+A typed query whose model is `IDynamicElements` or `DynamicElements` is cached, but its elements are not mapped, so only item, type and list-scope dependencies are tracked for it - not the assets, taxonomy groups and rich-text links a mapped model would add.
+
 ### Cache Keys
 
 Cache keys are automatically generated from query parameters using a deterministic, human-readable format.
@@ -490,6 +512,8 @@ When queries include filters, they are hashed using SHA256 (first 12 characters 
 
 #### Key Prefixing
 
+Every key a client stores lives under `{KeyPrefix}:{EnvironmentId}:`, where `KeyPrefix` defaults to the client's name for a named client and to nothing for the default one. The environment id is always there, because a store can outlive the process and be shared: two applications on different environments sharing one Redis would otherwise compute the same key for "the item `homepage`". Hybrid keys carry a format version after that, `v1:`, so an SDK release that changes what it stores misses on old entries instead of failing to read them.
+
 **Default (single-client) scenario:**
 ```csharp
 services.AddDeliveryClient(delivery =>
@@ -497,7 +521,7 @@ services.AddDeliveryClient(delivery =>
     delivery.Options.Configure(o => o.EnvironmentId = "...");
     delivery.UseMemoryCache();
 });
-// Keys have NO prefix: item:homepage, items:skip=0:limit=10, etc.
+// Keys: {environmentId}:item:homepage, {environmentId}:items:skip=0:limit=10, etc.
 ```
 
 **Named clients (multi-client scenario):**
@@ -507,7 +531,7 @@ services.AddDeliveryClient("production", delivery =>
     delivery.Options.Configure(o => o.EnvironmentId = "...");
     delivery.UseMemoryCache();
 });
-// Keys are prefixed with client name: production:item:homepage, etc.
+// Keys: production:{environmentId}:item:homepage, etc.
 ```
 
 **Custom prefix:**
@@ -517,22 +541,15 @@ services.AddDeliveryClient("production", delivery =>
     delivery.Options.Configure(o => o.EnvironmentId = "...");
     delivery.UseMemoryCache(o => o.KeyPrefix = "prod");
 });
-// Keys become: prod:item:homepage, prod:items:skip=0:limit=10, etc.
+// Keys: prod:{environmentId}:item:homepage, etc.
+// In a hybrid cache: prod:{environmentId}:v1:item:homepage
 ```
 
-**No prefix (explicit):**
-```csharp
-services.AddDeliveryClient("production", delivery =>
-{
-    delivery.Options.Configure(o => o.EnvironmentId = "...");
-    delivery.UseMemoryCache(o => o.KeyPrefix = "");
-});
-// Keys have no prefix even for named clients
-```
+An explicit `KeyPrefix = ""` on a named client puts it in the same namespace as the default client on that environment - the two then share entries, invalidations and purges, which is what you want only if they are the same client registered twice.
 
-This prevents cache collisions when multiple clients share the same underlying cache.
+The prefix is handed to FusionCache, so it covers FusionCache's own bookkeeping too: the tag data an invalidation writes and the marker a purge writes. Two clients sharing one memory cache or one Redis cannot reach each other's entries, and purging one leaves the other's alone.
 
-`EnvironmentId` and `DefaultRenditionPreset` are not part of query cache keys. Use separate named clients (or distinct key prefixes) per environment/configuration. If you change either option at runtime on an existing cached client, purge cache (or recreate the client) to avoid serving older entries.
+`DefaultRenditionPreset` and `CustomAssetDomain` are not part of the keys; use separate named clients per configuration. The environment id is read when the cache is created, so changing it at runtime on an existing cached client keeps caching under the old namespace - purge, or recreate the client.
 
 ### Dependency Tracking
 
@@ -633,47 +650,58 @@ Supported cacheable query builders:
 - `GetTaxonomy()`
 - `GetTaxonomies()`
 
+#### Fail-safe
+
+`IsFailSafeEnabled` lets the cache serve a stale copy when the origin cannot be reached: a request that got no response, or a status the SDK's own pipeline retries (`408`, `429`, `5xx`). Such a result carries `ResponseSource.FailSafe`. An answer from the API is never covered - an item that comes back `404` after being unpublished is dropped from the cache and the failure is returned - so unpublishing takes effect with fail-safe on, and the only content served stale is content the origin could not be asked about.
+
+An invalidation and fail-safe compose the same way. `InvalidateAsync` expires the entries rather than deleting them when fail-safe is on, so a webhook followed by an outage serves the pre-webhook copy until the origin is back; a webhook followed by an answer drops it. `PurgeAsync(allowFailSafe: true)` keeps the same distinction.
+
 ## Cache Invalidation
 
 ### Invalidation Matrix (RC-ready)
 
-Use this matrix when mapping webhook events to SDK dependency invalidation keys:
+Use this matrix when mapping webhook events to SDK dependency invalidation keys. Compose the detail keys with `DeliveryCacheDependencies` rather than by hand: they are the exact strings the SDK tags with, trimmed and lower-cased, and `InvalidateAsync` matches case-insensitively.
 
 | Endpoint family | Detail dependency key | Listing scope dependency key |
 |---|---|---|
-| Items | `item_{codename}` | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
-| Types | `type_{codename}` (also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
-| Taxonomies | `taxonomy_{codename}` | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
+| Items | `DeliveryCacheDependencies.ForItem(codename)` (`item_{codename}`) | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
+| Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
+| Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(codename)` (`taxonomy_{codename}`) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
+| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose asset elements or rich-text images reference it) | none - assets have no listing |
 
 Recommended webhook pattern:
-- item event: invalidate `item_{codename}` + `scope_items_list`
-- type event: invalidate `type_{codename}` + `scope_types_list` — the `type_{codename}` key now covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions no longer require falling back to `scope_items_list`
-- taxonomy event: invalidate `taxonomy_{codename}` + `scope_taxonomies_list`
+- item event: invalidate `ForItem(codename)` + `ItemsListScope`
+- type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
+- taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
+- asset event: invalidate `ForAsset(id)`
 
 ### Manual Invalidation
 
-Invalidate specific content:
+Resolve the manager first. The default client's resolves unkeyed, a named client's under its name, and a client from `DeliveryClient.Create` owns its container, so its manager is on the client:
 
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
+var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();                // default client
+var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production"); // named client
+var cacheManager = standaloneClient.CacheManager;                                                // DeliveryClient.Create
+```
 
+Then invalidate specific content:
+
+```csharp
 // Invalidate a specific item
-await cacheManager.InvalidateAsync(["item_homepage"]);
+await cacheManager.InvalidateAsync([DeliveryCacheDependencies.ForItem("homepage")]);
 
-// Invalidate multiple items
+// Invalidate multiple entities at once
 await cacheManager.InvalidateAsync([
-    "item_article1",
-    "item_article2",
-    "taxonomy_categories"]);
-
-// Invalidate by dependency
-await cacheManager.InvalidateAsync([$"item_{articleCodename}"]);
+    DeliveryCacheDependencies.ForItem("article1"),
+    DeliveryCacheDependencies.ForItem("article2"),
+    DeliveryCacheDependencies.ForTaxonomy("categories")]);
 
 // Invalidate a specific type query dependency
-await cacheManager.InvalidateAsync(["type_article"]);
+await cacheManager.InvalidateAsync([DeliveryCacheDependencies.ForType("article")]);
 
 // Invalidate all cached typed item-list queries
 await cacheManager.InvalidateAsync([DeliveryCacheDependencies.ItemsListScope]);
@@ -756,6 +784,7 @@ public class WebhookController : ControllerBase
 
     private async Task ProcessWebhookAsync(WebhookNotification notification)
     {
+        // The default client's manager resolves unkeyed; a named client's under its name.
         var cacheManager = _serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
         var dependencies = new List<string>();
 
@@ -764,22 +793,28 @@ public class WebhookController : ControllerBase
             // Content item changes affect item queries and item listings.
             if (item.Type == "content_item")
             {
-                dependencies.Add($"item_{item.Codename}");
+                dependencies.Add(DeliveryCacheDependencies.ForItem(item.Codename));
                 dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
             }
 
             // Taxonomy changes affect taxonomy queries and taxonomy listings.
             if (item.Type == "taxonomy")
             {
-                dependencies.Add($"taxonomy_{item.Codename}");
+                dependencies.Add(DeliveryCacheDependencies.ForTaxonomy(item.Codename));
                 dependencies.Add(DeliveryCacheDependencies.TaxonomiesListScope);
             }
 
             // Content type changes affect type queries and type listings.
             if (item.Type == "content_type")
             {
-                dependencies.Add($"type_{item.Codename}");
+                dependencies.Add(DeliveryCacheDependencies.ForType(item.Codename));
                 dependencies.Add(DeliveryCacheDependencies.TypesListScope);
+            }
+
+            // Asset changes affect every item that references the asset.
+            if (item.Type == "asset")
+            {
+                dependencies.Add(DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)));
             }
         }
 
@@ -1122,9 +1157,17 @@ public class MonitoredCacheManager : IDeliveryCacheManager
         var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
         stopwatch.Stop();
 
-        _metrics.RecordCacheAccess(result != null, stopwatch.ElapsedMilliseconds);
-        _logger.LogDebug("Cache {Result} for key: {Key} in {Ms}ms",
-            result != null ? "HIT/SET" : "MISS", cacheKey, stopwatch.ElapsedMilliseconds);
+        // FromFactory and IsStale are the only reliable classification: under eager refresh the factory
+        // also runs for a background refresh, so a flag set inside it belongs to a different call.
+        var outcome = result switch
+        {
+            null => "MISS",
+            { FromFactory: true } => "FETCHED",
+            { IsStale: true } => "STALE",
+            _ => "HIT",
+        };
+        _metrics.RecordCacheAccess(result is { FromFactory: false }, stopwatch.ElapsedMilliseconds);
+        _logger.LogDebug("Cache {Outcome} for key: {Key} in {Ms}ms", outcome, cacheKey, stopwatch.ElapsedMilliseconds);
 
         return result;
     }
@@ -1133,28 +1176,11 @@ public class MonitoredCacheManager : IDeliveryCacheManager
 }
 ```
 
-### 4. Handle Cache Failures Gracefully
+### 4. Know What Happens When the Cache Fails
 
-```csharp
-public async Task<CacheResult<T>?> GetOrSetAsync<T>(
-    string cacheKey,
-    Func<CancellationToken, Task<CacheEntry<T>?>> factory,
-    TimeSpan? expiration = null,
-    CancellationToken cancellationToken = default) where T : class
-{
-    try
-    {
-        return await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
-    }
-    catch (RedisConnectionException ex)
-    {
-        _logger.LogWarning(ex, "Redis connection failed, bypassing cache");
-        // Fall back to calling the factory directly (no caching)
-        var entry = await factory(cancellationToken);
-        return entry is null ? null : new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
-    }
-}
-```
+The built-in managers degrade rather than fail. A distributed cache that cannot be reached is worked around - the memory tier or the origin answers, and a two-second circuit breaker keeps a dead Redis from being retried on every request - and a serialization failure, which is a defect in the SDK's own payloads, is the one cache error that is thrown. Enable the `ZiggyCreatures.Caching.Fusion.FusionCache` log category to see outages, backplane failures and background-refresh errors as they are worked around; the SDK's own invalidation messages log under `Kontent.Ai.Delivery.Caching.FusionCacheManager`.
+
+A custom manager owns that decision itself. If it wraps an `IDistributedCache`, catch the provider's exception, log it, and fall back to calling the factory so the query still answers.
 
 ### 5. Pre-Warm Cache
 
@@ -1290,16 +1316,13 @@ public class LoggingCacheManager : IDeliveryCacheManager
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class
     {
-        // Wrap the factory to detect cache misses
-        var wasMiss = false;
-        var result = await _inner.GetOrSetAsync(cacheKey, async ct =>
-        {
-            wasMiss = true;
-            return await factory(ct);
-        }, expiration, cancellationToken);
+        var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
 
+        // Read the classification off the result. A flag set inside the factory would be wrong under
+        // eager refresh, where the factory runs in the background for a call that already returned.
         _logger.LogInformation("Cache {Result} for key: {Key}",
-            wasMiss ? "MISS+SET" : "HIT", cacheKey);
+            result switch { null => "MISS", { FromFactory: true } => "MISS+SET", { IsStale: true } => "STALE", _ => "HIT" },
+            cacheKey);
 
         return result;
     }
@@ -1341,7 +1364,7 @@ if (cacheManager == null)
 
 ### Runtime Option Changes with Existing Cache
 
-**Problem**: You changed `EnvironmentId` or `DefaultRenditionPreset` at runtime, but cached responses still reflect the previous setting.
+**Problem**: You changed `EnvironmentId`, `DefaultRenditionPreset` or `CustomAssetDomain` at runtime, but cached responses still reflect the previous setting. The environment id is read when the cache is created and is part of every key; the other two are baked into the hydrated objects a memory cache holds.
 
 **Solutions**:
 
@@ -1356,11 +1379,11 @@ if (cacheManager == null)
 **Solutions**:
 
 1. **Use hybrid cache** instead of memory cache
-2. **Configure cache size limits**:
+2. **Configure a size limit** - every entry the SDK writes counts as one unit, so this bounds the number of cached responses:
 ```csharp
 services.AddMemoryCache(options =>
 {
-    options.SizeLimit = 1024;  // Limit number of entries
+    options.SizeLimit = 1024;
 });
 ```
 3. **Reduce expiration times**
@@ -1368,23 +1391,14 @@ services.AddMemoryCache(options =>
 
 ### Redis Connection Failures
 
-**Problem**: Application crashes when Redis is unavailable.
+**Problem**: Redis is unavailable.
+
+**What happens**: nothing is thrown out of a query. The distributed tier is worked around - the memory tier or the origin answers - and a two-second circuit breaker keeps the dead connection from being retried on every request; FusionCache re-syncs the tier when it is back. Reads cost an origin call more often while it lasts, and invalidations reach other nodes again only once it is over.
 
 **Solutions**:
 
-1. **Graceful degradation**:
-```csharp
-try
-{
-    return await _cache.GetAsync(key);
-}
-catch (RedisConnectionException)
-{
-    return default;  // Fall back to API
-}
-```
-
-2. **Configure connection resilience**:
+1. **See it**: enable the `ZiggyCreatures.Caching.Fusion.FusionCache` log category, which reports every worked-around failure at warning level.
+2. **Configure connection resilience** so the client reconnects on its own:
 ```csharp
 var config = ConfigurationOptions.Parse("localhost:6379");
 config.AbortOnConnectFail = false;

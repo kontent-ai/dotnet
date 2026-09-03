@@ -8,6 +8,29 @@ written 2026-09-03 against `client-builders` at `dddd4f8fe`; revised the same da
 §8 recorded as never traced.
 
 > [!NOTE]
+> **Status: implemented on `caching-improvements`, 2026-09-03**, in the §6 order, one commit per step,
+> every step green in the full Delivery suite with zero warnings. What came out differently from the
+> plan, each for a reason found while building:
+>
+> 1. **2.13 was found during step 3** and outranks everything but 2.1: an invalidation was forgotten
+>    thirty seconds later for any entry not read in between. Fixed in the same step as 2.7, since
+>    both are about which entry options each operation runs with.
+> 2. **2.1 kept the `IDeliveryCacheManager` shape.** Null from the factory means the origin has no
+>    value, a throw means it could not be reached; the query builders throw an internal
+>    `OriginUnavailableException` for an outage and `CachedQueryExecutor` catches it. No three-way
+>    outcome type was needed.
+> 3. **4.1 became `CacheResult<T>.IsStale`**, recorded per call through an `AsyncLocal` the two
+>    remaining event handlers write into. The five-event bookkeeping, the capped dictionary and
+>    `IFailSafeStateProvider` are gone. The probe that settled it showed FusionCache raising both
+>    events with the prefixed key, inline, on the calling context, in memory and hybrid mode alike.
+> 4. **4.4 is `CachedItemsFetch`**, and it is where the hybrid fail-safe tests found the raw-JSON
+>    re-wrap dropping provenance - one place now carries `FromFactory` and `IsStale` across.
+> 5. **4.5 also removed a test that tested nothing**: the corrupted-payload seed wrote a key without
+>    the environment segment, so the entry it planted was never read. An empty cache key now throws.
+> 6. **2.5's standalone handle is `DeliveryClient.CacheManager`**, and 2.9's builder is four static
+>    methods on `DeliveryCacheDependencies` next to the scope constants.
+
+> [!NOTE]
 > Every behavioural claim below was checked against the code, and the ones that could not be settled
 > by reading were verified by running throwaway probes against the built assemblies. The first pass
 > drove the internal managers directly; the second drove the public surface the way a consumer would -
