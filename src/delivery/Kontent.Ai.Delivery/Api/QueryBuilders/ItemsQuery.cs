@@ -174,7 +174,10 @@ internal sealed class ItemsQuery<TModel>(
                 var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
                 captureApiResult(result);
                 if (!result.IsSuccess)
+                {
+                    CachedQueryExecutor.ThrowIfOriginUnavailable(result);
                     return null;
+                }
 
                 var (response, deps) = await ProcessItemsAsync(result.Value, ct).ConfigureAwait(false);
                 hydratedHere = response;
@@ -224,7 +227,10 @@ internal sealed class ItemsQuery<TModel>(
                 var result = await FetchFromApiAsync(waitForLoadingNewContent, ct).ConfigureAwait(false);
                 captureApiResult(result);
                 if (!result.IsSuccess)
+                {
+                    CachedQueryExecutor.ThrowIfOriginUnavailable(result);
                     return null;
+                }
 
                 var (response, deps) = await ProcessItemsAsync(result.Value, ct).ConfigureAwait(false);
                 return new CacheEntry<DeliveryItemListingResponse<TModel>>(response, deps);

@@ -58,9 +58,12 @@ public interface IDeliveryCacheManager
     /// <typeparam name="T">The type of the cached value.</typeparam>
     /// <param name="cacheKey">The unique key identifying the cache entry.</param>
     /// <param name="factory">
-    /// A factory function invoked on cache miss. Returns a <see cref="CacheEntry{T}"/>
-    /// containing the value and its dependency tags, or <c>null</c> to signal "don't cache"
-    /// (e.g., when an API call fails).
+    /// A factory function invoked on cache miss. Returns a <see cref="CacheEntry{T}"/> containing the
+    /// value and its dependency tags, or <c>null</c> when the origin has no value for this key - nothing
+    /// is cached, and an implementation that keeps stale copies for fail-safe drops the one it holds,
+    /// since the answer supersedes it. It throws when the origin could not be reached; an
+    /// implementation with fail-safe may then serve a stale copy, and one without lets the exception
+    /// propagate.
     /// </param>
     /// <param name="expiration">
     /// Optional absolute expiration timespan. If <c>null</c>, the implementation's default expiration is used.
@@ -76,8 +79,8 @@ public interface IDeliveryCacheManager
     /// result in at most one factory invocation (stampede protection).
     /// </para>
     /// <para>
-    /// When the factory returns <c>null</c>, the result should not be cached and
-    /// <c>null</c> should be returned to the caller.
+    /// When the factory returns <c>null</c>, nothing is cached, any stale copy of the key is removed, and
+    /// <c>null</c> is returned to the caller.
     /// </para>
     /// </remarks>
     Task<CacheResult<T>?> GetOrSetAsync<T>(

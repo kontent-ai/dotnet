@@ -180,6 +180,95 @@ public partial class CachingIntegrationTests
         mock.VerifyNoOutstandingExpectation();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailSafe_AnAnswerAfterInvalidation_IsNotServedStale(bool hybrid)
+    {
+        // A webhook evicts the item and the API then says it is gone. Fail-safe is for an origin that
+        // cannot be reached; an answer, however unwelcome, is not an outage, so the stale copy is dropped
+        // rather than served - otherwise unpublishing would not take effect until FailSafeMaxDuration ran out.
+        var mock = new MockHttpMessageHandler();
+        var itemCodename = "coffee_beverages_explained";
+        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}{itemCodename}.json");
+        var provider = BuildFailSafeServiceProvider(mock, hybrid);
+        var client = provider.GetRequiredKeyedService<IDeliveryClient>("test");
+        var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}").Respond("application/json", fixtureContent);
+        Assert.True((await client.GetItem<Article>(itemCodename).ExecuteAsync()).IsSuccess);
+
+        await cacheManager.InvalidateAsync([$"item_{itemCodename}"]);
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}")
+            .Respond(HttpStatusCode.NotFound, "application/json", """{"message":"The requested content item was not found.","error_code":100}""");
+        var gone = await client.GetItem<Article>(itemCodename).ExecuteAsync();
+
+        Assert.False(gone.IsSuccess);
+        Assert.Equal(HttpStatusCode.NotFound, gone.StatusCode);
+        Assert.Equal(ResponseSource.Origin, gone.ResponseSource);
+
+        // The stale copy went with the answer: an outage now has nothing to fall back on.
+        mock.Expect($"{BaseUrl}/items/{itemCodename}")
+            .Respond(HttpStatusCode.ServiceUnavailable, "application/json", """{"message":"Service unavailable","error_code":503}""");
+        var outage = await client.GetItem<Article>(itemCodename).ExecuteAsync();
+
+        Assert.False(outage.IsSuccess);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, outage.StatusCode);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FailSafe_AnOutageAfterInvalidation_IsServedStale(bool hybrid)
+    {
+        var mock = new MockHttpMessageHandler();
+        var itemCodename = "coffee_beverages_explained";
+        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}{itemCodename}.json");
+        var provider = BuildFailSafeServiceProvider(mock, hybrid);
+        var client = provider.GetRequiredKeyedService<IDeliveryClient>("test");
+        var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}").Respond("application/json", fixtureContent);
+        Assert.True((await client.GetItem<Article>(itemCodename).ExecuteAsync()).IsSuccess);
+
+        await cacheManager.InvalidateAsync([$"item_{itemCodename}"]);
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}")
+            .Respond(HttpStatusCode.ServiceUnavailable, "application/json", """{"message":"Service unavailable","error_code":503}""");
+        var served = await client.GetItem<Article>(itemCodename).ExecuteAsync();
+
+        Assert.True(served.IsSuccess);
+        Assert.Equal(ResponseSource.FailSafe, served.ResponseSource);
+        Assert.Contains($"item_{itemCodename}", served.DependencyKeys!);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task FailSafe_ATransportFailureAfterInvalidation_IsServedStale()
+    {
+        // No response at all is the clearest outage there is.
+        var mock = new MockHttpMessageHandler();
+        var itemCodename = "coffee_beverages_explained";
+        var fixtureContent = await ReadFixtureAsync($"DeliveryClient{Path.DirectorySeparatorChar}{itemCodename}.json");
+        var provider = BuildFailSafeServiceProvider(mock, hybrid: false);
+        var client = provider.GetRequiredKeyedService<IDeliveryClient>("test");
+        var cacheManager = provider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}").Respond("application/json", fixtureContent);
+        Assert.True((await client.GetItem<Article>(itemCodename).ExecuteAsync()).IsSuccess);
+
+        await cacheManager.InvalidateAsync([$"item_{itemCodename}"]);
+
+        mock.Expect($"{BaseUrl}/items/{itemCodename}").Throw(new HttpRequestException("Connection refused"));
+        var served = await client.GetItem<Article>(itemCodename).ExecuteAsync();
+
+        Assert.True(served.IsSuccess);
+        Assert.Equal(ResponseSource.FailSafe, served.ResponseSource);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
     [Fact]
     public async Task MemoryCache_GetItem_ExpiresAfterTtl_HitsApiAgain()
     {
@@ -2902,6 +2991,44 @@ public partial class CachingIntegrationTests
     {
         var services = new ServiceCollection();
         AddNamedDeliveryClient(services, clientName, options, httpHandler, d => d.UseMemoryCache(Expiring(defaultExpiration)));
+        return services.BuildServiceProvider();
+    }
+
+    // Resilience off so a failing origin answers once rather than after the pipeline's retries, and
+    // no throttle so every call reaches the origin.
+    private ServiceProvider BuildFailSafeServiceProvider(HttpMessageHandler httpHandler, bool hybrid)
+    {
+        var options = new DeliveryOptions
+        {
+            EnvironmentId = _guid.ToString(),
+            EnableResilience = false
+        };
+
+        Action<DeliveryCacheOptions> failSafe = o =>
+        {
+            o.IsFailSafeEnabled = true;
+            o.FailSafeMaxDuration = TimeSpan.FromMinutes(5);
+            o.FailSafeThrottleDuration = TimeSpan.Zero;
+        };
+
+        var services = new ServiceCollection();
+        if (hybrid)
+        {
+            services.AddSingleton<IDistributedCache>(new MockDistributedCache());
+        }
+
+        AddNamedDeliveryClient(services, "test", options, httpHandler, d =>
+        {
+            if (hybrid)
+            {
+                d.UseHybridCache(failSafe);
+            }
+            else
+            {
+                d.UseMemoryCache(failSafe);
+            }
+        });
+
         return services.BuildServiceProvider();
     }
 

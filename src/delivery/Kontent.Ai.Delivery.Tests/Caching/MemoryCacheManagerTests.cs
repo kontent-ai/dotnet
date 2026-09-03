@@ -847,8 +847,10 @@ public class MemoryCacheManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task FailSafe_Enabled_ServesStaleEntryWhenFactoryReturnsNull()
+    public async Task FailSafe_Enabled_FactoryReturnsNullAfterExpiration_DropsTheStaleEntry()
     {
+        // Null is the origin's answer that there is no value, not an outage: the stale copy must not be
+        // served for it, and must not be left for the next outage to serve either.
         using var cache = new MemoryCache(new MemoryCacheOptions());
         using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
         {
@@ -861,30 +863,71 @@ public class MemoryCacheManagerTests : IDisposable
         var value = new TestCacheValue { Id = 99, Name = "StaleFromNull" };
         await PopulateCache(manager, "failsafe_null_key", value, ["dep1"]);
 
-        // Poll until TTL expires (factory is called) and factory returns null.
-        TestCacheValue? failSafeResult = null;
+        CacheResult<TestCacheValue>? resultAfterExpiry = null;
         var expired = await WaitUntilAsync(
             async () =>
             {
                 var factoryCalled = false;
-                var r = await manager.GetOrSetAsync<TestCacheValue>("failsafe_null_key", _ =>
+                resultAfterExpiry = await manager.GetOrSetAsync<TestCacheValue>("failsafe_null_key", _ =>
                 {
                     factoryCalled = true;
                     return Task.FromResult<CacheEntry<TestCacheValue>?>(null);
                 });
-                if (factoryCalled)
-                {
-                    failSafeResult = r?.Value;
-                }
                 return factoryCalled;
             },
             timeout: TimeSpan.FromSeconds(2),
             pollInterval: TimeSpan.FromMilliseconds(20));
 
         Assert.True(expired, "Cache entry did not expire within timeout");
-        Assert.NotNull(failSafeResult);
-        Assert.Equal(99, failSafeResult.Id);
-        Assert.Equal("StaleFromNull", failSafeResult.Name);
+        Assert.Null(resultAfterExpiry);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            manager.GetOrSetAsync<TestCacheValue>("failsafe_null_key", _ => throw new InvalidOperationException("Simulated API failure")));
+    }
+
+    [Fact]
+    public async Task FailSafe_Enabled_FactoryReturnsNullAfterInvalidation_DropsTheStaleEntry()
+    {
+        // The webhook case: invalidation expires the entry rather than removing it, so a stale copy is
+        // there to serve. The origin's answer supersedes it; an outage right after does not resurrect it.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        {
+            IsFailSafeEnabled = true,
+            FailSafeMaxDuration = TimeSpan.FromMinutes(5),
+            FailSafeThrottleDuration = TimeSpan.Zero
+        });
+
+        await PopulateCache(manager, "invalidated_key", new TestCacheValue { Id = 7, Name = "Gone" }, ["item_gone"]);
+        await manager.InvalidateAsync(["item_gone"]);
+
+        var answer = await manager.GetOrSetAsync<TestCacheValue>("invalidated_key", _ =>
+            Task.FromResult<CacheEntry<TestCacheValue>?>(null));
+
+        Assert.Null(answer);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            manager.GetOrSetAsync<TestCacheValue>("invalidated_key", _ => throw new InvalidOperationException("Simulated API failure")));
+    }
+
+    [Fact]
+    public async Task FailSafe_Enabled_FactoryThrowsAfterInvalidation_ServesTheStaleEntry()
+    {
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        {
+            IsFailSafeEnabled = true,
+            FailSafeMaxDuration = TimeSpan.FromMinutes(5),
+            FailSafeThrottleDuration = TimeSpan.Zero
+        });
+
+        await PopulateCache(manager, "outage_key", new TestCacheValue { Id = 8, Name = "Stale" }, ["item_stale"]);
+        await manager.InvalidateAsync(["item_stale"]);
+
+        var served = await manager.GetOrSetAsync<TestCacheValue>("outage_key", _ =>
+            throw new InvalidOperationException("Simulated API failure"));
+
+        Assert.NotNull(served);
+        Assert.Equal("Stale", served.Value.Name);
     }
 
     [Fact]

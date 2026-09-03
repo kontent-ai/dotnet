@@ -40,6 +40,11 @@ public sealed class DeliveryCacheOptions
     /// When enabled, the cache returns stale (expired) entries when the data source
     /// is unavailable, providing resilience during API outages.
     /// </summary>
+    /// <remarks>
+    /// An outage is a request that got no response, or a status the SDK's own pipeline retries - a
+    /// timeout, <c>429</c> or <c>5xx</c>. An answer from the API is never covered: an item that comes
+    /// back <c>404</c> after being unpublished is dropped from the cache, not served stale.
+    /// </remarks>
     /// <value>Defaults to <see langword="false"/>.</value>
     public bool IsFailSafeEnabled { get; set; }
 
