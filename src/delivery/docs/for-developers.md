@@ -385,10 +385,12 @@ var provider = services.BuildServiceProvider();
 
 **Package**: `Kontent.Ai.Delivery.Caching`
 
-Both built-in cache managers are thin wrappers over a shared `FusionCacheManager` engine:
+One class, `FusionCacheManager`, in two shapes:
 
-- **`MemoryCacheManager`** — creates a FusionCache instance with L1 only (hydrated objects, `CacheStorageMode.HydratedObject`)
-- **`HybridCacheManager`** — creates a FusionCache instance with L1+L2 (raw JSON via `FusionCacheSystemTextJsonSerializer`, `CacheStorageMode.RawJson`)
+- **`FusionCacheManager.CreateMemory`** — a FusionCache instance over the application's `IMemoryCache`, L1 only (hydrated objects, `CacheStorageMode.HydratedObject`)
+- **`FusionCacheManager.CreateHybrid`** — a FusionCache instance with a private L1 in front of the `IDistributedCache` (raw JSON via `FusionCacheSystemTextJsonSerializer`, `CacheStorageMode.RawJson`)
+
+Both hand the client's prefix (`{KeyPrefix}:{EnvironmentId}:`, plus `v1:` for hybrid) to FusionCache as its `CacheKeyPrefix`, so FusionCache's tag data and purge markers are namespaced with the entries. Invalidations and purges run with `TagsDefaultEntryOptions`, whose ten-day duration is how long an invalidation is remembered for an entry that has not been read since. A factory that returns `null` means the origin has no value - the stale copy is removed and fail-safe is bypassed for that call - and a factory that throws means the origin could not be reached, which is what fail-safe is for. Staleness is observed per call, on the async context of the read, and returned as `CacheResult<T>.IsStale`.
 
 **Invalidation Model:**
 
@@ -824,7 +826,7 @@ The other two overloads are thin: `AddDeliveryClient(Action<IDeliveryClientBuild
 
 `CreateDeliveryClient(IServiceProvider, string, IDisposable?)` resolves the keyed `IDeliveryApi`, the mappers, the type provider, the keyed cache manager (if any) and the logger, and constructs the client. `DeliveryClient.Create` runs the same `AddDeliveryClient` in a private `ServiceCollection`, builds the provider with `ValidateOnBuild`, and passes that provider as the client's `ownedResources` — so both entry points construct through one path and disposing a standalone client tears down its container.
 
-Cache manager resolution is keyed-only. Unkeyed `IDeliveryCacheManager` registrations are ignored by `DeliveryClient` creation.
+`DeliveryClient` creation resolves the cache manager keyed by the client's name only; an unkeyed `IDeliveryCacheManager` registration is not what a client picks up. The caching package does register an unkeyed alias for the default client's manager, for consumers, the way `IDeliveryClient` itself is aliased; a standalone client exposes its manager as `DeliveryClient.CacheManager`.
 For built-in caching, use `UseMemoryCache` / `UseHybridCache` on the builder from the `Kontent.Ai.Delivery.Caching` package. For custom cache implementations, `UseCacheManager(sp => ...)` registers the keyed manager for that client.
 Preview cache bypass is enforced by `DeliveryClient` itself (`UsePreviewApi = true` => no cache read/write for that client), not by a cache-manager decorator.
 
