@@ -22,4 +22,11 @@ public sealed record CacheResult<T>(T Value, IReadOnlyList<string> DependencyKey
     /// which value it handed back.
     /// </remarks>
     public bool FromFactory { get; init; }
+
+    /// <summary>
+    /// Whether the value is a stale copy served by fail-safe, because the origin could not be reached
+    /// during this call or shortly before it. Only the cache knows: the factory either failed or was
+    /// not run, and neither says which value came back.
+    /// </summary>
+    public bool IsStale { get; init; }
 }

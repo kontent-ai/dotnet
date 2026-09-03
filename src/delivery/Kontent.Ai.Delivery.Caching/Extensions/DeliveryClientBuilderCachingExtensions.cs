@@ -92,19 +92,19 @@ public static class DeliveryClientBuilderCachingExtensions
         // Register IMemoryCache if not already registered (shared across all clients)
         builder.Services.AddMemoryCache();
 
-        return RegisterCacheManager(builder, sp => new MemoryCacheManager(
+        return RegisterCacheManager(builder, sp => FusionCacheManager.CreateMemory(
             sp.GetRequiredService<IMemoryCache>(),
             cacheOptionsFactory(sp),
-            sp.GetService<ILogger<MemoryCacheManager>>(),
+            sp.GetService<ILogger<FusionCacheManager>>(),
             EnvironmentIdOf(sp, builder.Name),
             sp.GetService<ILogger<FusionCache>>()));
     }
 
     private static IDeliveryClientBuilder UseHybridCacheCore(IDeliveryClientBuilder builder, Func<IServiceProvider, DeliveryCacheOptions> cacheOptionsFactory)
-        => RegisterCacheManager(builder, sp => new HybridCacheManager(
+        => RegisterCacheManager(builder, sp => FusionCacheManager.CreateHybrid(
             sp.GetRequiredService<IDistributedCache>(),
             cacheOptionsFactory(sp),
-            logger: sp.GetService<ILogger<HybridCacheManager>>(),
+            logger: sp.GetService<ILogger<FusionCacheManager>>(),
             // Registered by the consumer the usual FusionCache way, e.g.
             // services.AddFusionCacheStackExchangeRedisBackplane(...).
             backplane: sp.GetService<IFusionCacheBackplane>(),

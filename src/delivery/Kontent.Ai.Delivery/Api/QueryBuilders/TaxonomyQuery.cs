@@ -49,8 +49,6 @@ internal sealed class TaxonomyQuery(
         var cacheKey = CacheKeyBuilder.BuildTaxonomyKey(codename);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<TaxonomyGroup, ITaxonomyGroup>(
-            cacheManager,
-            cacheKey,
             (captureApiResult, ct) => cacheManager.GetOrSetAsync(
                 cacheKey,
                 async factoryToken =>

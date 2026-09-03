@@ -3,7 +3,6 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using Kontent.Ai.Delivery.Abstractions;
-using Kontent.Ai.Delivery.Caching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -209,7 +208,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
             o => o.EnvironmentId = EnvironmentId,
             d => d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(30)));
 
-        Assert.IsType<MemoryCacheManager>(GetCacheManager(client));
+        Assert.Equal(CacheStorageMode.HydratedObject, GetCacheManager(client)!.StorageMode);
         Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
         Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
         _http.VerifyNoOutstandingExpectation();
@@ -281,7 +280,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
                 d.UseHybridCache(opts => opts.DefaultExpiration = TimeSpan.FromHours(1));
             });
 
-        Assert.IsType<HybridCacheManager>(GetCacheManager(client));
+        Assert.Equal(CacheStorageMode.RawJson, GetCacheManager(client)!.StorageMode);
         Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
         Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
         _http.VerifyNoOutstandingExpectation();
@@ -318,7 +317,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
 
         Assert.True((await client.GetItems().ExecuteAsync()).IsSuccess);
         Assert.Contains("article", typeProvider.Requested);
-        Assert.IsType<MemoryCacheManager>(GetCacheManager(client));
+        Assert.Equal(CacheStorageMode.HydratedObject, GetCacheManager(client)!.StorageMode);
         Assert.Equal("mobile", OwnedServices(client).GetRequiredService<IOptionsMonitor<DeliveryOptions>>().Get("Default").DefaultRenditionPreset);
     }
 
@@ -336,7 +335,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
         });
 
         Assert.NotNull(client);
-        Assert.IsType<MemoryCacheManager>(GetCacheManager(client));
+        Assert.Equal(CacheStorageMode.HydratedObject, GetCacheManager(client)!.StorageMode);
     }
 
     [Fact]
@@ -353,7 +352,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
         });
 
         Assert.NotNull(client);
-        Assert.IsType<HybridCacheManager>(GetCacheManager(client));
+        Assert.Equal(CacheStorageMode.RawJson, GetCacheManager(client)!.StorageMode);
     }
 
     [Fact]

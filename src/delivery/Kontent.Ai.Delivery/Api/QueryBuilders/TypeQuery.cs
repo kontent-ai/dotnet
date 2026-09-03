@@ -56,8 +56,6 @@ internal sealed class TypeQuery(
         var cacheKey = CacheKeyBuilder.BuildTypeKey(codename, _params);
 
         var outcome = await CachedQueryExecutor.ExecuteAsync<ContentType, IContentType>(
-            cacheManager,
-            cacheKey,
             (captureApiResult, ct) => cacheManager.GetOrSetAsync(
                 cacheKey,
                 async factoryToken =>

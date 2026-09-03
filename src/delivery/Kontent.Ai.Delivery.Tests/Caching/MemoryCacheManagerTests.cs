@@ -6,18 +6,18 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Kontent.Ai.Delivery.Tests.Caching;
 
 /// <summary>
-/// Comprehensive tests for MemoryCacheManager implementation.
+/// Comprehensive tests for FusionCacheManager implementation.
 /// Tests cover: basic operations, dependency tracking, invalidation, concurrency, resource management, and error handling.
 /// </summary>
 public class MemoryCacheManagerTests : IDisposable
 {
     private readonly IMemoryCache _memoryCache;
-    private readonly MemoryCacheManager _cacheManager;
+    private readonly FusionCacheManager _cacheManager;
 
     public MemoryCacheManagerTests()
     {
         _memoryCache = new MemoryCache(new MemoryCacheOptions());
-        _cacheManager = new MemoryCacheManager(_memoryCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
+        _cacheManager = FusionCacheManager.CreateMemory(_memoryCache, new DeliveryCacheOptions { DefaultExpiration = TimeSpan.FromMinutes(5) });
     }
 
     public void Dispose()
@@ -121,20 +121,32 @@ public class MemoryCacheManagerTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async Task GetOrSetAsync_InvalidKey_StillCallsFactory(string? cacheKey)
+    public async Task GetOrSetAsync_InvalidKey_Throws(string? cacheKey)
     {
-        var factoryCalled = false;
-        var value = new TestCacheValue { Id = 1, Name = "Test" };
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => _cacheManager.GetOrSetAsync(cacheKey!, _ =>
+            Task.FromResult<CacheEntry<TestCacheValue>?>(new CacheEntry<TestCacheValue>(new TestCacheValue { Id = 1, Name = "Test" }, []))));
+    }
 
-        var result = await _cacheManager.GetOrSetAsync(cacheKey!, _ =>
+    [Fact]
+    public async Task GetOrSetAsync_ReportsAStaleValueAsSuchOnlyToTheCallItWasServedTo()
+    {
+        // Fail-safe served this call a stale copy; the classification belongs to this call alone.
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
-            factoryCalled = true;
-            return Task.FromResult<CacheEntry<TestCacheValue>?>(
-                new CacheEntry<TestCacheValue>(value, []));
+            IsFailSafeEnabled = true,
+            FailSafeMaxDuration = TimeSpan.FromMinutes(5),
+            FailSafeThrottleDuration = TimeSpan.Zero
         });
 
-        Assert.True(factoryCalled);
-        Assert.NotNull(result);
+        await PopulateCache(manager, "stale_key", new TestCacheValue { Id = 1, Name = "Fresh" }, ["dep"]);
+        var hit = await manager.GetOrSetAsync<TestCacheValue>("stale_key", _ => throw new InvalidOperationException("not expected"));
+        await manager.InvalidateAsync(["dep"]);
+        var stale = await manager.GetOrSetAsync<TestCacheValue>("stale_key", _ => throw new InvalidOperationException("Simulated API failure"));
+
+        Assert.False(hit!.IsStale);
+        Assert.True(stale!.IsStale);
+        Assert.False(stale.FromFactory);
     }
 
     [Fact]
@@ -229,8 +241,8 @@ public class MemoryCacheManagerTests : IDisposable
         // The purge marker is a key of FusionCache's own. It carries the client's prefix like everything
         // else FusionCache stores for that client, so another client sharing the memory cache never reads it.
         using var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var a = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "a" });
-        using var b = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "b" });
+        using var a = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "a" });
+        using var b = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "b" });
 
         await PopulateCache(a, "k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"]);
         await PopulateCache(b, "k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"]);
@@ -260,7 +272,7 @@ public class MemoryCacheManagerTests : IDisposable
         {
             ExpirationScanFrequency = TimeSpan.FromMilliseconds(10)
         });
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         var dependency = "dep1";
         var expiration = TimeSpan.FromMilliseconds(50);
@@ -520,7 +532,7 @@ public class MemoryCacheManagerTests : IDisposable
         {
             ExpirationScanFrequency = TimeSpan.FromMilliseconds(10)
         });
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         const string dependency = "dep_race";
         const string expiringKey = "expiring_key";
@@ -561,7 +573,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task Dispose_DisposesResources()
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         await PopulateCache(manager, "test_key", new TestCacheValue { Id = 1, Name = "Test" }, ["dep1"]);
 
@@ -576,7 +588,7 @@ public class MemoryCacheManagerTests : IDisposable
     public void Dispose_CalledMultipleTimes_DoesNotThrow()
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         var exception = Record.Exception(() =>
         {
@@ -592,7 +604,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task Dispose_WithPendingOperations_CleansUpCorrectly()
     {
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         await PopulateCache(manager, "test_key", new TestCacheValue { Id = 1, Name = "Test" }, ["dep1", "dep2", "dep3"]);
 
@@ -696,8 +708,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task GetOrSetAsync_WithDifferentPrefixes_IsolatesCacheEntries()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager1 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        using var manager2 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        using var manager1 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        using var manager2 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var key = "same_key";
         var value1 = new TestCacheValue { Id = 1, Name = "Client1Value" };
@@ -723,8 +735,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task InvalidateAsync_WithDifferentPrefixes_OnlyAffectsOwnEntries()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager1 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        using var manager2 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        using var manager1 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        using var manager2 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var key = "same_key";
         var dependency = "same_dep";
@@ -744,8 +756,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task GetOrSetAsync_WithDifferentPrefixes_DoesNotCrossContaminate()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager1 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        using var manager2 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        using var manager1 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        using var manager2 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var key = "unique_key";
         await PopulateCache(manager1, key, new TestCacheValue { Id = 1, Name = "OnlyInClient1" }, []);
@@ -760,8 +772,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task GetOrSetAsync_WithNullPrefix_UsesUnprefixedKeys()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var managerNoPrefix = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = null });
-        using var managerWithPrefix = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
+        using var managerNoPrefix = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = null });
+        using var managerWithPrefix = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prefixed" });
 
         var key = "test_key";
         await PopulateCache(managerNoPrefix, key, new TestCacheValue { Id = 1, Name = "NoPrefix" }, []);
@@ -782,8 +794,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task InvalidateAsync_WithSharedDependencyName_OnlyInvalidatesOwnPrefix()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager1 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prod" });
-        using var manager2 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "preview" });
+        using var manager1 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "prod" });
+        using var manager2 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "preview" });
 
         var dependency = "content_type_article";
 
@@ -806,8 +818,8 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task ConcurrentOperations_WithDifferentPrefixes_MaintainsIsolation()
     {
         var sharedCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager1 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
-        using var manager2 = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
+        using var manager1 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client1" });
+        using var manager2 = FusionCacheManager.CreateMemory(sharedCache, new DeliveryCacheOptions { KeyPrefix = "client2" });
 
         var dependency = "shared_dep_name";
 
@@ -839,7 +851,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task FailSafe_Enabled_ServesStaleEntryAfterExpiration()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMilliseconds(100),
             IsFailSafeEnabled = true,
@@ -882,7 +894,7 @@ public class MemoryCacheManagerTests : IDisposable
         // Null is the origin's answer that there is no value, not an outage: the stale copy must not be
         // served for it, and must not be left for the next outage to serve either.
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMilliseconds(100),
             IsFailSafeEnabled = true,
@@ -921,7 +933,7 @@ public class MemoryCacheManagerTests : IDisposable
         // The webhook case: invalidation expires the entry rather than removing it, so a stale copy is
         // there to serve. The origin's answer supersedes it; an outage right after does not resurrect it.
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             IsFailSafeEnabled = true,
             FailSafeMaxDuration = TimeSpan.FromMinutes(5),
@@ -943,7 +955,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task FailSafe_Enabled_FactoryThrowsAfterInvalidation_ServesTheStaleEntry()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             IsFailSafeEnabled = true,
             FailSafeMaxDuration = TimeSpan.FromMinutes(5),
@@ -964,7 +976,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task FailSafe_Disabled_ReturnsNullWhenFactoryReturnsNull()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMilliseconds(100),
             IsFailSafeEnabled = false
@@ -1001,7 +1013,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task FailSafe_Enabled_NoStaleEntry_ReturnsNullWhenFactoryReturnsNull()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMinutes(5),
             IsFailSafeEnabled = true,
@@ -1020,7 +1032,7 @@ public class MemoryCacheManagerTests : IDisposable
     public async Task FailSafe_Disabled_ReturnsNullAfterExpiration()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMilliseconds(100),
             IsFailSafeEnabled = false
@@ -1046,7 +1058,7 @@ public class MemoryCacheManagerTests : IDisposable
         // 100 under a limit of 150 means the second entry does not fit and is refused - which it would not
         // be if the SDK's own Size of 1 had won.
         using var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 150 });
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions()
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions()
             .ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.Size = 100));
 
         await PopulateCache(manager, "first", new TestCacheValue { Id = 1, Name = "First" }, ["dep1"]);
@@ -1065,7 +1077,7 @@ public class MemoryCacheManagerTests : IDisposable
         // options, whose duration would forget a webhook's invalidation long before a quiet entry was read.
         TimeSpan? handedToTheHook = null;
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions()
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions()
             .ConfigureFusionCache(fusion =>
             {
                 handedToTheHook = fusion.TagsDefaultEntryOptions.Duration;
@@ -1088,7 +1100,7 @@ public class MemoryCacheManagerTests : IDisposable
         // The application's memory cache may carry a size limit, and a cache with one refuses entries that
         // declare no size - so every entry the manager writes declares one, tag entries included.
         using var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 1000 });
-        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+        using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions());
 
         await PopulateCache(manager, "sized_key", new TestCacheValue { Id = 1, Name = "Sized" }, ["dep1"]);
         Assert.False(await IsFactoryCalledAsync(manager, "sized_key"));
@@ -1106,7 +1118,7 @@ public class MemoryCacheManagerTests : IDisposable
     public void Jitter_DoesNotThrow()
     {
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var exception = Record.Exception(() => new MemoryCacheManager(cache, new DeliveryCacheOptions
+        var exception = Record.Exception(() => FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions
         {
             DefaultExpiration = TimeSpan.FromMinutes(5),
             JitterMaxDuration = TimeSpan.FromSeconds(30)
@@ -1182,7 +1194,7 @@ public class MemoryCacheManagerTests : IDisposable
         };
 
         using var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(memoryCache, options);
+        using var manager = FusionCacheManager.CreateMemory(memoryCache, options);
 
         // The callback should have been invoked during construction
         Assert.True(callbackInvoked);
@@ -1207,7 +1219,7 @@ public class MemoryCacheManagerTests : IDisposable
         };
 
         using var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        using var manager = new MemoryCacheManager(memoryCache, options);
+        using var manager = FusionCacheManager.CreateMemory(memoryCache, options);
 
         Assert.NotNull(receivedOptions);
         Assert.Equal("ZiggyCreatures.Caching.Fusion.FusionCacheOptions", receivedOptions.GetType().FullName);
