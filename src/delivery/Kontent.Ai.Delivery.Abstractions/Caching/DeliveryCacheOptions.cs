@@ -101,8 +101,13 @@ public sealed class DeliveryCacheOptions
     /// or other settings not directly exposed by the SDK.
     /// </para>
     /// <para>
-    /// The SDK applies its defaults first, then invokes this callback, allowing you to
-    /// override or extend any setting.
+    /// The SDK applies its defaults first, then invokes this callback. Every operation the SDK runs starts
+    /// from the <c>DefaultEntryOptions</c> the callback leaves behind, so a <c>Size</c>, a distributed-cache
+    /// timeout or the background-operation flags set there take effect; the duration, fail-safe, jitter
+    /// and eager-refresh policy come from this object regardless, serialization failures are always thrown,
+    /// and distributed-cache and backplane failures never are. <c>TagsDefaultEntryOptions</c> is what an
+    /// invalidation is stored with: its duration, ten days by default, is how long an invalidation is
+    /// remembered for an entry that has not been read since, and must exceed your longest expiration.
     /// </para>
     /// <para>
     /// Prefer the <c>ConfigureFusionCache</c> extension from <c>Kontent.Ai.Delivery.Caching</c>, which takes

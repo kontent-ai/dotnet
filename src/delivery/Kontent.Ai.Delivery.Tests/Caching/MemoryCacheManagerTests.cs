@@ -1010,6 +1010,49 @@ public class MemoryCacheManagerTests : IDisposable
     #endregion
 
     [Fact]
+    public async Task ConfigureFusionCache_DefaultEntryOptions_ReachTheWrites()
+    {
+        // What the consumer sets on DefaultEntryOptions is the starting point of every write. A Size of
+        // 100 under a limit of 150 means the second entry does not fit and is refused - which it would not
+        // be if the SDK's own Size of 1 had won.
+        using var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 150 });
+        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions()
+            .ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.Size = 100));
+
+        await PopulateCache(manager, "first", new TestCacheValue { Id = 1, Name = "First" }, ["dep1"]);
+        await PopulateCache(manager, "second", new TestCacheValue { Id = 2, Name = "Second" }, ["dep1"]);
+
+        Assert.False(await IsFactoryCalledAsync(manager, "first"));
+        Assert.True(await IsFactoryCalledAsync(manager, "second"));
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_IsRememberedForTagsDefaultEntryOptionsDuration()
+    {
+        // An invalidation is a tag-expiration entry the next read of each tagged entry checks, so it has to
+        // outlive the entries it applies to. It is stored with TagsDefaultEntryOptions - ten days unless the
+        // consumer shortens it, as this test does to make the lifetime observable - not with the write
+        // options, whose duration would forget a webhook's invalidation long before a quiet entry was read.
+        TimeSpan? handedToTheHook = null;
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions()
+            .ConfigureFusionCache(fusion =>
+            {
+                handedToTheHook = fusion.TagsDefaultEntryOptions.Duration;
+                fusion.TagsDefaultEntryOptions.Duration = TimeSpan.FromMilliseconds(200);
+            }));
+
+        Assert.Equal(TimeSpan.FromDays(10), handedToTheHook);
+
+        await PopulateCache(manager, "quiet_key", new TestCacheValue { Id = 1, Name = "Quiet" }, ["dep1"]);
+        await manager.InvalidateAsync(["dep1"]);
+        await Task.Delay(400);
+
+        // The shortened tag data has lapsed, so the entry it applied to is served again.
+        Assert.False(await IsFactoryCalledAsync(manager, "quiet_key"));
+    }
+
+    [Fact]
     public async Task SizeLimitedMemoryCache_WritesInvalidatesAndPurges()
     {
         // The application's memory cache may carry a size limit, and a cache with one refuses entries that

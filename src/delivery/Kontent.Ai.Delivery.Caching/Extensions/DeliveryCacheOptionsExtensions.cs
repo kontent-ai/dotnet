@@ -17,7 +17,12 @@ public static class DeliveryCacheOptionsExtensions
     /// references it, so the cast belongs here rather than in every caller.
     /// </remarks>
     /// <param name="options">The cache options to configure.</param>
-    /// <param name="configure">Receives the <see cref="FusionCacheOptions"/> after the SDK's defaults are applied.</param>
+    /// <param name="configure">
+    /// Receives the <see cref="FusionCacheOptions"/> after the SDK's defaults are applied. Every SDK
+    /// operation starts from the <see cref="FusionCacheOptions.DefaultEntryOptions"/> it leaves behind,
+    /// and every invalidation is stored with its <see cref="FusionCacheOptions.TagsDefaultEntryOptions"/>;
+    /// see <see cref="DeliveryCacheOptions.ConfigureFusionCacheOptions"/> for what the SDK pins.
+    /// </param>
     /// <returns>The same instance, for chaining.</returns>
     /// <example>
     /// <code>

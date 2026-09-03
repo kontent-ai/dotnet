@@ -42,6 +42,10 @@ written 2026-09-03 against `client-builders` at `dddd4f8fe`; revised the same da
 >   off, since it is the same hazard from the other side.
 > - Renumbered; the §6 probe table now carries both passes, with the two rows the second pass
 >   overturned marked.
+> - **Added 2.13 during implementation**: an invalidation was forgotten after thirty seconds for any
+>   entry not read in that window, because the tag data was stored with the write options' default
+>   duration. Neither pass caught it - every probe read the entry straight after invalidating it. It
+>   outranks everything but 2.1 and was fixed in the step that restructures the entry options.
 
 **Verdict: the design is sound where it meets the API - tag invalidation is complete for typed
 models and isolated per client and per environment, the backplane is wired the way FusionCache
@@ -389,6 +393,31 @@ it too.
   exists to replace because eager refresh runs the factory for a different call; they should read
   `result.FromFactory`.
 
+### 2.13 An invalidation is forgotten after thirty seconds unless the entry is read - **high, found during implementation**
+
+Found while implementing 2.7, which is where the entry options are built. `RemoveByTag` and `Clear`
+write a tag-expiration entry that every later read of a tagged entry checks against, and FusionCache
+stores that entry with the options passed to the call. The SDK passed `_baseInvalidateOptions`, a
+`FusionCacheEntryOptions` that named no `Duration`, so the tag data lived for FusionCache's entry
+default of thirty seconds. An entry not read within thirty seconds of the webhook that invalidated it
+was served afterwards for the rest of its own expiration, as if the webhook had never arrived.
+
+Probed against FusionCache directly (probe 22): `RemoveByTag` with `Duration = 1s` on the options was
+forgotten 1.5 seconds later; with `null` options, which selects `TagsDefaultEntryOptions` and its
+ten-day default, it held. Then through the SDK (probe 23): cache the type listing, invalidate its list
+scope, wait 32 seconds without reading, read - served from cache, origin never asked. A purge held in
+the same probe, because `Clear` also keeps its timestamp in the instance; on a second node reading the
+shared marker it would not.
+
+None of the probes in either pass caught this because every one of them read the entry immediately
+after invalidating it. The first pass's 2.10 even noted that tag entries expire without asking when.
+
+**Fix.** Pass no options to `RemoveByTag` and `Clear`, so FusionCache uses `TagsDefaultEntryOptions`,
+and configure that object with the SDK's pinned flags at construction; its duration stays FusionCache's
+ten days and is the consumer's knob through `ConfigureFusionCache`. Document that it must exceed the
+longest expiration in use. The test that pins it shortens the tag duration through the hook and shows
+the invalidation lapsing with it, which is the only way to observe the lifetime without waiting.
+
 ## 3. Multi-client isolation, stated once
 
 The namespace every key and tag lives in is `{KeyPrefix}:{EnvironmentId}:`, where `KeyPrefix`
@@ -573,3 +602,5 @@ description. Rows the second pass overturned are marked.
 | 19 | second | Probe 8 and 9 through the public surface: `AddMemoryCache(o => o.SizeLimit = 1000)` + `UseMemoryCache`, with and without `DefaultEntryOptions.Size` through the hook | Throws either way (2.3, 2.7) |
 | 20 | second | Both backplane packages' `IFusionCacheBackplane` descriptor lifetime | Transient |
 | 21 | second | FusionCache directly, fail-safe on, entry expired: (a) factory throws; (b) factory sets `ctx.Options.IsFailSafeEnabled = false` and throws; (c) next call with fail-safe on; (d) after `RemoveAsync`, factory throws; (e) after `ExpireAsync`, factory throws | (a) stale served; (b) exception propagates; (c) stale served again - the copy is still there; (d) exception propagates; (e) stale served. The mechanics 2.1's fix needs |
+| 22 | implementation | FusionCache directly: `RemoveByTag` with options `Duration = 1s`, with a bare `FusionCacheEntryOptions`, and with `null`; entry read 1.5 s later | 1 s: served again; bare: gone at 1.5 s (but its duration is 30 s); null: gone. `FusionCacheEntryOptions.Duration` defaults to 30 s, `TagsDefaultEntryOptions.Duration` to 10 days (2.13) |
+| 23 | implementation | Default client, `UseMemoryCache`: type listing cached, `scope_types_list` invalidated, 32 s without a read, then read; then purge, 32 s, read | Invalidation forgotten - served from cache, origin not asked. Purge held (2.13) |
