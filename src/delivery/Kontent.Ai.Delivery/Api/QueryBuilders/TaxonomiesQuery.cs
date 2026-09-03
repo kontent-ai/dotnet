@@ -161,11 +161,10 @@ internal sealed class TaxonomiesQuery(
 
         foreach (var taxonomy in taxonomies)
         {
-            var dependency = CacheDependencyKeyBuilder.BuildTaxonomyDependencyKey(taxonomy.System.Codename);
-            if (dependency is null)
-                continue;
-
-            dependencies.Add(dependency);
+            if (!string.IsNullOrWhiteSpace(taxonomy.System.Codename))
+            {
+                dependencies.Add(DeliveryCacheDependencies.ForTaxonomy(taxonomy.System.Codename));
+            }
         }
 
         return [.. dependencies];

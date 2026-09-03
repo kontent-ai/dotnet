@@ -17,7 +17,8 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// all cache entries that reference them.
 /// </para>
 /// <para>
-/// Dependency key format conventions:
+/// Dependency key format conventions - compose them with <see cref="DeliveryCacheDependencies"/> rather
+/// than by hand:
 /// <list type="bullet">
 /// <item><description>Content items: <c>item_{codename}</c> (e.g., "item_hero")</description></item>
 /// <item><description>Assets: <c>asset_{guid}</c> (e.g., "asset_a5e1c4b2-...")</description></item>
@@ -93,8 +94,9 @@ public interface IDeliveryCacheManager
     /// Invalidates all cache entries that depend on the specified dependency keys.
     /// </summary>
     /// <param name="dependencyKeys">
-    /// One or more dependency keys to invalidate. All cache entries referencing any of these keys
-    /// will be removed from the cache.
+    /// One or more dependency keys to invalidate, composed with <see cref="DeliveryCacheDependencies"/>.
+    /// All cache entries referencing any of these keys will be removed from the cache. Keys are matched
+    /// case-insensitively.
     /// </param>
     /// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
     /// <returns>

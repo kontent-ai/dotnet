@@ -74,20 +74,9 @@ internal sealed class DependencyTrackingContext
     /// </remarks>
     public void TrackItem(string? codename)
     {
-        if (string.IsNullOrWhiteSpace(codename))
+        if (!string.IsNullOrWhiteSpace(codename))
         {
-            return;
-        }
-
-        var dependencyKey = CacheDependencyKeyBuilder.BuildItemDependencyKey(codename);
-        if (dependencyKey is null)
-        {
-            return;
-        }
-
-        lock (_lock)
-        {
-            _dependencies.Add(dependencyKey);
+            Add(DeliveryCacheDependencies.ForItem(codename));
         }
     }
 
@@ -105,15 +94,9 @@ internal sealed class DependencyTrackingContext
     /// </remarks>
     public void TrackItemType(string? typeCodename)
     {
-        var dependencyKey = CacheDependencyKeyBuilder.BuildTypeDependencyKey(typeCodename);
-        if (dependencyKey is null)
+        if (!string.IsNullOrWhiteSpace(typeCodename))
         {
-            return;
-        }
-
-        lock (_lock)
-        {
-            _dependencies.Add(dependencyKey);
+            Add(DeliveryCacheDependencies.ForType(typeCodename));
         }
     }
 
@@ -134,15 +117,7 @@ internal sealed class DependencyTrackingContext
     /// Duplicate calls with the same asset ID are ignored.
     /// </para>
     /// </remarks>
-    public void TrackAsset(Guid assetId)
-    {
-        var dependencyKey = CacheDependencyKeyBuilder.BuildAssetDependencyKey(assetId);
-
-        lock (_lock)
-        {
-            _dependencies.Add(dependencyKey);
-        }
-    }
+    public void TrackAsset(Guid assetId) => Add(DeliveryCacheDependencies.ForAsset(assetId));
 
     /// <summary>
     /// Tracks a dependency on a taxonomy group by its codename.
@@ -165,12 +140,14 @@ internal sealed class DependencyTrackingContext
     /// </remarks>
     public void TrackTaxonomy(string? taxonomyGroup)
     {
-        var dependencyKey = CacheDependencyKeyBuilder.BuildTaxonomyDependencyKey(taxonomyGroup);
-        if (dependencyKey is null)
+        if (!string.IsNullOrWhiteSpace(taxonomyGroup))
         {
-            return;
+            Add(DeliveryCacheDependencies.ForTaxonomy(taxonomyGroup));
         }
+    }
 
+    private void Add(string dependencyKey)
+    {
         lock (_lock)
         {
             _dependencies.Add(dependencyKey);

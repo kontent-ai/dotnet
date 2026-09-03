@@ -39,6 +39,10 @@ public static class DeliveryCacheDependencies
     const String ItemsListScope = scope_items_list
     const String TaxonomiesListScope = scope_taxonomies_list
     const String TypesListScope = scope_types_list
+    static String ForAsset(Guid id)
+    static String ForItem(String codename)
+    static String ForTaxonomy(String codename)
+    static String ForType(String codename)
 
 // Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheOptions

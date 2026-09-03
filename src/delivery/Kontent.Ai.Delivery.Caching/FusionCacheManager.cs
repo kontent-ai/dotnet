@@ -408,9 +408,12 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             return true;
         }
 
-        var validKeys = Array.TrueForAll(dependencyKeys, k => !string.IsNullOrWhiteSpace(k))
-            ? dependencyKeys
-            : dependencyKeys.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
+        // Tags are compared ordinally and the SDK composes them lower-case; a key that arrives in another
+        // casing - copied from a webhook payload, say - would otherwise silently match nothing.
+        var validKeys = dependencyKeys
+            .Where(k => !string.IsNullOrWhiteSpace(k))
+            .Select(k => k.Trim().ToLowerInvariant())
+            .ToArray();
 
         if (_logger is not null && validKeys.Length > 0)
             LoggerMessages.CacheInvalidateStarting(_logger, validKeys.Length);
