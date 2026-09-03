@@ -1009,6 +1009,24 @@ public class MemoryCacheManagerTests : IDisposable
 
     #endregion
 
+    [Fact]
+    public async Task SizeLimitedMemoryCache_WritesInvalidatesAndPurges()
+    {
+        // The application's memory cache may carry a size limit, and a cache with one refuses entries that
+        // declare no size - so every entry the manager writes declares one, tag entries included.
+        using var cache = new MemoryCache(new MemoryCacheOptions { SizeLimit = 1000 });
+        using var manager = new MemoryCacheManager(cache, new DeliveryCacheOptions());
+
+        await PopulateCache(manager, "sized_key", new TestCacheValue { Id = 1, Name = "Sized" }, ["dep1"]);
+        Assert.False(await IsFactoryCalledAsync(manager, "sized_key"));
+
+        await manager.InvalidateAsync(["dep1"]);
+        Assert.True(await IsFactoryCalledAsync(manager, "sized_key"));
+
+        await ((IDeliveryCachePurger)manager).PurgeAsync();
+        Assert.True(await IsFactoryCalledAsync(manager, "sized_key"));
+    }
+
     #region Jitter Tests
 
     [Fact]

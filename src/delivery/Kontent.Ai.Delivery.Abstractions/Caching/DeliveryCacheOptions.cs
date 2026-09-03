@@ -17,6 +17,10 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// <b>Jitter</b> randomizes the expiration time of cache entries to prevent the
 /// "thundering herd" problem where many entries expire simultaneously.
 /// </para>
+/// <para>
+/// Under a memory cache with a <c>SizeLimit</c>, every entry the SDK writes counts as one unit, so the
+/// limit bounds the number of cached responses rather than their bytes.
+/// </para>
 /// </remarks>
 public sealed class DeliveryCacheOptions
 {

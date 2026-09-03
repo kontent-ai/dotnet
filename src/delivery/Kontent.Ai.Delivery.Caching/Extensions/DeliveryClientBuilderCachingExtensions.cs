@@ -6,6 +6,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace Kontent.Ai.Delivery;
 
@@ -94,7 +95,8 @@ public static class DeliveryClientBuilderCachingExtensions
             sp.GetRequiredService<IMemoryCache>(),
             cacheOptionsFactory(sp),
             sp.GetService<ILogger<MemoryCacheManager>>(),
-            EnvironmentIdOf(sp, builder.Name)));
+            EnvironmentIdOf(sp, builder.Name),
+            sp.GetService<ILogger<FusionCache>>()));
     }
 
     private static IDeliveryClientBuilder UseHybridCacheCore(IDeliveryClientBuilder builder, Func<IServiceProvider, DeliveryCacheOptions> cacheOptionsFactory)
@@ -105,7 +107,10 @@ public static class DeliveryClientBuilderCachingExtensions
             // Registered by the consumer the usual FusionCache way, e.g.
             // services.AddFusionCacheStackExchangeRedisBackplane(...).
             backplane: sp.GetService<IFusionCacheBackplane>(),
-            environmentId: EnvironmentIdOf(sp, builder.Name)));
+            environmentId: EnvironmentIdOf(sp, builder.Name),
+            // FusionCache's own diagnostics: a distributed cache it worked around, a backplane publish
+            // that failed, a background refresh that threw. Without it those are silent.
+            fusionCacheLogger: sp.GetService<ILogger<FusionCache>>()));
 
     private static IDeliveryClientBuilder RegisterCacheManager(IDeliveryClientBuilder builder, Func<IServiceProvider, IDeliveryCacheManager> createCacheManager)
     {
