@@ -127,6 +127,26 @@ public class HybridCacheManagerTests
     }
 
     [Fact]
+    public async Task PurgeAsync_OverASharedDistributedCache_LeavesTheOtherClientsEntriesAlone()
+    {
+        // The purge marker lives in the shared tier under the purging client's prefix, so the other client
+        // never reads it - not even on a node of its own that has yet to read anything, which is the node
+        // that would go to the shared tier for it.
+        var shared = new MockDistributedCache();
+        var a = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "a" });
+        var b = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
+        await PopulateCache("k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"], a);
+        await PopulateCache("k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"], b);
+
+        await ((IDeliveryCachePurger)a).PurgeAsync();
+
+        var freshNodeOfB = new HybridCacheManager(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
+        Assert.False(await IsFactoryCalledAsync("k", freshNodeOfB));
+        Assert.False(await IsFactoryCalledAsync("k", b));
+        Assert.True(await IsFactoryCalledAsync("k", a));
+    }
+
+    [Fact]
     public async Task GetOrSetAsync_OverwritesCachedValue_OnNextMiss()
     {
         var value1 = new TestCacheValue { Id = 1, Name = "First" };
