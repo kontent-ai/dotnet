@@ -20,8 +20,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     private readonly IFusionCache _cache;
     private readonly CacheStorageMode _storageMode;
     private readonly TimeSpan _defaultExpiration;
-    private readonly Func<string, string> _cacheKeyFormatter;
-    private readonly Func<string, string> _dependencyTagFormatter;
+    private readonly string _keyPrefix;
     private readonly ILogger? _logger;
     private readonly FusionCacheEntryOptions _baseWriteOptions;
     private readonly ConcurrentDictionary<string, byte> _failSafeActiveKeys = new(StringComparer.Ordinal);
@@ -42,6 +41,15 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// </summary>
     private const long EntrySize = 1;
 
+    /// <summary>
+    /// The shape of what the distributed tier stores, as a key segment. A Redis outlives a deployment, so
+    /// an entry written by the previous version of the SDK is read by the next one; a key that names the
+    /// shape lets that read miss instead of failing to deserialize. Bump it whenever a cached type -
+    /// <see cref="CacheEnvelope{T}"/>, <c>CachedRawItemsPayload</c>, a wire model - or FusionCache's own
+    /// distributed entry format changes.
+    /// </summary>
+    private const string DistributedFormatVersion = "v1:";
+
     private readonly EventHandler<FusionCacheEntryEventArgs> _failSafeActivateHandler;
     private readonly EventHandler<FusionCacheEntryEventArgs> _factorySuccessHandler;
     private readonly EventHandler<FusionCacheEntryHitEventArgs> _hitHandler;
@@ -53,16 +61,14 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         IFusionCache cache,
         CacheStorageMode storageMode,
         TimeSpan defaultExpiration,
-        Func<string, string> cacheKeyFormatter,
-        Func<string, string> dependencyTagFormatter,
+        string keyPrefix,
         ILogger? logger,
         FusionCacheEntryOptions baseWriteOptions)
     {
         _cache = cache;
         _storageMode = storageMode;
         _defaultExpiration = defaultExpiration;
-        _cacheKeyFormatter = cacheKeyFormatter;
-        _dependencyTagFormatter = dependencyTagFormatter;
+        _keyPrefix = keyPrefix;
         _logger = logger;
         _baseWriteOptions = baseWriteOptions;
 
@@ -75,7 +81,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     }
 
     /// <summary>
-    /// Builds the segment every cache key and dependency tag is prefixed with.
+    /// Builds the segment this client's cache lives under. It goes to FusionCache as its
+    /// <see cref="FusionCacheOptions.CacheKeyPrefix"/>, so every key FusionCache stores carries it - the
+    /// entries, the tag data an invalidation writes, and the marker a purge writes - and two clients
+    /// sharing one store cannot reach each other's, purges included.
     /// </summary>
     /// <remarks>
     /// The environment id is part of it because a cache store can outlive the process and be shared: two
@@ -90,6 +99,13 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         return parts.Any() ? $"{string.Join(':', parts)}:" : string.Empty;
     }
 
+    /// <summary>
+    /// Names the FusionCache instance, and through it the backplane channel: clients on different
+    /// environments must not share one, or every node hears every other environment's notifications.
+    /// </summary>
+    private static string ComposeCacheName(string tier, string keyPrefix)
+        => $"KontentDelivery.{tier}.{(keyPrefix.Length == 0 ? "Default" : keyPrefix.TrimEnd(':'))}";
+
     public static FusionCacheManager CreateMemory(
         IMemoryCache memoryCache,
         DeliveryCacheOptions cacheOptions,
@@ -100,12 +116,12 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         ArgumentNullException.ThrowIfNull(memoryCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
-        var keyPrefix = cacheOptions.KeyPrefix;
-        var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
+        var keyPrefix = ComposeKeyPrefix(cacheOptions.KeyPrefix, environmentId);
 
         var fusionCacheOptions = new FusionCacheOptions
         {
-            CacheName = $"KontentDelivery.Memory.{(string.IsNullOrWhiteSpace(keyPrefix) ? "Default" : keyPrefix)}",
+            CacheName = ComposeCacheName("Memory", keyPrefix),
+            CacheKeyPrefix = keyPrefix,
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
             // Required for deterministic fail-safe source propagation in query builders.
             EnableSyncEventHandlersExecution = true,
@@ -124,8 +140,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             fusion,
             CacheStorageMode.HydratedObject,
             cacheOptions.DefaultExpiration,
-            cacheKey => $"{prefixSegment}{cacheKey}",
-            dependency => $"{prefixSegment}{dependency}",
+            fusionCacheOptions.CacheKeyPrefix ?? string.Empty,
             logger,
             WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: true));
     }
@@ -152,12 +167,15 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         ArgumentNullException.ThrowIfNull(distributedCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
-        var keyPrefix = cacheOptions.KeyPrefix;
-        var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
+        var keyPrefix = ComposeKeyPrefix(cacheOptions.KeyPrefix, environmentId);
 
         var fusionCacheOptions = new FusionCacheOptions
         {
-            CacheName = $"KontentDelivery.Hybrid.{(string.IsNullOrWhiteSpace(keyPrefix) ? "Default" : keyPrefix)}",
+            CacheName = ComposeCacheName("Hybrid", keyPrefix),
+            // The version sits inside the prefix so that FusionCache's own keys carry it too.
+            CacheKeyPrefix = keyPrefix + DistributedFormatVersion,
+            // FusionCache would otherwise version the distributed keys itself; DistributedFormatVersion
+            // covers its wire format as well, and keeps the keys readable.
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
             // Required for deterministic fail-safe source propagation in query builders.
             EnableSyncEventHandlersExecution = true,
@@ -193,8 +211,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             fusion,
             CacheStorageMode.RawJson,
             cacheOptions.DefaultExpiration,
-            cacheKey => $"{prefixSegment}cache:{cacheKey}",
-            dependency => $"{prefixSegment}dep:{dependency}",
+            fusionCacheOptions.CacheKeyPrefix ?? string.Empty,
             logger,
             WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: false));
     }
@@ -307,7 +324,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             return new CacheResult<T>(entry.Value, deps) { FromFactory = true };
         }
 
-        var formattedKey = _cacheKeyFormatter(cacheKey);
+        var formattedKey = _keyPrefix + cacheKey;
 
         // The only reliable way to tell whether the value we get back was produced by *this* call:
         // FusionCache runs the factory on a background thread for eager refresh while returning the
@@ -318,7 +335,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         try
         {
             var envelope = await _cache.GetOrSetAsync<CacheEnvelope<T>>(
-                formattedKey,
+                cacheKey,
                 async (ctx, ct) =>
                 {
                     var factoryResult = await factory(ct).ConfigureAwait(false);
@@ -333,14 +350,14 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
                     }
 
                     // Dependency keys serve two purposes:
-                    // 1. FusionCache tags (formatted via _dependencyTagFormatter) — used for cache invalidation.
+                    // 1. FusionCache tags — used for cache invalidation.
                     // 2. Stored in CacheEnvelope alongside the value — surfaced to consumers via CacheResult<T>.
                     var deps = factoryResult.Dependencies
                         .Where(d => !string.IsNullOrWhiteSpace(d))
                         .Distinct(StringComparer.OrdinalIgnoreCase)
                         .ToArray();
 
-                    ctx.Tags = Array.ConvertAll(deps, _dependencyTagFormatter.Invoke);
+                    ctx.Tags = deps;
                     ctx.Options.Duration = expiration ?? _defaultExpiration;
                     _failSafeActiveKeys.TryRemove(formattedKey, out var _);
                     _failSafeActiveKeys.TryRemove(cacheKey, out var _);
@@ -362,7 +379,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             // Opting out of fail-safe keeps the stale copy in the store, where the next call with
             // fail-safe on would find it - so it goes explicitly.
             _failSafeActiveKeys.TryRemove(formattedKey, out var _);
-            await _cache.RemoveAsync(formattedKey, _baseWriteOptions, cancellationToken).ConfigureAwait(false);
+            await _cache.RemoveAsync(cacheKey, _baseWriteOptions, cancellationToken).ConfigureAwait(false);
             return null;
         }
         catch
@@ -402,7 +419,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         {
             // No options: FusionCache then uses TagsDefaultEntryOptions, which ConfigureTagEntries set up.
             await _cache.RemoveByTagAsync(
-                    validKeys.Select(_dependencyTagFormatter),
+                    validKeys,
                     options: null,
                     cancellationToken)
                 .ConfigureAwait(false);
@@ -458,7 +475,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         }
 
         return _failSafeActiveKeys.ContainsKey(cacheKey)
-            || _failSafeActiveKeys.ContainsKey(_cacheKeyFormatter(cacheKey));
+            || _failSafeActiveKeys.ContainsKey(_keyPrefix + cacheKey);
     }
 
     public void Dispose()

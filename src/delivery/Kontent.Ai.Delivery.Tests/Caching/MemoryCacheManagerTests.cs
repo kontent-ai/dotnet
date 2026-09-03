@@ -224,6 +224,24 @@ public class MemoryCacheManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task PurgeAsync_OverASharedMemoryCache_LeavesTheOtherClientsEntriesAlone()
+    {
+        // The purge marker is a key of FusionCache's own. It carries the client's prefix like everything
+        // else FusionCache stores for that client, so another client sharing the memory cache never reads it.
+        using var sharedCache = new MemoryCache(new MemoryCacheOptions());
+        using var a = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "a" });
+        using var b = new MemoryCacheManager(sharedCache, new DeliveryCacheOptions { KeyPrefix = "b" });
+
+        await PopulateCache(a, "k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"]);
+        await PopulateCache(b, "k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"]);
+
+        await ((IDeliveryCachePurger)a).PurgeAsync();
+
+        Assert.True(await IsFactoryCalledAsync(a, "k"));
+        Assert.False(await IsFactoryCalledAsync(b, "k"));
+    }
+
+    [Fact]
     public async Task PurgeAsync_DoesNotAffectEntriesCreatedAfterPurge()
     {
         await PopulateCache("old", new TestCacheValue { Id = 1, Name = "Old" }, ["dep"]);
