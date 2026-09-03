@@ -24,7 +24,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     private readonly Func<string, string> _dependencyTagFormatter;
     private readonly ILogger? _logger;
     private readonly FusionCacheEntryOptions _baseWriteOptions;
-    private readonly FusionCacheEntryOptions _baseInvalidateOptions;
     private readonly ConcurrentDictionary<string, byte> _failSafeActiveKeys = new(StringComparer.Ordinal);
 
     /// <summary>
@@ -35,6 +34,14 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// not correctness) and stale entries will be re-tracked on the next stale hit.
     /// </summary>
     private const int FailSafeTrackingCapacity = 10_000;
+
+    /// <summary>
+    /// What every entry weighs under a <see cref="MemoryCacheOptions.SizeLimit"/>. The application's
+    /// memory cache may have one, and a cache with a limit refuses any entry that declares no size - so
+    /// every entry the SDK writes, tag-expiration entries included, declares this one.
+    /// </summary>
+    private const long EntrySize = 1;
+
     private readonly EventHandler<FusionCacheEntryEventArgs> _failSafeActivateHandler;
     private readonly EventHandler<FusionCacheEntryEventArgs> _factorySuccessHandler;
     private readonly EventHandler<FusionCacheEntryHitEventArgs> _hitHandler;
@@ -49,8 +56,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         Func<string, string> cacheKeyFormatter,
         Func<string, string> dependencyTagFormatter,
         ILogger? logger,
-        FusionCacheEntryOptions baseWriteOptions,
-        FusionCacheEntryOptions baseInvalidateOptions)
+        FusionCacheEntryOptions baseWriteOptions)
     {
         _cache = cache;
         _storageMode = storageMode;
@@ -59,7 +65,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         _dependencyTagFormatter = dependencyTagFormatter;
         _logger = logger;
         _baseWriteOptions = baseWriteOptions;
-        _baseInvalidateOptions = baseInvalidateOptions;
 
         _failSafeActivateHandler = HandleFailSafeActivate;
         _factorySuccessHandler = HandleFactorySuccess;
@@ -95,19 +100,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         ArgumentNullException.ThrowIfNull(memoryCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
-        var effectiveExpiration = cacheOptions.DefaultExpiration;
         var keyPrefix = cacheOptions.KeyPrefix;
         var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
-
-        var defaultEntryOptions = new FusionCacheEntryOptions
-        {
-            AllowBackgroundDistributedCacheOperations = false,
-            AllowBackgroundBackplaneOperations = false,
-            ReThrowDistributedCacheExceptions = false,
-            ReThrowSerializationExceptions = true,
-            ReThrowBackplaneExceptions = false
-        };
-        ApplyCachePolicy(defaultEntryOptions, cacheOptions, effectiveExpiration);
 
         var fusionCacheOptions = new FusionCacheOptions
         {
@@ -115,9 +109,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
             // Required for deterministic fail-safe source propagation in query builders.
             EnableSyncEventHandlersExecution = true,
-            DefaultEntryOptions = defaultEntryOptions
+            DefaultEntryOptions = EntryDefaults(cacheOptions, memoryOnly: true)
         };
-        fusionCacheOptions.TagsDefaultEntryOptions.Size = EntrySize;
+        ConfigureTagEntries(fusionCacheOptions.TagsDefaultEntryOptions, memoryOnly: true);
 
         cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
 
@@ -126,38 +120,14 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             memoryCache,
             fusionCacheLogger);
 
-        var baseWriteOptions = new FusionCacheEntryOptions
-        {
-            SkipDistributedCacheRead = true,
-            SkipDistributedCacheWrite = true,
-            ReThrowDistributedCacheExceptions = false,
-            ReThrowSerializationExceptions = true,
-            ReThrowBackplaneExceptions = false,
-            AllowBackgroundBackplaneOperations = false,
-            AllowBackgroundDistributedCacheOperations = false
-        };
-        ApplyCachePolicy(baseWriteOptions, cacheOptions, effectiveExpiration);
-
         return new FusionCacheManager(
             fusion,
             CacheStorageMode.HydratedObject,
-            effectiveExpiration,
+            cacheOptions.DefaultExpiration,
             cacheKey => $"{prefixSegment}{cacheKey}",
             dependency => $"{prefixSegment}{dependency}",
             logger,
-            baseWriteOptions: baseWriteOptions,
-            baseInvalidateOptions: new FusionCacheEntryOptions
-            {
-                IsFailSafeEnabled = false,
-                Size = EntrySize,
-                SkipDistributedCacheRead = true,
-                SkipDistributedCacheWrite = true,
-                ReThrowDistributedCacheExceptions = false,
-                ReThrowSerializationExceptions = false,
-                ReThrowBackplaneExceptions = false,
-                AllowBackgroundBackplaneOperations = false,
-                AllowBackgroundDistributedCacheOperations = false
-            });
+            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: true));
     }
 
     /// <summary>
@@ -182,19 +152,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         ArgumentNullException.ThrowIfNull(distributedCache);
         ArgumentNullException.ThrowIfNull(cacheOptions);
 
-        var effectiveExpiration = cacheOptions.DefaultExpiration;
         var keyPrefix = cacheOptions.KeyPrefix;
         var prefixSegment = ComposeKeyPrefix(keyPrefix, environmentId);
-
-        var defaultEntryOptions = new FusionCacheEntryOptions
-        {
-            AllowBackgroundDistributedCacheOperations = false,
-            AllowBackgroundBackplaneOperations = false,
-            ReThrowDistributedCacheExceptions = false,
-            ReThrowSerializationExceptions = true,
-            ReThrowBackplaneExceptions = false
-        };
-        ApplyCachePolicy(defaultEntryOptions, cacheOptions, effectiveExpiration);
 
         var fusionCacheOptions = new FusionCacheOptions
         {
@@ -206,9 +165,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             // breaker is open the memory tier and the origin carry the load, and FusionCache re-syncs the
             // distributed tier when it comes back.
             DistributedCacheCircuitBreakerDuration = TimeSpan.FromSeconds(2),
-            DefaultEntryOptions = defaultEntryOptions
+            DefaultEntryOptions = EntryDefaults(cacheOptions, memoryOnly: false)
         };
-        fusionCacheOptions.TagsDefaultEntryOptions.Size = EntrySize;
+        ConfigureTagEntries(fusionCacheOptions.TagsDefaultEntryOptions, memoryOnly: false);
 
         cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
 
@@ -230,37 +189,98 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             fusion.SetupBackplane(backplane);
         }
 
-        // A distributed-cache failure is worked around - the factory or the memory tier answers and
-        // FusionCache logs it - rather than thrown out of every cached query. A serialization failure is
-        // still thrown: that is a defect in the SDK's own payloads, and hiding it would hide the defect.
-        var baseWriteOptions = new FusionCacheEntryOptions
-        {
-            ReThrowDistributedCacheExceptions = false,
-            ReThrowSerializationExceptions = true,
-            ReThrowBackplaneExceptions = false,
-            AllowBackgroundBackplaneOperations = false,
-            AllowBackgroundDistributedCacheOperations = false
-        };
-        ApplyCachePolicy(baseWriteOptions, cacheOptions, effectiveExpiration);
-
         return new FusionCacheManager(
             fusion,
             CacheStorageMode.RawJson,
-            effectiveExpiration,
+            cacheOptions.DefaultExpiration,
             cacheKey => $"{prefixSegment}cache:{cacheKey}",
             dependency => $"{prefixSegment}dep:{dependency}",
             logger,
-            baseWriteOptions: baseWriteOptions,
-            baseInvalidateOptions: new FusionCacheEntryOptions
-            {
-                IsFailSafeEnabled = false,
-                Size = EntrySize,
-                ReThrowDistributedCacheExceptions = false,
-                ReThrowSerializationExceptions = false,
-                ReThrowBackplaneExceptions = false,
-                AllowBackgroundBackplaneOperations = false,
-                AllowBackgroundDistributedCacheOperations = false
-            });
+            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: false));
+    }
+
+    /// <summary>
+    /// The entry options the SDK starts from. They are what the consumer's
+    /// <see cref="DeliveryCacheOptions.ConfigureFusionCacheOptions"/> callback sees as
+    /// <see cref="FusionCacheOptions.DefaultEntryOptions"/>, and every write starts from whatever the
+    /// callback leaves there.
+    /// </summary>
+    private static FusionCacheEntryOptions EntryDefaults(DeliveryCacheOptions cacheOptions, bool memoryOnly)
+    {
+        var options = new FusionCacheEntryOptions
+        {
+            Size = EntrySize,
+            AllowBackgroundDistributedCacheOperations = false,
+            AllowBackgroundBackplaneOperations = false
+        };
+
+        return Pin(options, cacheOptions, memoryOnly);
+    }
+
+    /// <summary>
+    /// The options every write passes: the consumer's <see cref="FusionCacheOptions.DefaultEntryOptions"/>
+    /// after the callback ran, with what the SDK decides re-applied on top. Anything else set there - a
+    /// <see cref="FusionCacheEntryOptions.Size"/>, background backplane operations, a distributed-cache
+    /// timeout - reaches the SDK's reads and writes.
+    /// </summary>
+    private static FusionCacheEntryOptions WriteOptions(FusionCacheOptions fusionCacheOptions, DeliveryCacheOptions cacheOptions, bool memoryOnly)
+        => Pin(fusionCacheOptions.DefaultEntryOptions.Duplicate(), cacheOptions, memoryOnly);
+
+    /// <summary>
+    /// What the SDK decides regardless of the consumer's entry options: the tier skips in memory mode,
+    /// which failures are thrown, and the timing and fail-safe policy that
+    /// <see cref="DeliveryCacheOptions"/> owns.
+    /// </summary>
+    /// <remarks>
+    /// A distributed-cache failure is worked around - the factory or the memory tier answers and
+    /// FusionCache logs it - rather than thrown out of every cached query. A serialization failure is
+    /// still thrown: that is a defect in the SDK's own payloads, and hiding it would hide the defect.
+    /// </remarks>
+    private static FusionCacheEntryOptions Pin(FusionCacheEntryOptions options, DeliveryCacheOptions cacheOptions, bool memoryOnly)
+    {
+        options.SkipDistributedCacheRead = memoryOnly;
+        options.SkipDistributedCacheWrite = memoryOnly;
+        options.ReThrowDistributedCacheExceptions = false;
+        options.ReThrowSerializationExceptions = true;
+        options.ReThrowBackplaneExceptions = false;
+
+        options.Duration = cacheOptions.DefaultExpiration;
+        options.IsFailSafeEnabled = cacheOptions.IsFailSafeEnabled;
+        options.FailSafeMaxDuration = cacheOptions.FailSafeMaxDuration;
+        options.FailSafeThrottleDuration = cacheOptions.FailSafeThrottleDuration;
+        options.JitterMaxDuration = cacheOptions.JitterMaxDuration;
+
+        if (cacheOptions.EagerRefreshThreshold > 0)
+        {
+            options.EagerRefreshThreshold = cacheOptions.EagerRefreshThreshold;
+        }
+
+        return options;
+    }
+
+    /// <summary>
+    /// The options <c>RemoveByTag</c> and <c>Clear</c> run with, which is what the tag-expiration entries
+    /// they write are stored with.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="FusionCacheEntryOptions.Duration"/> is deliberately left at FusionCache's own
+    /// default for tag data, ten days: it is how long an invalidation is remembered for an entry that
+    /// has not been read since, so it has to outlive every entry it could apply to. Passing write options
+    /// here instead would store the tag data for the entries' duration - with a bare
+    /// <c>FusionCacheEntryOptions</c>, for thirty seconds - and a webhook's invalidation would be
+    /// forgotten before a quiet entry was next read.
+    /// </remarks>
+    private static void ConfigureTagEntries(FusionCacheEntryOptions tagOptions, bool memoryOnly)
+    {
+        tagOptions.Size = EntrySize;
+        tagOptions.IsFailSafeEnabled = false;
+        tagOptions.SkipDistributedCacheRead = memoryOnly;
+        tagOptions.SkipDistributedCacheWrite = memoryOnly;
+        tagOptions.ReThrowDistributedCacheExceptions = false;
+        tagOptions.ReThrowSerializationExceptions = false;
+        tagOptions.ReThrowBackplaneExceptions = false;
+        tagOptions.AllowBackgroundDistributedCacheOperations = false;
+        tagOptions.AllowBackgroundBackplaneOperations = false;
     }
 
     public CacheStorageMode StorageMode => _storageMode;
@@ -342,7 +362,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             // Opting out of fail-safe keeps the stale copy in the store, where the next call with
             // fail-safe on would find it - so it goes explicitly.
             _failSafeActiveKeys.TryRemove(formattedKey, out var _);
-            await _cache.RemoveAsync(formattedKey, _baseInvalidateOptions, cancellationToken).ConfigureAwait(false);
+            await _cache.RemoveAsync(formattedKey, _baseWriteOptions, cancellationToken).ConfigureAwait(false);
             return null;
         }
         catch
@@ -380,9 +400,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         try
         {
+            // No options: FusionCache then uses TagsDefaultEntryOptions, which ConfigureTagEntries set up.
             await _cache.RemoveByTagAsync(
                     validKeys.Select(_dependencyTagFormatter),
-                    _baseInvalidateOptions,
+                    options: null,
                     cancellationToken)
                 .ConfigureAwait(false);
 
@@ -416,7 +437,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         await _cache.ClearAsync(
                 allowFailSafe,
-                _baseInvalidateOptions,
+                options: null,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -451,35 +472,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
     private void ThrowIfDisposed() =>
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeState) != 0, nameof(FusionCacheManager));
-
-    /// <summary>
-    /// What every entry weighs under a <see cref="MemoryCacheOptions.SizeLimit"/>. The application's
-    /// memory cache may have one, and a cache with a limit refuses any entry that declares no size - so
-    /// every entry the SDK writes, tag-expiration entries included, declares this one.
-    /// </summary>
-    private const long EntrySize = 1;
-
-    /// <summary>
-    /// Applies fail-safe, jitter, and eager-refresh policy from <see cref="DeliveryCacheOptions"/>
-    /// to a <see cref="FusionCacheEntryOptions"/> instance.
-    /// </summary>
-    private static void ApplyCachePolicy(
-        FusionCacheEntryOptions options,
-        DeliveryCacheOptions cacheOptions,
-        TimeSpan duration)
-    {
-        options.Size = EntrySize;
-        options.Duration = duration;
-        options.IsFailSafeEnabled = cacheOptions.IsFailSafeEnabled;
-        options.FailSafeMaxDuration = cacheOptions.FailSafeMaxDuration;
-        options.FailSafeThrottleDuration = cacheOptions.FailSafeThrottleDuration;
-        options.JitterMaxDuration = cacheOptions.JitterMaxDuration;
-
-        if (cacheOptions.EagerRefreshThreshold > 0)
-        {
-            options.EagerRefreshThreshold = cacheOptions.EagerRefreshThreshold;
-        }
-    }
 
     private void SubscribeFailSafeStateEvents()
     {
