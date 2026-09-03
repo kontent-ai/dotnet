@@ -424,6 +424,18 @@ public class MemoryCacheManagerTests : IDisposable
         Assert.True(await IsFactoryCalledAsync("key"));
     }
 
+    [Fact]
+    public async Task InvalidateAsync_MatchesKeysCaseInsensitively()
+    {
+        // The SDK tags lower-case; a webhook handler that copies a codename from a payload in another
+        // casing must still evict.
+        await PopulateCache("hero", new TestCacheValue { Id = 1, Name = "Hero" }, [DeliveryCacheDependencies.ForItem("hero")]);
+
+        await _cacheManager.InvalidateAsync(["ITEM_HERO"]);
+
+        Assert.True(await IsFactoryCalledAsync("hero"));
+    }
+
     #endregion
 
     #region Concurrency Tests

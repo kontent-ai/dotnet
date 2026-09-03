@@ -44,7 +44,7 @@ public class DependencyTrackingContextComponentTests
         ctx.TrackItemType(typeCodename);
 
         Assert.Single(ctx.Dependencies);
-        Assert.Contains($"type_{typeCodename}", ctx.Dependencies);
+        Assert.Contains($"type_{typeCodename.ToLowerInvariant()}", ctx.Dependencies);
     }
 
     [Theory]
