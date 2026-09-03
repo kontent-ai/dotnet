@@ -1075,13 +1075,15 @@ public class MemoryCacheManagerTests : IDisposable
         // outlive the entries it applies to. It is stored with TagsDefaultEntryOptions - ten days unless the
         // consumer shortens it, as this test does to make the lifetime observable - not with the write
         // options, whose duration would forget a webhook's invalidation long before a quiet entry was read.
+        // The wait is the observation: a read while the tag data is live applies the invalidation and
+        // removes the entry, so there is nothing to poll.
         TimeSpan? handedToTheHook = null;
         using var cache = new MemoryCache(new MemoryCacheOptions());
         using var manager = FusionCacheManager.CreateMemory(cache, new DeliveryCacheOptions()
             .ConfigureFusionCache(fusion =>
             {
                 handedToTheHook = fusion.TagsDefaultEntryOptions.Duration;
-                fusion.TagsDefaultEntryOptions.Duration = TimeSpan.FromMilliseconds(200);
+                fusion.TagsDefaultEntryOptions.Duration = TimeSpan.FromMilliseconds(100);
             }));
 
         Assert.Equal(TimeSpan.FromDays(10), handedToTheHook);
