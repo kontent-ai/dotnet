@@ -891,7 +891,7 @@ services.AddDeliveryClient("brand-a", delivery => delivery.Options.Configure(opt
 
 **Problem**: Cached content from one client appears for another.
 
-**Solution**: Ensure each client uses its own cache namespace. The SDK does this with per-client key prefixes for named clients (or custom `keyPrefix` values when configured). If you change `EnvironmentId` on an already-cached client at runtime, purge cache or recreate the client.
+**Solution**: Ensure each client uses its own cache namespace. The SDK does this for you: every key lives under the client's `DeliveryCacheOptions.KeyPrefix` (the client's name unless you set one) and its environment id, and the prefix covers FusionCache's own bookkeeping too, so two clients sharing a store cannot reach each other's entries, invalidations or purges. If you change `EnvironmentId` on an already-cached client at runtime, purge cache or recreate the client.
 
 ---
 

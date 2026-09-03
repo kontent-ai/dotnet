@@ -1444,14 +1444,16 @@ Typed listing queries include synthetic scope dependencies:
 - `GetTypes()` → `DeliveryCacheDependencies.TypesListScope`
 - `GetTaxonomies()` → `DeliveryCacheDependencies.TaxonomiesListScope`
 
-When processing webhooks, invalidate both entity-specific keys and the relevant list scope key:
+When processing webhooks, invalidate both entity-specific keys and the relevant list scope key. `DeliveryCacheDependencies` composes the entity keys exactly as the SDK tags them, and the manager resolves unkeyed for the default client, keyed by name for a named one, and as `CacheManager` on a client from `DeliveryClient.Create`:
 
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
 
+var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();
+
 // Item events
 var itemDependencyKeys = webhookPayload.Data.Items
-    .Select(i => $"item_{i.Codename}")
+    .Select(i => DeliveryCacheDependencies.ForItem(i.Codename))
     .Append(DeliveryCacheDependencies.ItemsListScope)
     .ToArray();
 
@@ -1459,12 +1461,17 @@ await cacheManager.InvalidateAsync(itemDependencyKeys);
 
 // Type events
 await cacheManager.InvalidateAsync(
-    [$"type_{typeCodename}", DeliveryCacheDependencies.TypesListScope]);
+    [DeliveryCacheDependencies.ForType(typeCodename), DeliveryCacheDependencies.TypesListScope]);
 
 // Taxonomy events
 await cacheManager.InvalidateAsync(
-    [$"taxonomy_{taxonomyCodename}", DeliveryCacheDependencies.TaxonomiesListScope]);
+    [DeliveryCacheDependencies.ForTaxonomy(taxonomyCodename), DeliveryCacheDependencies.TaxonomiesListScope]);
+
+// Asset events
+await cacheManager.InvalidateAsync([DeliveryCacheDependencies.ForAsset(assetId)]);
 ```
+
+With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an answer from the origin - a `404` for an unpublished item, say - drops it.
 
 #### Purging the SDK Cache
 
@@ -1474,7 +1481,7 @@ Built-in cache managers support invalidating **all** cached entries at once via 
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-// Resolve cache manager for the client name used during registration.
+// A named client's manager is keyed by its name; the default client's resolves unkeyed as well.
 var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 if (cacheManager is IDeliveryCachePurger purger)
 {
