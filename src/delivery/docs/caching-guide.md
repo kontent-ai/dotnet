@@ -683,12 +683,17 @@ Resolve the manager first. The default client's resolves unkeyed, a named client
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
-var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();                // default client
-var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production"); // named client
-var cacheManager = standaloneClient.CacheManager;                                                // DeliveryClient.Create
+// The default client
+var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();
+
+// A named client
+var productionCacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
+
+// A client from DeliveryClient.Create owns its container, so the manager is on the client
+var standaloneCacheManager = standaloneClient.CacheManager;
 ```
 
-Then invalidate specific content:
+Then invalidate specific content (shown for the default client's manager):
 
 ```csharp
 // Invalidate a specific item
