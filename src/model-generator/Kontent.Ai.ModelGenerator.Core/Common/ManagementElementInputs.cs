@@ -33,8 +33,9 @@ public sealed record UrlSlugElementInput(string Codename, string Id)
     : ManagementElementInput(Codename, Id);
 
 /// <summary>
-/// Multiple-choice element (single- and multi-select alike) → <c>IEnumerable&lt;TEnum&gt;?</c>; the
-/// wire value is always an array of option references.
+/// Multiple-choice element. A multi-select one projects to <c>IEnumerable&lt;TEnum&gt;?</c>, a single-select
+/// one to <c>TEnum?</c>; the wire value is an array of option references either way, and the Management SDK's
+/// converter wraps and unwraps the single value.
 /// <para>
 /// <see cref="EnumTypeName"/> is set by the orchestrator (typically <c>{ContentTypeClassName}{PascalElementCodename}</c>)
 /// so the same multiple-choice element on two content types produces two distinct, collision-free enum types.
@@ -44,7 +45,8 @@ public sealed record MultipleChoiceElementInput(
     string Codename,
     string Id,
     string EnumTypeName,
-    System.Collections.Generic.IReadOnlyList<MultipleChoiceOptionInput> Options)
+    System.Collections.Generic.IReadOnlyList<MultipleChoiceOptionInput> Options,
+    Kontent.Ai.Management.Models.Types.Elements.MultipleChoiceMode Mode = Kontent.Ai.Management.Models.Types.Elements.MultipleChoiceMode.Multiple)
     : ManagementElementInput(Codename, Id);
 
 /// <summary>A single option of a multiple-choice element.</summary>

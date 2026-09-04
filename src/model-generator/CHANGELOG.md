@@ -17,6 +17,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   `DeliveryCodeGenerator` and `ManagementCodeGenerator` lose the corresponding constructor parameters — `classDefinitionFactory` from both, and `elementService` from the management one. Anything resolving these generators from the container is unaffected; only code constructing them by hand needs the arguments removed.
 
+### Changed
+
+- **A single-choice element generates `TEnum?`.** The Management emitter read a multiple-choice element's options but not its `mode`, so a single-select element came out as `IEnumerable<TEnum>?` like a multi-select one, and every read or write went through a one-element list. The mode now decides the property type: `TEnum?` for single, `IEnumerable<TEnum>?` for multiple. `MultipleChoiceElementInput` carries it as a trailing `Mode` parameter that defaults to multiple. Reading and writing the `TEnum?` shape needs the `Kontent.Ai.Management` release that ships alongside this one.
+
 ### Fixed
 
 - **The tool no longer ships the Visual Basic compiler.** `Microsoft.CodeAnalysis` is the meta-package; only the C# syntax and workspace formatting APIs are used, so it now references `Microsoft.CodeAnalysis.CSharp.Workspaces` directly.
