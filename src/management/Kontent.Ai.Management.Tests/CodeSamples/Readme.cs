@@ -83,7 +83,7 @@ public class Readme
         // Remove next line in codesample
         var (client, mock) = MockClientFactory.Create(ArticleConverter());
         // Remove next line in codesample
-        mock.Fallback.Respond("application/json", File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", SampleFolder, "ArticleLanguageVariantUpdatedResponse.json")));
+        mock.Fallback.Respond("application/json", File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", SampleFolder, "StronglyTypedArticleLanguageVariantUpdatedResponse.json")));
 
         var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "en-US");
 

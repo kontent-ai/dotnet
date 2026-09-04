@@ -325,6 +325,7 @@ var saved = await client.UpsertLanguageVariantAsync(identifier, edited);
 Key differences:
 
 - **Property types.** `string` for text, `decimal?` for number, `IEnumerable<Reference>` for linked items / taxonomy / subpages, `IEnumerable<AssetReference>` for assets. The ones that carry an extra field use a record: `RichTextValue` (HTML + inline `Components`), `DateTimeValue` (instant + `DisplayTimeZone`), `UrlSlugValue` (slug + `Mode`), `CustomValue` (value + `SearchableValue`). Each has an implicit conversion for the common case, so `Slug = "on-roasts"` and `PublishingDate = new DateTimeOffset(...)` work directly.
+- **Multiple choice is an enum.** The generator emits one enum per multiple-choice element: `IEnumerable<TEnum>?` where the element allows several options, `TEnum?` where it allows one.
 - **Immutability.** Properties are `init`-only. Use a `with` expression (or construct a fresh record) instead of assigning to `result.Value.Elements.X`.
 - **`RichTextElement` → `RichTextValue`** as the strongly-typed property type. (The *raw* element kind named `RichTextElement` still exists for the untyped path — see [§5](#5-authoring-elements-without-a-generated-model).)
 
@@ -343,6 +344,10 @@ Article elements = variant.Elements;
 Reference item = variant.Item;
 DateTime lastModified = variant.LastModified;
 ```
+
+The listings whose variants share one type — by item, by type, and the with-components listing — have the same `<T>` overloads, returning `IReadOnlyList<LanguageVariantModel<T>>` or a page of them. A variant from a mixed listing (by collection, by space) is projected with `client.ToTyped<Article>(variant)`.
+
+A typed read matches elements by id, so a record works only against the environment it was generated from; a response in which nothing matches throws `InvalidOperationException` rather than yielding an empty record.
 
 > [!TIP]
 > The model generator's Management-model output is in active development. Until it ships, hand-write the records or use the typed raw elements in [§5](#5-authoring-elements-without-a-generated-model).

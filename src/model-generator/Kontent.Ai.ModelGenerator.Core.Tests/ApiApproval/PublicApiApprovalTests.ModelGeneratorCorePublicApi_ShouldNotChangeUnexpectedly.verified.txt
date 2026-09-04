@@ -133,8 +133,9 @@ public sealed class ManagementProperty : Property
 
 // Kontent.Ai.ModelGenerator.Core.Common
 public sealed class MultipleChoiceElementInput : ManagementElementInput, IEquatable<MultipleChoiceElementInput>
-    .ctor(String Codename, String Id, String EnumTypeName, IReadOnlyList<MultipleChoiceOptionInput> Options)
+    .ctor(String Codename, String Id, String EnumTypeName, IReadOnlyList<MultipleChoiceOptionInput> Options, MultipleChoiceMode Mode)
     IReadOnlyList<MultipleChoiceOptionInput> Options { get; init; }
+    MultipleChoiceMode Mode { get; init; }
     String EnumTypeName { get; init; }
     Boolean Equals(ManagementElementInput? other)
     Boolean Equals(MultipleChoiceElementInput? other)
@@ -142,7 +143,7 @@ public sealed class MultipleChoiceElementInput : ManagementElementInput, IEquata
     Int32 GetHashCode()
     MultipleChoiceElementInput <Clone>$()
     String ToString()
-    Void Deconstruct(out String Codename, out String Id, out String EnumTypeName, out IReadOnlyList<MultipleChoiceOptionInput> Options)
+    Void Deconstruct(out String Codename, out String Id, out String EnumTypeName, out IReadOnlyList<MultipleChoiceOptionInput> Options, out MultipleChoiceMode Mode)
 
 // Kontent.Ai.ModelGenerator.Core.Common
 public sealed class MultipleChoiceOptionInput : IEquatable<MultipleChoiceOptionInput>

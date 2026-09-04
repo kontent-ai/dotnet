@@ -218,6 +218,18 @@ public class EnvelopeConverter_WriteTests
     }
 
     [Fact]
+    public void SingleChoice_WritesOneElementArray()
+    {
+        var banner = new Banner { Tone = BannerTone.Dark };
+
+        var envelopes = ParseEnvelopes(Converter.WriteEnvelopes(banner));
+
+        var values = envelopes["tone"].GetProperty("value");
+        values.GetArrayLength().Should().Be(1);
+        values[0].GetProperty("codename").GetString().Should().Be("dark");
+    }
+
+    [Fact]
     public void EnvelopeShape_KeyedByCodename()
     {
         var article = new Article { Title = "x" };

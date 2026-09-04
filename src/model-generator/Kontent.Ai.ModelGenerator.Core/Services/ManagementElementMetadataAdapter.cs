@@ -44,7 +44,8 @@ internal static class ManagementElementMetadataAdapter
                 EnumTypeName: BuildEnumTypeName(contentTypeClassName, Codename()),
                 Options: (mc.Options ?? []).Select(o => new MultipleChoiceOptionInput(
                     o.Codename ?? throw Missing("option codename", element),
-                    o.Id?.ToString() ?? throw Missing("option id", element))).ToList()),
+                    o.Id?.ToString() ?? throw Missing("option id", element))).ToList(),
+                Mode: mc.Mode),
             LinkedItemsElementMetadataModel => new LinkedItemsElementInput(Codename(), Id()),
             SubpagesElementMetadataModel => new SubpagesElementInput(Codename(), Id()),
             TaxonomyElementMetadataModel => new TaxonomyElementInput(Codename(), Id()),

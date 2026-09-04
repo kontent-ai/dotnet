@@ -1,3 +1,4 @@
+using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Helpers;
 
@@ -47,9 +48,14 @@ public static class ManagementElementService
                 nameof(input));
         }
 
+        // The wire carries an array either way; a single-select element is one option or none, and its property says so.
+        var typeName = input.Mode == MultipleChoiceMode.Single
+            ? $"{input.EnumTypeName}?"
+            : $"IEnumerable<{input.EnumTypeName}>?";
+
         var property = new ManagementProperty(
             input.Codename,
-            $"IEnumerable<{input.EnumTypeName}>?",
+            typeName,
             input.Id,
             [KontentElement(input.Codename, input.Id)]);
 
