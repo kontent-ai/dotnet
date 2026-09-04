@@ -1,3 +1,4 @@
+using Kontent.Ai.Management.Conversion;
 using Kontent.Ai.Management.Models.Assets;
 using Kontent.Ai.Management.Models.Items;
 using Kontent.Ai.Management.Models.LanguageVariants;
@@ -10,6 +11,42 @@ namespace Kontent.Ai.Management.Extensions;
 /// </summary>
 public static class ManagementClientExtensions
 {
+    /// <summary>
+    /// Projects a fetched variant onto the generated content-type record <typeparamref name="T"/>: the element
+    /// envelopes become the record, and the variant metadata is carried across. For a listing whose variants span
+    /// several content types - by collection or by space - this is how each is typed once its type is known; the
+    /// listings whose variants share one type have typed overloads of their own.
+    /// </summary>
+    /// <remarks>
+    /// Typed read is environment-bound — see <see cref="IManagementClient.GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>.
+    /// The projection resolves rich-text component types through the client's content-type registry; on an
+    /// <see cref="IManagementClient"/> that is not the SDK's, it scans <typeparamref name="T"/>'s assembly itself.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="client">The client whose content-type registry resolves component types.</param>
+    /// <param name="variant">The variant to project, as returned by any untyped variant call.</param>
+    /// <returns>The variant with its elements as <typeparamref name="T"/>.</returns>
+    /// <exception cref="InvalidOperationException">No element of <paramref name="variant"/> matches <typeparamref name="T"/>, or a component's type is not registered.</exception>
+    public static LanguageVariantModel<T> ToTyped<T>(this IManagementClient client, LanguageVariantModel variant)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(variant);
+
+        if (client is ManagementClient managementClient)
+        {
+            return managementClient.ToTypedVariant<T>(variant);
+        }
+
+        // A client that is not the SDK's has no registry to lend; one of this method's own, scanning the record's
+        // assembly the way a default client does, stands in.
+        var converter = FallbackConverter.Value;
+        converter.Registry.Scan(typeof(T).Assembly);
+        return LanguageVariantModel<T>.From(variant, converter.ReadEnvelopes<T>(variant.Elements));
+    }
+
+    private static readonly Lazy<ContentItemEnvelopeConverter> FallbackConverter = new(() => new ContentItemEnvelopeConverter());
+
     /// <summary>
     /// Creates or updates the content item from a fetched <see cref="ContentItemModel"/> — the server-owned
     /// metadata is dropped. Addressing by external id creates the item when it does not exist yet.

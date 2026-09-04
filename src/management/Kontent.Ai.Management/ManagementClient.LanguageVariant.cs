@@ -17,6 +17,15 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
+    public Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsByItemAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+
+        return ManagementApi.ListLanguageVariantsByItemInternalAsync(identifier.ToUrlSegment(), cancellationToken).ToManagementResultAsync(ToTypedVariants<T>);
+    }
+
+    /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsByTypeAsync(Reference identifier, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
@@ -25,6 +34,20 @@ public partial class ManagementClient
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
             (token, ct) => ManagementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
             page => page.Variants,
+            page => page.Pagination?.Token,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsByTypeAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+
+        var typeSegment = identifier.ToUrlSegment();
+        return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel<T>>(
+            (token, ct) => ManagementApi.ListLanguageVariantsByTypeInternalAsync(typeSegment, token, ct),
+            page => ToTypedVariants<T>(page.Variants),
             page => page.Pagination?.Token,
             cancellationToken);
     }
@@ -43,6 +66,16 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
+    public Task<IManagementResult<ListingPage<LanguageVariantModel<T>>>> ListLanguageVariantsByTypePageAsync<T>(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+
+        return ManagementApi.ListLanguageVariantsByTypeInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(ToTypedPage<T>);
+    }
+
+    /// <inheritdoc />
     public Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsAsync(Reference identifier, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(identifier);
@@ -51,6 +84,20 @@ public partial class ManagementClient
         return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel>(
             (token, ct) => ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
             page => page.Variants,
+            page => page.Pagination?.Token,
+            cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsOfContentTypeWithComponentsAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+
+        var typeSegment = identifier.ToUrlSegment();
+        return PageEnumerator.CollectAsync<LanguageVariantsListingResponseServerModel, LanguageVariantModel<T>>(
+            (token, ct) => ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(typeSegment, token, ct),
+            page => ToTypedVariants<T>(page.Variants),
             page => page.Pagination?.Token,
             cancellationToken);
     }
@@ -66,6 +113,16 @@ public partial class ManagementClient
                 Items = page.Variants,
                 ContinuationToken = page.Pagination?.Token,
             });
+    }
+
+    /// <inheritdoc />
+    public Task<IManagementResult<ListingPage<LanguageVariantModel<T>>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync<T>(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new()
+    {
+        ArgumentNullException.ThrowIfNull(identifier);
+
+        return ManagementApi.ListLanguageVariantsOfContentTypeWithComponentsInternalAsync(identifier.ToUrlSegment(), continuationToken, cancellationToken)
+            .ToManagementResultAsync(ToTypedPage<T>);
     }
 
     /// <inheritdoc />
@@ -193,18 +250,17 @@ public partial class ManagementClient
 
     // Projects a fetched variant onto the typed wrapper: raw elements become the generated record, the variant
     // metadata (item, language, workflow, …) that the response carries is preserved rather than discarded.
-    private LanguageVariantModel<T> ToTypedVariant<T>(LanguageVariantModel variant) where T : IElementsModel, new()
+    internal LanguageVariantModel<T> ToTypedVariant<T>(LanguageVariantModel variant) where T : IElementsModel, new()
+        => LanguageVariantModel<T>.From(variant, ProjectElements<T>(variant.Elements));
+
+    private IReadOnlyList<LanguageVariantModel<T>> ToTypedVariants<T>(IReadOnlyList<LanguageVariantModel> variants) where T : IElementsModel, new()
+        => [.. variants.Select(ToTypedVariant<T>)];
+
+    private ListingPage<LanguageVariantModel<T>> ToTypedPage<T>(LanguageVariantsListingResponseServerModel page) where T : IElementsModel, new()
         => new()
         {
-            Item = variant.Item,
-            Elements = ProjectElements<T>(variant.Elements),
-            Language = variant.Language,
-            LastModified = variant.LastModified,
-            Schedule = variant.Schedule,
-            Workflow = variant.Workflow,
-            DueDate = variant.DueDate,
-            Note = variant.Note,
-            Contributors = variant.Contributors,
+            Items = ToTypedVariants<T>(page.Variants),
+            ContinuationToken = page.Pagination?.Token,
         };
 
     // Projects a variant's element envelopes into a generated record via the content converter.
