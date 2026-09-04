@@ -615,11 +615,31 @@ Reference language = variant.Language;
 DateTime lastModified = variant.LastModified;
 ```
 
+The listings whose variants all share one content type take the same type parameter — `ListLanguageVariantsByItemAsync<T>`, `ListLanguageVariantsByTypeAsync<T>`, `ListLanguageVariantsOfContentTypeWithComponentsAsync<T>`, and the `…PageAsync<T>` page calls of the last two — and return a `LanguageVariantModel<T>` per variant:
+
+```csharp
+var articles = await client.ListLanguageVariantsByTypeAsync<Article>(Reference.ByCodename("article"));
+
+foreach (var variant in articles.Value)
+{
+    Console.WriteLine($"{variant.Language.Id}: {variant.Elements.Title}");
+}
+```
+
+A listing by collection or by space mixes content types, so it stays untyped. Once you know a variant's type, `ToTyped<T>` projects it — the same projection the typed calls apply, available for any fetched `LanguageVariantModel`:
+
+```csharp
+LanguageVariantModel<Article> article = client.ToTyped<Article>(variant);
+```
+
+> [!IMPORTANT]
+> A typed read matches elements by **id**, so a record works only against the environment it was generated from. A response in which no element matches the record throws `InvalidOperationException` rather than returning an empty record — that is a mismatch between the model and the environment, not an outcome of the call. Elements the record does not know are skipped, so a record generated before a content type gained an element keeps working. Writes key off codenames and are portable across environments.
+
 ### Element value types
 
 These value types are the strongly-typed-record counterpart to the raw [element kinds](#element-kinds), and the two are deliberately distinct rather than duplicated: a raw `*Element` (e.g. `CustomElement`) carries its own `Element` reference because it lives in the untyped `Elements[]` array, whereas a `*Value` (e.g. `CustomValue`) is *just* the value — on a generated record the property already identifies which element it is. Pick the family that matches your authoring path; you don't mix them.
 
-Many elements map directly to a single value, with nothing carried beside it — `string` for text, `decimal?` for number, `IEnumerable<Reference>` for linked items, taxonomy, and subpages, and `IEnumerable<AssetReference>` for assets. The rest carry a companion field beside the value, so each uses a small record that pairs the two. Rich text is the canonical case — `RichTextValue` holds the HTML `Value` plus its inline `Components` (see [Rich text and inline components](#rich-text-and-inline-components)). Three more follow the same shape — date & time, URL slug, and custom:
+Many elements map directly to a single value, with nothing carried beside it — `string` for text, `decimal?` for number, `IEnumerable<Reference>` for linked items, taxonomy, and subpages, `IEnumerable<AssetReference>` for assets, and a generated enum for multiple choice — `TEnum?` where the element allows one option, `IEnumerable<TEnum>` where it allows several. The rest carry a companion field beside the value, so each uses a small record that pairs the two. Rich text is the canonical case — `RichTextValue` holds the HTML `Value` plus its inline `Components` (see [Rich text and inline components](#rich-text-and-inline-components)). Three more follow the same shape — date & time, URL slug, and custom:
 
 ```csharp
 var article = new Article
