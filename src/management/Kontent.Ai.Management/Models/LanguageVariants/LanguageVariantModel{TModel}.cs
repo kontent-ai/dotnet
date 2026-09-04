@@ -11,4 +11,18 @@ public sealed record LanguageVariantModel<TModel> : LanguageVariantMetadata wher
 {
     /// <summary>The strongly-typed element values.</summary>
     public required TModel Elements { get; init; }
+
+    /// <summary>The typed wrapper over a fetched variant: <paramref name="elements"/> in place of the raw ones, the metadata carried across.</summary>
+    internal static LanguageVariantModel<TModel> From(LanguageVariantModel variant, TModel elements) => new()
+    {
+        Item = variant.Item,
+        Elements = elements,
+        Language = variant.Language,
+        LastModified = variant.LastModified,
+        Schedule = variant.Schedule,
+        Workflow = variant.Workflow,
+        DueDate = variant.DueDate,
+        Note = variant.Note,
+        Contributors = variant.Contributors,
+    };
 }
