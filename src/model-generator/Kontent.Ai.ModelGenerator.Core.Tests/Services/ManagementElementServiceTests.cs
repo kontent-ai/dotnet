@@ -1,3 +1,4 @@
+using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.ModelGenerator.Core.Common;
 using Kontent.Ai.ModelGenerator.Core.Services;
 
@@ -63,6 +64,22 @@ public class ManagementElementServiceTests
         result.Property.TypeName.Should().Be("IEnumerable<ArticleCategory>?");
         result.Property.Attributes.Should().ContainSingle()
             .Which.Name.Should().Be("KontentElement");
+    }
+
+    [Fact]
+    public void MultipleChoice_SingleMode_EmitsNullableEnumProperty()
+    {
+        var input = new MultipleChoiceElementInput(
+            Codename: "category",
+            Id: "mc-id",
+            EnumTypeName: "ArticleCategory",
+            Options: [new MultipleChoiceOptionInput("news", "opt-1")],
+            Mode: MultipleChoiceMode.Single);
+
+        var result = ManagementElementService.Build(input);
+
+        result.Property.TypeName.Should().Be("ArticleCategory?");
+        result.Enums.Should().ContainSingle();
     }
 
     [Fact]

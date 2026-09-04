@@ -118,6 +118,7 @@ public class ManagementElementMetadataAdapterTests
         var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article")!;
 
         input.EnumTypeName.Should().Be("ArticleCategory");
+        input.Mode.Should().Be(MultipleChoiceMode.Single);
         input.Options.Should().HaveCount(2);
         input.Options[0].Codename.Should().Be("news");
         input.Options[0].Id.Should().Be("11111111-1111-1111-1111-111111111111");
@@ -137,6 +138,7 @@ public class ManagementElementMetadataAdapterTests
         var input = (MultipleChoiceElementInput)ManagementElementMetadataAdapter.ToInput(element, "Article")!;
 
         input.EnumTypeName.Should().Be("ArticleTags");
+        input.Mode.Should().Be(MultipleChoiceMode.Multiple);
     }
 
     [Fact]

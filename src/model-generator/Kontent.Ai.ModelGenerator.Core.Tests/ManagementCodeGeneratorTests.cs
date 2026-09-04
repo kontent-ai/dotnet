@@ -178,12 +178,60 @@ public class ManagementCodeGeneratorTests
         await CreateGenerator().RunAsync();
 
         emitted.Should().NotBeNull();
-        emitted.Should().Contain("public IEnumerable<ArticleCategory>? Category { get; init; }");
+        emitted.Should().Contain("public ArticleCategory? Category { get; init; }");
         emitted.Should().Contain("public enum ArticleCategory");
         emitted.Should().Contain("News");
         emitted.Should().Contain("ReleaseNote");
-        // Single-select is a server-side rule, not a generated [MaxElements(1)].
+        // Single-select shows in the property type, not in a generated [MaxElements(1)].
         emitted.Should().NotContain("[MaxElements");
+    }
+
+    [Fact]
+    public async Task RunAsync_MultipleChoiceElement_MultipleMode_EmitsEnumerableProperty()
+    {
+        var type = new ContentTypeModel
+        {
+            Id = Guid.NewGuid(),
+            LastModified = default,
+            Name = "Article",
+            ContentGroups = [],
+            Codename = "article",
+            Elements =
+            [
+                WithId(new MultipleChoiceElementMetadataModel
+                {
+                    Name = "n",
+                    Codename = "category",
+                    Mode = MultipleChoiceMode.Multiple,
+                    Options =
+                    [
+                        new MultipleChoiceOptionModel
+                        {
+                            Name = "n",
+                            Codename = "news",
+                            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                        },
+                        new MultipleChoiceOptionModel
+                        {
+                            Name = "n",
+                            Codename = "release_note",
+                            Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                        },
+                    ],
+                }, Guid.NewGuid()),
+            ],
+        };
+        SetupClientWithTypes(type);
+        string? emitted = null;
+        _output
+            .When(o => o.Output(Arg.Any<string>(), "Article", true))
+            .Do(call => emitted = call.ArgAt<string>(0));
+
+        await CreateGenerator().RunAsync();
+
+        emitted.Should().NotBeNull();
+        emitted.Should().Contain("public IEnumerable<ArticleCategory>? Category { get; init; }");
+        emitted.Should().Contain("public enum ArticleCategory");
     }
 
     [Fact]
