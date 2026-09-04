@@ -62,10 +62,15 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **A page call for the async validation task issues.** `ListAsyncValidationTaskIssuesPageAsync` joins the materialized `ListAsyncValidationTaskIssuesAsync`. This is the listing that scales hardest — a task over a broken environment reports issues proportional to items × variants × elements — and it was the one unbounded listing with no paged access at all, while narrower ones (the variant listings, assets, items) already had it.
 - **`ListingPage<T>`**, the page a `List…PageAsync` call returns: the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page). It is a sealed class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
+- **Typed listings.** `ListLanguageVariantsByItemAsync<T>`, `ListLanguageVariantsByTypeAsync<T>`, `ListLanguageVariantsOfContentTypeWithComponentsAsync<T>` and the `…PageAsync<T>` page calls of the last two project every variant onto the generated record, returning a `LanguageVariantModel<T>` per variant the way the typed get does. They cover the listings whose variants share one content type; a listing by collection or by space mixes types and stays untyped, and `client.ToTyped<T>(variant)` projects one of its variants once its type is known — the same projection, on any fetched `LanguageVariantModel`.
 
 ### Changed
 
 - **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+
+- **A single-choice element maps to `TEnum?` on a generated record.** The model generator emits `TEnum?` where the element allows one option and `IEnumerable<TEnum>?` where it allows several; the converter reads the selected option into either shape and writes a `TEnum?` as a one-element array. Records that declare `IEnumerable<TEnum>` for a single-choice element keep working.
+
+- **A typed read that matches nothing throws.** Projecting a response onto a record none of whose element ids appear in it returned an empty record, so a variant read through a model generated for another environment, or for another content type, looked like a variant with nothing set. It now throws `InvalidOperationException` naming the record. Elements the record does not know are still skipped, so a record generated before a type gained an element keeps working. The typed write path also builds the request's elements directly instead of serializing the record to JSON and reading it back; the wire is unchanged.
 
 ### Fixed
 
