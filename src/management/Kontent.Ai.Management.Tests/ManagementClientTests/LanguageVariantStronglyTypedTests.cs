@@ -1,11 +1,13 @@
 using AwesomeAssertions;
 using Kontent.Ai.Management.Conversion;
+using Kontent.Ai.Management.Extensions;
 using Kontent.Ai.Management.Models.LanguageVariants;
 using Kontent.Ai.Management.Tests.Base;
 using MyProject.Models;
 using RichardSzalay.MockHttp;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using CustomValue = Kontent.Ai.Management.Models.Content.CustomValue;
 using DateTimeValue = Kontent.Ai.Management.Models.Content.DateTimeValue;
 // Models.Content carries its own `Reference`; alias the types we need so it doesn't collide with
@@ -28,6 +30,16 @@ public class LanguageVariantStronglyTypedTests
 
     private static LanguageVariantIdentifier Identifier() =>
         new(Reference.ByCodename("my_article"), Reference.ByCodename("en-US"));
+
+    private static string ArticleVariant => Fixture("StronglyTypedArticleVariant.json");
+
+    private static string ArticleVariantsPage(string? continuationToken) => new JsonObject
+    {
+        ["variants"] = new JsonArray(JsonNode.Parse(ArticleVariant)),
+        ["pagination"] = new JsonObject { ["continuation_token"] = continuationToken },
+    }.ToJsonString();
+
+    private static readonly Reference TypeIdentifier = Reference.ById(Guid.Parse("17ff8a28-ebe6-5c9d-95ea-18fe1ff86d2d"));
 
     private static string VariantUrl =>
         $"{MockClientFactory.BaseUrl}/items/codename/my_article/variants/codename/en-US";
@@ -219,5 +231,127 @@ public class LanguageVariantStronglyTypedTests
         result.StatusCode.Should().Be(HttpStatusCode.NotFound);
         result.Error!.Message.Should().Contain("not found");
         result.Error.ValidationErrors.Should().Contain(e => e.Message.Contains("does not exist"));
+    }
+
+    [Fact]
+    public async Task ListLanguageVariantsByItemAsync_StronglyTyped_ProjectsEachVariant()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        var item = Reference.ById(Guid.Parse("4b628214-e4fe-4fe0-b1ff-955df33e1515"));
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/items/{item.Id}/variants")
+            .Respond("application/json", new JsonArray(JsonNode.Parse(ArticleVariant)).ToJsonString());
+
+        var result = await client.ListLanguageVariantsByItemAsync<Article>(item);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        var variant = result.Value.Should().ContainSingle().Subject;
+        variant.Elements.Title.Should().Be("On Roasts");
+        variant.LastModified.Should().Be(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Fact]
+    public async Task ListLanguageVariantsByTypeAsync_StronglyTyped_PagesThroughAllVariants()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        var url = $"{MockClientFactory.BaseUrl}/types/{TypeIdentifier.Id}/variants";
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", ArticleVariantsPage("next"));
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", ArticleVariantsPage(null));
+
+        var result = await client.ListLanguageVariantsByTypeAsync<Article>(TypeIdentifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2).And.AllSatisfy(v => v.Elements.Title.Should().Be("On Roasts"));
+    }
+
+    [Fact]
+    public async Task ListLanguageVariantsByTypePageAsync_StronglyTyped_ReturnsOnePageWithToken()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/types/{TypeIdentifier.Id}/variants")
+            .Respond("application/json", ArticleVariantsPage("next"));
+
+        var page = (await client.ListLanguageVariantsByTypePageAsync<Article>(TypeIdentifier)).EnsureSuccess();
+
+        mock.VerifyNoOutstandingExpectation();
+        page.ContinuationToken.Should().Be("next");
+        page.Items.Should().ContainSingle().Which.Elements.Title.Should().Be("On Roasts");
+    }
+
+    [Fact]
+    public async Task ListLanguageVariantsOfContentTypeWithComponentsAsync_StronglyTyped_PagesThroughAllVariants()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        var url = $"{MockClientFactory.BaseUrl}/types/{TypeIdentifier.Id}/components";
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", ArticleVariantsPage("next"));
+        mock.Expect(HttpMethod.Get, url).Respond("application/json", ArticleVariantsPage(null));
+
+        var result = await client.ListLanguageVariantsOfContentTypeWithComponentsAsync<Article>(TypeIdentifier);
+
+        mock.VerifyNoOutstandingExpectation();
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2).And.AllSatisfy(v => v.Elements.Title.Should().Be("On Roasts"));
+    }
+
+    [Fact]
+    public async Task ListLanguageVariantsOfContentTypeWithComponentsPageAsync_StronglyTyped_ReturnsOnePageWithToken()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        mock.Expect(HttpMethod.Get, $"{MockClientFactory.BaseUrl}/types/{TypeIdentifier.Id}/components")
+            .Respond("application/json", ArticleVariantsPage("next"));
+
+        var page = (await client.ListLanguageVariantsOfContentTypeWithComponentsPageAsync<Article>(TypeIdentifier)).EnsureSuccess();
+
+        mock.VerifyNoOutstandingExpectation();
+        page.ContinuationToken.Should().Be("next");
+        page.Items.Should().ContainSingle().Which.Elements.Title.Should().Be("On Roasts");
+    }
+
+    [Theory]
+    [InlineData("item")]
+    [InlineData("type")]
+    [InlineData("typePage")]
+    [InlineData("components")]
+    [InlineData("componentsPage")]
+    public async Task TypedListings_IdentifierIsNull_Throw(string listing)
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        Func<Task> act = listing switch
+        {
+            "item" => () => client.ListLanguageVariantsByItemAsync<Article>(null!),
+            "type" => () => client.ListLanguageVariantsByTypeAsync<Article>(null!),
+            "typePage" => () => client.ListLanguageVariantsByTypePageAsync<Article>(null!),
+            "components" => () => client.ListLanguageVariantsOfContentTypeWithComponentsAsync<Article>(null!),
+            _ => () => client.ListLanguageVariantsOfContentTypeWithComponentsPageAsync<Article>(null!),
+        };
+
+        await act.Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task ToTyped_ProjectsFetchedVariantAndCarriesMetadata()
+    {
+        var (client, mock) = MockClientFactory.Create(ArticleConverter());
+        mock.Expect(HttpMethod.Get, VariantUrl).Respond("application/json", ArticleVariant);
+        var untyped = (await client.GetLanguageVariantAsync(Identifier())).EnsureSuccess();
+
+        var typed = client.ToTyped<Article>(untyped);
+
+        typed.Elements.Title.Should().Be("On Roasts");
+        typed.Elements.Slug!.Mode.Should().Be(UrlSlugMode.Custom);
+        typed.Item.Should().Be(untyped.Item);
+        typed.Language.Should().Be(untyped.Language);
+        typed.LastModified.Should().Be(untyped.LastModified);
+        typed.Workflow.Should().Be(untyped.Workflow);
+    }
+
+    [Fact]
+    public void ToTyped_VariantIsNull_Throws()
+    {
+        var (client, _) = MockClientFactory.Create();
+
+        client.Invoking(c => c.ToTyped<Article>(null!)).Should().ThrowExactly<ArgumentNullException>();
     }
 }

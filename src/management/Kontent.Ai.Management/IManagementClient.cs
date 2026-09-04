@@ -542,11 +542,42 @@ public interface IManagementClient
     /// <returns>A result wrapping the listing of <see cref="LanguageVariantModel"/> on success, or the failure detail.</returns>
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsByItemAsync(Reference identifier, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists all language variants of the specified content item and projects each onto the generated content-type
+    /// record <typeparamref name="T"/>. Every variant of one item shares the item's content type, so one
+    /// <typeparamref name="T"/> fits them all.
+    /// </summary>
+    /// <remarks>
+    /// Typed read is environment-bound — see <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>.
+    /// A variant that matches nothing on <typeparamref name="T"/> throws rather than projecting to an empty record.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="identifier">The identifier of the content item.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping the typed variants on success, or the failure detail.</returns>
+    Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsByItemAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new();
+
     /// <summary>Lists all language variants for the specified content type.</summary>
     /// <param name="identifier">The identifier of the content type.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping all language variants on success, or the first failed page's detail.</returns>
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsByTypeAsync(Reference identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists all language variants for the specified content type and projects each onto the generated content-type
+    /// record <typeparamref name="T"/> - the shape a migration walking every variant of a type wants.
+    /// </summary>
+    /// <remarks>
+    /// Typed read is environment-bound — see <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>.
+    /// A variant that matches nothing on <typeparamref name="T"/> throws rather than projecting to an empty record.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="identifier">The identifier of the content type.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping all typed variants on success, or the first failed page's detail.</returns>
+    Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsByTypeAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new();
 
     /// <summary>
     /// Lists one page of the content type's language variants, for environments too large to materialize in one list. Pass the
@@ -558,11 +589,44 @@ public interface IManagementClient
     /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
     Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsByTypePageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lists one page of the content type's language variants, each projected onto the generated content-type
+    /// record <typeparamref name="T"/>. Pass the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to
+    /// fetch the next page; a <c>null</c> token means the last page.
+    /// </summary>
+    /// <remarks>
+    /// Typed read is environment-bound — see <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="identifier">The identifier of the content type.</param>
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of typed variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel<T>>>> ListLanguageVariantsByTypePageAsync<T>(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new();
+
     /// <summary>Lists all language variants containing components for the specified content type.</summary>
     /// <param name="identifier">The identifier of the content type.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping all language variants on success, or the first failed page's detail.</returns>
     Task<IManagementResult<IReadOnlyList<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsAsync(Reference identifier, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists all language variants containing a rich-text component of the specified content type, each projected
+    /// onto the generated record <typeparamref name="T"/> of the <em>containing</em> item's content type.
+    /// </summary>
+    /// <remarks>
+    /// The listing spans every content type whose rich text can hold the component, so
+    /// <typeparamref name="T"/> fits only when one type does. Typed read is environment-bound — see
+    /// <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>; a variant that matches
+    /// nothing on <typeparamref name="T"/> throws rather than projecting to an empty record.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="identifier">The identifier of the component's content type.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping all typed variants on success, or the first failed page's detail.</returns>
+    Task<IManagementResult<IReadOnlyList<LanguageVariantModel<T>>>> ListLanguageVariantsOfContentTypeWithComponentsAsync<T>(Reference identifier, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new();
 
     /// <summary>
     /// Lists one page of the content type's component-containing language variants, for environments too large to materialize in one list. Pass the
@@ -573,6 +637,24 @@ public interface IManagementClient
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping one page of language variants and the token for the next one, or the failure detail.</returns>
     Task<IManagementResult<ListingPage<LanguageVariantModel>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists one page of the language variants containing a rich-text component of the specified content type, each
+    /// projected onto the generated record <typeparamref name="T"/> of the containing item's content type. Pass the
+    /// previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page; a <c>null</c> token
+    /// means the last page.
+    /// </summary>
+    /// <remarks>
+    /// See <see cref="ListLanguageVariantsOfContentTypeWithComponentsAsync{T}(Reference, CancellationToken)"/> for
+    /// when one <typeparamref name="T"/> fits, and the environment binding of a typed read.
+    /// </remarks>
+    /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
+    /// <param name="identifier">The identifier of the component's content type.</param>
+    /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
+    /// <param name="cancellationToken">Token to cancel the request.</param>
+    /// <returns>A result wrapping one page of typed variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<LanguageVariantModel<T>>>> ListLanguageVariantsOfContentTypeWithComponentsPageAsync<T>(Reference identifier, string? continuationToken = null, CancellationToken cancellationToken = default)
+        where T : IElementsModel, new();
 
     /// <summary>Lists all language variants for the specified collection.</summary>
     /// <param name="identifier">The identifier of the collection.</param>
@@ -677,8 +759,7 @@ public interface IManagementClient
     /// The write keys off codenames and stays portable across environments, but the typed response projection is
     /// environment-bound: like <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>,
     /// it matches the response's element and rich-text-component ids against the ids on <typeparamref name="T"/>'s
-    /// annotations — generate <typeparamref name="T"/> against the environment you write to, or the returned record's
-    /// elements may be silently unpopulated.
+    /// annotations — generate <typeparamref name="T"/> against the environment you write to, or the projection throws.
     /// </remarks>
     /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
     /// <param name="identifier">The identifier of the language variant.</param>
