@@ -270,8 +270,10 @@ The generator creates the base model, and you maintain customizations in separat
 > 9.0.0-beta-1` — `IElementsModel`, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`,
 > `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue`, and
 > `CustomValue`. Generated models require **`Kontent.Ai.Management 9.0.0-beta-1` or newer** and
-> won't compile against v8.2.0 or earlier. The generated shapes may still change before the SDK
-> stabilizes.
+> won't compile against v8.2.0 or earlier. A single-option multiple-choice element generates a
+> `{ContentType}{Element}?` property, which the SDK reads and writes from the release that ships
+> alongside this generator version; earlier releases reject the property type when the record is
+> first used. The generated shapes may still change before the SDK stabilizes.
 
 When you need to **write** content to Kontent.ai (create / update / delete / publish via the Management API), pass `-m` / `--management` to switch the generator from Delivery mode into Management mode. The emitter produces strongly-typed records you can construct with object-initializer syntax and pass to `IManagementClient`.
 
@@ -295,7 +297,7 @@ KontentModelGenerator --management \
 | Type-level metadata | `[ContentTypeCodename]` | `[KontentType(codename)]` |
 | Collections | `IEnumerable<T>?` | `IEnumerable<T>?` |
 | Element constraints | Implicit at API layer | **Not mirrored on the model.** Content-model rules (length, regex, allowed types, count limits, asset rules, ...) are enforced server-side by the Management API — the generated models carry identity only. |
-| Multiple-choice | `IEnumerable<MultipleChoiceOption>?` | Per-element enum (`[KontentEnumValue]` members) + `IEnumerable<{ContentType}{Element}>?` |
+| Multiple-choice | `IEnumerable<MultipleChoiceOption>?` | Per-element enum (`[KontentEnumValue]` members); the property is `{ContentType}{Element}?` when the element allows one option and `IEnumerable<{ContentType}{Element}>?` when it allows several |
 | Snippets | Implicit; values come back flattened | Flattened at generation time; properties carry `{snippet}__{element}` codenames |
 | Required elements | Not exposed | **Not enforced on the model.** `is_required` is a publish-workflow gate in MAPI, not an upsert-shape constraint — every property stays nullable so partial draft saves work. |
 
