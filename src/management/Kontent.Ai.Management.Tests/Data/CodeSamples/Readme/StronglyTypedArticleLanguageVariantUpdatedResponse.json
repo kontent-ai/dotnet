@@ -1,0 +1,42 @@
+{
+  "elements": [
+    {
+      "element": {
+        "id": "ae9be828-90fe-5fb4-ae3a-8dfe047e2567"
+      },
+      "value": "On Roasts - changed"
+    },
+    {
+      "element": {
+        "id": "dba8efd9-052c-557a-9dfd-3f43f966eab8"
+      },
+      "value": "2018-07-04T00:00:00Z",
+      "display_timezone": "Europe/Prague"
+    }
+  ],
+  "item": {
+    "id": "9539c671-d578-4fd3-aa5c-b2d8e486c9b8"
+  },
+  "language": {
+    "id": "00000000-0000-0000-0000-000000000000"
+  },
+  "last_modified": "2021-11-10T11:35:19.1749134Z",
+  "workflow": {
+    "workflow_identifier": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    },
+    "step_identifier": {
+      "id": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "schedule": {
+    "publish_time": null,
+    "publish_display_timezone": null,
+    "unpublish_time": null,
+    "unpublish_display_timezone": null
+  },
+  "due_date": {
+    "value": null
+  },
+  "contributors": []
+}

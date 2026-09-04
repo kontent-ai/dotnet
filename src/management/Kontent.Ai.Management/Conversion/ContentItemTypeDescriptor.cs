@@ -58,7 +58,7 @@ internal sealed class ContentItemTypeDescriptor
         var elementAttr = property.GetCustomAttribute<KontentElementAttribute>();
         if (elementAttr is null) return null;
 
-        var (kind, collectionElementType) = DetectKind(property.PropertyType, property);
+        var (kind, collectionElementType, isSingleChoice) = DetectKind(property.PropertyType, property);
 
         return new ContentItemPropertyDescriptor
         {
@@ -67,26 +67,29 @@ internal sealed class ContentItemTypeDescriptor
             ElementId = elementAttr.Id,
             Kind = kind,
             CollectionElementType = collectionElementType,
+            IsSingleChoice = isSingleChoice,
         };
     }
 
-    private static (ElementKind Kind, Type? CollectionElementType) DetectKind(Type propertyType, PropertyInfo property)
+    private static (ElementKind Kind, Type? CollectionElementType, bool IsSingleChoice) DetectKind(Type propertyType, PropertyInfo property)
     {
         var inner = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
 
-        if (inner == typeof(string)) return (ElementKind.Text, null);
-        if (inner == typeof(decimal)) return (ElementKind.Number, null);
-        if (inner == typeof(DateTimeValue)) return (ElementKind.DateTime, null);
-        if (inner == typeof(UrlSlugValue)) return (ElementKind.UrlSlug, null);
-        if (inner == typeof(CustomValue)) return (ElementKind.Custom, null);
-        if (inner == typeof(RichTextValue)) return (ElementKind.RichText, null);
+        if (inner == typeof(string)) return (ElementKind.Text, null, false);
+        if (inner == typeof(decimal)) return (ElementKind.Number, null, false);
+        if (inner == typeof(DateTimeValue)) return (ElementKind.DateTime, null, false);
+        if (inner == typeof(UrlSlugValue)) return (ElementKind.UrlSlug, null, false);
+        if (inner == typeof(CustomValue)) return (ElementKind.Custom, null, false);
+        if (inner == typeof(RichTextValue)) return (ElementKind.RichText, null, false);
+        // A single-choice element: one option or none, though the wire carries an array either way.
+        if (inner.IsEnum) return (ElementKind.MultipleChoice, inner, true);
 
         if (inner.IsGenericType && CollectionInterfaces.Contains(inner.GetGenericTypeDefinition()))
         {
             var elem = inner.GetGenericArguments()[0];
-            if (elem.IsEnum) return (ElementKind.MultipleChoice, elem);
-            if (elem == typeof(AssetReference)) return (ElementKind.Asset, elem);
-            if (elem == typeof(Reference)) return (ElementKind.Reference, elem);
+            if (elem.IsEnum) return (ElementKind.MultipleChoice, elem, false);
+            if (elem == typeof(AssetReference)) return (ElementKind.Asset, elem, false);
+            if (elem == typeof(Reference)) return (ElementKind.Reference, elem, false);
         }
 
         throw new NotSupportedException(
@@ -101,8 +104,14 @@ internal sealed class ContentItemPropertyDescriptor
     public required string ElementId { get; init; }
     public required ElementKind Kind { get; init; }
 
-    /// <summary>For <see cref="ElementKind.MultipleChoice"/> / <see cref="ElementKind.Asset"/> / <see cref="ElementKind.Reference"/> properties — the <c>T</c> in <c>IReadOnlyList&lt;T&gt;</c>.</summary>
+    /// <summary>
+    /// For <see cref="ElementKind.MultipleChoice"/> / <see cref="ElementKind.Asset"/> / <see cref="ElementKind.Reference"/>
+    /// properties — the <c>T</c> in <c>IReadOnlyList&lt;T&gt;</c>, or the enum itself for a single-choice property.
+    /// </summary>
     public Type? CollectionElementType { get; init; }
+
+    /// <summary>A multiple-choice property typed as the enum rather than a collection of it: one option or none.</summary>
+    public bool IsSingleChoice { get; init; }
 }
 
 /// <summary>
