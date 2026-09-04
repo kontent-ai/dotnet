@@ -1,8 +1,8 @@
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Models.Content;
+using Kontent.Ai.Management.Models.LanguageVariants;
 using Kontent.Ai.Management.Models.LanguageVariants.Elements;
 using Kontent.Ai.Management.Serialization;
-using System.Buffers;
 using System.Collections;
 using System.Text.Json;
 
@@ -15,13 +15,15 @@ namespace Kontent.Ai.Management.Conversion;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Write direction</b> emits envelopes keyed by element <em>codename</em> (what MAPI accepts on POST/PUT).
-/// Properties whose value is <c>null</c> are skipped — partial-update semantics, matching the migration / scripted-write
-/// usage we expect to be the dominant consumer.
+/// <b>Write direction</b> produces the element records an upsert model carries, keyed by element <em>codename</em>
+/// (what MAPI accepts on POST/PUT). Properties whose value is <c>null</c> are skipped — partial-update semantics,
+/// matching the migration / scripted-write usage we expect to be the dominant consumer.
 /// </para>
 /// <para>
 /// <b>Read direction</b> matches envelopes by element <em>id</em> first (what MAPI returns), falling back to codename
-/// if the response is codename-keyed. Unknown elements in the response are skipped — forward-compat with future MAPI changes.
+/// if the response is codename-keyed. Unknown elements in the response are skipped — forward-compat with future MAPI
+/// changes — but a response in which nothing matches is refused, since that is a record for another content type or
+/// another environment rather than a newer API.
 /// </para>
 /// <para>
 /// <b>Environment binding.</b> The read path resolves rich-text component types by id (MAPI returns component types by
@@ -31,8 +33,8 @@ namespace Kontent.Ai.Management.Conversion;
 /// </para>
 /// <para>
 /// Thread-safe; intended to be shared across calls. Reflection cost is paid once per content type
-/// (cached in <see cref="ContentItemTypeDescriptor"/>); each (de)serialization allocates only its output buffer plus a
-/// list per collection-valued property.
+/// (cached in <see cref="ContentItemTypeDescriptor"/>); each conversion allocates only its output list plus a list
+/// per collection-valued property.
 /// </para>
 /// </remarks>
 internal sealed class ContentItemEnvelopeConverter
@@ -49,32 +51,98 @@ internal sealed class ContentItemEnvelopeConverter
     /// <summary>The content-type registry this converter resolves rich-text components through (by type id on read).</summary>
     public ContentTypeRegistry Registry => _registry;
 
-    // ---- Primary API ----
+    // ---- Write direction ----
 
-    /// <summary>Writes <paramref name="item"/>'s <c>[KontentElement]</c> properties as a JSON array of envelopes onto <paramref name="writer"/>.</summary>
-    public void WriteEnvelopes(Utf8JsonWriter writer, IElementsModel item)
+    /// <summary>
+    /// Turns <paramref name="item"/>'s <c>[KontentElement]</c> properties into the element records an upsert model
+    /// carries; a <c>null</c> property is omitted.
+    /// </summary>
+    public IReadOnlyList<BaseElement> ToElements(IElementsModel item)
     {
-        ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(item);
 
         var descriptor = ContentItemTypeDescriptor.For(item.GetType());
+        var elements = new List<BaseElement>(descriptor.Properties.Count);
 
-        writer.WriteStartArray();
         foreach (var prop in descriptor.Properties)
         {
-            var value = prop.Property.GetValue(item);
-            if (value is null) continue;
+            if (prop.Property.GetValue(item) is not { } value) continue;
 
-            writer.WriteStartObject();
-            writer.WritePropertyName("element");
-            writer.WriteStartObject();
-            writer.WriteString("codename", prop.ElementCodename);
-            writer.WriteEndObject();
-            WriteValue(writer, prop, value);
-            writer.WriteEndObject();
+            elements.Add(ToElement(Reference.ByCodename(prop.ElementCodename), prop, value));
         }
-        writer.WriteEndArray();
+
+        return elements;
     }
+
+    private BaseElement ToElement(Reference element, ContentItemPropertyDescriptor prop, object value)
+        => prop.Kind switch
+        {
+            ElementKind.Text => new TextElement { Element = element, Value = (string)value },
+            ElementKind.Number => new NumberElement { Element = element, Value = (decimal)value },
+            ElementKind.DateTime => ToDateTimeElement(element, (DateTimeValue)value),
+            // A server-derived slug carries no value; mode is always sent so the server knows which it is.
+            ElementKind.UrlSlug => new UrlSlugElement { Element = element, Value = ((UrlSlugValue)value).Value, Mode = ((UrlSlugValue)value).Mode },
+            ElementKind.Custom => new CustomElement { Element = element, Value = ((CustomValue)value).Value, SearchableValue = ((CustomValue)value).SearchableValue },
+            ElementKind.MultipleChoice => new MultipleChoiceElement { Element = element, Value = ToOptionReferences(prop, value) },
+            ElementKind.Asset => new AssetElement { Element = element, Value = [.. (IEnumerable<AssetReference>)value] },
+            // Taxonomy, linked items and subpages share one wire shape and one property type, so the record
+            // cannot say which; the element that carries a value as-is is the honest choice.
+            ElementKind.Reference => new DynamicElement { Element = element, Value = ((IEnumerable<Reference>)value).ToList() },
+            ElementKind.RichText => ToRichTextElement(element, (RichTextValue)value),
+            _ => throw new NotSupportedException($"Unknown element kind: {prop.Kind}"),
+        };
+
+    private static DateTimeElement ToDateTimeElement(Reference element, DateTimeValue dateTime)
+        => new()
+        {
+            Element = element,
+            // The API stores a UTC instant with the zone carried separately in display_timezone; the element's
+            // converter writes the "Z" form the API returns rather than a numeric offset.
+            Value = dateTime.Value,
+            DisplayTimeZone = dateTime.DisplayTimeZone,
+        };
+
+    private static List<Reference> ToOptionReferences(ContentItemPropertyDescriptor prop, object value)
+    {
+        var enumDescriptor = EnumDescriptor.For(prop.CollectionElementType!);
+        var values = prop.IsSingleChoice ? new[] { value } : (IEnumerable)value;
+        var references = new List<Reference>();
+
+        foreach (var option in values)
+        {
+            if (!enumDescriptor.CodenameByValue.TryGetValue(option, out var codename))
+            {
+                throw new InvalidOperationException(
+                    $"Enum value '{option}' on '{prop.Property.DeclaringType?.Name}.{prop.Property.Name}' has no [KontentEnumValue] mapping.");
+            }
+            references.Add(Reference.ByCodename(codename));
+        }
+
+        return references;
+    }
+
+    private RichTextElement ToRichTextElement(Reference element, RichTextValue value)
+    {
+        var components = value.Components?.Count > 0
+            ? value.Components.Select(ToComponentModel).ToList()
+            : null;
+
+        return new RichTextElement { Element = element, Value = value.Value, Components = components };
+    }
+
+    private ComponentModel ToComponentModel(Component component)
+    {
+        var descriptor = ContentItemTypeDescriptor.For(component.Content.GetType());
+
+        return new ComponentModel
+        {
+            Id = component.Id,
+            Type = Reference.ByCodename(descriptor.ContentTypeCodename),
+            Elements = ToElements(component.Content),
+        };
+    }
+
+    // ---- Read direction ----
 
     /// <summary>Reads a JSON envelopes array into a new instance of <paramref name="contentType"/>.</summary>
     public IElementsModel ReadEnvelopes(JsonElement envelopesArray, Type contentType)
@@ -83,13 +151,18 @@ internal sealed class ContentItemEnvelopeConverter
         {
             throw new ArgumentException($"Expected a JSON array, got {envelopesArray.ValueKind}.", nameof(envelopesArray));
         }
-        return ReadEnvelopes(envelopesArray.EnumerateArray(), contentType);
+        return ReadEnvelopes(envelopesArray.EnumerateArray().Select(Envelope.FromJson), contentType);
     }
 
-    /// <summary>Reads element envelopes (typically <c>LanguageVariantModel.Elements</c>) into a new instance of <paramref name="contentType"/>.</summary>
-    public IElementsModel ReadEnvelopes(IEnumerable<JsonElement> envelopes, Type contentType)
+    /// <summary>Reads a fetched variant's elements (typically <see cref="DynamicElement"/>s) into a new <typeparamref name="T"/>.</summary>
+    public T ReadEnvelopes<T>(IEnumerable<BaseElement> elements) where T : IElementsModel
     {
-        ArgumentNullException.ThrowIfNull(envelopes);
+        ArgumentNullException.ThrowIfNull(elements);
+        return (T)ReadEnvelopes(elements.Select(FromElement), typeof(T));
+    }
+
+    private IElementsModel ReadEnvelopes(IEnumerable<Envelope> envelopes, Type contentType)
+    {
         ArgumentNullException.ThrowIfNull(contentType);
 
         // Auto-register the root type itself so it is resolvable by id on recursive descent (a root type can recur as
@@ -100,15 +173,17 @@ internal sealed class ContentItemEnvelopeConverter
 
         var descriptor = ContentItemTypeDescriptor.For(contentType);
         var instance = (IElementsModel)Activator.CreateInstance(contentType)!;
+        var seen = 0;
+        var matched = 0;
 
         foreach (var envelope in envelopes)
         {
-            if (!envelope.TryGetProperty("element", out var elementMeta)) continue;
-
-            var prop = ResolveProperty(descriptor, elementMeta);
+            seen++;
+            var prop = ResolveProperty(descriptor, envelope);
             if (prop is null) continue;
 
-            if (!envelope.TryGetProperty("value", out var valueElement)) continue;
+            matched++;
+            if (envelope.Value is not { } valueElement) continue;
 
             try
             {
@@ -127,136 +202,57 @@ internal sealed class ContentItemEnvelopeConverter
             }
         }
 
+        // An element the record does not know is skipped, so a newer API cannot break a read. All of them unknown
+        // is different: that is a variant of another content type, or a record generated against another
+        // environment, and an empty record would pass it off as content.
+        if (seen > 0 && matched == 0 && descriptor.Properties.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"None of the {seen} elements in the response match a [KontentElement] on '{contentType.Name}'. " +
+                "The variant belongs to a different content type, or the record's element ids come from another environment.");
+        }
+
         return instance;
     }
 
-    // ---- Typed convenience ----
-
-    /// <summary>Writes <paramref name="item"/>'s envelopes and reifies them as the element list an upsert model expects.</summary>
-    public IReadOnlyList<BaseElement> ToElements(IElementsModel item)
+    /// <summary>
+    /// One element as read: which element it is, its value, and the sibling fields beside the value. A fetched
+    /// variant arrives as <see cref="DynamicElement"/>s whose value and siblings are already <see cref="JsonElement"/>s,
+    /// so nothing is serialized again on the way in; anything else is serialized once to get there.
+    /// </summary>
+    private readonly record struct Envelope(string? Id, string? Codename, JsonElement? Value, Func<string, JsonElement?> Sibling)
     {
-        ArgumentNullException.ThrowIfNull(item);
-
-        var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer))
+        public static Envelope FromJson(JsonElement envelope)
         {
-            WriteEnvelopes(writer, item);
-        }
-        return JsonSerializer.Deserialize<List<DynamicElement>>(buffer.WrittenSpan, _scalarOptions)!;
-    }
-
-    /// <summary>Reads element values (typically a fetched variant's <see cref="DynamicElement"/>s) into a new <typeparamref name="T"/>.</summary>
-    public T ReadEnvelopes<T>(IEnumerable<BaseElement> elements) where T : IElementsModel
-        => (T)ReadEnvelopes(
-            elements.Select(element => JsonSerializer.SerializeToElement(element, element.GetType(), _scalarOptions)),
-            typeof(T));
-
-    // ---- Value writers ----
-
-    private void WriteValue(Utf8JsonWriter writer, ContentItemPropertyDescriptor prop, object value)
-    {
-        switch (prop.Kind)
-        {
-            case ElementKind.Text:
-                writer.WriteString("value", (string)value);
-                break;
-            case ElementKind.Number:
-                writer.WritePropertyName("value");
-                JsonSerializer.Serialize(writer, (decimal)value, _scalarOptions);
-                break;
-            case ElementKind.DateTime:
-                var dateTime = (DateTimeValue)value;
-                writer.WritePropertyName("value");
-                // The API stores a UTC instant (".../Z") with the zone carried separately in display_timezone.
-                // UtcDateTime is Kind=Utc, so STJ emits the "Z" form the API returns rather than a numeric offset.
-                JsonSerializer.Serialize(writer, dateTime.Value.UtcDateTime, _scalarOptions);
-                if (dateTime.DisplayTimeZone is not null) writer.WriteString("display_timezone", dateTime.DisplayTimeZone);
-                break;
-            case ElementKind.UrlSlug:
-                var urlSlug = (UrlSlugValue)value;
-                // Omit (don't send null) when the slug is server-derived — matches the "null means omit" contract used
-                // for the rest of the envelope. mode is always sent so the server knows autogenerated vs custom.
-                if (urlSlug.Value is not null) writer.WriteString("value", urlSlug.Value);
-                writer.WritePropertyName("mode");
-                JsonSerializer.Serialize(writer, urlSlug.Mode, _scalarOptions);
-                break;
-            case ElementKind.Custom:
-                var custom = (CustomValue)value;
-                if (custom.Value is not null) writer.WriteString("value", custom.Value);
-                if (custom.SearchableValue is not null) writer.WriteString("searchable_value", custom.SearchableValue);
-                break;
-            case ElementKind.MultipleChoice:
-                WriteMultipleChoice(writer, prop, (IEnumerable)value);
-                break;
-            case ElementKind.Asset:
-                writer.WritePropertyName("value");
-                JsonSerializer.Serialize(writer, (IEnumerable<AssetReference>)value, _scalarOptions);
-                break;
-            case ElementKind.Reference:
-                writer.WritePropertyName("value");
-                JsonSerializer.Serialize(writer, (IEnumerable<Reference>)value, _scalarOptions);
-                break;
-            case ElementKind.RichText:
-                WriteRichText(writer, (RichTextValue)value);
-                break;
-            default:
-                throw new NotSupportedException($"Unknown element kind: {prop.Kind}");
-        }
-    }
-
-    private static void WriteMultipleChoice(Utf8JsonWriter writer, ContentItemPropertyDescriptor prop, IEnumerable values)
-    {
-        var enumDescriptor = EnumDescriptor.For(prop.CollectionElementType!);
-        writer.WritePropertyName("value");
-        writer.WriteStartArray();
-        foreach (var value in values)
-        {
-            if (!enumDescriptor.CodenameByValue.TryGetValue(value, out var codename))
+            string? id = null;
+            string? codename = null;
+            if (envelope.TryGetProperty("element", out var meta))
             {
-                throw new InvalidOperationException(
-                    $"Enum value '{value}' on '{prop.Property.DeclaringType?.Name}.{prop.Property.Name}' has no [KontentEnumValue] mapping.");
+                meta.TryGetStringProperty("id", out id);
+                meta.TryGetStringProperty("codename", out codename);
             }
-            writer.WriteStartObject();
-            writer.WriteString("codename", codename);
-            writer.WriteEndObject();
+
+            var value = envelope.TryGetProperty("value", out var valueElement) ? valueElement : (JsonElement?)null;
+            return new Envelope(id, codename, value, name => envelope.TryGetProperty(name, out var sibling) ? sibling : null);
         }
-        writer.WriteEndArray();
     }
 
-    private void WriteRichText(Utf8JsonWriter writer, RichTextValue value)
+    private Envelope FromElement(BaseElement element)
     {
-        writer.WriteString("value", value.Value);
-        var components = value.Components?.ToList();
-        if (components is { Count: > 0 })
+        if (element is DynamicElement { Value: null or JsonElement } dynamic)
         {
-            writer.WritePropertyName("components");
-            writer.WriteStartArray();
-            foreach (var component in components)
-            {
-                WriteComponent(writer, component);
-            }
-            writer.WriteEndArray();
+            var value = dynamic.Value is JsonElement json ? json : (JsonElement?)null;
+            return new Envelope(
+                dynamic.Element.Id?.ToString(),
+                dynamic.Element.Codename,
+                value,
+                name => dynamic.AdditionalData is { } data && data.TryGetValue(name, out var sibling) ? sibling : null);
         }
+
+        return Envelope.FromJson(JsonSerializer.SerializeToElement(element, element.GetType(), _scalarOptions));
     }
 
-    private void WriteComponent(Utf8JsonWriter writer, Component component)
-    {
-        var descriptor = ContentItemTypeDescriptor.For(component.Content.GetType());
-
-        writer.WriteStartObject();
-        writer.WriteString("id", component.Id);
-        writer.WritePropertyName("type");
-        writer.WriteStartObject();
-        writer.WriteString("codename", descriptor.ContentTypeCodename);
-        writer.WriteEndObject();
-        writer.WritePropertyName("elements");
-        WriteEnvelopes(writer, component.Content);
-        writer.WriteEndObject();
-    }
-
-    // ---- Value readers ----
-
-    private object? ReadValue(JsonElement value, ContentItemPropertyDescriptor prop, JsonElement envelope)
+    private object? ReadValue(JsonElement value, ContentItemPropertyDescriptor prop, Envelope envelope)
     {
         if (value.ValueKind == JsonValueKind.Null) return null;
 
@@ -267,19 +263,19 @@ internal sealed class ContentItemEnvelopeConverter
             ElementKind.DateTime => new DateTimeValue
             {
                 Value = value.GetDateTimeOffset(),
-                DisplayTimeZone = envelope.TryGetStringProperty("display_timezone", out var tz) ? tz : null,
+                DisplayTimeZone = envelope.Sibling("display_timezone") is { ValueKind: JsonValueKind.String } tz ? tz.GetString() : null,
             },
             ElementKind.UrlSlug => new UrlSlugValue
             {
                 Value = value.GetString(),
-                Mode = envelope.TryGetProperty("mode", out var mode) && mode.ValueKind == JsonValueKind.String
+                Mode = envelope.Sibling("mode") is { ValueKind: JsonValueKind.String } mode
                     ? mode.Deserialize<UrlSlugMode>(_scalarOptions)
                     : default,
             },
             ElementKind.Custom => new CustomValue
             {
                 Value = value.GetString(),
-                SearchableValue = envelope.TryGetStringProperty("searchable_value", out var searchable) ? searchable : null,
+                SearchableValue = envelope.Sibling("searchable_value") is { ValueKind: JsonValueKind.String } searchable ? searchable.GetString() : null,
             },
             ElementKind.MultipleChoice => ReadMultipleChoice(value, prop),
             ElementKind.Asset or ElementKind.Reference => value.Deserialize(prop.Property.PropertyType, _scalarOptions),
@@ -288,7 +284,7 @@ internal sealed class ContentItemEnvelopeConverter
         };
     }
 
-    private static object ReadMultipleChoice(JsonElement value, ContentItemPropertyDescriptor prop)
+    private static object? ReadMultipleChoice(JsonElement value, ContentItemPropertyDescriptor prop)
     {
         var enumType = prop.CollectionElementType!;
         var enumDescriptor = EnumDescriptor.For(enumType);
@@ -315,16 +311,19 @@ internal sealed class ContentItemEnvelopeConverter
             }
             list.Add(member);
         }
-        return list;
+
+        if (!prop.IsSingleChoice) return list;
+
+        // A single-choice element is one option or none; the wire carries it as an array either way.
+        return list.Count == 0 ? null : list[0];
     }
 
-    private RichTextValue ReadRichText(JsonElement valueElement, JsonElement envelope)
+    private RichTextValue ReadRichText(JsonElement valueElement, Envelope envelope)
     {
         var html = valueElement.GetString()!;
 
         List<Component>? components = null;
-        if (envelope.TryGetProperty("components", out var componentsArray)
-            && componentsArray.ValueKind == JsonValueKind.Array
+        if (envelope.Sibling("components") is { ValueKind: JsonValueKind.Array } componentsArray
             && componentsArray.GetArrayLength() > 0)
         {
             components = new List<Component>(componentsArray.GetArrayLength());
@@ -369,15 +368,13 @@ internal sealed class ContentItemEnvelopeConverter
         return new Component { Id = id, Content = content };
     }
 
-    // ---- Internals ----
-
-    private static ContentItemPropertyDescriptor? ResolveProperty(ContentItemTypeDescriptor descriptor, JsonElement elementMeta)
+    private static ContentItemPropertyDescriptor? ResolveProperty(ContentItemTypeDescriptor descriptor, Envelope envelope)
     {
-        if (elementMeta.TryGetStringProperty("id", out var id) && descriptor.ByElementId.TryGetValue(id, out var byId))
+        if (envelope.Id is { } id && descriptor.ByElementId.TryGetValue(id, out var byId))
         {
             return byId;
         }
-        if (elementMeta.TryGetStringProperty("codename", out var codename) && descriptor.ByElementCodename.TryGetValue(codename, out var byCodename))
+        if (envelope.Codename is { } codename && descriptor.ByElementCodename.TryGetValue(codename, out var byCodename))
         {
             return byCodename;
         }

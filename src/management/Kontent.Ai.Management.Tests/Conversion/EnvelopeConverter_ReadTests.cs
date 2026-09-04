@@ -209,4 +209,39 @@ public class EnvelopeConverter_ReadTests
             .WithMessage("Failed to read element 'title' on 'Article'.")
             .WithInnerException<InvalidOperationException>();
     }
+
+    [Fact]
+    public void NoElementMatches_Throws()
+    {
+        // Every element unknown is the wrong record, not a forward-compat gap: an empty record would read as a
+        // variant with nothing set.
+        var json = """
+            [
+              { "element": { "id": "35a9faae-e502-4e26-a824-26b90b9b2ecd" }, "value": "x" },
+              { "element": { "id": "abe785d6-9146-4cab-8096-cba555d3840f" }, "value": null }
+            ]
+            """;
+
+        var act = () => Converter.ReadEnvelopes<Article>(json);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("None of the 2 elements*")
+            .WithMessage("*'Article'*");
+    }
+
+    [Fact]
+    public void SingleChoice_ReadsTheSelectedOption()
+    {
+        var json = """[{"element":{"id":"d2e3f4a5-b6c7-5d8e-9f0a-b1c2d3e4f5a6"},"value":[{"codename":"dark"}]}]""";
+
+        Converter.ReadEnvelopes<Banner>(json).Tone.Should().Be(BannerTone.Dark);
+    }
+
+    [Fact]
+    public void SingleChoice_NothingSelected_ReadsNull()
+    {
+        var json = """[{"element":{"id":"d2e3f4a5-b6c7-5d8e-9f0a-b1c2d3e4f5a6"},"value":[]}]""";
+
+        Converter.ReadEnvelopes<Banner>(json).Tone.Should().BeNull();
+    }
 }
