@@ -87,7 +87,7 @@ public static class WebhookActions
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookData : IEquatable<WebhookData>
     .ctor()
-    WebhookItem? System { get; init; }
+    required WebhookItem System { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookData? other)
     Int32 GetHashCode()
@@ -102,16 +102,16 @@ public static class WebhookDeliverySlots
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookItem : IEquatable<WebhookItem>
     .ctor()
-    DateTime LastModified { get; init; }
-    Guid? Id { get; init; }
-    String? Codename { get; init; }
     String? Collection { get; init; }
     String? Language { get; init; }
-    String? Name { get; init; }
     String? TaxonomyGroup { get; init; }
     String? Type { get; init; }
     String? Workflow { get; init; }
     String? WorkflowStep { get; init; }
+    required DateTime LastModified { get; init; }
+    required Guid Id { get; init; }
+    required String Codename { get; init; }
+    required String Name { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookItem? other)
     Int32 GetHashCode()
@@ -121,11 +121,11 @@ public sealed class WebhookItem : IEquatable<WebhookItem>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookMessage : IEquatable<WebhookMessage>
     .ctor()
-    Guid EnvironmentId { get; init; }
-    String? Action { get; init; }
-    String? DeliverySlot { get; init; }
-    String? ObjectType { get; init; }
     WebhookActionContext? ActionContext { get; init; }
+    required Guid EnvironmentId { get; init; }
+    required String Action { get; init; }
+    required String DeliverySlot { get; init; }
+    required String ObjectType { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookMessage? other)
     Int32 GetHashCode()
@@ -135,8 +135,8 @@ public sealed class WebhookMessage : IEquatable<WebhookMessage>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookModel : IEquatable<WebhookModel>
     .ctor()
-    WebhookData? Data { get; init; }
-    WebhookMessage? Message { get; init; }
+    required WebhookData Data { get; init; }
+    required WebhookMessage Message { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookModel? other)
     Int32 GetHashCode()
@@ -146,7 +146,7 @@ public sealed class WebhookModel : IEquatable<WebhookModel>
 // Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookNotification : IEquatable<WebhookNotification>
     .ctor()
-    IReadOnlyList<WebhookModel>? Notifications { get; init; }
+    required IReadOnlyList<WebhookModel> Notifications { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookNotification? other)
     Int32 GetHashCode()

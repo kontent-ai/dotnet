@@ -22,21 +22,21 @@ public class WebhookNotificationTests
     {
         var notification = Load(file);
 
-        var model = Assert.Single(notification.Notifications!);
-        Assert.Equal(EnvironmentId, model.Message!.EnvironmentId);
+        var model = Assert.Single(notification.Notifications);
+        Assert.Equal(EnvironmentId, model.Message.EnvironmentId);
         Assert.Equal(objectType, model.Message.ObjectType);
         Assert.Equal(action, model.Message.Action);
         Assert.Equal(slot, model.Message.DeliverySlot);
-        Assert.Equal(codename, model.Data!.System!.Codename);
+        Assert.Equal(codename, model.Data.System.Codename);
         Assert.NotEqual(Guid.Empty, model.Data.System.Id);
-        Assert.NotEmpty(model.Data.System.Name!);
+        Assert.NotEmpty(model.Data.System.Name);
         Assert.Equal(DateTimeKind.Utc, model.Data.System.LastModified.Kind);
     }
 
     [Fact]
     public void ContentItem_CarriesTheItemOnlyFields()
     {
-        var system = Load("ContentItemPublished.json").Notifications![0].Data!.System!;
+        var system = Load("ContentItemPublished.json").Notifications[0].Data.System;
 
         Assert.Equal("marketing", system.Collection);
         Assert.Equal("default", system.Workflow);
@@ -49,7 +49,7 @@ public class WebhookNotificationTests
     [Fact]
     public void WorkflowStepChanged_CarriesThePreviousState()
     {
-        var message = Load("ContentItemWorkflowStepChanged.json").Notifications![0].Message!;
+        var message = Load("ContentItemWorkflowStepChanged.json").Notifications[0].Message;
 
         Assert.Equal("default", message.ActionContext!.PreviousWorkflow);
         Assert.Equal("published", message.ActionContext.PreviousWorkflowStep);
@@ -58,17 +58,28 @@ public class WebhookNotificationTests
     [Fact]
     public void OtherActions_HaveNoActionContext()
     {
-        Assert.Null(Load("ContentItemPublished.json").Notifications![0].Message!.ActionContext);
+        Assert.Null(Load("ContentItemPublished.json").Notifications[0].Message.ActionContext);
     }
 
     // For a term event the codename is the term's; the group is what a cache key needs.
     [Fact]
     public void TaxonomyTerm_CarriesItsGroup()
     {
-        var system = Load("TaxonomyTermCreated.json").Notifications![0].Data!.System!;
+        var system = Load("TaxonomyTermCreated.json").Notifications[0].Data.System;
 
         Assert.Equal("handheld", system.Codename);
         Assert.Equal("product_category", system.TaxonomyGroup);
+    }
+
+    // A member the documentation lists for every event is required: a payload without it fails to bind
+    // rather than arriving with a null the handler has to check for.
+    [Theory]
+    [InlineData("""{}""")]
+    [InlineData("""{"notifications":[{"data":{"system":{}},"message":{}}]}""")]
+    [InlineData("""{"notifications":[{"message":{"environment_id":"195a50c1-f1b8-0066-9eb4-83f7246d5459","object_type":"asset","action":"created","delivery_slot":"published"}}]}""")]
+    public void PayloadMissingADocumentedMember_FailsToBind(string json)
+    {
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<WebhookNotification>(json));
     }
 
     private static WebhookNotification Load(string file)

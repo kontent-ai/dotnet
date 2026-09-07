@@ -11,8 +11,8 @@ public sealed record WebhookNotification
     /// <summary>
     /// One notification per modified object. Notifications may be batched, so a single request can carry several.
     /// </summary>
-    [JsonPropertyName("notifications"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<WebhookModel>? Notifications { get; init; }
+    [JsonPropertyName("notifications")]
+    public required IReadOnlyList<WebhookModel> Notifications { get; init; }
 }
 
 /// <summary>
@@ -23,14 +23,14 @@ public sealed record WebhookModel
     /// <summary>
     /// Metadata identifying the object that changed.
     /// </summary>
-    [JsonPropertyName("data"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public WebhookData? Data { get; init; }
+    [JsonPropertyName("data")]
+    public required WebhookData Data { get; init; }
 
     /// <summary>
     /// Where the change occurred and due to which event.
     /// </summary>
-    [JsonPropertyName("message"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public WebhookMessage? Message { get; init; }
+    [JsonPropertyName("message")]
+    public required WebhookMessage Message { get; init; }
 }
 
 /// <summary>
@@ -41,8 +41,8 @@ public sealed record WebhookData
     /// <summary>
     /// System properties of the changed object.
     /// </summary>
-    [JsonPropertyName("system"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public WebhookItem? System { get; init; }
+    [JsonPropertyName("system")]
+    public required WebhookItem System { get; init; }
 }
 
 /// <summary>
@@ -54,19 +54,19 @@ public sealed record WebhookMessage
     /// Identifier of the environment the notification came from.
     /// </summary>
     [JsonPropertyName("environment_id")]
-    public Guid EnvironmentId { get; init; }
+    public required Guid EnvironmentId { get; init; }
 
     /// <summary>
     /// Kind of object that changed; one of the <see cref="WebhookObjectTypes"/> values.
     /// </summary>
     [JsonPropertyName("object_type")]
-    public string? ObjectType { get; init; }
+    public required string ObjectType { get; init; }
 
     /// <summary>
     /// What happened to the object; one of the <see cref="WebhookActions"/> values.
     /// </summary>
     [JsonPropertyName("action")]
-    public string? Action { get; init; }
+    public required string Action { get; init; }
 
     /// <summary>
     /// Present only when <see cref="Action"/> is <see cref="WebhookActions.WorkflowStepChanged"/>: the workflow state the item left.
@@ -80,7 +80,7 @@ public sealed record WebhookMessage
     /// says which slot the webhook was configured for.
     /// </summary>
     [JsonPropertyName("delivery_slot")]
-    public string? DeliverySlot { get; init; }
+    public required string DeliverySlot { get; init; }
 }
 
 /// <summary>
@@ -102,29 +102,29 @@ public sealed record WebhookActionContext
 }
 
 /// <summary>
-/// System properties of the changed object. <see cref="Id"/>, <see cref="Name"/>, <see cref="Codename"/> and
-/// <see cref="LastModified"/> are sent for every kind of object; the rest depend on the kind.
+/// System properties of the changed object. The required members are sent for every kind of object; the
+/// nullable ones depend on the kind and are <c>null</c> when the event does not carry them.
 /// </summary>
 public sealed record WebhookItem
 {
     /// <summary>
     /// The object's internal ID.
     /// </summary>
-    [JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public Guid? Id { get; init; }
+    [JsonPropertyName("id")]
+    public required Guid Id { get; init; }
 
     /// <summary>
     /// The object's display name.
     /// </summary>
-    [JsonPropertyName("name"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Name { get; init; }
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
 
     /// <summary>
     /// The object's codename. For a taxonomy term event this is the term's codename and
     /// <see cref="TaxonomyGroup"/> names the group.
     /// </summary>
-    [JsonPropertyName("codename"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Codename { get; init; }
+    [JsonPropertyName("codename")]
+    public required string Codename { get; init; }
 
     /// <summary>
     /// Codename of the collection; content items and assets.
@@ -166,5 +166,5 @@ public sealed record WebhookItem
     /// When the object was last modified, in UTC.
     /// </summary>
     [JsonPropertyName("last_modified")]
-    public DateTime LastModified { get; init; }
+    public required DateTime LastModified { get; init; }
 }
