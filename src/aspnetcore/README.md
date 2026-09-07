@@ -215,7 +215,12 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 | `asset` | `asset_{id}` |
 | `language` | nothing — see below |
 
-A complete endpoint, with the Delivery client registered and a cache attached to it:
+A complete endpoint, with the Delivery client registered and a cache attached to it. `UseMemoryCache` comes
+from `Kontent.Ai.Delivery.Caching`, which this package does not depend on — add it alongside:
+
+```bash
+dotnet add package Kontent.Ai.Delivery.Caching
+```
 
 ```csharp
 using Kontent.Ai.AspNetCore.Webhooks;
@@ -243,9 +248,12 @@ app.MapPost("/webhooks/kontent", async (
     IOptions<DeliveryOptions> delivery,
     CancellationToken cancellationToken) =>
 {
+    // The keys carry no environment; only act on notifications for the environment this client reads.
+    // Compared as GUIDs: the option is a string and validates in any GUID format, including upper case.
+    var environmentId = Guid.Parse(delivery.Value.EnvironmentId);
+
     var relevant = notification.Notifications
-        // The keys carry no environment; only act on notifications for the environment this client reads.
-        .Where(n => n.Message.EnvironmentId.ToString() == delivery.Value.EnvironmentId)
+        .Where(n => n.Message.EnvironmentId == environmentId)
         // A preview client bypasses the cache, so a content item change in the preview slot has nothing to
         // invalidate. Assets, types, taxonomies and languages are shared between the slots and always count.
         .Where(n => n.Message.ObjectType != WebhookObjectTypes.ContentItem || n.Message.DeliverySlot == WebhookDeliverySlots.Published)
@@ -258,14 +266,16 @@ app.MapPost("/webhooks/kontent", async (
         return Results.NoContent();
     }
 
-    await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
-    return Results.NoContent();
+    // InvalidateAsync reports failure instead of throwing (TTL is its backstop). A non-2xx makes Kontent.ai
+    // resend the notification, so a failed invalidation gets a second chance rather than a 204.
+    var invalidated = await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
+    return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 
 app.Run();
 ```
 
-The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done: any other status makes Kontent.ai retry the notification, with backoff, for up to three days.
+The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed invalidation wants.
 
 What invalidation does not cover:
 

@@ -1467,8 +1467,9 @@ app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegme
 
 app.MapPost("/webhooks/kontent", async (WebhookNotification notification, IDeliveryCacheManager cacheManager, CancellationToken ct) =>
 {
-    await cacheManager.InvalidateAsync(notification.GetCacheDependencyKeys(), ct);
-    return Results.NoContent();
+    // A non-2xx makes Kontent.ai resend the notification, so a failed invalidation is retried rather than lost.
+    var invalidated = await cacheManager.InvalidateAsync(notification.GetCacheDependencyKeys(), ct);
+    return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 ```
 
