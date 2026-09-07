@@ -11,7 +11,7 @@ Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai
 dotnet add package Kontent.Ai.AspNetCore
 ```
 
-The package targets `net10.0` and aligns version-wise with the Delivery SDK (`19.x`).
+The package targets `net10.0` and depends on `Kontent.Ai.Delivery` **20** or later. Its version is its own; see the [changelog](CHANGELOG.md) for what each release changed.
 
 ## Tag Helpers
 
@@ -273,13 +273,6 @@ What invalidation does not cover:
 - **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()` asks the API for the latest content; in this SDK that call bypasses the SDK cache, so it returns fresh content but does not warm the cache.
 - **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
 
-## Upgrading to v19
+## Upgrade Guide
 
-Version `19.x` aligns with `Kontent.Ai.Delivery 19.0`, which removed the `IImage` interface. The `img-asset` tag helper now accepts `IAsset` directly:
-
-```diff
-- public IImage Asset { get; set; }
-+ public IAsset? Asset { get; set; }
-```
-
-No changes are needed in your Razor views as long as you pass assets returned by the Delivery SDK (`IAsset` values from element accessors and rich-text assets).
+- Coming from **0.x** — see the [0 → 1 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore/docs/upgrade).
