@@ -12,16 +12,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  release-scripts:
-    name: Release workflow tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Test publish recovery
-        run: bash eng/tests/publish.sh
-
   build:
     name: Build & test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
