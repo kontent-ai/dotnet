@@ -6,6 +6,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **The webhook models' always-present members are `required` and non-nullable.** The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the Sync and Delivery models mark such members `required`; this package marked every reference-type member nullable, which forced a null check or a `!` on every field a handler reads. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. Reading code compiles with fewer checks; code that constructs a payload by hand must set every required member. A payload that lacks one now fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls. This is what `required` does and all it does: an explicit JSON `null` is still accepted into a non-nullable member unless the host's serializer is told to respect nullable annotations, so event-specific fields still need checking in the handler. See the [upgrade guide](docs/upgrade/0-to-1.md), §5.
+
 ### Added
 
 - **The webhook models carry every field the API sends.** `WebhookItem.TaxonomyGroup` (the group a taxonomy term belongs to — for term events `Codename` is the term's, so this is the only way to reach the group) and `WebhookMessage.ActionContext` (the previous workflow and step on a `workflow_step_changed` event). Both are `null` when the event does not carry them, as before the properties existed.
