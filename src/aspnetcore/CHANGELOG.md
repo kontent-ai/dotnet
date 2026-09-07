@@ -6,6 +6,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **`<img-asset rendition="…">` no longer loses the crop when the Delivery client applies a default rendition preset.** With `DeliveryOptions.DefaultRenditionPreset` set, the SDK appends the preset's query to `Asset.Url` at mapping time. The tag helper appended the rendition's query again, producing a URL with two `?`. The CDN accepts that URL, reads the second `?` as part of the `rect` value, discards the crop, and serves the uncropped image at the rendition's bounds — so the page showed the wrong picture and nothing reported it. A rendition now replaces whatever query the URL carries, which is the same result whether the preset was applied already, not at all, or a different one was. Encoding transforms (`format`, `quality`, `auto-format`, `compression`) are composed through `ImageUrlBuilder` on both paths instead of being spelled out twice.
+
 ## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
 ### Breaking changes
