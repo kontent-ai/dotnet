@@ -1,18 +1,20 @@
 // Reports, per product, whether the version declared in eng/Versions.props is on nuget.org.
 //
-//   dotnet run eng/scripts/release-status.cs [-- --json | --order]
+//   dotnet run eng/scripts/release-status.cs [-- --json | --order [--include-published]]
 //
 // Prepared-but-unpublished is a legitimate but invisible state, so the reporting modes exit 0
 // unless they cannot do the job. --order is the exception: it fails on a dependsOn cycle.
 //
 // --order emits the plan the Publish workflow works through, dependencies first, tab-separated:
-//   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
+//   <product>\t<version>\t<tag>\t<release title>\t<NuGet status>\t<"prerelease"|"">
+// --include-published lets the workflow also find unfinished GitHub releases.
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 var asJson = args.Contains("--json");
 var asOrder = args.Contains("--order");
+var includePublished = args.Contains("--include-published");
 
 var repoRoot = FindRepoRoot();
 if (repoRoot is null) { Console.Error.WriteLine("release-status: not inside a git repository"); return 1; }
@@ -56,7 +58,12 @@ foreach (var product in products.RootElement.EnumerateObject())
 
 if (asOrder)
 {
-    var pendingRows = rows.Where(r => r.Status != "published").ToList();
+    if (rows.Any(r => r.Status == "NO VERSION PROPERTY"))
+    {
+        Console.Error.WriteLine("release-status: a product has no declared version");
+        return 1;
+    }
+    var pendingRows = rows.Where(r => includePublished || r.Status != "published").ToList();
     var pendingNames = pendingRows.Select(r => r.Product).ToHashSet(StringComparer.Ordinal);
 
     // Kahn's algorithm over dependsOn, restricted to the products actually being released:
@@ -89,7 +96,7 @@ if (asOrder)
     {
         var title = $"{products.RootElement.GetProperty(r.Product).GetProperty("expectedPackages")[0].GetString()} {r.Version}";
         var prerelease = r.Version.Contains('-') ? "prerelease" : "";
-        Console.WriteLine($"{r.Product}\t{r.Version}\t{r.Product}-v{r.Version}\t{title}\t{prerelease}");
+        Console.WriteLine($"{r.Product}\t{r.Version}\t{r.Product}-v{r.Version}\t{title}\t{r.Status}\t{prerelease}");
     }
 
     return 0;

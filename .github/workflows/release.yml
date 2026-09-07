@@ -1,9 +1,12 @@
 name: Publish
 
 # Packs and pushes every product whose version in eng/Versions.props is missing from nuget.org,
-# then records each one as a tag and a GitHub Release. Run it after merging a "Prepare release"
-# PR, or from a maintenance branch for a hotfix. Defaults to a dry run. Re-running is safe: a
-# product already on nuget.org is skipped, and an existing release only gets its assets refreshed.
+# and finishes any release a previous run left incomplete. Run it after merging a "Prepare
+# release" PR, or from a maintenance branch for a hotfix. Defaults to a dry run.
+#
+# The <product>-v<version> tag is created before the first push, so a version is bound to one
+# commit; the GitHub Release stays a draft until every package and asset is up. A failed run is
+# fixed by re-running it - a fresh dispatch from another commit is refused for that version.
 #
 # The filename is part of the nuget.org trusted-publishing policy - keep it if the workflow moves.
 on:
@@ -14,13 +17,14 @@ on:
         type: boolean
         default: true
       products:
-        description: 'Products to publish, space-separated (e.g. "delivery sync"). Empty means every product missing from nuget.org - allowed only from main and vnext.'
+        description: 'Products to publish or recover, space-separated (e.g. "delivery sync"). Empty selects unfinished releases - allowed only from main and vnext.'
         type: string
         required: false
 
 concurrency:
   group: publish
   cancel-in-progress: false
+  queue: max
 
 env:
   PACK_OUTPUT: ./artifacts/publish
@@ -51,51 +55,31 @@ jobs:
         run: |
           dotnet build eng/scripts/release-status.cs
           dotnet build eng/scripts/release-notes.cs
+          dotnet build eng/scripts/dependency-floors.cs
 
       - name: Plan
         id: plan
         env:
           PRODUCTS: ${{ inputs.products }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          # An older branch declares every product at whatever version it had then, so "everything
-          # missing" could pick up one that was never meant to ship from there.
-          if [ -z "$PRODUCTS" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "vnext" ]; then
-            echo "::error::Name the products to publish when running from '$GITHUB_REF_NAME'."
-            exit 1
-          fi
-
-          for product in $PRODUCTS; do
-            if ! jq -e --arg p "$product" 'has($p)' eng/products.json >/dev/null; then
-              echo "::error::Unknown product '$product'. Known: $(jq -r 'keys | join(", ")' eng/products.json)"
-              exit 1
-            fi
-          done
-
           # Dependency-first, one product per line:
-          #   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
+          #   <product>\t<version>\t<tag>\t<release title>\t<NuGet status>\t<"prerelease"|"">
           # Kept out of a pipeline so a dependsOn cycle (exit 1) fails the run, unlike an empty batch.
-          if ! dotnet run eng/scripts/release-status.cs -- --order > /tmp/order.raw; then
+          if ! dotnet run eng/scripts/release-status.cs -- --order --include-published > /tmp/order.raw; then
             echo "::error::could not work out a publish order - see the message above"
             exit 1
           fi
           # `dotnet run` writes build diagnostics to stdout, so keep only well-formed rows.
-          awk -F'\t' 'NF == 5' /tmp/order.raw > /tmp/pending.tsv
-
-          if [ -n "$PRODUCTS" ]; then
-            for product in $PRODUCTS; do
-              grep -q "^${product}"$'\t' /tmp/pending.tsv \
-                || echo "::notice::$product is already on nuget.org at its declared version - skipping"
-            done
-            # Filtered in place rather than by input order, so dependencies still go first.
-            awk -F'\t' -v keep=" $PRODUCTS " 'index(keep, " " $1 " ")' /tmp/pending.tsv > /tmp/order.tsv
-          else
-            cp /tmp/pending.tsv /tmp/order.tsv
-          fi
+          awk -F'\t' 'NF == 6' /tmp/order.raw > /tmp/candidates.tsv
+          # An API failure must stop planning, not masquerade as an absent release.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --paginate --slurp > /tmp/releases.json
+          bash eng/scripts/publish.sh plan /tmp/candidates.tsv /tmp/releases.json /tmp/order.tsv
 
           if [ ! -s /tmp/order.tsv ]; then
-            echo "Nothing to publish - every selected product is on nuget.org at its declared version."
+            echo "Nothing to publish - packages and GitHub releases are complete."
             echo "count=0" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -103,10 +87,21 @@ jobs:
           echo "Publish order:"
           cut -f1,2 /tmp/order.tsv | sed 's/^/  /'
           echo "count=$(wc -l < /tmp/order.tsv | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Publish order ($GITHUB_SHA)"
+            echo
+            awk -F'\t' '{ print "- " $1 " " $2 " (" $5 ")" }' /tmp/order.tsv
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          bash eng/scripts/publish.sh verify /tmp/order.tsv
+
+      - name: Verify published dependency floors
+        if: steps.plan.outputs.count != '0'
+        run: dotnet run eng/scripts/dependency-floors.cs
 
       # Explicit, not inherited: in source mode the nuspec would take sibling versions from
-      # eng/Versions.props instead of the declared floors. This restore is also what proves every
-      # cross-product floor is on nuget.org - an unpublished one fails here.
+      # eng/Versions.props instead of the declared floors. Restore alone is not an exact floor
+      # check: NuGet can resolve a higher version with warning NU1603.
       - name: Restore dependencies
         if: steps.plan.outputs.count != '0'
         run: dotnet restore /p:UseProjectReferences=false
@@ -121,7 +116,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          while IFS=$'\t' read -r product version tag title prerelease; do
+          while IFS=$'\t' read -r product version tag title status prerelease; do
             out="$PACK_OUTPUT/$product"
             mkdir -p "$out"
             echo "::group::$tag"
@@ -151,8 +146,25 @@ jobs:
             dotnet run eng/scripts/release-notes.cs -- "$tag" > "$out/notes.md"
             echo "--- release notes ---"
             cat "$out/notes.md"
+            { echo "## $title"; echo; cat "$out/notes.md"; echo; } >> "$GITHUB_STEP_SUMMARY"
             echo "::endgroup::"
           done < /tmp/order.tsv
+          cp /tmp/order.tsv "$PACK_OUTPUT/order.tsv"
+          printf '%s\n' "$GITHUB_SHA" > "$PACK_OUTPUT/commit.txt"
+
+      - name: Retain release artifacts
+        if: steps.plan.outputs.count != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: publish-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.PACK_OUTPUT }}
+          if-no-files-found: error
+
+      - name: Reserve release tags
+        if: steps.plan.outputs.count != '0' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash eng/scripts/publish.sh reserve /tmp/order.tsv
 
       - name: Dry run
         if: steps.plan.outputs.count != '0' && inputs.dry_run
@@ -171,29 +183,4 @@ jobs:
         env:
           NUGET_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-          while IFS=$'\t' read -r product version tag title prerelease; do
-            out="$PACK_OUTPUT/$product"
-            echo "::group::$tag"
-
-            # --skip-duplicate makes a re-run after a partial failure a no-op for what already landed.
-            dotnet nuget push "$out/*.nupkg" -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY" --skip-duplicate
-
-            # The release is the record, created after the push so a failed push leaves no release
-            # pointing at packages that never shipped. Nothing listens for the event it raises.
-            if gh release view "$tag" >/dev/null 2>&1; then
-              echo "release $tag already exists - refreshing its assets"
-            else
-              prerelease_flag=""
-              [ "$prerelease" = "prerelease" ] && prerelease_flag="--prerelease"
-              gh release create "$tag" \
-                --target "$GITHUB_SHA" \
-                --title "$title" \
-                --notes-file "$out/notes.md" \
-                $prerelease_flag
-            fi
-            gh release upload "$tag" "$out"/*.nupkg "$out"/*.snupkg --clobber
-            echo "::endgroup::"
-          done < /tmp/order.tsv
+        run: bash eng/scripts/publish.sh push /tmp/order.tsv /tmp/releases.json
