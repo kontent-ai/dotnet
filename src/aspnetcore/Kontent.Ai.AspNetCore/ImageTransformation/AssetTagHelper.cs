@@ -116,7 +116,8 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
 
             if (responsiveWidths is { Length: > 0 } && explicitWidth == null && explicitHeight == null)
             {
-                var srcSet = string.Join(",", responsiveWidths.Select(w =>
+                var candidates = CandidateWidths(responsiveWidths);
+                var srcSet = string.Join(",", candidates.Select(w =>
                     $"{BuildTransformedUrl(w, null)} {w}w"));
                 image.MergeAttribute("srcset", srcSet);
 
@@ -127,8 +128,8 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
                 var s = string.Join(", ", sizes.Concat([$"{DefaultWidth}px"]));
                 image.MergeAttribute("sizes", s);
 
-                // Fallback src for clients that don't honor srcset — use the largest declared width.
-                image.MergeAttribute("src", BuildTransformedUrl(responsiveWidths.Max(), null));
+                // Fallback src for clients that don't honor srcset — use the largest candidate.
+                image.MergeAttribute("src", BuildTransformedUrl(candidates.Max(), null));
             }
             else
             {
@@ -150,6 +151,32 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         }
         Asset.Renditions.TryGetValue(Rendition, out var rendition);
         return rendition;
+    }
+
+    /// <summary>
+    /// The widths <c>srcset</c> is generated for. A width descriptor must be the candidate's real width,
+    /// and the CDN never upscales, so a configured width beyond the source is served at the source's
+    /// width and its descriptor would lie: candidates are capped at the natural width and de-duplicated.
+    /// The natural width is the original's, unless the URL already carries a rendition's query - what
+    /// <c>DeliveryOptions.DefaultRenditionPreset</c> produces - in which case it is that rendition's.
+    /// Unknown (no <see cref="IAsset.Width"/>, or a query matching no rendition) means no cap.
+    /// </summary>
+    private int[] CandidateWidths(int[] responsiveWidths)
+    {
+        if (responsiveWidths.Any(w => w <= 0))
+        {
+            throw new InvalidOperationException(
+                $"{nameof(ImageTransformationOptions)}.{nameof(ResponsiveWidths)} must contain positive widths only; " +
+                $"got [{string.Join(", ", responsiveWidths)}].");
+        }
+
+        var query = new Uri(Asset!.Url).Query.TrimStart('?');
+        var appliedRendition = query.Length > 0 ? Asset.Renditions.Values.FirstOrDefault(r => r.Query == query) : null;
+        var cap = appliedRendition?.Width ?? Asset.Width;
+
+        return cap is > 0
+            ? [.. responsiveWidths.Select(w => Math.Min(w, cap.Value)).Distinct()]
+            : [.. responsiveWidths.Distinct()];
     }
 
     private string BuildTransformedUrl(double? width, double? height)
