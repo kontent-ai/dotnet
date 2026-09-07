@@ -65,6 +65,12 @@ Upgrade guides live in `src/<product>/docs/upgrade/<from>-to-<to>.md`, one per m
 
 So the full release flow is: merge feature PRs (each user-visible change adds to the product's `CHANGELOG.md` under `## Unreleased`) → run *Prepare release* → review and merge its PR → run *Publish*. Releases stay independent — a product can be published or abandoned without affecting the others.
 
+Changelog entries have one shape across products, because `release-notes.cs` turns the entry into the GitHub Release page verbatim:
+
+- A bullet opens with a **bold lead of at most a dozen words** that names the change, and nothing else on that line. Rationale, consumer impact and migration go in a paragraph of their own inside the bullet, after a blank line; code blocks stay where they are. Read the bold lines alone and the release should still make sense.
+- Headings come from one set, in this order when present: `Breaking changes`, `Security`, `Added`, `Changed`, `Fixed`, `Dependencies`, `Internal`. Nothing else — a stray heading reaches the release page as is.
+- A breaking entry's paragraph keeps one order: what changed, what a consumer sees, what to do about it.
+
 ## Commits and PRs
 
 - Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history. Branch names: `TICKET-ID_Short_description`.

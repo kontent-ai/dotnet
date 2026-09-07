@@ -11,7 +11,9 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
-- **`IClassDefinitionFactory` and `IManagementElementService` are removed; their implementations are static classes.** Each had exactly one implementation, was never substituted anywhere including the tests — which construct the concrete type — and held no state. `ManagementElementService`'s own documentation described it as a pure function. They were abstraction without a second implementation to abstract over, and once the interfaces went the analyzer confirmed every method could be static.
+- **`IClassDefinitionFactory` and `IManagementElementService` are removed; their implementations are static.**
+
+  Each had exactly one implementation, was never substituted anywhere including the tests — which construct the concrete type — and held no state. `ManagementElementService`'s own documentation described it as a pure function. They were abstraction without a second implementation to abstract over, and once the interfaces went the analyzer confirmed every method could be static.
 
   `ClassDefinitionFactory.CreateClassDefinition(...)` and `ManagementElementService.Build(...)` are now static calls on the same types with the same signatures, so call sites change only by losing the instance. Both types stop being registered in the container.
 
@@ -19,29 +21,47 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Changed
 
-- **A single-choice element generates `TEnum?`.** The Management emitter read a multiple-choice element's options but not its `mode`, so a single-select element came out as `IEnumerable<TEnum>?` like a multi-select one, and every read or write went through a one-element list. The mode now decides the property type: `TEnum?` for single, `IEnumerable<TEnum>?` for multiple. `MultipleChoiceElementInput` carries it as a trailing `Mode` parameter that defaults to multiple. Reading and writing the `TEnum?` shape needs the `Kontent.Ai.Management` release that ships alongside this one.
+- **A single-choice element generates `TEnum?`.**
+
+  The Management emitter read a multiple-choice element's options but not its `mode`, so a single-select element came out as `IEnumerable<TEnum>?` like a multi-select one, and every read or write went through a one-element list. The mode now decides the property type: `TEnum?` for single, `IEnumerable<TEnum>?` for multiple. `MultipleChoiceElementInput` carries it as a trailing `Mode` parameter that defaults to multiple. Reading and writing the `TEnum?` shape needs the `Kontent.Ai.Management` release that ships alongside this one.
 
 ### Fixed
 
-- **The tool no longer ships the Visual Basic compiler.** `Microsoft.CodeAnalysis` is the meta-package; only the C# syntax and workspace formatting APIs are used, so it now references `Microsoft.CodeAnalysis.CSharp.Workspaces` directly.
+- **A blank comment argument reports `ArgumentException`, not `ArgumentNullException`.**
 
-- **A blank comment argument reports `ArgumentException` rather than `ArgumentNullException`.** The value is present, just empty — the two are different mistakes, and the tests had frozen the wrong one.
+  The value is present, just empty — the two are different mistakes, and the tests had frozen the wrong one.
 
-- **Generated members are ordered ordinally rather than by the current culture**, so the same content model produces the same file on every machine.
+- **Generated members are ordered ordinally rather than by the current culture.**
 
-- **`appSettings.json` names the option the tool actually reads.** It still listed `BaseClass`, which was renamed to `BaseRecord`.
+  The same content model produces the same file on every machine.
 
-- **The startup banner no longer reports success before anything is generated.** A failed run's first line was "Models were generated for …"; it now says what it is about to do.
+- **`appSettings.json` names the option the tool actually reads.**
 
-- **`IClassCodeGeneratorFactory` covers both emitters.** It offered only the Delivery generator while the Management path constructed its own directly — a seam that looked like the way in and was not. It now has a method per emitter, and the Management path goes through it.
+  It still listed `BaseClass`, which was renamed to `BaseRecord`.
 
-- **The config-file documentation matches where the tool actually looks.** The README described `appSettings.json` as living beside the executable; the tool reads it from the working directory, and as a `dotnet tool` it has no executable directory to speak of. The file is also not installed with the tool, so the README now points at it as a template to copy.
+- **The startup banner no longer reports success before anything is generated.**
 
-- **Management mode no longer skips elements over identifiers it never emits.** Every content type reserved the names the Delivery emitter uses for its codename constants — `{Property}Codename` for each element, plus the type's own `ContentTypeCodename` — regardless of mode. The Management emitter writes none of those, so the reservation only rejected valid input there: a type carrying both `title` and `title_codename` had the second skipped with a collision warning, and an element codenamed `content_type_codename` was renamed for no reason. Constant registration is now the Delivery emitter's, so Management mode has the whole identifier space its own output uses.
+  A failed run's first line was "Models were generated for …"; it now says what it is about to do.
 
-- **`--baseRecord` is rejected at startup when it is not a valid C# record name.** `-b "My-Base"` wrote `public partial record My-Base` and an extender deriving every generated model from it, so the whole output failed to compile over one argument. The name is checked before any API call and reported like any other configuration problem.
+- **`IClassCodeGeneratorFactory` covers both emitters.**
 
-- **Forgetting `--management` now fails instead of generating Delivery models.** Validation accepted the union of both modes' parameters while binding only ever applied the active mode's, so `-k` (or `--apiKey`) without `-m` was accepted, dropped, and the run continued as a full Delivery generation - writing Delivery models over whatever was in the output directory and exiting `0`. The reverse dropped the Delivery-only `-p` / `--projectid` in Management mode and then failed with a message about an empty `EnvironmentId`, which read as a configuration problem rather than a wrong flag. Each argument is now checked against the mode that is actually running, and one that belongs to the other mode names the mode switch:
+  It offered only the Delivery generator while the Management path constructed its own directly — a seam that looked like the way in and was not. It now has a method per emitter, and the Management path goes through it.
+
+- **The config-file documentation matches where the tool actually looks.**
+
+  The README described `appSettings.json` as living beside the executable; the tool reads it from the working directory, and as a `dotnet tool` it has no executable directory to speak of. The file is also not installed with the tool, so the README now points at it as a template to copy.
+
+- **Management mode no longer skips elements over identifiers it never emits.**
+
+  Every content type reserved the names the Delivery emitter uses for its codename constants — `{Property}Codename` for each element, plus the type's own `ContentTypeCodename` — regardless of mode. The Management emitter writes none of those, so the reservation only rejected valid input there: a type carrying both `title` and `title_codename` had the second skipped with a collision warning, and an element codenamed `content_type_codename` was renamed for no reason. Constant registration is now the Delivery emitter's, so Management mode has the whole identifier space its own output uses.
+
+- **`--baseRecord` must be a valid C# record name.**
+
+  `-b "My-Base"` wrote `public partial record My-Base` and an extender deriving every generated model from it, so the whole output failed to compile over one argument. The name is checked at startup, before any API call, and reported like any other configuration problem.
+
+- **Forgetting `--management` fails instead of generating Delivery models.**
+
+  Validation accepted the union of both modes' parameters while binding only ever applied the active mode's, so `-k` (or `--apiKey`) without `-m` was accepted, dropped, and the run continued as a full Delivery generation - writing Delivery models over whatever was in the output directory and exiting `0`. The reverse dropped the Delivery-only `-p` / `--projectid` in Management mode and then failed with a message about an empty `EnvironmentId`, which read as a configuration problem rather than a wrong flag. Each argument is now checked against the mode that is actually running, and one that belongs to the other mode names the mode switch:
 
   ```
   -k configures the Management API. Add --management (or -m) to generate from it.
@@ -49,9 +69,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The same check now covers the section-qualified form (`--ManagementOptions:ApiKey` without `--management`, and `--DeliveryOptions:*` with it), which bound straight into configuration without needing a switch mapping and so slipped past the mode entirely. Only command-line arguments are checked - an `appSettings.json` carrying both sections is unaffected, and the section belonging to the mode you run is the one that is read.
 
-- **`--nullability` is refused in Management mode instead of accepted and ignored.** It selects how generated *Delivery* models express nullability. Management models are uniformly nullable by contract - a `null` property is omitted from the upsert payload, which is how you leave an element untouched - so there was never anything for the flag to select there. The parameter table already documented it as Delivery-only; now the tool enforces it.
+- **`--nullability` is refused in Management mode instead of accepted and ignored.**
 
-- **`--management` together with `--baseRecord` no longer emits code that cannot compile.** The generated base record and its extender both carried a hardcoded `using Kontent.Ai.Delivery.Abstractions;`. A project generated for the Management SDK has no reason to reference the Delivery SDK, so that line was a `CS0246` in a file the consumer never wrote. Neither it nor the `using System;` beside it was referenced by the emitted code in either mode; both are gone.
+  It selects how generated *Delivery* models express nullability. Management models are uniformly nullable by contract - a `null` property is omitted from the upsert payload, which is how you leave an element untouched - so there was never anything for the flag to select there. The parameter table already documented it as Delivery-only; now the tool enforces it.
+
+- **`--management` together with `--baseRecord` no longer emits code that cannot compile.**
+
+  The generated base record and its extender both carried a hardcoded `using Kontent.Ai.Delivery.Abstractions;`. A project generated for the Management SDK has no reason to reference the Delivery SDK, so that line was a `CS0246` in a file the consumer never wrote. Neither it nor the `using System;` beside it was referenced by the emitted code in either mode; both are gone.
+
+### Dependencies
+
+- **The tool no longer ships the Visual Basic compiler.**
+
+  `Microsoft.CodeAnalysis` is the meta-package; only the C# syntax and workspace formatting APIs are used, so it now references `Microsoft.CodeAnalysis.CSharp.Workspaces` directly.
 
 ## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
