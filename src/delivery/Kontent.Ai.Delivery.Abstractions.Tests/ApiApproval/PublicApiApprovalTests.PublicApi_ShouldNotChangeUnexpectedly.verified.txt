@@ -301,6 +301,8 @@ public interface IDynamicElements : IEnumerable, IEnumerable<KeyValuePair<String
 public interface IDynamicEnumerateItemsQuery
     DeliveryEnumeration<IContentItem> EnumerateAsync(CancellationToken cancellationToken)
     IDynamicEnumerateItemsQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IDynamicEnumerateItemsQuery OrderByElement(String elementCodename, OrderingMode orderingMode)
+    IDynamicEnumerateItemsQuery OrderBySystem(String propertyName, OrderingMode orderingMode)
     IDynamicEnumerateItemsQuery WaitForLoadingNewContent(Boolean enabled)
     IDynamicEnumerateItemsQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
     IDynamicEnumerateItemsQuery WithElements(String[] elementCodenames)
@@ -323,6 +325,8 @@ public interface IDynamicItemsQuery
     IDynamicItemsQuery Depth(Int32 depth)
     IDynamicItemsQuery Limit(Int32 limit)
     IDynamicItemsQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IDynamicItemsQuery OrderByElement(String elementCodename, OrderingMode orderingMode)
+    IDynamicItemsQuery OrderBySystem(String propertyName, OrderingMode orderingMode)
     IDynamicItemsQuery Skip(Int32 skip)
     IDynamicItemsQuery WaitForLoadingNewContent(Boolean enabled)
     IDynamicItemsQuery Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
@@ -342,6 +346,8 @@ public interface IEmbeddedContent`1<TModel> : IContentItem, IContentItem<TModel>
 public interface IEnumerateItemsQuery`1<TModel>
     DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken)
     IEnumerateItemsQuery<TModel> OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IEnumerateItemsQuery<TModel> OrderByElement(String elementCodename, OrderingMode orderingMode)
+    IEnumerateItemsQuery<TModel> OrderBySystem(String propertyName, OrderingMode orderingMode)
     IEnumerateItemsQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
     IEnumerateItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
     IEnumerateItemsQuery<TModel> WithElements(String[] elementCodenames)
@@ -461,6 +467,8 @@ public interface IItemsQuery`1<TModel>
     IItemsQuery<TModel> Depth(Int32 depth)
     IItemsQuery<TModel> Limit(Int32 limit)
     IItemsQuery<TModel> OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    IItemsQuery<TModel> OrderByElement(String elementCodename, OrderingMode orderingMode)
+    IItemsQuery<TModel> OrderBySystem(String propertyName, OrderingMode orderingMode)
     IItemsQuery<TModel> Skip(Int32 skip)
     IItemsQuery<TModel> WaitForLoadingNewContent(Boolean enabled)
     IItemsQuery<TModel> Where(Func<IItemsFilterBuilder, IItemsFilterBuilder> build)
@@ -481,6 +489,7 @@ public interface ILanguageSystemAttributes : ISystemBaseAttributes
 public interface ILanguagesQuery
     ILanguagesQuery Limit(Int32 limit)
     ILanguagesQuery OrderBy(String elementOrAttributePath, OrderingMode orderingMode)
+    ILanguagesQuery OrderBySystem(String propertyName, OrderingMode orderingMode)
     ILanguagesQuery Skip(Int32 skip)
     ILanguagesQuery WaitForLoadingNewContent(Boolean enabled)
     Task<IDeliveryResult<IDeliveryLanguageListingResponse>> ExecuteAsync(CancellationToken cancellationToken)

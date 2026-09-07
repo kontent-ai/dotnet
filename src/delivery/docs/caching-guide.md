@@ -1207,7 +1207,7 @@ public class CacheWarmupService : IHostedService
         // Pre-load recent articles
         await _client.GetItems<Article>()
             .Where(f => f.System("type").IsEqualTo("article"))
-            .OrderBy("system.last_modified", OrderingMode.Descending)
+            .OrderBySystem("last_modified", OrderingMode.Descending)
             .Limit(10)
             .ExecuteAsync(cancellationToken);
     }

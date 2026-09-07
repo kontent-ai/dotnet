@@ -627,11 +627,18 @@ var query = client.GetItems()
 
 ```csharp
 var result = await client.GetItems()
-    .OrderBy("system.last_modified", OrderingMode.Descending)
+    .OrderBySystem("last_modified", OrderingMode.Descending)
     .Skip(0)
     .Limit(10)
     .ExecuteAsync();
+
+// Order by an element; the generated codename constants work here too
+var articles = await client.GetItems<Article>()
+    .OrderByElement(Article.PublishDateCodename, OrderingMode.Descending)
+    .ExecuteAsync();
 ```
+
+`OrderByElement` and `OrderBySystem` add the `elements.` / `system.` prefix for you, the same way `Element()` and `System()` do in `Where`. `OrderBy("elements.publish_date")` still accepts a full path.
 
 #### Getting Total Count
 

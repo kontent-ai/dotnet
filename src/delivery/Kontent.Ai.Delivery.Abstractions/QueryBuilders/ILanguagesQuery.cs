@@ -13,6 +13,13 @@ public interface ILanguagesQuery
     ILanguagesQuery OrderBy(string elementOrAttributePath, OrderingMode orderingMode = OrderingMode.Ascending);
 
     /// <summary>
+    /// Orders the languages by a system property, e.g. <c>codename</c>, in ascending or descending order.
+    /// </summary>
+    /// <param name="propertyName">System property name, without the <c>system.</c> prefix.</param>
+    /// <param name="orderingMode">Ordering mode (ascending/descending).</param>
+    ILanguagesQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending);
+
+    /// <summary>
     /// Sets the number of languages to skip.
     /// </summary>
     /// <param name="skip">Number of items to skip.</param>

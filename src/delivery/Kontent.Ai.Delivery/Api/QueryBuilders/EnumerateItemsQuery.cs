@@ -55,6 +55,12 @@ internal sealed class EnumerateItemsQuery<TModel>(
         return this;
     }
 
+    public IEnumerateItemsQuery<TModel> OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending)
+        => OrderBy(FilterPath.Element(elementCodename), orderingMode);
+
+    public IEnumerateItemsQuery<TModel> OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending)
+        => OrderBy(FilterPath.System(propertyName), orderingMode);
+
     public IEnumerateItemsQuery<TModel> WaitForLoadingNewContent(bool enabled = true)
     {
         _waitForLoadingNewContent = enabled;

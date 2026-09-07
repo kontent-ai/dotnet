@@ -79,6 +79,12 @@ internal sealed class ItemsQuery<TModel>(
         return this;
     }
 
+    public IItemsQuery<TModel> OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending)
+        => OrderBy(FilterPath.Element(elementCodename), orderingMode);
+
+    public IItemsQuery<TModel> OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending)
+        => OrderBy(FilterPath.System(propertyName), orderingMode);
+
     public IItemsQuery<TModel> WithTotalCount()
     {
         _params = _params with { IncludeTotalCount = true };
