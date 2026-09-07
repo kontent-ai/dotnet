@@ -137,6 +137,8 @@ builder.Services.AddKontentRichText((sp, resolverBuilder) =>
 });
 ```
 
+The callback runs once, when the resolver is first resolved, with the **root** service provider: whatever it captures must be singleton-safe. A resolver that needs request-scoped services (an `IUrlHelper`, a per-request tenant) is registered by the application as a scoped `IHtmlResolver` instead, and the tag helper picks it up the same way.
+
 `View.cshtml`:
 
 ```razor
@@ -151,12 +153,14 @@ The tag helper does not emit a `<rich-text>` wrapper — the resolver's HTML is 
 
 #### Extension method alternative
 
-For partial views, view components, or scenarios that benefit from an explicit `CancellationToken`:
+For partial views, view components, or scenarios that benefit from an explicit `CancellationToken`, `ToHtmlContentAsync` is the Delivery SDK's `ToHtmlAsync` wrapped in an `IHtmlContent` so Razor does not encode it:
 
 ```razor
-@await Model.Body.ToHtmlContentAsync()
-@await Model.Body.ToHtmlContentAsync(myResolver, ViewContext.HttpContext.RequestAborted)
+@inject IHtmlResolver Resolver
+@await Model.Body.ToHtmlContentAsync(Resolver, ViewContext.HttpContext.RequestAborted)
 ```
+
+An extension method cannot see the container, so without a `resolver` argument it uses the SDK's defaults, not the one registered with `AddKontentRichText`. Only the tag helper picks that one up on its own.
 
 #### Without DI registration
 

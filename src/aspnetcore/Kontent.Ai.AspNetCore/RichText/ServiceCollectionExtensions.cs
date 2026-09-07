@@ -11,11 +11,12 @@ namespace Kontent.Ai.AspNetCore.RichText;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers an <see cref="IHtmlResolver"/> singleton used by the <c>&lt;rich-text&gt;</c> tag helper and <see cref="RichTextExtensions.ToHtmlContentAsync"/>.
+    /// Registers the <see cref="IHtmlResolver"/> singleton the <c>&lt;rich-text&gt;</c> tag helper renders with.
     /// </summary>
     /// <remarks>
     /// Calling this method replaces any prior <see cref="IHtmlResolver"/> registration. The resolver is built lazily on
-    /// first resolution; the <paramref name="configure"/> callback runs at that time.
+    /// first resolution; the <paramref name="configure"/> callback runs at that time. <see cref="RichTextExtensions.ToHtmlContentAsync"/>
+    /// cannot see the container: pass it the registered resolver explicitly, or it uses the SDK's defaults.
     /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Optional configuration callback that receives the builder used to assemble the resolver.</param>
@@ -31,12 +32,15 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers an <see cref="IHtmlResolver"/> singleton used by the <c>&lt;rich-text&gt;</c> tag helper and <see cref="RichTextExtensions.ToHtmlContentAsync"/>,
+    /// Registers the <see cref="IHtmlResolver"/> singleton the <c>&lt;rich-text&gt;</c> tag helper renders with,
     /// giving the configuration callback access to the application's <see cref="IServiceProvider"/>.
     /// </summary>
     /// <remarks>
     /// Calling this method replaces any prior <see cref="IHtmlResolver"/> registration. The resolver is built lazily on
-    /// first resolution; the <paramref name="configure"/> callback runs at that time with the root service provider.
+    /// first resolution; the <paramref name="configure"/> callback runs at that time with the <em>root</em> service
+    /// provider, so anything it captures must be singleton-safe. An application whose resolver needs request-scoped
+    /// services registers a scoped <see cref="IHtmlResolver"/> itself instead. <see cref="RichTextExtensions.ToHtmlContentAsync"/>
+    /// cannot see the container: pass it the registered resolver explicitly, or it uses the SDK's defaults.
     /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Optional configuration callback that receives the service provider and the builder used to assemble the resolver.</param>
