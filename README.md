@@ -67,9 +67,9 @@ Versions live in [`eng/Versions.props`](./eng/Versions.props), one property per 
 A release is a version bump plus a changelog entry; publishing compares that file with
 nuget.org and ships whatever is missing.
 
-**Actions → Prepare release** is the first step. Each product has its own dropdown
-defaulting to `none`, so one run can bump several products at once and opens a single PR
-covering the batch. The same bump can be done locally if you prefer:
+**Actions → Prepare release** is the first step. It takes one line of `<product>=<bump>`
+pairs, e.g. `delivery=minor sync=2.1.0-rc.1`, so one run can bump several products at once
+and opens a single PR covering the batch. The same bump can be done locally if you prefer:
 
 ```sh
 dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|minor|major>

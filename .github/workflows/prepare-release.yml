@@ -5,51 +5,10 @@ name: Prepare release
 on:
   workflow_dispatch:
     inputs:
-      aspnetcore:
-        description: 'ASP.NET Core extensions'
-        type: choice
-        default: none
-        options: [none, prerelease, release, patch, minor, major, explicit]
-      aspnetcore_version:
-        description: 'ASP.NET Core - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
+      bumps:
+        description: 'Space-separated <product>=<bump>, where bump is prerelease, release, patch, minor, major or an explicit version. E.g. "delivery=minor sync=2.1.0-rc.1". Products are the keys of eng/products.json.'
         type: string
-        required: false
-      delivery:
-        description: 'Delivery SDK'
-        type: choice
-        default: none
-        options: [none, prerelease, release, patch, minor, major, explicit]
-      delivery_version:
-        description: 'Delivery - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
-        type: string
-        required: false
-      management:
-        description: 'Management SDK'
-        type: choice
-        default: none
-        options: [none, prerelease, release, patch, minor, major, explicit]
-      management_version:
-        description: 'Management - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
-        type: string
-        required: false
-      modelgenerator:
-        description: 'Model generator'
-        type: choice
-        default: none
-        options: [none, prerelease, release, patch, minor, major, explicit]
-      modelgenerator_version:
-        description: 'Model generator - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
-        type: string
-        required: false
-      sync:
-        description: 'Sync SDK'
-        type: choice
-        default: none
-        options: [none, prerelease, release, patch, minor, major, explicit]
-      sync_version:
-        description: 'Sync - explicit version, e.g. 1.2.3 or 1.2.3-rc.1 (only when bump = explicit)'
-        type: string
-        required: false
+        required: true
 
 # Queue rather than cancel: a cancelled run can leave a pushed branch behind with no PR.
 concurrency:
@@ -71,61 +30,41 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Inputs are user-supplied: passed as quoted env vars, never interpolated into the shell.
+      # The input is user-supplied: passed as a quoted env var, never interpolated into the shell.
       - name: Bump versions and promote changelogs
         id: bump
         env:
-          ASPNETCORE: ${{ inputs.aspnetcore }}
-          ASPNETCORE_VERSION: ${{ inputs.aspnetcore_version }}
-          DELIVERY: ${{ inputs.delivery }}
-          DELIVERY_VERSION: ${{ inputs.delivery_version }}
-          MANAGEMENT: ${{ inputs.management }}
-          MANAGEMENT_VERSION: ${{ inputs.management_version }}
-          MODELGENERATOR: ${{ inputs.modelgenerator }}
-          MODELGENERATOR_VERSION: ${{ inputs.modelgenerator_version }}
-          SYNC: ${{ inputs.sync }}
-          SYNC_VERSION: ${{ inputs.sync_version }}
+          BUMPS: ${{ inputs.bumps }}
         run: |
           set -euo pipefail
 
           : > /tmp/summary.txt
           : > /tmp/tags.txt
 
-          bump_one() {
-            product="$1"; bump="$2"; explicit="$3"
-
-            if [ "$bump" = "none" ]; then
-              return 0
+          for token in $BUMPS; do
+            product="${token%%=*}"
+            bump="${token#*=}"
+            if [ "$product" = "$token" ] || [ -z "$bump" ]; then
+              echo "::error::'$token' is not <product>=<bump>"
+              exit 1
+            fi
+            if ! jq -e --arg p "$product" 'has($p)' eng/products.json >/dev/null; then
+              echo "::error::Unknown product '$product'. Known: $(jq -r 'keys | join(", ")' eng/products.json)"
+              exit 1
             fi
 
-            arg="$bump"
-            if [ "$bump" = "explicit" ]; then
-              if [ -z "$explicit" ]; then
-                echo "::error::$product: bump is 'explicit' but no version was given"
-                exit 1
-              fi
-              arg="$explicit"
-            fi
-
-            echo "::group::$product ($arg)"
-            dotnet run eng/scripts/update-version.cs -- "$product" "$arg"
+            echo "::group::$product ($bump)"
+            dotnet run eng/scripts/update-version.cs -- "$product" "$bump"
             echo "::endgroup::"
 
             prop=$(jq -r --arg p "$product" '.[$p].versionProperty' eng/products.json)
             new=$(dotnet msbuild eng/Versions.props -getProperty:"$prop" | tr -d '[:space:]')
             printf -- '- %s %s\n' "$product" "$new" >> /tmp/summary.txt
             printf -- '%s-v%s\n' "$product" "$new" >> /tmp/tags.txt
-          }
-
-          # Product name here must match the key in eng/products.json.
-          bump_one aspnetcore      "$ASPNETCORE"     "$ASPNETCORE_VERSION"
-          bump_one delivery        "$DELIVERY"       "$DELIVERY_VERSION"
-          bump_one management      "$MANAGEMENT"     "$MANAGEMENT_VERSION"
-          bump_one model-generator "$MODELGENERATOR" "$MODELGENERATOR_VERSION"
-          bump_one sync            "$SYNC"           "$SYNC_VERSION"
+          done
 
           if [ ! -s /tmp/summary.txt ]; then
-            echo "::error::Every product is set to 'none' - nothing to prepare."
+            echo "::error::No bumps given - nothing to prepare."
             exit 1
           fi
 
@@ -192,8 +131,9 @@ jobs:
             echo "</details>"
           } > /tmp/body.md
 
+          # Against the dispatched branch, so a hotfix prepared on a maintenance branch lands there.
           gh pr create \
             --title "prepare releases" \
             --body-file /tmp/body.md \
-            --base main \
+            --base "$GITHUB_REF_NAME" \
             --head "$BRANCH"
