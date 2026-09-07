@@ -168,13 +168,12 @@ Both the tag helper and the extension method fall back to `new HtmlResolverBuild
 
 ## Webhooks
 
-Package provides a model for webhook deserialization: `WebhookNotification`.
+Three pieces, used together: middleware that rejects requests Kontent.ai did not sign, models for the
+notification payload, and a mapper from a notification to the Delivery SDK's cache dependency keys.
 
-## Middlewares
+### Signature validation middleware
 
-### Webhook signature verification middleware
-
-This middleware verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-Signature` header when the modern one is absent. A request carrying both is verified against the modern one. Returns `401 Unauthorized` when the signature is missing or invalid.
+Verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-Signature` header when the modern one is absent. A request carrying both is verified against the modern one. Returns `401 Unauthorized` when the signature is missing or invalid; the header is checked before the body is read, and the body stays readable for the endpoint.
 
 `appsettings.json`:
 
@@ -184,7 +183,7 @@ This middleware verifies the `X-Kontent-ai-Signature` header, falling back to th
 }
 ```
 
-The secret is required. Without it no signature can be verified, so the middleware throws rather than
+The secret is required. Without it no signature can be verified, so the host refuses to start rather than
 letting unsigned requests through. Signatures are compared in constant time over the raw HMAC bytes.
 
 `Program.cs`:
@@ -197,6 +196,82 @@ app.UseWebhookSignatureValidator(
     context => context.Request.Path.StartsWithSegments("/webhooks", StringComparison.OrdinalIgnoreCase),
     builder.Configuration.GetSection(nameof(WebhookOptions)));
 ```
+
+Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, or nothing — in which case the options come from the container (`builder.Services.Configure<WebhookOptions>(…)`).
+
+### Notification models
+
+`WebhookNotification` binds the payload Kontent.ai sends: a batch of `Notifications`, each with `Data.System` (id, name, codename, last modified, and for content items the collection, workflow, step, language and type; for taxonomy terms the group) and `Message` (environment, object type, action, delivery slot, and for workflow-step changes the previous state). The members the API sends on every event are `required`; the rest are `null` when the event does not carry them. `WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots` hold the documented values.
+
+### Cache invalidation
+
+`GetCacheDependencyKeys()` maps a notification, or any subset of a batch, to the keys the Delivery SDK tags cached responses with, in the format `IDeliveryCacheManager` documents, so they are exactly the strings `InvalidateAsync` matches:
+
+| Notification | Keys |
+|---|---|
+| `content_item` | `item_{codename}`, items-list scope |
+| `content_type` | `type_{codename}`, types-list scope |
+| `taxonomy` | `taxonomy_{group}`, taxonomies-list scope (the group is `TaxonomyGroup` for a term event, `Codename` for a group event) |
+| `asset` | `asset_{id}` |
+| `language` | nothing — see below |
+
+A complete endpoint, with the Delivery client registered and a cache attached to it:
+
+```csharp
+using Kontent.Ai.AspNetCore.Webhooks;
+using Kontent.Ai.AspNetCore.Webhooks.Models;
+using Kontent.Ai.Delivery;
+using Kontent.Ai.Delivery.Abstractions;
+using Microsoft.Extensions.Options;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDeliveryClient(delivery =>
+{
+    delivery.Options.BindConfiguration("DeliveryOptions");
+    delivery.UseMemoryCache(cache => cache.DefaultExpiration = TimeSpan.FromHours(1));
+});
+builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection(nameof(WebhookOptions)));
+
+var app = builder.Build();
+
+app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegments("/webhooks"));
+
+app.MapPost("/webhooks/kontent", async (
+    WebhookNotification notification,
+    IDeliveryCacheManager cache,
+    IOptions<DeliveryOptions> delivery,
+    CancellationToken cancellationToken) =>
+{
+    var relevant = notification.Notifications
+        // The keys carry no environment; only act on notifications for the environment this client reads.
+        .Where(n => n.Message.EnvironmentId.ToString() == delivery.Value.EnvironmentId)
+        // A preview client bypasses the cache, so a content item change in the preview slot has nothing to
+        // invalidate. Assets, types, taxonomies and languages are shared between the slots and always count.
+        .Where(n => n.Message.ObjectType != WebhookObjectTypes.ContentItem || n.Message.DeliverySlot == WebhookDeliverySlots.Published)
+        .ToList();
+
+    // A language change can reach any cached response through fallbacks and has no key of its own.
+    if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
+    {
+        await purger.PurgeAsync(cancellationToken: cancellationToken);
+        return Results.NoContent();
+    }
+
+    await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
+    return Results.NoContent();
+});
+
+app.Run();
+```
+
+The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done: any other status makes Kontent.ai retry the notification, with backoff, for up to three days.
+
+What invalidation does not cover:
+
+- **Renames.** A notification carries only the new codename, so a response cached under the old key — the item itself, or a parent tagged with it — lives until it expires. The list scopes evict listings. An application that renames routinely purges instead.
+- **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()` asks the API for the latest content; in this SDK that call bypasses the SDK cache, so it returns fresh content but does not warm the cache.
+- **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
 
 ## Upgrading to v19
 

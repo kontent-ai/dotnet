@@ -16,6 +16,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
+- **`GetCacheDependencyKeys()` maps a webhook notification to the Delivery SDK's cache dependency keys.** Every Delivery guide showed a hand-written `switch` from a webhook to `DeliveryCacheDependencies` calls, and both copies got taxonomy wrong: for a term event the payload's `codename` is the term's, and the cache is keyed by the group. The extension composes the keys the SDK tags with, in the format `IDeliveryCacheManager` documents — item plus items-list scope, type plus types-list scope, taxonomy group plus taxonomies-list scope, asset — over a whole batch or any subset of it, without duplicates. A language notification maps to nothing, because the SDK keeps no language dependency; the README's endpoint sample shows the purge branch for it, the environment and delivery-slot filtering that precede it, and what invalidation does not cover (renames, CDN freshness).
+
 - **The webhook models carry every field the API sends.** `WebhookItem.TaxonomyGroup` (the group a taxonomy term belongs to — for term events `Codename` is the term's, so this is the only way to reach the group) and `WebhookMessage.ActionContext` (the previous workflow and step on a `workflow_step_changed` event). Both are `null` when the event does not carry them, as before the properties existed.
 
 - **`WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots`** hold the documented values of `ObjectType`, `Action` and `DeliverySlot` as string constants, so a handler's `switch` no longer spells them. Constants rather than enums: a value Kontent.ai adds later must deserialize, because a failed binding is a 400 that the sender retries for three days.
