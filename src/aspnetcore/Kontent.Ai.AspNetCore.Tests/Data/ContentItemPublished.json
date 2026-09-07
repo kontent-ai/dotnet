@@ -1,0 +1,25 @@
+{
+  "notifications": [
+    {
+      "data": {
+        "system": {
+          "id": "32022d85-ee58-4655-9016-e130c375820a",
+          "name": "This changes everything!",
+          "codename": "this_changes_everything",
+          "collection": "marketing",
+          "workflow": "default",
+          "workflow_step": "published",
+          "language": "english",
+          "type": "product_update",
+          "last_modified": "2024-01-08T13:54:54.3153716Z"
+        }
+      },
+      "message": {
+        "environment_id": "195a50c1-f1b8-0066-9eb4-83f7246d5459",
+        "object_type": "content_item",
+        "action": "published",
+        "delivery_slot": "published"
+      }
+    }
+  ]
+}

@@ -60,6 +60,31 @@ public sealed class WebhookOptions
     String? Secret { get; set; }
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
+public sealed class WebhookActionContext : IEquatable<WebhookActionContext>
+    .ctor()
+    String? PreviousWorkflow { get; init; }
+    String? PreviousWorkflowStep { get; init; }
+    Boolean Equals(Object? obj)
+    Boolean Equals(WebhookActionContext? other)
+    Int32 GetHashCode()
+    String ToString()
+    WebhookActionContext <Clone>$()
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public static class WebhookActions
+    const String Changed = changed
+    const String Created = created
+    const String Deleted = deleted
+    const String MetadataChanged = metadata_changed
+    const String Published = published
+    const String TermChanged = term_changed
+    const String TermCreated = term_created
+    const String TermDeleted = term_deleted
+    const String TermsMoved = terms_moved
+    const String Unpublished = unpublished
+    const String WorkflowStepChanged = workflow_step_changed
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookData : IEquatable<WebhookData>
     .ctor()
     WebhookItem? System { get; init; }
@@ -70,6 +95,11 @@ public sealed class WebhookData : IEquatable<WebhookData>
     WebhookData <Clone>$()
 
 // Kontent.Ai.AspNetCore.Webhooks.Models
+public static class WebhookDeliverySlots
+    const String Preview = preview
+    const String Published = published
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
 public sealed class WebhookItem : IEquatable<WebhookItem>
     .ctor()
     DateTime LastModified { get; init; }
@@ -78,6 +108,7 @@ public sealed class WebhookItem : IEquatable<WebhookItem>
     String? Collection { get; init; }
     String? Language { get; init; }
     String? Name { get; init; }
+    String? TaxonomyGroup { get; init; }
     String? Type { get; init; }
     String? Workflow { get; init; }
     String? WorkflowStep { get; init; }
@@ -94,6 +125,7 @@ public sealed class WebhookMessage : IEquatable<WebhookMessage>
     String? Action { get; init; }
     String? DeliverySlot { get; init; }
     String? ObjectType { get; init; }
+    WebhookActionContext? ActionContext { get; init; }
     Boolean Equals(Object? obj)
     Boolean Equals(WebhookMessage? other)
     Int32 GetHashCode()
@@ -120,4 +152,12 @@ public sealed class WebhookNotification : IEquatable<WebhookNotification>
     Int32 GetHashCode()
     String ToString()
     WebhookNotification <Clone>$()
+
+// Kontent.Ai.AspNetCore.Webhooks.Models
+public static class WebhookObjectTypes
+    const String Asset = asset
+    const String ContentItem = content_item
+    const String ContentType = content_type
+    const String Language = language
+    const String Taxonomy = taxonomy
 
