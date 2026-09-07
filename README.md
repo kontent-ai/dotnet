@@ -39,7 +39,7 @@ src/<product>/     each product, with its own CHANGELOG.md and package metadata
 src/common/        source compiled into the SDKs rather than shipped as a package
 src/testing/       test infrastructure shared across products; ships nothing
 eng/               version source of truth, release routing, build scripts
-.github/workflows/ CI and the tag-routed release pipeline
+.github/workflows/ CI and the Prepare release / Publish workflows
 ```
 
 ## Building
@@ -76,16 +76,32 @@ dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|
 ```
 
 After merging that PR, **Actions → Publish** packs and pushes every product whose declared
-version is not yet on NuGet, dependencies first, then records each one as a
+version is not yet on NuGet, dependencies first, and records each one as a
 `<product>-v<version>` tag and a GitHub Release with notes taken from the product's
 changelog. It defaults to a dry run, which builds, packs and renders the notes without
-pushing anything, so run it once to see the plan and again to publish. Re-running skips
-whatever is already on NuGet, and a product whose changelog has no entry for its version is
-refused.
+pushing anything, so run it once to see the plan and again to publish. A product whose
+changelog has no entry for its version is refused, and so is one whose cross-product floor
+names a version that is not on NuGet. The packages and notes of every run, dry or not, are
+kept as a workflow artifact.
 
 The job runs under the `publish` GitHub environment. Its settings, not the workflow, decide
 which branches may publish and whether a reviewer has to approve the run. Releases stay
 independent: any one can be published or dropped without affecting the rest.
+
+### When a publish run fails
+
+Uploads to NuGet are immutable and a product can span several packages, so the workflow
+binds each version to one commit before pushing anything: it creates the `<product>-v<version>`
+tag first, and the GitHub Release stays a draft until every package and asset is up. To finish
+an interrupted run, **re-run that run** from the Actions UI - it keeps the original commit,
+skips what already landed and completes the rest. A fresh dispatch from a later commit is
+refused for that version, because the packages already on NuGet came from the tagged one.
+Only when none of a version's packages reached NuGet may its tag be deleted and the publish
+dispatched again.
+
+A fresh dispatch finds unfinished work by itself: any product whose packages are on NuGet but
+whose release is missing or still a draft is included in the plan, and a product that is
+complete is skipped, with a notice if it was named explicitly.
 
 ### Hotfixing an earlier major
 

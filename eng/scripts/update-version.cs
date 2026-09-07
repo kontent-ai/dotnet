@@ -72,7 +72,7 @@ Console.WriteLine($"{product}: {current} -> {next}");
 Console.WriteLine($"  eng/Versions.props   {versionProperty} updated");
 Console.WriteLine($"  {entry.GetProperty("changelog").GetString()}  '## Unreleased' promoted to '{heading}'");
 Console.WriteLine();
-Console.WriteLine($"Review, commit, then tag: {product}-v{next}");
+Console.WriteLine($"Review and commit. The Publish workflow tags {product}-v{next} when it ships.");
 return 0;
 
 static string? NextVersion(string current, string bump)
