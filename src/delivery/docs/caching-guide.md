@@ -437,7 +437,7 @@ When `WaitForLoadingNewContent(true)` is enabled for a query, the SDK bypasses l
 
 When a client is configured with `UsePreviewApi = true`, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered.
 
-Dependency keys are read from the response itself, not from the model that reads it, so a query whose model is `IDynamicElements` or `DynamicElements` carries the same keys a fully mapped model would.
+A typed query whose model is `IDynamicElements` or `DynamicElements` is cached, but its elements are not mapped, so only item, type and list-scope dependencies are tracked for it - not the assets, taxonomy groups and rich-text links a mapped model would add.
 
 ### Cache Keys
 
@@ -566,13 +566,8 @@ var result = await client.GetItem<Article>("my-article")
 // - item_author1 (if linked)
 // - item_author2 (if linked)
 // - type_article (+ type_{codename} for each linked item's content type)
-// - asset_{id} for every inline image and asset link in rich text
-// - taxonomy_{group} for every taxonomy element
+// - Any assets used in the content
 ```
-
-The keys are read from the response's JSON - the item, everything in its `modular_content` and the elements of both - not collected while a model is mapped. Two models reading the same item therefore carry the same keys, which is what lets a raw-JSON cache entry be shared between them, and a model that leaves an element unmapped still sees the entry evicted when that element's asset or taxonomy changes. A linked item past the requested depth is tracked by codename even though its content did not come back.
-
-Asset elements are the exception: their values carry a URL and no asset id, and the GUID in the URL is the file's reference id, which changes when the file is replaced and appears in no asset event. Tagging by it would match nothing, so the SDK does not. An asset event reaches the items holding the asset through the used-in lookup instead; see [Asset events](#asset-events).
 
 This enables targeted cache invalidation when specific content changes.
 
@@ -672,26 +667,13 @@ Use this matrix when mapping webhook events to SDK dependency invalidation keys.
 | Items | `DeliveryCacheDependencies.ForItem(codename)` (`item_{codename}`) | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
 | Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
 | Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(codename)` (`taxonomy_{codename}`) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
-| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose rich text refers to the asset as an inline image or a link). An asset held in an asset element is not tagged - see [Asset events](#asset-events) | none - assets have no listing |
+| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose asset elements or rich-text images reference it) | none - assets have no listing |
 
 Recommended webhook pattern:
 - item event: invalidate `ForItem(codename)` + `ItemsListScope`
 - type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
 - taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
-- asset event: `cacheManager.InvalidateAssetAsync(client, codename, id)` - see [Asset events](#asset-events)
-
-### Asset events
-
-An asset element value carries the asset's URL and no id, and the GUID in that URL identifies the binary file, not the asset: replacing the file changes it, and no asset event carries it. So there is nothing in a cached response an asset event could be matched against, and the SDK does not tag asset elements at all. Rich text is different - inline images and asset links carry the asset id - and `ForAsset(id)` covers those.
-
-`InvalidateAssetAsync` fetches all language pages, then queries asset usages with an explicit language filter. Both lookups wait for fresh content. It invalidates the asset key, `ForItem` for each usage, and the items-list scope. The language lookup is required because the used-in endpoint defaults to the default language and does not apply language fallbacks.
-
-```csharp
-// notification.Data.Items entry with Type == "asset"
-var invalidated = await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
-```
-
-It returns what `InvalidateAsync` returns, so `false` means retry. A failed language or usage page throws `DeliveryRequestException` before anything is invalidated. Return a failure response from the webhook for either outcome so Kontent.ai can retry it.
+- asset event: invalidate `ForAsset(id)`
 
 ### Manual Invalidation
 
@@ -761,177 +743,80 @@ if (cacheManager is IDeliveryCachePurger purger)
 
 ### Webhook-Based Invalidation
 
-Implement automatic cache invalidation using Kontent.ai webhooks:
+Kontent.ai webhooks tell you which object changed; the cache needs the dependency keys that object was
+tagged with. The [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore)
+package owns the three pieces in between and is the supported way to wire them:
 
-#### 1. Webhook Controller
+- `UseWebhookSignatureValidator` — middleware that rejects requests Kontent.ai did not sign (HMAC-SHA256
+  over the raw body, constant-time comparison, header checked before the body is read).
+- `WebhookNotification` — the payload the API sends, with the documented `object_type` / `action` /
+  `delivery_slot` values as constants.
+- `GetCacheDependencyKeys()` — maps a notification, or any subset of a batch, to the keys this SDK tags
+  with: item plus `ItemsListScope`, type plus `TypesListScope`, taxonomy *group* plus `TaxonomiesListScope`
+  (for a term event the payload's codename is the term's; the group is carried separately), asset.
 
 ```csharp
+using Kontent.Ai.AspNetCore.Webhooks;
+using Kontent.Ai.AspNetCore.Webhooks.Models;
 using Kontent.Ai.Delivery.Abstractions;
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
-[ApiController]
-[Route("api/webhooks")]
-public class WebhookController : ControllerBase
+builder.Services.AddDeliveryClient(delivery =>
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<WebhookController> _logger;
+    delivery.Options.BindConfiguration("DeliveryOptions");
+    delivery.UseMemoryCache(cache => cache.DefaultExpiration = TimeSpan.FromHours(1));
+});
+builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection(nameof(WebhookOptions)));
 
-    public WebhookController(
-        IServiceProvider serviceProvider,
-        ILogger<WebhookController> logger)
+var app = builder.Build();
+
+app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegments("/webhooks"));
+
+app.MapPost("/webhooks/kontent", async (
+    WebhookNotification notification,
+    IDeliveryCacheManager cache,
+    IOptions<DeliveryOptions> delivery,
+    CancellationToken cancellationToken) =>
+{
+    var relevant = notification.Notifications
+        // The keys carry no environment; only act on notifications for the environment this client reads.
+        .Where(n => n.Message.EnvironmentId.ToString() == delivery.Value.EnvironmentId)
+        // A preview client bypasses the cache, so a content item change in the preview slot has nothing to
+        // invalidate. Assets, types, taxonomies and languages are shared between the slots and always count.
+        .Where(n => n.Message.ObjectType != WebhookObjectTypes.ContentItem || n.Message.DeliverySlot == WebhookDeliverySlots.Published)
+        .ToList();
+
+    // A language change can reach any cached response through fallbacks and has no key of its own.
+    if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
     {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
+        await purger.PurgeAsync(cancellationToken: cancellationToken);
+        return Results.NoContent();
     }
 
-    [HttpPost("kontent")]
-    public async Task<IActionResult> HandleWebhook([FromBody] WebhookNotification notification)
-    {
-        // Verify webhook signature (recommended)
-        if (!VerifySignature(Request.Headers["X-KC-Signature"]))
-        {
-            return Unauthorized();
-        }
-
-        try
-        {
-            await ProcessWebhookAsync(notification);
-            return Ok();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Webhook processing failed");
-            return StatusCode(500);
-        }
-    }
-
-    private async Task ProcessWebhookAsync(WebhookNotification notification)
-    {
-        // The default client's manager resolves unkeyed; a named client's under its name.
-        var cacheManager = _serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
-        var client = _serviceProvider.GetRequiredKeyedService<IDeliveryClient>("production");
-        var dependencies = new List<string>();
-
-        foreach (var item in notification.Data.Items)
-        {
-            // Content item changes affect item queries and item listings.
-            if (item.Type == "content_item")
-            {
-                dependencies.Add(DeliveryCacheDependencies.ForItem(item.Codename));
-                dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
-            }
-
-            // Taxonomy changes affect taxonomy queries and taxonomy listings.
-            if (item.Type == "taxonomy")
-            {
-                dependencies.Add(DeliveryCacheDependencies.ForTaxonomy(item.Codename));
-                dependencies.Add(DeliveryCacheDependencies.TaxonomiesListScope);
-            }
-
-            // Content type changes affect type queries and type listings.
-            if (item.Type == "content_type")
-            {
-                dependencies.Add(DeliveryCacheDependencies.ForType(item.Codename));
-                dependencies.Add(DeliveryCacheDependencies.TypesListScope);
-            }
-
-            // Asset changes reach rich-text usages by asset id, and asset elements only through the items
-            // that hold them - the element value carries no asset id. See "Asset events" above.
-            if (item.Type == "asset")
-            {
-                await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
-            }
-        }
-
-        // Invalidate all affected cache entries
-        await cacheManager.InvalidateAsync(dependencies.ToArray());
-
-        _logger.LogInformation(
-            "Invalidated {Count} cache entries from webhook",
-            dependencies.Count);
-    }
-
-    private bool VerifySignature(string signature)
-    {
-        // Implement webhook signature verification
-        // See: https://kontent.ai/learn/docs/webhooks/validate-webhooks
-        return true;
-    }
-}
-
-public class WebhookNotification
-{
-    public WebhookData Data { get; set; }
-    public WebhookMessage Message { get; set; }
-}
-
-public class WebhookData
-{
-    public List<WebhookItem> Items { get; set; }
-}
-
-public class WebhookItem
-{
-    public string Id { get; set; }
-    public string Codename { get; set; }
-    public string Type { get; set; }
-}
-
-public class WebhookMessage
-{
-    public string Id { get; set; }
-    public string Type { get; set; }
-    public string Operation { get; set; }
-}
+    await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
+    return Results.NoContent();
+});
 ```
 
-#### 2. Webhook Signature Verification
+The default client's manager resolves unkeyed; a named client's is keyed by its name
+(`[FromKeyedServices("production")]`); a client from `DeliveryClient.Create` exposes it as `CacheManager`.
+Respond `2xx` once the invalidation is done — any other status makes Kontent.ai retry the notification,
+with backoff, for up to three days.
 
-```csharp
-using System.Security.Cryptography;
-using System.Text;
+What this does not cover:
 
-private bool VerifyWebhookSignature(string signature, string requestBody, string secret)
-{
-    if (string.IsNullOrEmpty(signature))
-        return false;
+- **Renames.** A notification carries only the new codename, so a response cached under the old key —
+  the item itself, or a parent tagged with it — lives until it expires. The list scopes evict listings. An
+  application that renames routinely purges instead.
+- **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after
+  the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()`
+  asks the API for the latest content; that call bypasses the SDK cache, so it returns fresh content but
+  does not warm the cache.
+- **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom
+  `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
 
-    using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
-    var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(requestBody));
-    var computedSignature = Convert.ToBase64String(hash);
-
-    return signature == computedSignature;
-}
-
-[HttpPost("kontent")]
-public async Task<IActionResult> HandleWebhook()
-{
-    using var reader = new StreamReader(Request.Body);
-    var body = await reader.ReadToEndAsync();
-
-    var signature = Request.Headers["X-KC-Signature"].FirstOrDefault();
-    var secret = _configuration["Kontent:WebhookSecret"];
-
-    if (!VerifyWebhookSignature(signature, body, secret))
-    {
-        _logger.LogWarning("Invalid webhook signature");
-        return Unauthorized();
-    }
-
-    var notification = JsonSerializer.Deserialize<WebhookNotification>(body);
-    await ProcessWebhookAsync(notification);
-
-    return Ok();
-}
-```
-
-#### 3. Configure Webhook in Kontent.ai
-
-1. Go to **Environment Settings** > **Webhooks**
-2. Create a new webhook
-3. Set URL to: `https://yourapp.com/api/webhooks/kontent`
-4. Select events: "Publish", "Unpublish", "Archive"
-5. Save the webhook secret for signature verification
+In Kontent.ai, create the webhook under *Environment settings → Webhooks* pointing at the endpoint, choose
+the published-data triggers for the content the cache serves, and copy its secret into `WebhookOptions:Secret`.
 
 ### Timed Invalidation
 
@@ -1227,7 +1112,7 @@ public class CacheWarmupService : IHostedService
         // Pre-load recent articles
         await _client.GetItems<Article>()
             .Where(f => f.System("type").IsEqualTo("article"))
-            .OrderBySystem("last_modified", OrderingMode.Descending)
+            .OrderBy("system.last_modified", OrderingMode.Descending)
             .Limit(10)
             .ExecuteAsync(cancellationToken);
     }
