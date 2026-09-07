@@ -6,11 +6,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Added
+
+- **The webhook models carry every field the API sends.** `WebhookItem.TaxonomyGroup` (the group a taxonomy term belongs to — for term events `Codename` is the term's, so this is the only way to reach the group) and `WebhookMessage.ActionContext` (the previous workflow and step on a `workflow_step_changed` event). Both are `null` when the event does not carry them, as before the properties existed.
+
+- **`WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots`** hold the documented values of `ObjectType`, `Action` and `DeliverySlot` as string constants, so a handler's `switch` no longer spells them. Constants rather than enums: a value Kontent.ai adds later must deserialize, because a failed binding is a 400 that the sender retries for three days.
+
 ### Fixed
 
 - **`<img-asset rendition="…">` no longer loses the crop when the Delivery client applies a default rendition preset.** With `DeliveryOptions.DefaultRenditionPreset` set, the SDK appends the preset's query to `Asset.Url` at mapping time. The tag helper appended the rendition's query again, producing a URL with two `?`. The CDN accepts that URL, reads the second `?` as part of the `rect` value, discards the crop, and serves the uncropped image at the rendition's bounds — so the page showed the wrong picture and nothing reported it. A rendition now replaces whatever query the URL carries, which is the same result whether the preset was applied already, not at all, or a different one was. Encoding transforms (`format`, `quality`, `auto-format`, `compression`) are composed through `ImageUrlBuilder` on both paths instead of being spelled out twice.
 
 - **`<img-asset>` no longer emits `srcset` width descriptors the CDN cannot honour.** The CDN never upscales, so a configured responsive width beyond the source image's width is served at the source's width — while the tag helper labelled it with the requested width. A width descriptor is what the browser derives a candidate's pixel density from, so an overstated one made the image render smaller than intended whenever that candidate was chosen. The README's own example did this: `w=2000 2000w` for a 1000-pixel image. Candidates are now capped at `IAsset.Width`, or at the rendition's width when the URL already carries a rendition query (`DeliveryOptions.DefaultRenditionPreset`), and de-duplicated; the fallback `src` is the largest remaining candidate. An asset without a known width is unchanged. A non-positive `ResponsiveWidths` entry now throws `InvalidOperationException` instead of producing `w=0`.
+
+- **The XML docs on the webhook models describe the current contract.** `ObjectType` claimed `content_item_variant` as a value; the API sends `content_item`. The docs now name the documented values and say which `WebhookItem` fields are sent for every object and which only for content items.
 
 ## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
 

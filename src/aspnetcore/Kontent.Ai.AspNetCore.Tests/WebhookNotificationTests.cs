@@ -3,33 +3,77 @@ using Kontent.Ai.AspNetCore.Webhooks.Models;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 
+/// <summary>
+/// The fixtures under <c>Data/</c> are the example payloads from the Kontent.ai webhook documentation,
+/// one per documented shape (published and unpublished items share one).
+/// </summary>
 public class WebhookNotificationTests
 {
-    [Fact]
-    public void WebhookNotification_Deserialization_PopulatesPropertiesCorrectly()
+    private static readonly Guid EnvironmentId = Guid.Parse("195a50c1-f1b8-0066-9eb4-83f7246d5459");
+
+    [Theory]
+    [InlineData("ContentItemPublished.json", WebhookObjectTypes.ContentItem, WebhookActions.Published, WebhookDeliverySlots.Published, "this_changes_everything")]
+    [InlineData("ContentItemWorkflowStepChanged.json", WebhookObjectTypes.ContentItem, WebhookActions.WorkflowStepChanged, WebhookDeliverySlots.Preview, "solutions_imaging")]
+    [InlineData("AssetMetadataChanged.json", WebhookObjectTypes.Asset, WebhookActions.MetadataChanged, WebhookDeliverySlots.Preview, "sofia_patel_jpg")]
+    [InlineData("ContentTypeChanged.json", WebhookObjectTypes.ContentType, WebhookActions.Changed, WebhookDeliverySlots.Preview, "page")]
+    [InlineData("LanguageDeleted.json", WebhookObjectTypes.Language, WebhookActions.Deleted, WebhookDeliverySlots.Published, "es-ES")]
+    [InlineData("TaxonomyTermCreated.json", WebhookObjectTypes.Taxonomy, WebhookActions.TermCreated, WebhookDeliverySlots.Published, "handheld")]
+    public void EveryDocumentedPayload_Deserializes(string file, string objectType, string action, string slot, string codename)
     {
-        var notificationFile = Path.Combine(Environment.CurrentDirectory, "Data", "PublishWebhookActionBody.json");
-        var jsonPayload = File.ReadAllText(notificationFile);
+        var notification = Load(file);
 
-        var notification = JsonSerializer.Deserialize<WebhookNotification>(jsonPayload);
+        var model = Assert.Single(notification.Notifications!);
+        Assert.Equal(EnvironmentId, model.Message!.EnvironmentId);
+        Assert.Equal(objectType, model.Message.ObjectType);
+        Assert.Equal(action, model.Message.Action);
+        Assert.Equal(slot, model.Message.DeliverySlot);
+        Assert.Equal(codename, model.Data!.System!.Codename);
+        Assert.NotEqual(Guid.Empty, model.Data.System.Id);
+        Assert.NotEmpty(model.Data.System.Name!);
+        Assert.Equal(DateTimeKind.Utc, model.Data.System.LastModified.Kind);
+    }
 
-        Assert.NotNull(notification);
-        Assert.NotNull(notification.Notifications);
-        Assert.Single(notification.Notifications);
+    [Fact]
+    public void ContentItem_CarriesTheItemOnlyFields()
+    {
+        var system = Load("ContentItemPublished.json").Notifications![0].Data!.System!;
 
-        var webhookModel = notification.Notifications[0];
-        Assert.NotNull(webhookModel.Data);
-        Assert.NotNull(webhookModel.Message);
+        Assert.Equal("marketing", system.Collection);
+        Assert.Equal("default", system.Workflow);
+        Assert.Equal("published", system.WorkflowStep);
+        Assert.Equal("english", system.Language);
+        Assert.Equal("product_update", system.Type);
+        Assert.Null(system.TaxonomyGroup);
+    }
 
-        var data = webhookModel.Data.System;
-        Assert.NotNull(data);
-        Assert.Equal(Guid.Parse("123e4567-e89b-12d3-a456-426614174000"), data.Id);
-        Assert.Equal("Test Item", data.Name);
-        Assert.Equal("default_workflow", data.Workflow);
+    [Fact]
+    public void WorkflowStepChanged_CarriesThePreviousState()
+    {
+        var message = Load("ContentItemWorkflowStepChanged.json").Notifications![0].Message!;
 
-        var message = webhookModel.Message;
-        Assert.Equal(Guid.Parse("123e4567-e89b-12d3-a456-426614174000"), message.EnvironmentId);
-        Assert.Equal("content_item_variant", message.ObjectType);
-        Assert.Equal("published", message.DeliverySlot);
+        Assert.Equal("default", message.ActionContext!.PreviousWorkflow);
+        Assert.Equal("published", message.ActionContext.PreviousWorkflowStep);
+    }
+
+    [Fact]
+    public void OtherActions_HaveNoActionContext()
+    {
+        Assert.Null(Load("ContentItemPublished.json").Notifications![0].Message!.ActionContext);
+    }
+
+    // For a term event the codename is the term's; the group is what a cache key needs.
+    [Fact]
+    public void TaxonomyTerm_CarriesItsGroup()
+    {
+        var system = Load("TaxonomyTermCreated.json").Notifications![0].Data!.System!;
+
+        Assert.Equal("handheld", system.Codename);
+        Assert.Equal("product_category", system.TaxonomyGroup);
+    }
+
+    private static WebhookNotification Load(string file)
+    {
+        var json = File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", file));
+        return JsonSerializer.Deserialize<WebhookNotification>(json)!;
     }
 }
