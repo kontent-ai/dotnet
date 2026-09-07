@@ -162,15 +162,16 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         return builder.Url.ToString();
     }
 
+    /// <summary>
+    /// A rendition owns layout, so its query replaces whatever the URL already carries: the same preset
+    /// applied at mapping time by <c>DeliveryOptions.DefaultRenditionPreset</c>, or a different one.
+    /// Appending instead produced two <c>?</c>, which the CDN accepts and silently drops the crop from.
+    /// </summary>
     private string BuildRenditionUrl(IAssetRendition rendition)
     {
-        var baseUrl = $"{Asset!.Url}?{rendition.Query}";
-        var extras = new List<string>(4);
-        if (Format.HasValue) extras.Add($"fm={Format.Value.ToString().ToLowerInvariant()}");
-        if (Quality.HasValue) extras.Add($"q={Quality.Value}");
-        if (AutoFormat) extras.Add("auto=format");
-        if (Compression.HasValue) extras.Add($"lossless={(Compression.Value == ImageCompression.Lossless ? "true" : "false")}");
-        return extras.Count > 0 ? $"{baseUrl}&{string.Join("&", extras)}" : baseUrl;
+        var builder = new ImageUrlBuilder(new UriBuilder(Asset!.Url) { Query = rendition.Query }.Uri);
+        ApplyEncodingTransforms(builder);
+        return builder.Url.ToString();
     }
 
     private void ApplyEncodingTransforms(ImageUrlBuilder builder)

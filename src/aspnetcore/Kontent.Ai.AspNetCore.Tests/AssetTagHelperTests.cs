@@ -342,6 +342,34 @@ public class AssetTagHelperTests
         Assert.Contains("auto=format", src);
     }
 
+    // DeliveryOptions.DefaultRenditionPreset makes the SDK append the preset's query to Asset.Url at mapping
+    // time. Appending it again produced "...?w=500&...?w=500&..." - the CDN takes the second "?" as part of
+    // the rect value, discards it, and serves the uncropped image.
+    [Theory]
+    [InlineData("")]
+    [InlineData("?w=500&h=403&fit=clip&rect=52,0,500,403")]
+    [InlineData("?w=250&h=200&fit=crop")]
+    public async Task ProcessAsync_WithRendition_ReplacesAnyQueryTheUrlAlreadyCarries(string existingQuery)
+    {
+        const string renditionQuery = "w=500&h=403&fit=clip&rect=52,0,500,403";
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset
+            {
+                Url = AssetUrl + existingQuery,
+                Renditions = new Dictionary<string, IAssetRendition> { ["default"] = new TestRendition { Query = renditionQuery } }
+            },
+            Rendition = "default",
+            Format = ImageFormat.Webp
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Equal($"{AssetUrl}?{renditionQuery}&fm=webp", AttrValue(output, "src"));
+    }
+
     [Fact]
     public async Task ProcessAsync_WithMissingRendition_FallsBackToNormalBehavior()
     {
