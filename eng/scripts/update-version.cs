@@ -131,11 +131,11 @@ static string? NextVersion(string current, string bump)
             };
 
         default:
-            // Explicit version. Nothing downstream checks its shape: release-plan.cs verifies
-            // only that the tag matches this property and that the changelog has a matching
-            // heading, so a typo survives as far as a tag and a failed pack - with a merged PR
-            // carrying a bad version property and a bad changelog entry. Reject it here, where
-            // it is still one field in a form.
+            // Explicit version. Nothing downstream checks its shape: the Publish workflow only
+            // asks whether the value is on nuget.org and whether the changelog has a matching
+            // heading, so a typo survives as far as a failed pack - with a merged PR carrying a
+            // bad version property and a bad changelog entry. Reject it here, where it is still
+            // one field in a form.
             if (!Regex.IsMatch(bump, @"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$"))
             {
                 Console.Error.WriteLine($"'{bump}' is not a valid version. Expected major.minor.patch with an " +

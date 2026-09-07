@@ -1,11 +1,11 @@
 // Reports, per product, whether the version declared in eng/Versions.props is on nuget.org.
 //
-//   dotnet run eng/scripts/release-status.cs [-- --json | --order | --is-published <product>]
+//   dotnet run eng/scripts/release-status.cs [-- --json | --order]
 //
 // Prepared-but-unpublished is a legitimate but invisible state, so the reporting modes exit 0
 // unless they cannot do the job. --order is the exception: it fails on a dependsOn cycle.
 //
-// --order emits the batch publish-batch.yml works through, dependencies first, tab-separated:
+// --order emits the plan the Publish workflow works through, dependencies first, tab-separated:
 //   <product>\t<version>\t<tag>\t<release title>\t<"prerelease"|"">
 
 using System.Text.Json;
@@ -13,18 +13,6 @@ using System.Text.RegularExpressions;
 
 var asJson = args.Contains("--json");
 var asOrder = args.Contains("--order");
-
-// Answers "is this one product fully on NuGet yet" with an exit code, for the publish-batch poll
-// loop - which asks up to 60 times per product and has no use for the rest of the report.
-var isPublishedIndex = Array.IndexOf(args, "--is-published");
-var singleProduct = isPublishedIndex >= 0 && isPublishedIndex + 1 < args.Length
-    ? args[isPublishedIndex + 1]
-    : null;
-if (isPublishedIndex >= 0 && singleProduct is null)
-{
-    Console.Error.WriteLine("release-status: --is-published needs a product name");
-    return 2;
-}
 
 var repoRoot = FindRepoRoot();
 if (repoRoot is null) { Console.Error.WriteLine("release-status: not inside a git repository"); return 1; }
@@ -36,16 +24,8 @@ using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
 var rows = new List<Row>();
 
-if (singleProduct is not null && !products.RootElement.TryGetProperty(singleProduct, out _))
-{
-    Console.Error.WriteLine($"release-status: unknown product '{singleProduct}'");
-    return 2;
-}
-
 foreach (var product in products.RootElement.EnumerateObject())
 {
-    if (singleProduct is not null && product.Name != singleProduct) continue;
-
     var versionProperty = product.Value.GetProperty("versionProperty").GetString()!;
     var declared = Regex.Match(versionsXml, $@"<{versionProperty}>([^<]*)</{versionProperty}>").Groups[1].Value;
     if (declared.Length == 0)
@@ -72,11 +52,6 @@ foreach (var product in products.RootElement.EnumerateObject())
         _ => "PARTIALLY PUBLISHED",
     };
     rows.Add(new Row(product.Name, declared, state, unpublished));
-}
-
-if (singleProduct is not null)
-{
-    return rows.Single().Status == "published" ? 0 : 1;
 }
 
 if (asOrder)
@@ -154,7 +129,7 @@ if (pending.Length > 0)
     Console.WriteLine();
     Console.WriteLine("Prepared but not on NuGet:");
     foreach (var r in pending)
-        Console.WriteLine($"  {r.Product} {r.Version} - release it with tag {r.Product}-v{r.Version}, " +
+        Console.WriteLine($"  {r.Product} {r.Version} - publish it with the Publish workflow, " +
                           "or revert the bump in eng/Versions.props and fold the changelog entry back under '## Unreleased'.");
 }
 
