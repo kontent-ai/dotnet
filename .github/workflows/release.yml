@@ -65,6 +65,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          # An older branch declares every product at whatever version it had then, so "everything
+          # unfinished" could pick up one that was never meant to ship from there.
+          if [ -z "$PRODUCTS" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "vnext" ]; then
+            echo "::error::Name the products to publish when running from '$GITHUB_REF_NAME'."
+            exit 1
+          fi
+
+          for product in $PRODUCTS; do
+            if ! jq -e --arg p "$product" 'has($p)' eng/products.json >/dev/null; then
+              echo "::error::Unknown product '$product'. Known: $(jq -r 'keys | join(", ")' eng/products.json)"
+              exit 1
+            fi
+          done
+
           # Dependency-first, one product per line:
           #   <product>\t<version>\t<tag>\t<release title>\t<NuGet status>\t<"prerelease"|"">
           # Kept out of a pipeline so a dependsOn cycle (exit 1) fails the run, unlike an empty batch.
@@ -74,9 +88,25 @@ jobs:
           fi
           # `dotnet run` writes build diagnostics to stdout, so keep only well-formed rows.
           awk -F'\t' 'NF == 6' /tmp/order.raw > /tmp/candidates.tsv
-          # An API failure must stop planning, not masquerade as an absent release.
-          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --paginate --slurp > /tmp/releases.json
-          bash eng/scripts/publish.sh plan /tmp/candidates.tsv /tmp/releases.json /tmp/order.tsv
+          if [ -n "$PRODUCTS" ]; then
+            # Filtered in place rather than by input order, so dependencies still go first.
+            awk -F'\t' -v keep=" $PRODUCTS " 'index(keep, " " $1 " ")' /tmp/candidates.tsv > /tmp/selected.tsv
+          else
+            cp /tmp/candidates.tsv /tmp/selected.tsv
+          fi
+
+          # A product is complete once its packages are on nuget.org and its release has left
+          # draft, which the push step does last. Anything short of that is finished here.
+          gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --paginate \
+            --jq '.[] | [.tag_name, (.draft | tostring)] | @tsv' > /tmp/releases.tsv
+          : > /tmp/order.tsv
+          while IFS=$'\t' read -r product version tag title status prerelease; do
+            if [ "$status" = "published" ] && grep -Fqx "$(printf '%s\tfalse' "$tag")" /tmp/releases.tsv; then
+              [ -z "$PRODUCTS" ] || echo "::notice::$product $version is already published and released - skipping"
+              continue
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$product" "$version" "$tag" "$title" "$status" "$prerelease" >> /tmp/order.tsv
+          done < /tmp/selected.tsv
 
           if [ ! -s /tmp/order.tsv ]; then
             echo "Nothing to publish - packages and GitHub releases are complete."
@@ -85,7 +115,7 @@ jobs:
           fi
 
           echo "Publish order:"
-          cut -f1,2 /tmp/order.tsv | sed 's/^/  /'
+          cut -f1,2,5 /tmp/order.tsv | sed 's/^/  /'
           echo "count=$(wc -l < /tmp/order.tsv | tr -d ' ')" >> "$GITHUB_OUTPUT"
           {
             echo "## Publish order ($GITHUB_SHA)"
@@ -93,7 +123,6 @@ jobs:
             awk -F'\t' '{ print "- " $1 " " $2 " (" $5 ")" }' /tmp/order.tsv
             echo
           } >> "$GITHUB_STEP_SUMMARY"
-          bash eng/scripts/publish.sh verify /tmp/order.tsv
 
       - name: Verify published dependency floors
         if: steps.plan.outputs.count != '0'
@@ -160,15 +189,27 @@ jobs:
           path: ${{ env.PACK_OUTPUT }}
           if-no-files-found: error
 
-      - name: Reserve release tags
-        if: steps.plan.outputs.count != '0' && !inputs.dry_run
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash eng/scripts/publish.sh reserve /tmp/order.tsv
-
       - name: Dry run
         if: steps.plan.outputs.count != '0' && inputs.dry_run
         run: echo "Dry run only. Re-run with 'dry_run' unchecked to push these packages and create their releases."
+
+      # Tagged after everything local has succeeded and before anything irreversible: a version
+      # belongs to exactly one commit from here on, whatever happens to the pushes below.
+      - name: Tag the release commit
+        if: steps.plan.outputs.count != '0' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r product version tag _; do
+            existing=$(git ls-remote origin "refs/tags/$tag" | cut -f1)
+            if [ -z "$existing" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null
+            elif [ "$existing" != "$GITHUB_SHA" ]; then
+              echo "::error::$tag is at $existing, not $GITHUB_SHA. Re-run the publish run that created it. Delete the tag only if none of $product $version reached nuget.org."
+              exit 1
+            fi
+          done < /tmp/order.tsv
 
       - name: NuGet login
         if: steps.plan.outputs.count != '0' && !inputs.dry_run
@@ -183,4 +224,28 @@ jobs:
         env:
           NUGET_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash eng/scripts/publish.sh push /tmp/order.tsv /tmp/releases.json
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          while IFS=$'\t' read -r product version tag title status prerelease; do
+            out="$PACK_OUTPUT/$product"
+            echo "::group::$tag"
+
+            # --skip-duplicate makes a re-run after a partial failure a no-op for what already landed.
+            dotnet nuget push "$out/*.nupkg" -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY" --skip-duplicate
+
+            # Draft until the assets are up: leaving draft is what marks the release complete.
+            if ! gh release view "$tag" >/dev/null 2>&1; then
+              prerelease_flag=""
+              [ "$prerelease" = "prerelease" ] && prerelease_flag="--prerelease"
+              gh release create "$tag" \
+                --verify-tag \
+                --draft \
+                --title "$title" \
+                --notes-file "$out/notes.md" \
+                $prerelease_flag
+            fi
+            gh release upload "$tag" "$out"/*.nupkg "$out"/*.snupkg --clobber
+            gh release edit "$tag" --draft=false
+            echo "::endgroup::"
+          done < /tmp/order.tsv
