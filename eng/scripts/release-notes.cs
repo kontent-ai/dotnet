@@ -3,7 +3,8 @@
 //
 //   dotnet run eng/scripts/release-notes.cs -- management-v9.0.0-beta-5
 //
-// Exits non-zero on the same conditions release-plan.cs refuses to publish on.
+// Exits non-zero when the changelog has no heading for the version or the entry is empty - the
+// Publish workflow runs it before pushing, so that is what stops a release with no notes.
 
 using System.Text;
 using System.Text.Json;

@@ -68,7 +68,7 @@ simultaneously compile against a published version that still has the old API an
 tree that no longer does. Deprecate first, remove a cycle later:
 
 1. **Add the replacement.** Keep the old member with `[Obsolete]`, bump the dependency
-   product. Both legs green. Release it (*Actions → Prepare release*, then *Publish batch*).
+   product. Both legs green. Release it (*Actions → Prepare release*, then *Publish*).
 2. **Move the consumer.** Raise its floor in `Directory.Packages.props` to the version you
    just published, switch to the new API, bump the consumer. Both legs green. Release it.
 3. **Remove the obsolete member** in a later cycle. Both legs green.
