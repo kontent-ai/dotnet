@@ -202,6 +202,31 @@ public class AssetTagHelperTests
             AttrValue(output, "srcset"));
     }
 
+    // The rendition is recognised by its parameters, not by the query text being identical: a URL that
+    // also carries an encoding parameter is still capped at the crop's width.
+    [Fact]
+    public async Task ProcessAsync_RecognisesTheAppliedRendition_WhenTheUrlCarriesMoreThanItsQuery()
+    {
+        const string renditionQuery = "w=500&h=403&fit=clip&rect=52,0,500,403";
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset
+            {
+                Url = $"{AssetUrl}?{renditionQuery}&fm=jpg",
+                Width = 1000,
+                Renditions = new Dictionary<string, IAssetRendition> { ["default"] = new TestRendition { Query = renditionQuery, Width = 500 } }
+            },
+            ResponsiveWidths = [200, 800]
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.DoesNotContain("800w", AttrValue(output, "srcset"));
+        Assert.Contains("w=500&h=403&fit=clip&rect=52,0,500,403&fm=jpg 500w", AttrValue(output, "srcset"));
+    }
+
     [Fact]
     public async Task ProcessAsync_WithoutAssetWidth_UsesTheConfiguredWidthsAsIs()
     {

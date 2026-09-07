@@ -4,6 +4,7 @@ using Kontent.Ai.Urls.ImageTransformation;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.TagHelpers;
 using Microsoft.AspNetCore.Razor.TagHelpers;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.AspNetCore.ImageTransformation;
@@ -171,8 +172,13 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
                 $"got [{string.Join(", ", responsiveWidths)}].");
         }
 
-        var query = new Uri(Asset!.Url).Query.TrimStart('?');
-        var appliedRendition = query.Length > 0 ? Asset.Renditions.Values.FirstOrDefault(r => r.Query == query) : null;
+        // A rendition counts as applied when every one of its parameters is on the URL with the same value,
+        // so a URL that also carries an encoding parameter is still recognised.
+        var urlQuery = QueryHelpers.ParseQuery(new Uri(Asset!.Url).Query);
+        var appliedRendition = urlQuery.Count > 0
+            ? Asset.Renditions.Values.FirstOrDefault(r =>
+                QueryHelpers.ParseQuery(r.Query).All(p => urlQuery.TryGetValue(p.Key, out var value) && value == p.Value))
+            : null;
         var cap = appliedRendition?.Width ?? Asset.Width;
 
         return cap is > 0
