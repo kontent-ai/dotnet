@@ -8,7 +8,7 @@
 >
 > **For production, use the latest stable release** — the `8.x` line, which exposes the previous API and is installed without the `--prerelease` flag. See the [package on NuGet][nuget-url] for the current stable version.
 >
-> Migrating from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md).
+> Migrating from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md).
 
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.
 
@@ -52,7 +52,9 @@ The SDK targets `net10.0`.
 
 ## Upgrade Guide
 
-If you are moving from the stable `8.x` SDK to the modernized prerelease, read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md). It covers the result pattern, listing changes, strongly-typed model changes, `System.Text.Json`, and removed legacy surfaces.
+Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/management/docs/upgrade); skipping a major means reading them in sequence.
+
+- Coming from **8.x** — read [8 → 9](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md). It covers the result pattern, listing changes, strongly-typed model changes, `System.Text.Json`, the builder registration, and removed legacy surfaces.
 
 ## Quick Start
 
@@ -946,7 +948,7 @@ await client.CreateLanguageAsync(new LanguageCreateModel
 
 ## Further Information
 
-For migration details, see the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade-guide.md). For more developer resources, see the [Management API reference](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) and the [.NET development overview](https://kontent.ai/learn/develop/develop-with-kontent-ai/net) on Kontent.ai Learn.
+For migration details, see the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md). For more developer resources, see the [Management API reference](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) and the [.NET development overview](https://kontent.ai/learn/develop/develop-with-kontent-ai/net) on Kontent.ai Learn.
 
 ## Contributing
 

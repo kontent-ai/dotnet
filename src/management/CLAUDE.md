@@ -58,7 +58,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 3. **Declaration + XML docs** in `IManagementClient.cs` (docs describe the operation and the result; typed overloads cross-reference the environment-bound caveat).
 4. **Tests** in `Kontent.Ai.Management.Tests/ManagementClientTests/{Domain}Tests.cs`: MockHttp `Expect` on the exact URL, JSON fixture under `Data/{Domain}/`, `CaptureBody` + `ShouldMatchSerialized` for write bodies, `PagedFixtures.ConcatPages` for listings, null-guard tests.
 5. **Approval snapshot**: the Verify test fails on any public-surface change; review the `.received.txt` diff line-by-line, then copy it over `.verified.txt` — only for intended changes.
-6. **Docs**: README section for the new surface, release-notes entry, upgrade-guide entry if breaking. *A public-surface change without a README touch is an incomplete change.*
+6. **Docs**: README section for the new surface, release-notes entry, and - if breaking - an entry in the upgrade guide for the major in progress (`docs/upgrade/<from>-to-<to>.md`; one guide per major, frozen the day its major ships stable, the next one opened by the first breaking change after it). *A public-surface change without a README touch is an incomplete change.*
 7. Wire contract in doubt? Verify against the OpenAPI reference or the JS SDK's contracts (`kontent-ai/management-sdk-js`, `lib/models`/`lib/contracts`) — and say what you verified against.
 
 ## Testing conventions

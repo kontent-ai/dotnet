@@ -60,6 +60,10 @@ Products with their own `CLAUDE.md` (e.g. `src/management/CLAUDE.md`) carry prod
 - **`release.yml`** — fires when a GitHub Release is published. The tag routes the release: `<product>-v<version>` (e.g. `management-v9.0.0`) packs and publishes only that product. It **refuses to publish** if the tag disagrees with `eng/Versions.props`, if the changelog has no entry, or if a cross-product `Kontent.Ai.*` dependency is not yet on nuget.org (same-release siblings exempt).
 - **`dependency-floors.yml`** (scheduled, monthly) — reports how far the cross-product floors lag nuget.org. Deliberately not a CI gate: a floor is *meant* to lag; raise it only when the consuming code needs the newer API.
 
+Plans, analyses, review notes and probe results are working material, not documentation: keep them in the root `scratch/` folder, which is gitignored, and never commit them. What survives of a plan is the code, its tests, the changelog entry and the docs it changed.
+
+Upgrade guides live in `src/<product>/docs/upgrade/<from>-to-<to>.md`, one per major (ASP.NET Core's migration-doc convention): a breaking change is logged in the guide for the major in progress, a guide is frozen the day its major ships stable, and the next guide is opened by the first breaking change after that. Skipping a major means reading the guides in sequence, so a guide never describes an API its own major did not ship.
+
 So the full release flow is: merge feature PRs (each user-visible change adds to the product's `CHANGELOG.md` under `## Unreleased`) → run *Prepare release* → review and merge its PR → run *Publish batch*. Releases stay independent — a product can be published or abandoned without affecting the others.
 
 ## Commits and PRs

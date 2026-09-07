@@ -11,6 +11,7 @@ The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn
 ## Table of Contents
 
 - [Installation](#installation)
+- [Upgrade Guide](#upgrade-guide)
 - [Quick Start](#quick-start)
 - [Basic Usage](#basic-usage)
   - [Setting Up the Delivery Client](#setting-up-the-delivery-client)
@@ -60,6 +61,13 @@ Install-Package Kontent.Ai.Delivery
 dotnet add package Kontent.Ai.Delivery.Caching
 dotnet add package Kontent.Ai.Delivery.SourceGeneration
 ```
+
+## Upgrade Guide
+
+Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/delivery/docs/upgrade); skipping a major means reading them in sequence.
+
+- Coming from **19.x** — read [19 → 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md). The move to .NET 10 and the builder registration are the work; two behaviour changes compile unchanged and are listed first.
+- Coming from **18.x** — read [18 → 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) first, then 19 → 20.
 
 ## Quick Start
 
@@ -1993,6 +2001,7 @@ For more advanced scenarios and in-depth guides, explore the following documenta
 - **[Multi-Client Scenarios](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** - Named clients, multi-tenant architectures
 - **[Performance Optimization](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** - Query optimization, monitoring, best practices
 - **[Extensibility Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** - Custom type providers, property mappers, SDK extension points
+- **[Upgrade Guides](https://github.com/kontent-ai/dotnet/tree/main/src/delivery/docs/upgrade)** - One per major: [18 → 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md), [19 → 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md)
 
 ## Contributing
 

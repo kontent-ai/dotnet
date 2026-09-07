@@ -257,3 +257,6 @@ coverage.xml
 coverage.json
 *.opencover.xml
 coverage-local/
+
+# Local plans, analyses and probes; never committed (see CLAUDE.md)
+scratch/
