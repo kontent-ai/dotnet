@@ -69,6 +69,22 @@ public interface IDynamicItemsQuery
     IDynamicItemsQuery OrderBy(string elementOrAttributePath, OrderingMode orderingMode = OrderingMode.Ascending);
 
     /// <summary>
+    /// Orders the items by an element, e.g. <c>publish_date</c>, in ascending or descending order.
+    /// </summary>
+    /// <param name="elementCodename">Element codename, without the <c>elements.</c> prefix.</param>
+    /// <param name="orderingMode">Ordering mode (ascending/descending).</param>
+    /// <returns>The query builder for method chaining.</returns>
+    IDynamicItemsQuery OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending);
+
+    /// <summary>
+    /// Orders the items by a system property, e.g. <c>last_modified</c>, in ascending or descending order.
+    /// </summary>
+    /// <param name="propertyName">System property name, without the <c>system.</c> prefix.</param>
+    /// <param name="orderingMode">Ordering mode (ascending/descending).</param>
+    /// <returns>The query builder for method chaining.</returns>
+    IDynamicItemsQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending);
+
+    /// <summary>
     /// Includes the total count in the response for pagination purposes.
     /// </summary>
     /// <returns>The query builder for method chaining.</returns>

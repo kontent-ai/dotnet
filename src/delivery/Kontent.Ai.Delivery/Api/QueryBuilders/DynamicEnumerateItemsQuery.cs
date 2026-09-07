@@ -45,6 +45,18 @@ internal sealed class DynamicEnumerateItemsQuery(
         return this;
     }
 
+    public IDynamicEnumerateItemsQuery OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending)
+    {
+        _inner.OrderByElement(elementCodename, orderingMode);
+        return this;
+    }
+
+    public IDynamicEnumerateItemsQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending)
+    {
+        _inner.OrderBySystem(propertyName, orderingMode);
+        return this;
+    }
+
     public IDynamicEnumerateItemsQuery WaitForLoadingNewContent(bool enabled = true)
     {
         _inner.WaitForLoadingNewContent(enabled);

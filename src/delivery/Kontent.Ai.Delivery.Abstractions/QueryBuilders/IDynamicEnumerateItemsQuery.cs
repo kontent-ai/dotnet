@@ -43,6 +43,20 @@ public interface IDynamicEnumerateItemsQuery
     IDynamicEnumerateItemsQuery OrderBy(string elementOrAttributePath, OrderingMode orderingMode = OrderingMode.Ascending);
 
     /// <summary>
+    /// Orders the items by an element, e.g. <c>publish_date</c>, in ascending or descending order.
+    /// </summary>
+    /// <param name="elementCodename">Element codename, without the <c>elements.</c> prefix.</param>
+    /// <param name="orderingMode">Ordering mode (ascending/descending).</param>
+    IDynamicEnumerateItemsQuery OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending);
+
+    /// <summary>
+    /// Orders the items by a system property, e.g. <c>last_modified</c>, in ascending or descending order.
+    /// </summary>
+    /// <param name="propertyName">System property name, without the <c>system.</c> prefix.</param>
+    /// <param name="orderingMode">Ordering mode (ascending/descending).</param>
+    IDynamicEnumerateItemsQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending);
+
+    /// <summary>
     /// Configures waiting for the newest content for this specific request.
     /// </summary>
     /// <param name="enabled">Whether to wait for loading new content.</param>
