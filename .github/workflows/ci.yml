@@ -2,9 +2,9 @@ name: Build & Test
 
 on:
   push:
-    branches: [ main, vnext ]
+    branches: [ main, vnext, 'maintenance/**' ]
   pull_request:
-    branches: [ main, vnext ]
+    branches: [ main, vnext, 'maintenance/**' ]
 
 # A monorepo PR triggers everything, so supersede in-flight runs on the same ref.
 concurrency:
