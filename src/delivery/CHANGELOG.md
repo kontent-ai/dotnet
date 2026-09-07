@@ -10,9 +10,11 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
-- **`AddDeliveryClient` takes a builder; `DeliveryClientBuilder` is `DeliveryClient.Create`; caching attaches to the builder.** Twelve overloads of `AddDeliveryClient` become three: `AddDeliveryClient(configure)`, `AddDeliveryClient(name, configure)` and `AddDeliveryClient(options, configure)`, all taking an `Action<IDeliveryClientBuilder>`. The builder exposes the client's `OptionsBuilder<DeliveryOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand - a custom `ITypeProvider`, a logger factory, a cache. `DeliveryClientBuilder`, `IDeliveryOptionsBuilder` and `DeliveryOptionsBuilder` are removed; `DeliveryClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `DeliveryOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. `DeliveryOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddDeliveryClient("name", delivery => delivery.Options.Configure(instance.CopyTo))`. The default client's options are also the unnamed `IOptions<DeliveryOptions>` and `IOptionsMonitor<DeliveryOptions>.CurrentValue` - a copy of the named ones that follows their configuration reloads - so an application that reads the SDK's options itself keeps working.
+- **`AddDeliveryClient` takes a builder, and `DeliveryClientBuilder` is `DeliveryClient.Create`.**
 
-  In `Kontent.Ai.Delivery.Caching`, the twelve `AddDeliveryMemoryCache` / `AddDeliveryHybridCache` / `AddDeliveryCacheManager` overloads on `IServiceCollection` and the six `WithMemoryCache` / `WithHybridCache` methods on the old builder become five methods on `IDeliveryClientBuilder`: `UseMemoryCache`, `UseHybridCache` (each with a plain and a provider-aware configure delegate) and `UseCacheManager`. A cache is configured where its client is registered, in both hosting modes, which also closes the one split the `IServiceCollection` registrations allowed - a library registering the client and the application caching it in a separate step - so whoever registers the client now owns its cache; the client name and key prefix come from the builder. `UseHybridCache` reads the `IDistributedCache` registered on `Services` instead of taking the instance as a parameter.
+  Twelve overloads of `AddDeliveryClient` become three: `AddDeliveryClient(configure)`, `AddDeliveryClient(name, configure)` and `AddDeliveryClient(options, configure)`, all taking an `Action<IDeliveryClientBuilder>`. The builder exposes the client's `OptionsBuilder<DeliveryOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand - a custom `ITypeProvider`, a logger factory, a cache. `DeliveryClientBuilder`, `IDeliveryOptionsBuilder` and `DeliveryOptionsBuilder` are removed; `DeliveryClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `DeliveryOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly.
+
+  Caching attaches to the builder. In `Kontent.Ai.Delivery.Caching`, the twelve `AddDeliveryMemoryCache` / `AddDeliveryHybridCache` / `AddDeliveryCacheManager` overloads on `IServiceCollection` and the six `WithMemoryCache` / `WithHybridCache` methods on the old builder become five methods on `IDeliveryClientBuilder`: `UseMemoryCache`, `UseHybridCache` (each with a plain and a provider-aware configure delegate) and `UseCacheManager`. A cache is configured where its client is registered, in both hosting modes, which also closes the one split the `IServiceCollection` registrations allowed - a library registering the client and the application caching it in a separate step - so whoever registers the client now owns its cache; the client name and key prefix come from the builder. `UseHybridCache` reads the `IDistributedCache` registered on `Services` instead of taking the instance as a parameter.
 
   ```csharp
   // Before
@@ -34,15 +36,21 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   });
   ```
 
-  The upgrade guide's registration section holds the mapping table for the legacy forms; the rows for the 19.x forms this release removes are being added with the 19 → 20 guide. `Create` throws `OptionsValidationException` on invalid options, as the old builder did. Whatever is chained after `AddDeliveryClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes.
+  `DeliveryOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddDeliveryClient("name", delivery => delivery.Options.Configure(instance.CopyTo))`. The default client's options are also the unnamed `IOptions<DeliveryOptions>` and `IOptionsMonitor<DeliveryOptions>.CurrentValue` - a copy of the named ones that follows their configuration reloads - so an application that reads the SDK's options itself keeps working. `Create` throws `OptionsValidationException` on invalid options, as the old builder did. Whatever is chained after `AddDeliveryClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes. The upgrade guide's registration section holds the mapping table for the legacy forms; the rows for the 19.x forms this release removes are being added with the 19 → 20 guide.
 
-- **Feed and used-in enumeration surfaces a failed page instead of silently truncating.** `EnumerateAsync()` ended its loop when a page request failed and yielded nothing to say so, so an interrupted walk was indistinguishable from a finished one — an export or a search-index build could quietly persist a partial result. It now throws `DeliveryRequestException`, carrying the status code, the API's `IError` and the request ID.
+- **Feed and used-in enumeration throws on a failed page instead of truncating.**
+
+  `EnumerateAsync()` ended its loop when a page request failed and yielded nothing to say so, so an interrupted walk was indistinguishable from a finished one — an export or a search-index build could quietly persist a partial result. It now throws `DeliveryRequestException`, carrying the status code, the API's `IError` and the request ID.
 
   This is the point of the change rather than a side effect: the defect could not be fixed without a behaviour break, because *not throwing* is precisely what was wrong. Code that relied on the documented graceful stop must now catch, or move to the single-request `ExecuteAsync`, which still reports failure as a value.
 
-- **`EnumerateAsync()` returns `DeliveryEnumeration<T>` rather than `IAsyncEnumerable<T>`.** `DeliveryEnumeration<T>` *is* an `IAsyncEnumerable<T>`, so `await foreach` over items is unchanged and only a recompile is needed. It additionally offers `AsPages(continuationToken)`, a page view that exposes the continuation token so a walk can be checkpointed and resumed — which no route could do before.
+- **`EnumerateAsync()` returns `DeliveryEnumeration<T>` rather than `IAsyncEnumerable<T>`.**
 
-- **`QueryEnumerationExtensions` is removed**, with all four `EnumerateItemsWithStatusAsync` overloads. It existed only because the item walk could not report failure, and that is now fixed at the source. The replacement is `EnumerateAsync().AsPages()` — but note this is not a rename: the element type changes from `IDeliveryResult<…>` to `DeliveryPage<T>`, and the `if (!result.IsSuccess)` branch becomes a `try`/`catch`.
+  `DeliveryEnumeration<T>` *is* an `IAsyncEnumerable<T>`, so `await foreach` over items is unchanged and only a recompile is needed. It additionally offers `AsPages(continuationToken)`, a page view that exposes the continuation token so a walk can be checkpointed and resumed — which no route could do before.
+
+- **`QueryEnumerationExtensions` and its `EnumerateItemsWithStatusAsync` overloads are removed.**
+
+  All four overloads existed only because the item walk could not report failure, and that is now fixed at the source. The replacement is `EnumerateAsync().AsPages()` — but note this is not a rename: the element type changes from `IDeliveryResult<…>` to `DeliveryPage<T>`, and the `if (!result.IsSuccess)` branch becomes a `try`/`catch`.
 
   ```csharp
   // before
@@ -65,11 +73,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The two used-in overloads also downcast to an internal interface and threw `NotSupportedException` for any query the SDK did not itself create; that wart goes with them.
 
-- **A failed walk no longer emits the `PaginationStoppedEarly` warning** (event ID `1051`, now retired). The exception thrown in its place carries strictly more — status code, the API's `IError`, request ID and request URL — and the caller's `catch` is where a failure belongs in the log rather than a warning the SDK emits on its way to throwing. Anyone alerting on event ID `1051` should move to the exception, or to `QueryFailed` — see below.
+  The rest of the paging contract is deliberately unchanged. `FetchNextPageAsync()` stays on the feed response: it performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk — *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions. The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched: they carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
 
-- **`DeliveryClientFactory` is internal; resolve `IDeliveryClientFactory` instead.** The concrete factory was public with a constructor taking an `IServiceProvider`, so the only way to build one was to have a container already — at which point resolving the interface is what you would do anyway. Nothing in the SDK or its siblings constructed it, and the Management and Sync equivalents have always been internal. The interface is unchanged and still resolves from the container exactly as before; only `new DeliveryClientFactory(serviceProvider)` and references to the concrete type break.
+- **A failed walk no longer emits the `PaginationStoppedEarly` warning.**
 
-- **`IItemTypingStrategy` and `IContentDeserializer` are gone from the public API.** Both sat in `Kontent.Ai.Delivery.Abstractions` as public interfaces with a single internal implementation each, and neither was a seam anyone could use. `IItemTypingStrategy` is now internal; `IContentDeserializer` was removed outright.
+  Event ID `1051` is retired. The exception thrown in its place carries strictly more — status code, the API's `IError`, request ID and request URL — and the caller's `catch` is where a failure belongs in the log rather than a warning the SDK emits on its way to throwing. Anyone alerting on event ID `1051` should move to the exception, or to `QueryFailed` — see below.
+
+- **`DeliveryClientFactory` is internal; resolve `IDeliveryClientFactory` instead.**
+
+  The concrete factory was public with a constructor taking an `IServiceProvider`, so the only way to build one was to have a container already — at which point resolving the interface is what you would do anyway. Nothing in the SDK or its siblings constructed it, and the Management and Sync equivalents have always been internal. The interface is unchanged and still resolves from the container exactly as before; only `new DeliveryClientFactory(serviceProvider)` and references to the concrete type break.
+
+- **`IItemTypingStrategy` and `IContentDeserializer` are gone from the public API.**
+
+  Both sat in `Kontent.Ai.Delivery.Abstractions` as public interfaces with a single internal implementation each, and neither was a seam anyone could use. `IItemTypingStrategy` is now internal; `IContentDeserializer` was removed outright.
 
   `IContentDeserializer` could not be implemented at all. Its `DeserializeContentItem` returns `object`, but the value has to be a `ContentItem<TModel>` — an internal sealed record a consumer can neither construct nor derive from — and the raw-JSON cache path hard-cast to it. A custom deserializer therefore worked well enough on the uncached routes, which tolerate the result as `object`, and threw `InvalidCastException` the moment `CacheStorageMode.RawJson` rehydrated an entry. The migration notes for `19.0.0-rc1` suggested overriding its `JsonElement` overload; that advice should not have been given.
 
@@ -81,90 +97,143 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
-- **`OrderByElement` and `OrderBySystem` on the item, feed and languages queries.** Ordering took a full path, so a query filtered with `.Element(Article.PublishDateCodename)` was ordered with `$"elements.{Article.PublishDateCodename}"` next to it ([#9](https://github.com/kontent-ai/dotnet/issues/9)). The two methods take a bare codename or property name and build the path the way `Where`'s `Element()` and `System()` do, trimmed and lower-cased, so the cache key no longer depends on how the caller spelled it. `OrderBy(path)` is unchanged and still takes a full path.
+- **`OrderByElement` and `OrderBySystem` on the item, feed and languages queries.**
 
-- **The cache manager is reachable without knowing the default client's key, and on a standalone client at all.** The manager was registered only as a keyed service under the client's name, which for the default client is an internal constant no document names - so a webhook handler for the common `AddDeliveryClient(delivery => delivery.UseMemoryCache())` setup had no route to `InvalidateAsync` but a guessed string. It now resolves unkeyed as well, `GetRequiredService<IDeliveryCacheManager>()`, the way the client itself does; named clients keep their keyed registration. A client built with `DeliveryClient.Create` owns its container and exposed nothing inside it, so its cache could be filled but never invalidated; `DeliveryClient.CacheManager` is the manager it was registered with, or `null` when it caches nothing.
+  Ordering took a full path, so a query filtered with `.Element(Article.PublishDateCodename)` was ordered with `$"elements.{Article.PublishDateCodename}"` next to it ([#9](https://github.com/kontent-ai/dotnet/issues/9)). The two methods take a bare codename or property name and build the path the way `Where`'s `Element()` and `System()` do, trimmed and lower-cased, so the cache key no longer depends on how the caller spelled it. `OrderBy(path)` is unchanged and still takes a full path.
 
-- **`DeliveryCacheDependencies` composes dependency keys, and invalidation matches them case-insensitively.** A webhook handler had to write `"item_" + codename` by hand, and the SDK compared the result ordinally against tags it had composed lower-case, so a key copied from a payload in another casing evicted nothing and said nothing. `ForItem`, `ForType`, `ForTaxonomy` and `ForAsset` now sit next to the scope constants and produce the exact strings the SDK tags with, trimmed and lower-cased; `InvalidateAsync` normalizes what it is given the same way.
+- **The cache manager resolves unkeyed, and a standalone client exposes its own.**
 
-- **`CacheResult<T>.IsStale` says whether fail-safe served a stale copy.** It is what turns a cache hit into `ResponseSource.FailSafe`, and it belongs with the value: the cache is the only component that knows what it handed back, and the call it handed it to is the only one the answer applies to. The SDK's managers record it per call, on the async context of the read, which replaces a process-wide table of keys in fail-safe that any concurrent read of the same key could overwrite. A custom manager sets it on the results it returns.
+  The manager was registered only as a keyed service under the client's name, which for the default client is an internal constant no document names - so a webhook handler for the common `AddDeliveryClient(delivery => delivery.UseMemoryCache())` setup had no route to `InvalidateAsync` but a guessed string. It now resolves unkeyed as well, `GetRequiredService<IDeliveryCacheManager>()`, the way the client itself does; named clients keep their keyed registration. A client built with `DeliveryClient.Create` owns its container and exposed nothing inside it, so its cache could be filled but never invalidated; `DeliveryClient.CacheManager` is the manager it was registered with, or `null` when it caches nothing.
 
-- **`ExecuteAsync(continuationToken)` on the feed and used-in queries**, resuming a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.
+- **`DeliveryCacheDependencies` composes dependency keys, and invalidation matches them case-insensitively.**
 
-- **`ContinuationToken` on `IDeliveryItemsFeedResponse` and `IDeliveryItemsFeedResponse<T>`**, making the feed's result-based route resumable across a process restart, which `FetchNextPageAsync` cannot be. `HasNextPage` is unchanged and remains equivalent to the token being present.
+  A webhook handler had to write `"item_" + codename` by hand, and the SDK compared the result ordinally against tags it had composed lower-case, so a key copied from a payload in another casing evicted nothing and said nothing. `ForItem`, `ForType`, `ForTaxonomy` and `ForAsset` now sit next to the scope constants and produce the exact strings the SDK tags with, trimmed and lower-cased; `InvalidateAsync` normalizes what it is given the same way.
 
-- **`ExecuteAsync()` on the used-in queries**, which previously had no single-request result-based route at all — only enumeration.
+- **`CacheResult<T>.IsStale` says whether fail-safe served a stale copy.**
 
-- **`DeliveryEnumeration<T>`, `DeliveryPage<T>` and `DeliveryRequestException`.** Both new types are sealed. `DeliveryEnumeration<T>` composes a page sequence through its constructor rather than being inherited from, so adapting another token-paged source is a delegate rather than a subclass — and `DeliveryEnumeration<T>.FromPages(...)` builds one over a fixed set of pages, for tests and fakes that no longer compile against the changed interfaces.
+  It is what turns a cache hit into `ResponseSource.FailSafe`, and it belongs with the value: the cache is the only component that knows what it handed back, and the call it handed it to is the only one the answer applies to. The SDK's managers record it per call, on the async context of the read, which replaces a process-wide table of keys in fail-safe that any concurrent read of the same key could overwrite. A custom manager sets it on the results it returns.
+
+- **`ExecuteAsync(continuationToken)` on the feed and used-in queries.**
+
+  It resumes a walk from a persisted cursor. Added as an overload rather than a parameter on the existing method, so `ExecuteAsync(cancellationToken)` keeps compiling.
+
+- **`ContinuationToken` on `IDeliveryItemsFeedResponse` and `IDeliveryItemsFeedResponse<T>`.**
+
+  It makes the feed's result-based route resumable across a process restart, which `FetchNextPageAsync` cannot be. `HasNextPage` is unchanged and remains equivalent to the token being present.
+
+- **`ExecuteAsync()` on the used-in queries.**
+
+  They previously had no single-request result-based route at all — only enumeration.
+
+- **`DeliveryEnumeration<T>`, `DeliveryPage<T>` and `DeliveryRequestException`.**
+
+  Both new types are sealed. `DeliveryEnumeration<T>` composes a page sequence through its constructor rather than being inherited from, so adapting another token-paged source is a delegate rather than a subclass — and `DeliveryEnumeration<T>.FromPages(...)` builds one over a fixed set of pages, for tests and fakes that no longer compile against the changed interfaces.
 
   `DeliveryPage<T>` is a plain class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
 
-- **The feed and used-in queries now log like every other query.** They were the only family that never adopted the shared query-logging helper, so a failed `GetItemsFeed(...)` or `GetItemUsedIn(...)` produced no log line at all, where `GetItem`, `GetItems`, `GetTypes` and the rest have always emitted `QueryStarting`, `QueryFailed` (at `Error`) and `QueryCompleted`. They now do too.
+- **The feed and used-in queries log like every other query.**
+
+  They were the only family that never adopted the shared query-logging helper, so a failed `GetItemsFeed(...)` or `GetItemUsedIn(...)` produced no log line at all, where `GetItem`, `GetItems`, `GetTypes` and the rest have always emitted `QueryStarting`, `QueryFailed` (at `Error`) and `QueryCompleted`. They now do too.
 
   This reaches `FetchNextPageAsync()` as well: it issues one request, so it now emits the same bracket as `ExecuteAsync`. A manual page-by-page loop that previously logged only its first request will now log every one of them.
 
   A walk is the exception, and deliberately so: it is bracketed once by `PaginationStarted`/`PaginationCompleted` rather than emitting a starting/completed pair per page, since a 500-page walk should not produce 1,000 log entries. A failed page still reports `QueryFailed`, so no request fails silently on any route.
 
+- **`DeliveryOptions.Timeout` bounds the whole call.**
 
-- **`DeliveryOptions.Timeout` bounds the whole call.** The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `ConfigureResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently.
+  The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `ConfigureResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently.
 
   `Timeout` is unset by default and nothing changes for anyone who leaves it alone. Set it and it always wins, whatever the pipeline; `Timeout.InfiniteTimeSpan` removes the ceiling outright. It outranks `Retry-After`: the API's backoff is honoured in full until the budget runs out, then the call is cut short.
 
   ```csharp
   services.AddDeliveryClient(delivery => delivery.Options.Configure(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); }));
   ```
-- **`ThrowOnMissingResolver` is on `IHtmlResolverBuilder`.** It was declared only on the concrete `HtmlResolverBuilder` and returned `HtmlResolverBuilder`, while every `With*` method returns `IHtmlResolverBuilder` — so it compiled only as the first call after `new HtmlResolverBuilder()` and was a compile error anywhere else in a chain. It is now an interface member returning `IHtmlResolverBuilder`, and composes in any position.
+
+- **`ThrowOnMissingResolver` is on `IHtmlResolverBuilder`.**
+
+  It was declared only on the concrete `HtmlResolverBuilder` and returned `HtmlResolverBuilder`, while every `With*` method returns `IHtmlResolverBuilder` — so it compiled only as the first call after `new HtmlResolverBuilder()` and was a compile error anywhere else in a chain. It is now an interface member returning `IHtmlResolverBuilder`, and composes in any position.
 
   The concrete method's return type narrows from `HtmlResolverBuilder` to `IHtmlResolverBuilder`, so code that assigned the result to the concrete type needs `var` or the interface. Implementers of `IHtmlResolverBuilder` — of which there is no supported route, since `Build()` returns an `IHtmlResolver` whose only implementation is internal — must add the member.
 
-### Unchanged, deliberately
+### Changed
 
-- `FetchNextPageAsync()` stays on the feed response. It performs one request and returns a result, so it belongs to the same half of the contract as `ExecuteAsync` and is not a duplicate of the walk: *step* (`FetchNextPageAsync`), *resume* (`ExecuteAsync(token)`) and *walk* (`AsPages()`) answer three different questions.
-- **The `Type`-keyed `WithContentResolvers` overloads stay.** They duplicate `WithContentResolver<TModel>` for anyone who can name the model type in source, and their `Func<IEmbeddedContent, string>` signature forces a cast plus an `else` branch that can never run — dispatch already keys on the content's own model type, so the resolver only ever sees content of the type it was registered for. But they do one thing the generic overload cannot: register resolvers for model types discovered at runtime, where there is no type argument to give. Removing them would take that with it, and they have shipped in every stable 19.x.
+- **The `Type`-keyed `WithContentResolvers` overloads stay, marked advanced.**
+
+  They duplicate `WithContentResolver<TModel>` for anyone who can name the model type in source, and their `Func<IEmbeddedContent, string>` signature forces a cast plus an `else` branch that can never run — dispatch already keys on the content's own model type, so the resolver only ever sees content of the type it was registered for. But they do one thing the generic overload cannot: register resolvers for model types discovered at runtime, where there is no type argument to give. Removing them would take that with it, and they have shipped in every stable 19.x.
 
   They are instead documented for what they are and marked `[EditorBrowsable(EditorBrowsableState.Advanced)]`, so they leave the default completion list while staying fully callable. The XML docs and the batch-registration examples in the README, the upgrade guide and the rich text customization guide now lead with `WithContentResolver<TModel>`. Note that the public API approval snapshots do not track attributes, so this change is invisible to that gate.
 
-- `GetEmbeddedContentOfType<TModel>` stays too, and keeps filtering only the sequence it is given. It extends `IEnumerable<IRichTextBlock>`, which `GetEmbeddedContent<TModel>` cannot reach — there is no way to get an `IRichTextContent` from a block's `Children`. Both now state their depth in their XML docs, and the example on `GetEmbeddedContentOfType` no longer shows it applied to a whole rich text element, where it silently searches the top level only.
+- **`GetEmbeddedContentOfType<TModel>` and `GetEmbeddedContent<TModel>` state their depth.**
 
-- The offset-paged listings (`GetItems`, types, taxonomies, languages) are untouched. They carry `Skip`, `Limit` and `TotalCount` that a forward-only page cannot express, they support random access, and nothing about them is broken.
+  `GetEmbeddedContentOfType<TModel>` stays, and keeps filtering only the sequence it is given. It extends `IEnumerable<IRichTextBlock>`, which `GetEmbeddedContent<TModel>` cannot reach — there is no way to get an `IRichTextContent` from a block's `Children`. Both now state their depth in their XML docs, and the example on `GetEmbeddedContentOfType` no longer shows it applied to a whole rich text element, where it silently searches the top level only.
 
-### Changed
+- **Distributed cache keys carry a format version.**
 
-- **Distributed cache keys carry a format version, and lose the `cache:` and `dep:` segments.** A Redis outlives a deployment, so an entry written by one version of the SDK is read by the next; with nothing in the key to say what shape it has, a payload change between releases made every stale hit throw `FusionCacheSerializationException` until the entry expired. A hybrid client's keys are now `{KeyPrefix}:{EnvironmentId}:v1:{key}`, the version to be bumped whenever a cached type or FusionCache's own entry format changes, so an upgraded node misses on old entries instead. The `cache:` and `dep:` segments are gone with it - FusionCache keeps tag data under keys of its own, so the two could never collide - and the tag data is now stored under the client's prefix as well. Entries written by a previous prerelease are not read; they expire on their own.
+  A Redis outlives a deployment, so an entry written by one version of the SDK is read by the next; with nothing in the key to say what shape it has, a payload change between releases made every stale hit throw `FusionCacheSerializationException` until the entry expired. A hybrid client's keys are now `{KeyPrefix}:{EnvironmentId}:v1:{key}`, the version to be bumped whenever a cached type or FusionCache's own entry format changes, so an upgraded node misses on old entries instead. The `cache:` and `dep:` segments are gone with it - FusionCache keeps tag data under keys of its own, so the two could never collide - and the tag data is now stored under the client's prefix as well. Entries written by a previous prerelease are not read; they expire on their own.
 
-- **The SDK's cache logs under one category, `Kontent.Ai.Delivery.Caching.FusionCacheManager`.** `MemoryCacheManager` and `HybridCacheManager` were two forwarding classes over one implementation, distinguishable only by their logger categories; they are folded into it. The public surface is untouched - both were internal - and `IDeliveryCacheManager.StorageMode` still says which kind a manager is.
+- **The SDK's cache logs under one category.**
 
-- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
-
-- **`Microsoft.Extensions.Configuration` and `Microsoft.Extensions.Configuration.Binder` are no longer direct dependencies, nor is `Microsoft.Extensions.Primitives`.** Nothing in the package used them. `Microsoft.Extensions.Options.ConfigurationExtensions` stays and brings the binder with it, so `Options.BindConfiguration` on the builder works unchanged; an application that built its own `ConfigurationBuilder` on the package's transitive reference must reference `Microsoft.Extensions.Configuration` itself.
+  The category is `Kontent.Ai.Delivery.Caching.FusionCacheManager`. `MemoryCacheManager` and `HybridCacheManager` were two forwarding classes over one implementation, distinguishable only by their logger categories; they are folded into it. The public surface is untouched - both were internal - and `IDeliveryCacheManager.StorageMode` still says which kind a manager is.
 
 ### Fixed
 
-- **Fail-safe no longer serves content the API says is gone.** With `IsFailSafeEnabled`, a cached item that a webhook invalidated and the API then answered `404` for was served as a success with `ResponseSource.FailSafe` for up to `FailSafeMaxDuration` - a day by default - so unpublishing did not take effect. The cache could not tell an outage from an answer: every failed fetch reached it as the same "nothing to cache". Now a fetch that got no response, or a status the SDK's own pipeline retries (`408`, `429`, `5xx`), is the outage fail-safe exists for and a stale copy may be served; any other answer is final, the stale copy is dropped with it, and the failure is returned. The `IDeliveryCacheManager` factory contract says the same: return `null` when the origin has no value, throw when it could not be reached.
+- **Fail-safe no longer serves content the API says is gone.**
 
-- **A distributed-cache outage degrades the cache instead of failing every query.** With `UseHybridCache`, a Redis that could not be reached threw `FusionCacheDistributedCacheException` out of every cached query - the one place in the SDK where a transport problem was an exception rather than a result, and fail-safe did not help because the failure came before the factory ran. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker keeps a dead Redis from being retried on every request, and FusionCache re-syncs the tier when it is back. FusionCache's own diagnostics were also silent, its logger never having been wired; they now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered, so a worked-around outage, a failed backplane publish or a background refresh that threw is visible.
+  With `IsFailSafeEnabled`, a cached item that a webhook invalidated and the API then answered `404` for was served as a success with `ResponseSource.FailSafe` for up to `FailSafeMaxDuration` - a day by default - so unpublishing did not take effect. The cache could not tell an outage from an answer: every failed fetch reached it as the same "nothing to cache". Now a fetch that got no response, or a status the SDK's own pipeline retries (`408`, `429`, `5xx`), is the outage fail-safe exists for and a stale copy may be served; any other answer is final, the stale copy is dropped with it, and the failure is returned. The `IDeliveryCacheManager` factory contract says the same: return `null` when the origin has no value, throw when it could not be reached.
 
-- **An invalidation is no longer forgotten after thirty seconds.** `InvalidateAsync` records a tag-expiration entry that the next read of each tagged entry checks against, and the SDK stored that entry with the same options as a cached value - options that named no duration, so FusionCache's thirty-second default applied. An entry not read within thirty seconds of the webhook that invalidated it was served again afterwards, for the rest of its own expiration, as if the webhook had never arrived. The tag data is now stored with FusionCache's tag options, whose duration is ten days by default and is adjustable through `ConfigureFusionCache(f => f.TagsDefaultEntryOptions.Duration = …)`; set it above your longest expiration, per-query overrides included. `PurgeAsync` uses the same options.
+- **A distributed-cache outage degrades the cache instead of failing every query.**
 
-- **`ConfigureFusionCache` reaches the SDK's reads and writes.** Whatever the callback set on `DefaultEntryOptions` - the documented example is `AllowBackgroundBackplaneOperations = true` - applied to nothing, because every SDK operation passed entry options it had built itself. The consumer's `DefaultEntryOptions` is now the starting point of those options, so a `Size`, a distributed-cache timeout or the background-operation flags set there take effect. What the SDK decides stays decided: the duration, fail-safe, jitter and eager-refresh policy come from `DeliveryCacheOptions`, serialization failures are thrown, distributed-cache and backplane failures are not.
+  With `UseHybridCache`, a Redis that could not be reached threw `FusionCacheDistributedCacheException` out of every cached query - the one place in the SDK where a transport problem was an exception rather than a result, and fail-safe did not help because the failure came before the factory ran. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker keeps a dead Redis from being retried on every request, and FusionCache re-syncs the tier when it is back. FusionCache's own diagnostics were also silent, its logger never having been wired; they now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered, so a worked-around outage, a failed backplane publish or a background refresh that threw is visible.
 
-- **A purge no longer empties every other client sharing the store.** `PurgeAsync` is FusionCache's `Clear`, which records a purge as a marker key of its own, and that key carried none of the SDK's prefix. Every client sharing the `IMemoryCache` or the Redis read the same marker, so purging one tenant's cache after a content-model change sent the others back to the origin too - the setup the caching guide recommends for multi-tenant applications. The SDK now hands its prefix to FusionCache as its `CacheKeyPrefix`, so every key FusionCache stores for a client carries it, its own markers included, and a purge reaches only the client that asked for it.
+- **An invalidation is no longer forgotten after thirty seconds.**
 
-- **A size-limited memory cache no longer refuses every entry.** `services.AddMemoryCache(o => o.SizeLimit = …)`, which the caching guide recommended, made every write throw `Cache entry must specify a value for Size when SizeLimit is set`, because the SDK declared no size. Every entry it writes now counts as one unit, tag entries included, so a limit bounds the number of cached responses.
+  `InvalidateAsync` records a tag-expiration entry that the next read of each tagged entry checks against, and the SDK stored that entry with the same options as a cached value - options that named no duration, so FusionCache's thirty-second default applied. An entry not read within thirty seconds of the webhook that invalidated it was served again afterwards, for the rest of its own expiration, as if the webhook had never arrived. The tag data is now stored with FusionCache's tag options, whose duration is ten days by default and is adjustable through `ConfigureFusionCache(f => f.TagsDefaultEntryOptions.Duration = …)`; set it above your longest expiration, per-query overrides included. `PurgeAsync` uses the same options.
 
-- **Resolved rich text is encoded by one encoder throughout.** Text nodes used a Unicode-preserving encoder while attribute values and an inline image's `alt` used `HtmlEncoder.Default`, so the same character survived in one position and was escaped in the other — `<p>café</p>` next to `alt="caf&#xE9;"` in a single document. Both now use the Unicode-preserving encoder. HTML-reserved characters are escaped exactly as before; what changes is that non-ASCII characters in the Basic Multilingual Plane now appear literally in attribute values too. Output that pins the old numeric references character-for-character will differ; rendered output does not.
+- **`ConfigureFusionCache` reaches the SDK's reads and writes.**
+
+  Whatever the callback set on `DefaultEntryOptions` - the documented example is `AllowBackgroundBackplaneOperations = true` - applied to nothing, because every SDK operation passed entry options it had built itself. The consumer's `DefaultEntryOptions` is now the starting point of those options, so a `Size`, a distributed-cache timeout or the background-operation flags set there take effect. What the SDK decides stays decided: the duration, fail-safe, jitter and eager-refresh policy come from `DeliveryCacheOptions`, serialization failures are thrown, distributed-cache and backplane failures are not.
+
+- **A purge no longer empties every other client sharing the store.**
+
+  `PurgeAsync` is FusionCache's `Clear`, which records a purge as a marker key of its own, and that key carried none of the SDK's prefix. Every client sharing the `IMemoryCache` or the Redis read the same marker, so purging one tenant's cache after a content-model change sent the others back to the origin too - the setup the caching guide recommends for multi-tenant applications. The SDK now hands its prefix to FusionCache as its `CacheKeyPrefix`, so every key FusionCache stores for a client carries it, its own markers included, and a purge reaches only the client that asked for it.
+
+- **A size-limited memory cache no longer refuses every entry.**
+
+  `services.AddMemoryCache(o => o.SizeLimit = …)`, which the caching guide recommended, made every write throw `Cache entry must specify a value for Size when SizeLimit is set`, because the SDK declared no size. Every entry it writes now counts as one unit, tag entries included, so a limit bounds the number of cached responses.
+
+- **Resolved rich text is encoded by one encoder throughout.**
+
+  Text nodes used a Unicode-preserving encoder while attribute values and an inline image's `alt` used `HtmlEncoder.Default`, so the same character survived in one position and was escaped in the other — `<p>café</p>` next to `alt="caf&#xE9;"` in a single document. Both now use the Unicode-preserving encoder. HTML-reserved characters are escaped exactly as before; what changes is that non-ASCII characters in the Basic Multilingual Plane now appear literally in attribute values too. Output that pins the old numeric references character-for-character will differ; rendered output does not.
 
   The comment describing that encoder claimed it preserved emojis. It does not: `UnicodeRanges.All` is the Basic Multilingual Plane, and emoji live in a supplementary plane, so they were and remain numeric references. The comment now says what the code does.
 
-- **Typed models read a rich text element's `images` and `links` the same way dynamic access does.** The two paths shared one envelope reader but disagreed on how to configure it: the typed path passed no `JsonSerializerOptions` at all, falling back to `JsonSerializerOptions.Default` and matching property names case-sensitively, while `ParseRichTextAsync` matched them case-insensitively. Because `IInlineImage.Url` is a required member, a recased `url` from the API threw on a strongly-typed query and parsed cleanly on a dynamic one. The reader now owns one case-insensitive configuration that both paths use.
+- **Typed and dynamic access read rich text `images` and `links` alike.**
+
+  The two paths shared one envelope reader but disagreed on how to configure it: the typed path passed no `JsonSerializerOptions` at all, falling back to `JsonSerializerOptions.Default` and matching property names case-sensitively, while `ParseRichTextAsync` matched them case-insensitively. Because `IInlineImage.Url` is a required member, a recased `url` from the API threw on a strongly-typed query and parsed cleanly on a dynamic one. The reader now owns one case-insensitive configuration that both paths use.
 
   The same divergence covered `modular_content`: the typed path kept blank entries and the dynamic path dropped them. Blanks are now dropped on both. Nothing observable changes — the list feeds cache-dependency tracking, which already discarded blanks — but the two paths no longer differ for no stated reason.
 
-- **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: DeliverySourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+- **The `X-KC-SOURCE` header falls back to the calling assembly's name.**
 
-- **A missing named client says which call registers one.** `IDeliveryClientFactory.Get(name)` let the container raise the failure, so an unregistered name produced its generic "No service for type … has been registered" rather than naming the client or the fix. It now reports `No delivery client registered with name '…'. Ensure you've registered the client using AddDeliveryClient("…", ...)`, matching the Management and Sync SDKs. Still an `InvalidOperationException`; only the message changes.
+  When a tool declares a version but no package name, `[assembly: DeliverySourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
 
-- **A transport failure reports what actually went wrong.** A DNS failure, a refused connection or a resilience-pipeline rejection produced `Error.Message` of `"Unknown error"`, discarding the exception's own message while keeping it reachable only through `Error.Exception`. The message now carries it — `"No such host is known."` rather than `"Unknown error"`. The exception is still on `Error.Exception` as before.
+- **A missing named client says which call registers one.**
+
+  `IDeliveryClientFactory.Get(name)` let the container raise the failure, so an unregistered name produced its generic "No service for type … has been registered" rather than naming the client or the fix. It now reports `No delivery client registered with name '…'. Ensure you've registered the client using AddDeliveryClient("…", ...)`, matching the Management and Sync SDKs. Still an `InvalidOperationException`; only the message changes.
+
+- **A transport failure reports what actually went wrong.**
+
+  A DNS failure, a refused connection or a resilience-pipeline rejection produced `Error.Message` of `"Unknown error"`, discarding the exception's own message while keeping it reachable only through `Error.Exception`. The message now carries it — `"No such host is known."` rather than `"Unknown error"`. The exception is still on `Error.Exception` as before.
+
+### Dependencies
+
+- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11.**
+
+  Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+
+- **Three `Microsoft.Extensions.*` packages are no longer direct dependencies.**
+
+  Nothing in the package used `Microsoft.Extensions.Configuration`, `Microsoft.Extensions.Configuration.Binder` or `Microsoft.Extensions.Primitives`. `Microsoft.Extensions.Options.ConfigurationExtensions` stays and brings the binder with it, so `Options.BindConfiguration` on the builder works unchanged; an application that built its own `ConfigurationBuilder` on the package's transitive reference must reference `Microsoft.Extensions.Configuration` itself.
 
 ## 20.0.0-rc.2 (2026-08-12)  _(prerelease)_
 

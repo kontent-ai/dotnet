@@ -8,7 +8,9 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
-- **`AddManagementClient` takes a builder, and `ManagementClientBuilder` is `ManagementClient.Create`.** Ten overloads of `AddManagementClient` become three: `AddManagementClient(configure)`, `AddManagementClient(name, configure)` and `AddManagementClient(options, configure)`, all taking an `Action<IManagementClientBuilder>`. The builder exposes the client's `OptionsBuilder<ManagementOptions>` as `Options`, the environment-scoped and subscription-scoped transports as `HttpClient` and `SubscriptionHttpClient`, a `ConfigureResilience` method that applies to both, and `Services` / `Name` for anything attached to the client by hand. `ManagementClientBuilder` is removed; `ManagementClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the `ManagementClient(ManagementOptions)` constructor is `Create(options)` by another name. `ManagementOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddManagementClient("name", management => management.Options.Configure(instance.CopyTo))`. The default client's options are also the unnamed `IOptions<ManagementOptions>` and `IOptionsMonitor<ManagementOptions>.CurrentValue` - a copy of the named ones that follows their configuration reloads - so an application that reads the SDK's options itself keeps working. Invalid options throw `OptionsValidationException` from the constructor and from `Create`, the same exception the container raises - the constructor threw `ValidationException` before.
+- **`AddManagementClient` takes a builder, and `ManagementClientBuilder` is `ManagementClient.Create`.**
+
+  Ten overloads of `AddManagementClient` become three: `AddManagementClient(configure)`, `AddManagementClient(name, configure)` and `AddManagementClient(options, configure)`, all taking an `Action<IManagementClientBuilder>`. The builder exposes the client's `OptionsBuilder<ManagementOptions>` as `Options`, the environment-scoped and subscription-scoped transports as `HttpClient` and `SubscriptionHttpClient`, a `ConfigureResilience` method that applies to both, and `Services` / `Name` for anything attached to the client by hand. `ManagementClientBuilder` is removed; `ManagementClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the `ManagementClient(ManagementOptions)` constructor is `Create(options)` by another name.
 
   ```csharp
   // Before
@@ -26,11 +28,11 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   await using var client = ManagementClient.Create(management => { management.Options.Configure(o => …); management.ConfigureResilience(p => …); });
   ```
 
-  The upgrade guide's §1.2, §1.3 and §9 show each form. Whatever is chained after `AddManagementClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes.
+  `ManagementOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddManagementClient("name", management => management.Options.Configure(instance.CopyTo))`. The default client's options are also the unnamed `IOptions<ManagementOptions>` and `IOptionsMonitor<ManagementOptions>.CurrentValue` - a copy of the named ones that follows their configuration reloads - so an application that reads the SDK's options itself keeps working. Invalid options throw `OptionsValidationException` from the constructor and from `Create`, the same exception the container raises - the constructor threw `ValidationException` before. Whatever is chained after `AddManagementClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes. The upgrade guide's §1.2, §1.3 and §9 show each form.
 
-- **The `Enumerate…PagesAsync` page streams are replaced by `List…PageAsync` single-page calls.** The streams returned `IAsyncEnumerable<IManagementResult<IReadOnlyList<T>>>` — three wrappers to unpack before reaching an item, which meant they delivered none of what an async stream is normally reached for: you could not `await foreach` over the items, and LINQ operated on page results rather than content. The failure signal also arrived per element, so a loop body that skipped `IsSuccess` hit the failed page's `null` value instead of the error.
+- **The `Enumerate…PagesAsync` streams are replaced by `List…PageAsync` single-page calls.**
 
-  Each stream is replaced by a call that fetches exactly one page and hands back the continuation token:
+  The streams returned `IAsyncEnumerable<IManagementResult<IReadOnlyList<T>>>` — three wrappers to unpack before reaching an item, which meant they delivered none of what an async stream is normally reached for: you could not `await foreach` over the items, and LINQ operated on page results rather than content. The failure signal also arrived per element, so a loop body that skipped `IsSuccess` hit the failed page's `null` value instead of the error. Each stream is replaced by a call that fetches exactly one page and hands back the continuation token:
 
   ```csharp
   string? continuationToken = null;
@@ -60,27 +62,55 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
-- **A page call for the async validation task issues.** `ListAsyncValidationTaskIssuesPageAsync` joins the materialized `ListAsyncValidationTaskIssuesAsync`. This is the listing that scales hardest — a task over a broken environment reports issues proportional to items × variants × elements — and it was the one unbounded listing with no paged access at all, while narrower ones (the variant listings, assets, items) already had it.
-- **`ListingPage<T>`**, the page a `List…PageAsync` call returns: the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page). It is a sealed class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
-- **Typed listings.** `ListLanguageVariantsByItemAsync<T>`, `ListLanguageVariantsByTypeAsync<T>`, `ListLanguageVariantsOfContentTypeWithComponentsAsync<T>` and the `…PageAsync<T>` page calls of the last two project every variant onto the generated record, returning a `LanguageVariantModel<T>` per variant the way the typed get does. They cover the listings whose variants share one content type; a listing by collection or by space mixes types and stays untyped, and `client.ToTyped<T>(variant)` projects one of its variants once its type is known — the same projection, on any fetched `LanguageVariantModel`.
+- **`ListAsyncValidationTaskIssuesPageAsync` pages the async validation task issues.**
+
+  It joins the materialized `ListAsyncValidationTaskIssuesAsync`. This is the listing that scales hardest — a task over a broken environment reports issues proportional to items × variants × elements — and it was the one unbounded listing with no paged access at all, while narrower ones (the variant listings, assets, items) already had it.
+
+- **`ListingPage<T>` is the page a `List…PageAsync` call returns.**
+
+  It carries the page's `Items`, and the `ContinuationToken` that fetches the next one (`null` on the last page). It is a sealed class rather than a record: its only reference-typed member is a list, so synthesised equality would have compared that by reference and quietly reported two pages holding identical items as unequal. It stays immutable; it just does not claim value semantics it cannot deliver.
+
+- **Typed listings project every variant onto the generated record.**
+
+  `ListLanguageVariantsByItemAsync<T>`, `ListLanguageVariantsByTypeAsync<T>`, `ListLanguageVariantsOfContentTypeWithComponentsAsync<T>` and the `…PageAsync<T>` page calls of the last two return a `LanguageVariantModel<T>` per variant the way the typed get does. They cover the listings whose variants share one content type; a listing by collection or by space mixes types and stays untyped, and `client.ToTyped<T>(variant)` projects one of its variants once its type is known — the same projection, on any fetched `LanguageVariantModel`.
 
 ### Changed
 
-- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11 with it.** Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+- **A single-choice element maps to `TEnum?` on a generated record.**
 
-- **A single-choice element maps to `TEnum?` on a generated record.** The model generator emits `TEnum?` where the element allows one option and `IEnumerable<TEnum>?` where it allows several; the converter reads the selected option into either shape and writes a `TEnum?` as a one-element array. Records that declare `IEnumerable<TEnum>` for a single-choice element keep working.
+  The model generator emits `TEnum?` where the element allows one option and `IEnumerable<TEnum>?` where it allows several; the converter reads the selected option into either shape and writes a `TEnum?` as a one-element array. Records that declare `IEnumerable<TEnum>` for a single-choice element keep working.
 
-- **A typed read that matches nothing throws.** Projecting a response onto a record none of whose element ids appear in it returned an empty record, so a variant read through a model generated for another environment, or for another content type, looked like a variant with nothing set. It now throws `InvalidOperationException` naming the record. Elements the record does not know are still skipped, so a record generated before a type gained an element keeps working. The typed write path also builds the request's elements directly instead of serializing the record to JSON and reading it back; the wire is unchanged.
+- **A typed read that matches nothing throws.**
+
+  Projecting a response onto a record none of whose element ids appear in it returned an empty record, so a variant read through a model generated for another environment, or for another content type, looked like a variant with nothing set. It now throws `InvalidOperationException` naming the record. Elements the record does not know are still skipped, so a record generated before a type gained an element keeps working. The typed write path also builds the request's elements directly instead of serializing the record to JSON and reading it back; the wire is unchanged.
 
 ### Fixed
 
-- **Standalone clients are built through the same registration as container-resolved ones.** The container-free client assembled a second copy of the HTTP pipeline by hand. `ManagementClient.Create` and the `ManagementClient(ManagementOptions)` constructor run the same `AddManagementClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. The client owns the container it was built over rather than `HttpClient`s of its own — disposing it still fails every further request. Two differences a consumer can observe. Pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved. And the `ManagementOptions` instance handed to `Create(options)` or to the constructor is copied into the container, as `AddManagementClient(ManagementOptions)` has always done, so a change made to that instance afterwards no longer reaches the client - previously the standalone client read the caller's object on every request, so an API key rotated on it took effect on the next call. That was never documented and neither the container path nor the Delivery SDK's standalone client did it; to rotate a key, build a new client or register through a container and reconfigure the options there.
+- **Standalone clients are built through the same registration as container-resolved ones.**
 
-- **The `X-KC-SOURCE` header names the calling assembly when a tool declares a version but no package name.** `[assembly: SourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+  The container-free client assembled a second copy of the HTTP pipeline by hand. `ManagementClient.Create` and the `ManagementClient(ManagementOptions)` constructor run the same `AddManagementClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. The client owns the container it was built over rather than `HttpClient`s of its own — disposing it still fails every further request.
 
-- **The paging helper no longer reads a continuation token off a disposed response.** Mapping a page to a result disposes the underlying Refit response; the walker then read the next token from it. The value survived because Refit buffers the body, but the ordering was load-bearing and invisible at the call site. The token is now read before the response is mapped. No behavior change.
+  Two differences a consumer can observe. Pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved. And the `ManagementOptions` instance handed to `Create(options)` or to the constructor is copied into the container, as `AddManagementClient(ManagementOptions)` has always done, so a change made to that instance afterwards no longer reaches the client - previously the standalone client read the caller's object on every request, so an API key rotated on it took effect on the next call. That was never documented and neither the container path nor the Delivery SDK's standalone client did it; to rotate a key, build a new client or register through a container and reconfigure the options there.
 
-- **A response body that is not the error envelope no longer risks an unhandled exception.** Parsing failures were caught as `JsonException` alone, so anything else raised while reading the body — an encoding failure on a malformed payload, say — escaped the result pattern and was thrown at the caller. The catch now covers any non-fatal exception, matching the Delivery and Sync SDKs; the resulting error still carries the raw body and the original request failure.
+- **The `X-KC-SOURCE` header falls back to the calling assembly's name.**
+
+  When a tool declares a version but no package name, `[assembly: SourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+
+- **A non-envelope error body no longer escapes the result pattern.**
+
+  Parsing failures were caught as `JsonException` alone, so anything else raised while reading the body — an encoding failure on a malformed payload, say — escaped the result pattern and was thrown at the caller. The catch now covers any non-fatal exception, matching the Delivery and Sync SDKs; the resulting error still carries the raw body and the original request failure.
+
+### Dependencies
+
+- **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11.**
+
+  Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+
+### Internal
+
+- **The paging helper reads the continuation token before the response is mapped.**
+
+  Mapping a page to a result disposes the underlying Refit response; the walker then read the next token from it. The value survived because Refit buffers the body, but the ordering was load-bearing and invisible at the call site. No behavior change.
 
 ## 9.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
