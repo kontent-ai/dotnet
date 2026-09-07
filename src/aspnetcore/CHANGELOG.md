@@ -36,6 +36,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`<media-condition>` is declared by name.** The tag helper targeted *every* child element of `<img-asset>` (`*`), so the element name existed only in the README and in `RestrictChildren`; any other child would have been silently swallowed. It now targets `media-condition` under `img-asset`. Correct markup is unaffected.
 
+- **`AddKontentRichText`'s documentation no longer claims `ToHtmlContentAsync` uses the registered resolver.** An extension method cannot see the container; without an explicit `resolver` it uses the SDK's built-in defaults, and only the `<rich-text>` tag helper picks the registered one up on its own. The README said this correctly, the XML docs did not. `ToHtmlContentAsync` itself is now the Delivery SDK's `ToHtmlAsync` wrapped in an `IHtmlContent`, rather than a second copy of it.
+
 - **The XML docs on the webhook models describe the current contract.** `ObjectType` claimed `content_item_variant` as a value; the API sends `content_item`. The docs now name the documented values and say which `WebhookItem` fields are sent for every object and which only for content items.
 
 ## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
