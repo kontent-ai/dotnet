@@ -357,6 +357,144 @@ public sealed class QueryParameterTests
 
     #endregion
 
+    #region Ordering Parameter Tests
+
+    [Fact]
+    public async Task GetItems_OrderByElement_PrefixesElementsPath()
+    {
+        var mock = new MockHttpMessageHandler();
+        string? capturedQuery = null;
+
+        mock.When($"{BaseUrl}/items")
+            .With(req =>
+            {
+                capturedQuery = req.RequestUri!.Query;
+                return true;
+            })
+            .Respond("application/json", BuildMinimalItemsListingJson(["item_1"]));
+
+        var client = CreateClient(mock);
+
+        var result = await client.GetItems<IDynamicElements>()
+            .OrderByElement("publish_date", OrderingMode.Descending)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess, $"Request failed: {result.Error?.Message}");
+        Assert.NotNull(capturedQuery);
+        Assert.Contains("order=elements.publish_date%5Bdesc%5D", capturedQuery);
+    }
+
+    [Fact]
+    public async Task GetItems_OrderBySystem_PrefixesSystemPathAndNormalizesCasing()
+    {
+        var mock = new MockHttpMessageHandler();
+        string? capturedQuery = null;
+
+        mock.When($"{BaseUrl}/items")
+            .With(req =>
+            {
+                capturedQuery = req.RequestUri!.Query;
+                return true;
+            })
+            .Respond("application/json", BuildMinimalItemsListingJson(["item_1"]));
+
+        var client = CreateClient(mock);
+
+        var result = await client.GetItems<IDynamicElements>()
+            .OrderBySystem("Last_Modified")
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess, $"Request failed: {result.Error?.Message}");
+        Assert.NotNull(capturedQuery);
+        Assert.Contains("order=system.last_modified%5Basc%5D", capturedQuery);
+    }
+
+    [Fact]
+    public void GetItems_OrderByElement_RejectsPathWithSystemPrefix()
+    {
+        var client = CreateClient(new MockHttpMessageHandler());
+
+        Assert.Throws<ArgumentException>(() => client.GetItems<IDynamicElements>().OrderByElement("system.codename"));
+        Assert.Throws<ArgumentException>(() => client.GetItems<IDynamicElements>().OrderBySystem("elements.title"));
+    }
+
+    [Fact]
+    public async Task GetItems_OrderBy_PassesRawPathThrough()
+    {
+        var mock = new MockHttpMessageHandler();
+        string? capturedQuery = null;
+
+        mock.When($"{BaseUrl}/items")
+            .With(req =>
+            {
+                capturedQuery = req.RequestUri!.Query;
+                return true;
+            })
+            .Respond("application/json", BuildMinimalItemsListingJson(["item_1"]));
+
+        var client = CreateClient(mock);
+
+        var result = await client.GetItems<IDynamicElements>()
+            .OrderBy("elements.Title", OrderingMode.Descending)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess, $"Request failed: {result.Error?.Message}");
+        Assert.NotNull(capturedQuery);
+        Assert.Contains("order=elements.Title%5Bdesc%5D", capturedQuery);
+    }
+
+    [Fact]
+    public async Task GetItemsFeed_OrderByElement_PrefixesElementsPath()
+    {
+        var mock = new MockHttpMessageHandler();
+        string? capturedQuery = null;
+
+        mock.When($"{BaseUrl}/items-feed")
+            .With(req =>
+            {
+                capturedQuery = req.RequestUri!.Query;
+                return true;
+            })
+            .Respond("application/json", BuildMinimalItemsListingJson(["item_1"]));
+
+        var client = CreateClient(mock);
+
+        var result = await client.GetItemsFeed<IDynamicElements>()
+            .OrderByElement("publish_date", OrderingMode.Descending)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess, $"Request failed: {result.Error?.Message}");
+        Assert.NotNull(capturedQuery);
+        Assert.Contains("order=elements.publish_date%5Bdesc%5D", capturedQuery);
+    }
+
+    [Fact]
+    public async Task GetLanguages_OrderBySystem_PrefixesSystemPath()
+    {
+        var mock = new MockHttpMessageHandler();
+        string? capturedQuery = null;
+
+        mock.When($"{BaseUrl}/languages")
+            .With(req =>
+            {
+                capturedQuery = req.RequestUri!.Query;
+                return true;
+            })
+            .Respond("application/json", BuildMinimalLanguagesListingJson(["en-US"]));
+
+        var client = CreateClient(mock);
+
+        var result = await client.GetLanguages()
+            .OrderBySystem("codename", OrderingMode.Descending)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess, $"Request failed: {result.Error?.Message}");
+        Assert.NotNull(capturedQuery);
+        Assert.Contains("order=system.codename%5Bdesc%5D", capturedQuery);
+    }
+
+    #endregion
+
     #region Combined Parameters Tests
 
     [Fact]

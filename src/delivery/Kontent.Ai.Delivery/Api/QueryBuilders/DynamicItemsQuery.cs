@@ -73,6 +73,18 @@ internal sealed class DynamicItemsQuery(
         return this;
     }
 
+    public IDynamicItemsQuery OrderByElement(string elementCodename, OrderingMode orderingMode = OrderingMode.Ascending)
+    {
+        _inner.OrderByElement(elementCodename, orderingMode);
+        return this;
+    }
+
+    public IDynamicItemsQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending)
+    {
+        _inner.OrderBySystem(propertyName, orderingMode);
+        return this;
+    }
+
     public IDynamicItemsQuery WithTotalCount()
     {
         _inner.WithTotalCount();

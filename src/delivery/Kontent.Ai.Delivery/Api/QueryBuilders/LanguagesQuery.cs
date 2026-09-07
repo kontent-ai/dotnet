@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Kontent.Ai.Delivery.Api.Filtering;
 using Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 using Kontent.Ai.Delivery.Languages;
 using Microsoft.Extensions.Logging;
@@ -24,6 +25,9 @@ internal sealed class LanguagesQuery(
         };
         return this;
     }
+
+    public ILanguagesQuery OrderBySystem(string propertyName, OrderingMode orderingMode = OrderingMode.Ascending)
+        => OrderBy(FilterPath.System(propertyName), orderingMode);
 
     public ILanguagesQuery Skip(int skip)
     {
