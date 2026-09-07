@@ -116,7 +116,7 @@ signal the API actually sends rather than on an inferred page size; the result c
 initialization stops pretending to return content; and disposal moves off the client interface onto the
 client that owns resources. Most consumers touch one loop and nothing else.
 
-See the [1.0 → 2.0 upgrade guide](docs/upgrade-guide-1.0-to-2.0.md) for the migration, change by change.
+See the [1.0 → 2.0 upgrade guide](docs/upgrade/1-to-2.md) for the migration, change by change.
 
 ### Breaking changes
 

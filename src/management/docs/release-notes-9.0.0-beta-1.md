@@ -6,7 +6,7 @@ First public beta of the **ground-up modernized Management SDK**, targeting the 
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
 
 > [!IMPORTANT]
-> **Upgrading from `8.x`?** Read the [upgrade guide](upgrade-guide.md) before you start — it covers every breaking change with before/after examples. The sections below are a summary.
+> **Upgrading from `8.x`?** Read the [upgrade guide](upgrade/8-to-9.md) before you start — it covers every breaking change with before/after examples. The sections below are a summary.
 
 ## Highlights
 
@@ -21,15 +21,15 @@ First public beta of the **ground-up modernized Management SDK**, targeting the 
 
 ## Breaking changes (from `8.x`)
 
-All detailed in the [upgrade guide](upgrade-guide.md); the ones you're most likely to hit:
+All detailed in the [upgrade guide](upgrade/8-to-9.md); the ones you're most likely to hit:
 
-- **Error handling** → result pattern ([§2](upgrade-guide.md#2-response-handling-exceptions--result-pattern)).
-- **Serialization** → `System.Text.Json`; Newtonsoft is gone. Custom Newtonsoft converters and `[JsonProperty]` against SDK models no longer apply ([§8](upgrade-guide.md#8-serialization-newtonsoft--systemtextjson)).
-- **Listings** → materialized `List…Async` / streaming `Enumerate…PagesAsync`; the `IListingResponseModel<T>` paging surface is gone ([§3](upgrade-guide.md#3-listings-manual-paging--materialized-results)).
-- **Strongly-typed models** → immutable records; element properties are values / `*Value` records, not mutable element wrappers ([§4](upgrade-guide.md#4-language-variants-and-strongly-typed-models)).
-- **Untyped authoring** → typed `BaseElement` records; `ElementBuilder.GetElementsAsDynamic(...)` and `dynamic[]` removed ([§5](upgrade-guide.md#5-authoring-elements-without-a-generated-model)).
-- **Assets** → non-generic `AssetCreateModel`; the two asset-reference types collapsed onto `AssetReference` (a rendition is a `RenditionReference`; `Renditions = null` keeps them, `[]` removes them) ([§7](upgrade-guide.md#7-assets)).
-- **DTO contracts** → widespread `required` members, nullability corrections, and a focused set of renames/retypes to match the Management API v2 wire contract — including response/request collections standardized on `IReadOnlyList<T>` and the environment id typed as `Guid`. The compiler surfaces each one ([§10](upgrade-guide.md#10-model-and-dto-changes)).
+- **Error handling** → result pattern ([§2](upgrade/8-to-9.md#2-response-handling-exceptions--result-pattern)).
+- **Serialization** → `System.Text.Json`; Newtonsoft is gone. Custom Newtonsoft converters and `[JsonProperty]` against SDK models no longer apply ([§8](upgrade/8-to-9.md#8-serialization-newtonsoft--systemtextjson)).
+- **Listings** → materialized `List…Async` / streaming `Enumerate…PagesAsync`; the `IListingResponseModel<T>` paging surface is gone ([§3](upgrade/8-to-9.md#3-listings-manual-paging--materialized-results)).
+- **Strongly-typed models** → immutable records; element properties are values / `*Value` records, not mutable element wrappers ([§4](upgrade/8-to-9.md#4-language-variants-and-strongly-typed-models)).
+- **Untyped authoring** → typed `BaseElement` records; `ElementBuilder.GetElementsAsDynamic(...)` and `dynamic[]` removed ([§5](upgrade/8-to-9.md#5-authoring-elements-without-a-generated-model)).
+- **Assets** → non-generic `AssetCreateModel`; the two asset-reference types collapsed onto `AssetReference` (a rendition is a `RenditionReference`; `Renditions = null` keeps them, `[]` removes them) ([§7](upgrade/8-to-9.md#7-assets)).
+- **DTO contracts** → widespread `required` members, nullability corrections, and a focused set of renames/retypes to match the Management API v2 wire contract — including response/request collections standardized on `IReadOnlyList<T>` and the environment id typed as `Guid`. The compiler surfaces each one ([§10](upgrade/8-to-9.md#10-model-and-dto-changes)).
 
 ## Removed
 
@@ -47,7 +47,7 @@ All detailed in the [upgrade guide](upgrade-guide.md); the ones you're most like
 ## Known limitations
 
 - **Prerelease.** The public API may still change between betas.
-- **Management-model generation is in active development.** The [model generator](https://github.com/kontent-ai/model-generator-net)'s Management output is not yet released. Until it ships, hand-write the strongly-typed records or use the typed raw `BaseElement` authoring path ([§5](upgrade-guide.md#5-authoring-elements-without-a-generated-model)).
+- **Management-model generation is in active development.** The [model generator](https://github.com/kontent-ai/model-generator-net)'s Management output is not yet released. Until it ships, hand-write the strongly-typed records or use the typed raw `BaseElement` authoring path ([§5](upgrade/8-to-9.md#5-authoring-elements-without-a-generated-model)).
 
 ## Installation
 

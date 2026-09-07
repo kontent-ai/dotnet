@@ -6,7 +6,7 @@ Second beta of the modernized Management SDK — a **fixes-and-refinements** rel
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
 
 > [!IMPORTANT]
-> **Upgrading from `8.x`?** Read the [upgrade guide](upgrade-guide.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-1`, see [API refinements](#api-refinements-breaking-vs-900-beta-1) below for the beta-to-beta changes.
+> **Upgrading from `8.x`?** Read the [upgrade guide](upgrade/8-to-9.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-1`, see [API refinements](#api-refinements-breaking-vs-900-beta-1) below for the beta-to-beta changes.
 
 ## Fixes
 

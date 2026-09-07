@@ -429,7 +429,7 @@ Useful when you want to pin the reported version independent of assembly metadat
 
 ## Upgrade Guide
 
-- Coming from **1.0** — see the [1.0 → 2.0 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade-guide-1.0-to-2.0.md).
+- Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
   The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
 - Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
   Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
