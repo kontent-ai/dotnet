@@ -50,6 +50,11 @@ public static class ApplicationBuilderExtensions
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, WebhookOptions options)
 
 // Kontent.Ai.AspNetCore.Webhooks
+public static class WebhookNotificationExtensions
+    static String[] GetCacheDependencyKeys(IEnumerable<WebhookModel> notifications)
+    static String[] GetCacheDependencyKeys(WebhookNotification notification)
+
+// Kontent.Ai.AspNetCore.Webhooks
 public sealed class WebhookOptions
     .ctor()
     String? Secret { get; set; }
