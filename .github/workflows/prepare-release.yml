@@ -1,7 +1,7 @@
 name: Prepare release
 
 # Bumps the selected products' versions and promotes their changelogs, then opens one PR.
-# Publishes nothing - Publish batch does that once this PR is merged.
+# Publishes nothing - the Publish workflow does that once this PR is merged.
 on:
   workflow_dispatch:
     inputs:
@@ -166,16 +166,15 @@ jobs:
             echo
             echo "Review each version property and its promoted changelog entry, then merge."
             echo
-            echo "Publishing happens per product, when a GitHub Release is created for each tag:"
+            echo "Once this is merged, run **Actions -> Publish** from this PR's base branch. It packs"
+            echo "and pushes every product whose declared version is not yet on NuGet, dependencies"
+            echo "first, then records each as a tag and a GitHub Release:"
             echo
             echo '```'
             cat /tmp/tags.txt
             echo '```'
             echo
-            echo "Once this is merged, run **Actions -> Publish batch** to create those releases."
-            echo "It releases dependency-first and waits for each product to reach NuGet before"
-            echo "starting the next, so ordering is handled for you. It defaults to a dry run,"
-            echo "and re-running skips whatever is already published."
+            echo "It defaults to a dry run, and re-running skips whatever is already published."
             echo
             echo "Releases are independent - publish or abandon one without affecting the others."
             echo
@@ -191,14 +190,6 @@ jobs:
             echo "consuming code needs the newer API."
             echo
             echo "</details>"
-            echo
-            echo "> [!NOTE]"
-            echo "> Creating these releases by hand instead? Then order matters: if this batch"
-            echo "> also re-points a product at a sibling's **new** version in"
-            echo "> \`Directory.Packages.props\`, release that dependency first. The release"
-            echo "> workflow refuses to publish a package whose cross-product \`Kontent.Ai.*\`"
-            echo "> dependency is not yet on NuGet. Packages within one product are exempt -"
-            echo "> they are published together."
           } > /tmp/body.md
 
           gh pr create \

@@ -64,33 +64,35 @@ block the merge. See [`CONTRIBUTING.md`](./CONTRIBUTING.md#two-build-modes).
 ## Releasing
 
 Versions live in [`eng/Versions.props`](./eng/Versions.props), one property per product.
-A release is a version bump plus a changelog entry, then a tag.
+A release is a version bump plus a changelog entry; publishing compares that file with
+nuget.org and ships whatever is missing.
 
-**Actions → Prepare release** is the normal route. Each product has its own dropdown
+**Actions → Prepare release** is the first step. Each product has its own dropdown
 defaulting to `none`, so one run can bump several products at once and opens a single PR
-covering the batch.
-
-After merging that PR, **Actions → Publish batch** creates a GitHub Release for every product
-whose declared version is not yet on NuGet — in dependency order, waiting for each to publish
-before starting the next. Release notes come from each product's changelog. It defaults to a
-dry run, so you can see the plan and the notes before anything is created.
-
-Nothing about that is required: a release is just a GitHub Release tagged
-`<product>-v<version>`, so creating them by hand works exactly the same. Releases stay
-independent either way — any one can be published or dropped without affecting the rest.
-
-The same bump can be done locally if you prefer:
+covering the batch. The same bump can be done locally if you prefer:
 
 ```sh
 dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|minor|major>
-# review, commit, merge, then tag <product>-v<version>
 ```
 
-Publishing is routed by the tag: `aspnetcore-v0.17.0` packs and publishes only the
-ASP.NET Core product. The pipeline refuses to publish if the tag disagrees with
-`eng/Versions.props`, if the changelog has no entry for that version, or if a package
-would depend on a `Kontent.Ai.*` version that is not yet on NuGet. Packages belonging to
-the same product are exempt from that last check — they are published together.
+After merging that PR, **Actions → Publish** packs and pushes every product whose declared
+version is not yet on NuGet, dependencies first, then records each one as a
+`<product>-v<version>` tag and a GitHub Release with notes taken from the product's
+changelog. It defaults to a dry run, which builds, packs and renders the notes without
+pushing anything, so run it once to see the plan and again to publish. Re-running skips
+whatever is already on NuGet, and a product whose changelog has no entry for its version is
+refused.
+
+The job runs under the `publish` GitHub environment. Its settings, not the workflow, decide
+which branches may publish and whether a reviewer has to approve the run. Releases stay
+independent: any one can be published or dropped without affecting the rest.
+
+### Hotfixing an earlier major
+
+Branch from the last tag of that line as `maintenance/<name>`, cherry-pick the fix, then run
+both workflows from that branch: *Prepare release* opens its PR against the branch, and
+*Publish* needs the product named explicitly, because an older branch declares every product
+at whatever version it had then.
 
 ### Cross-product dependency floors
 
@@ -114,25 +116,19 @@ Every *Prepare release* PR carries the same report in its body, and **Actions �
 floors** runs it monthly. It only fails if a floor names a version that is not on NuGet at
 all — being behind is reported, never enforced.
 
-### Prepared but not released
+### Prepared but not published
 
-Preparing and publishing are separate steps, so a batch can bump several products and then
-only some get released. To see where each product stands:
+Merging a *Prepare release* PR and running *Publish* are separate steps, so a product can sit
+with a bumped version that is not on NuGet. To see where each product stands:
 
 ```sh
 dotnet run eng/scripts/release-status.cs
 ```
 
-A `PREPARED, NOT PUBLISHED` product is a normal intermediate state, not a problem. Resolve
-it whichever way matches your intent:
-
-- **Releasing it later** — do nothing. The version property and changelog entry are already
-  valid; tag `<product>-v<version>` whenever you are ready.
-- **Abandoning it** — undo the preparation: restore the version in `eng/Versions.props`, and
-  delete the `## <version> (<date>)` heading so its notes sit under `## Unreleased` again.
-
-The one thing to avoid is preparing the same product *again* while it is in this state — the
-bump would move on from a version that was never published, silently skipping it.
+The one thing to avoid in that state is preparing the same product *again*: the bump would
+move on from a version that was never published, silently skipping it. To abandon a prepared
+version instead, restore it in `eng/Versions.props` and delete the `## <version> (<date>)`
+heading so its notes sit under `## Unreleased` again.
 
 ## Contributing
 
