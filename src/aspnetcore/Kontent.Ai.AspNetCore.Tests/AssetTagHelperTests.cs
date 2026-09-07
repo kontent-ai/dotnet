@@ -74,17 +74,23 @@ public class AssetTagHelperTests
         Assert.False(output.Attributes.ContainsName("srcset"));
     }
 
+    // An empty asset element (Model.Image.FirstOrDefault()) is a normal state. Leaving the element alone
+    // rendered a literal <img-asset class="…"></img-asset> into the page.
     [Fact]
-    public async Task ProcessAsync_WithoutAsset_DoesNotRenderImg()
+    public async Task ProcessAsync_WithoutAsset_RendersNothing()
     {
         var helper = new AssetTagHelper();
-        var context = CreateContext();
-        var output = CreateOutput();
+        var context = CreateContext(("class", "hero"));
+        var output = new TagHelperOutput(
+            "img-asset",
+            new TagHelperAttributeList { new("class", "hero") },
+            (_, _) => Task.FromResult<TagHelperContent>(new DefaultTagHelperContent()));
 
         await helper.ProcessAsync(context, output);
 
-        Assert.Equal("img-asset", output.TagName);
-        Assert.False(output.Attributes.ContainsName("src"));
+        using var writer = new StringWriter();
+        output.WriteTo(writer, System.Text.Encodings.Web.HtmlEncoder.Default);
+        Assert.Equal(string.Empty, writer.ToString());
     }
 
     [Fact]

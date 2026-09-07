@@ -32,6 +32,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`<img-asset>` no longer emits `srcset` width descriptors the CDN cannot honour.** The CDN never upscales, so a configured responsive width beyond the source image's width is served at the source's width — while the tag helper labelled it with the requested width. A width descriptor is what the browser derives a candidate's pixel density from, so an overstated one made the image render smaller than intended whenever that candidate was chosen. The README's own example did this: `w=2000 2000w` for a 1000-pixel image. Candidates are now capped at `IAsset.Width`, or at the rendition's width when the URL already carries a rendition query (`DeliveryOptions.DefaultRenditionPreset`), and de-duplicated; the fallback `src` is the largest remaining candidate. An asset without a known width is unchanged. A non-positive `ResponsiveWidths` entry now throws `InvalidOperationException` instead of producing `w=0`.
 
+- **`<img-asset>` with a null asset renders nothing.** An empty asset element is a normal state (`Model.Image.FirstOrDefault()`), and the tag helper left the element untouched, so the page received a literal `<img-asset class="…"></img-asset>` — an unknown element carrying the view's attributes. The output is now suppressed, which is what `<rich-text>` already did for null content.
+
+- **`<media-condition>` is declared by name.** The tag helper targeted *every* child element of `<img-asset>` (`*`), so the element name existed only in the README and in `RestrictChildren`; any other child would have been silently swallowed. It now targets `media-condition` under `img-asset`. Correct markup is unaffected.
+
 - **The XML docs on the webhook models describe the current contract.** `ObjectType` claimed `content_item_variant` as a value; the API sends `content_item`. The docs now name the documented values and say which `WebhookItem` fields are sent for every object and which only for content items.
 
 ## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
