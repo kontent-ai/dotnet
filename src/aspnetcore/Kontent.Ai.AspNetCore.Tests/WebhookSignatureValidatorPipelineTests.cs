@@ -12,10 +12,10 @@ using Microsoft.Extensions.Hosting;
 namespace Kontent.Ai.AspNetCore.Tests;
 
 /// <summary>
-/// The overload that takes its <see cref="WebhookOptions"/> from the container resolves them per request,
-/// so a host that never configured them looks fine until the first webhook arrives. Exercised through a
-/// real pipeline rather than by calling the middleware directly, because what is under test is the
-/// registration - that the branch is taken and the options are found.
+/// The overload that takes its <see cref="WebhookOptions"/> from the container. Exercised through a real
+/// pipeline rather than by calling the middleware directly, because what is under test is the
+/// registration - that the branch is taken, that the options are found, and that a host which never
+/// configured them fails to start rather than at the first webhook.
 /// </summary>
 public class WebhookSignatureValidatorPipelineTests
 {
@@ -44,13 +44,10 @@ public class WebhookSignatureValidatorPipelineTests
     }
 
     [Fact]
-    public async Task ContainerResolvedOptions_NeverConfigured_FailsAtTheFirstRequest()
+    public async Task ContainerResolvedOptions_NeverConfigured_FailsAtStartup()
     {
-        using var host = await StartHostAsync(configureOptions: false);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => StartHostAsync(configureOptions: false));
 
-        var act = async () => await SendAsync(host, Signature(Body, Secret));
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(act);
         Assert.Contains(nameof(WebhookOptions.Secret), exception.Message);
     }
 

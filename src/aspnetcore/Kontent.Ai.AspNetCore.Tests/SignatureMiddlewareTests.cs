@@ -38,14 +38,49 @@ public class SignatureMiddlewareTests
 
     // Without a secret nothing can be verified. Accepting the request would admit unsigned traffic, and
     // the previous behaviour - hashing with an empty key - accepted anything signed with that same
-    // empty key. A misconfigured deployment should fail loudly rather than look like a bad signature.
-    [Fact]
-    public async Task MissingSecret_Throws()
+    // empty key. A misconfigured deployment should fail loudly, and at construction: the host builds
+    // the pipeline at startup, so this is what makes it fail there rather than at the first webhook.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void MissingSecret_ThrowsAtConstruction(string? secret)
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions()));
-        var ctx = new DefaultHttpContext();
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = secret })));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.InvokeAsync(ctx));
+        Assert.Contains(nameof(WebhookOptions.Secret), exception.Message);
+    }
+
+    // The documented validation sample normalises the header with Trim().Trim('"') because a hosting
+    // pipeline or proxy may quote it. Base64 never contains a quote, so stripping one is safe.
+    [Theory]
+    [InlineData("\"{0}\"")]
+    [InlineData("  {0}  ")]
+    [InlineData(" \"{0}\" ")]
+    public async Task QuotedOrPaddedSignature_IsAccepted(string format)
+    {
+        var nextCalled = false;
+        const string body = "payload";
+        var ctx = CreateHttpContext(body, "X-Kontent-ai-Signature", string.Format(format, ComputeHmacSha256(body, Secret)));
+        var middleware = new SignatureMiddleware(_ => { nextCalled = true; return Task.CompletedTask; }, Options.Create(new WebhookOptions { Secret = Secret }));
+
+        await middleware.InvokeAsync(ctx);
+
+        Assert.True(nextCalled);
+    }
+
+    // The header is checked before the body is read, so a request with no verifiable signature costs no
+    // buffering, and a body that cannot be read is a 401 rather than an exception.
+    [Fact]
+    public async Task RequestWithoutSignature_IsRejectedWithoutReadingTheBody()
+    {
+        var ctx = new DefaultHttpContext();
+        ctx.Request.Body = new ThrowingStream();
+        var middleware = new SignatureMiddleware(_ => Task.CompletedTask, Options.Create(new WebhookOptions { Secret = Secret }));
+
+        await middleware.InvokeAsync(ctx);
+
+        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
     }
 
     // The signature is compared as raw bytes, so anything that is not a well-formed digest is rejected
@@ -179,6 +214,20 @@ public class SignatureMiddlewareTests
             ctx.Request.Headers.Append(headerName, headerValue);
         }
         return ctx;
+    }
+
+    private sealed class ThrowingStream : Stream
+    {
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) => throw new IOException("body read");
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     private static string ComputeHmacSha256(string message, string secret)

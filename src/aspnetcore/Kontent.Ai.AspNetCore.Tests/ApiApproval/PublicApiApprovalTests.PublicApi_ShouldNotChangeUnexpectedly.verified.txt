@@ -50,11 +50,6 @@ public static class ApplicationBuilderExtensions
     static IApplicationBuilder UseWebhookSignatureValidator(IApplicationBuilder app, Func<HttpContext, Boolean> predicate, WebhookOptions options)
 
 // Kontent.Ai.AspNetCore.Webhooks
-public sealed class SignatureMiddleware
-    .ctor(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
-    Task InvokeAsync(HttpContext httpContext)
-
-// Kontent.Ai.AspNetCore.Webhooks
 public sealed class WebhookOptions
     .ctor()
     String? Secret { get; set; }

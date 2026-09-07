@@ -10,11 +10,21 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **The webhook models' always-present members are `required` and non-nullable.** The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the Sync and Delivery models mark such members `required`; this package marked every reference-type member nullable, which forced a null check or a `!` on every field a handler reads. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. Reading code compiles with fewer checks; code that constructs a payload by hand must set every required member. A payload that lacks one now fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls. This is what `required` does and all it does: an explicit JSON `null` is still accepted into a non-nullable member unless the host's serializer is told to respect nullable annotations, so event-specific fields still need checking in the handler. See the [upgrade guide](docs/upgrade/0-to-1.md), §5.
 
+- **`SignatureMiddleware` is `internal`.** Consumers reach it through `UseWebhookSignatureValidator`, which is the only registration the package documents; the type itself was public surface nothing needed. A direct `app.UseMiddleware<SignatureMiddleware>()` no longer compiles — replace it with `app.UseWebhookSignatureValidator(predicate)`, which also gives it the `UseWhen` branch the middleware expects.
+
+- **A missing `WebhookOptions.Secret` fails at startup, not at the first webhook.** The middleware read the secret per request and threw then. It now reads it once, when the host builds its pipeline, so a misconfigured deployment refuses to start — where every other options mistake surfaces — instead of running until Kontent.ai calls. Nothing changes for a configured secret.
+
 ### Added
 
 - **The webhook models carry every field the API sends.** `WebhookItem.TaxonomyGroup` (the group a taxonomy term belongs to — for term events `Codename` is the term's, so this is the only way to reach the group) and `WebhookMessage.ActionContext` (the previous workflow and step on a `workflow_step_changed` event). Both are `null` when the event does not carry them, as before the properties existed.
 
 - **`WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots`** hold the documented values of `ObjectType`, `Action` and `DeliverySlot` as string constants, so a handler's `switch` no longer spells them. Constants rather than enums: a value Kontent.ai adds later must deserialize, because a failed binding is a 400 that the sender retries for three days.
+
+### Changed
+
+- **The signature header is checked before the request body is read.** A request with no signature, or one that is not a well-formed HMAC-SHA256 digest, is rejected without buffering its body; a body that cannot be read is a `401` rather than an exception. Previously the whole body was buffered and copied first. The body is now hashed straight from the buffered request stream, which removes one copy of every webhook payload; the stream is still rewound for the endpoint.
+
+- **A quoted or padded signature header is accepted.** The documented validation sample normalises the header with `Trim().Trim('"')` because a hosting pipeline or proxy may quote it. The middleware rejected a quoted value; it now applies the same normalisation. Base64 never contains a quote or whitespace, so this admits nothing a well-formed signature could not already.
 
 ### Fixed
 
