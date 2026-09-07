@@ -149,6 +149,82 @@ public class AssetTagHelperTests
         Assert.Equal($"{AssetUrl}?w=1600", AttrValue(output, "src"));
     }
 
+    // The CDN never upscales: a 1000-pixel source requested at w=2000 comes back 1000 wide. A "2000w"
+    // descriptor on it would make the browser derive the wrong pixel density and render it too small.
+    [Fact]
+    public async Task ProcessAsync_CapsSrcsetCandidatesAtTheAssetWidth()
+    {
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset { Url = AssetUrl, Width = 1000 },
+            ResponsiveWidths = [200, 800, 1000, 1200, 2000]
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Equal(
+            $"{AssetUrl}?w=200 200w,{AssetUrl}?w=800 800w,{AssetUrl}?w=1000 1000w",
+            AttrValue(output, "srcset"));
+        Assert.Equal($"{AssetUrl}?w=1000", AttrValue(output, "src"));
+    }
+
+    // With DefaultRenditionPreset the URL already carries a rendition's query, and that rendition's
+    // width - not the original's - is what the CDN can serve.
+    [Fact]
+    public async Task ProcessAsync_CapsSrcsetCandidatesAtTheAppliedRenditionWidth()
+    {
+        const string renditionQuery = "w=500&h=403&fit=clip&rect=52,0,500,403";
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset
+            {
+                Url = $"{AssetUrl}?{renditionQuery}",
+                Width = 1000,
+                Renditions = new Dictionary<string, IAssetRendition> { ["default"] = new TestRendition { Query = renditionQuery, Width = 500 } }
+            },
+            ResponsiveWidths = [200, 800]
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Equal(
+            $"{AssetUrl}?w=200&h=403&fit=clip&rect=52,0,500,403 200w,{AssetUrl}?w=500&h=403&fit=clip&rect=52,0,500,403 500w",
+            AttrValue(output, "srcset"));
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithoutAssetWidth_UsesTheConfiguredWidthsAsIs()
+    {
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset { Url = AssetUrl },
+            ResponsiveWidths = [200, 2000]
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Contains($"{AssetUrl}?w=2000 2000w", AttrValue(output, "srcset"));
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithNonPositiveResponsiveWidth_Throws()
+    {
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset { Url = AssetUrl },
+            ResponsiveWidths = [200, 0]
+        };
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => helper.ProcessAsync(CreateContext(), CreateOutput()));
+        Assert.Contains(nameof(ImageTransformationOptions.ResponsiveWidths), exception.Message);
+    }
+
     [Fact]
     public async Task ProcessAsync_PerTagResponsiveWidths_OverridesOptions()
     {
