@@ -5,7 +5,7 @@ namespace Kontent.Ai.AspNetCore.ImageTransformation;
 /// <summary>
 /// Represents one media condition from image sizes attribute.
 /// </summary>
-[HtmlTargetElement(ParentTag = "img-asset")]
+[HtmlTargetElement("media-condition", ParentTag = "img-asset")]
 public sealed class MediaConditionTagHelper : TagHelper
 {
     /// <summary>

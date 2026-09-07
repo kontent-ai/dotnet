@@ -90,9 +90,10 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     /// <inheritdoc/>
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
+        // An empty asset element is a normal state; render nothing rather than a literal <img-asset>.
         if (Asset == null)
         {
-            await base.ProcessAsync(context, output);
+            output.SuppressOutput();
             return;
         }
 
