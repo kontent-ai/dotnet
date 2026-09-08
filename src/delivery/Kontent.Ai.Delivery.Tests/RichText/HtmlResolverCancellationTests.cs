@@ -47,15 +47,37 @@ public sealed class HtmlResolverCancellationTests
     [Fact]
     public async Task ResolveAsync_ConcurrentRenders_KeepTheirOwnTokens()
     {
-        // The resolver is shared; a token belongs to one render, not to the resolver.
         using var cancelled = new CancellationTokenSource();
-        cancelled.Cancel();
-        var resolver = new HtmlResolverBuilder().Build();
+        var bothStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = 0;
+        var resolver = new HtmlResolverBuilder()
+            .WithTextNodeResolver(async (node, _) =>
+            {
+                if (node.Text == "first")
+                {
+                    if (Interlocked.Increment(ref started) == 2) bothStarted.SetResult();
+                    await resume.Task;
+                }
+                return node.Text;
+            })
+            .Build();
 
-        var live = resolver.ResolveAsync(Nested()).AsTask();
-        var dead = Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await resolver.ResolveAsync(Nested(), cancelled.Token));
+        var dead = RenderAsync(cancelled.Token);
+        var live = RenderAsync(CancellationToken.None);
+        try
+        {
+            await bothStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            cancelled.Cancel();
+        }
+        finally
+        {
+            resume.SetResult();
+        }
 
         Assert.Equal("<p>first<strong>second</strong></p>", await live);
-        await dead;
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => dead);
+
+        async Task<string> RenderAsync(CancellationToken token) => await resolver.ResolveAsync(Nested(), token);
     }
 }

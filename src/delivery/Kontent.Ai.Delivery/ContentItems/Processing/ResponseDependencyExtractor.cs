@@ -9,17 +9,10 @@ namespace Kontent.Ai.Delivery.ContentItems.Processing;
 /// <c>modular_content</c>, and the assets, taxonomy groups and content items their elements refer to.
 /// </summary>
 /// <remarks>
-/// Read from the wire rather than collected while mapping, so the keys do not depend on which properties a
-/// model declares. A raw-JSON cache entry is shared by every model that reads the same item, and the first
-/// model to prime it decided the tags for all of them; an untyped or runtime-typed read mapped nothing and
-/// tracked nothing beyond the items themselves. The element's <c>type</c> says what it holds, so no model
-/// is needed to know where to look.
+/// Dependency keys are independent of model mapping so raw-JSON cache entries can be shared across models.
 /// <para>
-/// Asset elements yield no key. Their values carry a URL and no id, and the GUID in that URL is the binary
-/// file's reference id, not the asset's: it changes when the file is replaced, and no asset event carries
-/// it, so a tag made of it can never be matched. Rich text does carry asset ids, for inline images and asset
-/// links, and those are tagged. An asset event reaches the items that use the asset through
-/// <c>GetAssetUsedIn</c>; the caching guide has the pattern.
+/// Asset elements carry file URLs, not asset IDs, and yield no key. Rich-text image and link IDs are tagged.
+/// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> resolves asset-element usages separately.
 /// </para>
 /// </remarks>
 internal static partial class ResponseDependencyExtractor
@@ -45,8 +38,7 @@ internal static partial class ResponseDependencyExtractor
         {
             foreach (var (codename, linked) in modularContent)
             {
-                // A component is invalidated through the item that owns it, so a key of its own is dead
-                // weight. Its type still matters: the response does contain an item of that type.
+                // Components are invalidated through their owning item, but still depend on their type.
                 if (!ContentItemJsonHelper.IsComponent(linked))
                 {
                     context.TrackItem(codename);

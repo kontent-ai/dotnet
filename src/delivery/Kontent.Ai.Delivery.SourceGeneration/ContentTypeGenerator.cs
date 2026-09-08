@@ -108,8 +108,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // Check for unsupported target types. A struct compiles and deserializes, but the SDK hydrates
-            // elements on the instance it deserialized, so a struct's would be lost in a copy.
+            // Models must support in-place hydration.
             if (info.IsInterface || info.IsAbstract || info.IsValueType)
             {
                 context.ReportDiagnostic(Diagnostic.Create(

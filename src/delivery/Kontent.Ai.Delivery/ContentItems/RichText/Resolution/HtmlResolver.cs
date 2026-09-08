@@ -89,10 +89,7 @@ internal sealed class HtmlResolver : IHtmlResolver
     }
 
     /// <summary>
-    /// One render of one rich text: the token it runs under and the child resolver that carries it. Kept
-    /// off the resolver itself, which is shared and renders concurrently, so one render's token cannot
-    /// reach another's. The token is checked before every block at every depth, not only at the top
-    /// level; a resolver's public child callback carries no token, which is why the pass has to.
+    /// Per-render cancellation and child traversal state. The owning resolver can be reused concurrently.
     /// </summary>
     private sealed class RenderPass
     {
@@ -159,9 +156,7 @@ internal sealed class HtmlResolver : IHtmlResolver
 
         private async ValueTask<string> ResolveHtmlNodeAsync(IHtmlNode node)
         {
-            // Conditional resolvers in registration order - first match wins, tag registrations included. A tag
-            // match is a name comparison rather than a predicate call, which is what the separate lookup was for;
-            // keeping them in one pass is what makes the documented order true.
+            // First matching registration wins, including tag registrations.
             var matchingResolver = _owner._options.ConditionalHtmlNodeResolvers.FirstOrDefault(Matches);
 
             return matchingResolver is not null
