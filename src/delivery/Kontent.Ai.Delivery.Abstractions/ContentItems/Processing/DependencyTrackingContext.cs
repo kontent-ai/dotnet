@@ -106,11 +106,9 @@ internal sealed class DependencyTrackingContext
     /// <param name="assetId">The unique identifier of the asset.</param>
     /// <remarks>
     /// <para>
-    /// Call this method for assets referenced in:
-    /// <list type="bullet">
-    /// <item><description>Rich text image elements</description></item>
-    /// <item><description>Asset element values</description></item>
-    /// </list>
+    /// Call this method for the assets rich text refers to - inline images and asset links - which are
+    /// the places a response carries an asset's id. An asset element value carries only a URL, whose GUID
+    /// is the file's reference id rather than the asset's, so it is not tracked.
     /// </para>
     /// <para>
     /// Asset IDs are globally unique, so Guid.Empty is a valid value and will be tracked.

@@ -86,8 +86,6 @@ internal static class LogEventIds
     /// <summary>Embedded content element missing required codename attribute.</summary>
     public const int EmbeddedContentMissingCodename = 1404;
 
-    /// <summary>Asset URL could not be parsed for dependency tracking.</summary>
-    public const int AssetUrlParsingFailed = 1405;
 
     /// <summary>Rich text link item ID could not be parsed as GUID.</summary>
     public const int RichTextLinkIdParsingFailed = 1406;

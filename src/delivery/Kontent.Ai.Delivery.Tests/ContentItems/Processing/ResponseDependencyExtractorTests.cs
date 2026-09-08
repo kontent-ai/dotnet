@@ -14,10 +14,9 @@ public sealed class ResponseDependencyExtractorTests
 {
     private static readonly JsonSerializerOptions JsonOptions = RefitSettingsProvider.CreateDefaultJsonSerializerOptions();
 
-    private const string AssetId = "f6daed1f-3f3b-4036-a9c7-9519359b9601";
+    private const string FileId = "f6daed1f-3f3b-4036-a9c7-9519359b9601";
     private const string ImageId = "11111111-1111-1111-1111-111111111111";
     private const string LinkedAssetId = "22222222-2222-2222-2222-222222222222";
-    private const string ComponentAssetId = "33333333-3333-3333-3333-333333333333";
 
     [Fact]
     public void Extract_TracksTheItemAndItsType()
@@ -29,19 +28,19 @@ public sealed class ResponseDependencyExtractorTests
     }
 
     [Fact]
-    public void Extract_TracksAnAssetElementByTheIdInItsUrl()
+    public void Extract_DoesNotTagAnAssetElement()
     {
+        // The GUID in the URL is the file's reference id, not the asset's, and no asset event carries it;
+        // a tag made of it would look like coverage and match nothing.
         var keys = Extract(Item("article", "post", elements: $$"""
             {
               "teaser": { "type": "asset", "name": "Teaser", "value": [
-                { "name": "a.jpg", "type": "image/jpeg", "size": 1, "description": "", "url": "https://assets.kontent.ai/975bf280-fd91-488c-994c-2f04416e5ee3/{{AssetId}}/a.jpg" },
-                { "name": "odd.jpg", "type": "image/jpeg", "size": 1, "description": "", "url": "not a url" }
+                { "name": "a.jpg", "type": "image/jpeg", "size": 1, "description": "", "url": "https://assets.kontent.ai/975bf280-fd91-488c-994c-2f04416e5ee3/{{FileId}}/a.jpg" }
               ] }
             }
             """));
 
-        Assert.Contains($"asset_{AssetId}", keys);
-        Assert.Single(keys, k => k.StartsWith("asset_", StringComparison.Ordinal));
+        Assert.DoesNotContain(keys, k => k.StartsWith("asset_", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -99,8 +98,8 @@ public sealed class ResponseDependencyExtractorTests
             modularContent: $$"""
                 {
                   "author": {{Item("author", "person", elements: """{ "tags": { "type": "taxonomy", "taxonomy_group": "roles", "value": [] } }""")}},
-                  "n1a2b3c4_component": {{Component("n1a2b3c4_component", "callout", elements: $$"""
-                      { "image": { "type": "asset", "value": [ { "url": "https://assets.kontent.ai/x/{{ComponentAssetId}}/c.png" } ] } }
+                  "n1a2b3c4_component": {{Component("n1a2b3c4_component", "callout", elements: """
+                      { "labels": { "type": "taxonomy", "taxonomy_group": "labels", "value": [] } }
                       """)}}
                 }
                 """);
@@ -111,7 +110,7 @@ public sealed class ResponseDependencyExtractorTests
 
         Assert.DoesNotContain("item_n1a2b3c4_component", keys);
         Assert.Contains("type_callout", keys);
-        Assert.Contains($"asset_{ComponentAssetId}", keys);
+        Assert.Contains("taxonomy_labels", keys);
     }
 
     [Fact]

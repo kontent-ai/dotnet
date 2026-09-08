@@ -246,7 +246,7 @@ internal sealed class ItemsQuery<TModel>(
             }
         }
 
-        return (resp, [.. ResponseDependencyExtractor.Extract(items, resp.ModularContent, logger), DeliveryCacheDependencies.ItemsListScope]);
+        return (resp, [.. ResponseDependencyExtractor.Extract(items, resp.ModularContent), DeliveryCacheDependencies.ItemsListScope]);
     }
 
     private static IDeliveryResult<IDeliveryItemListingResponse<TModel>> CreateFailureResult(

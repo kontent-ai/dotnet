@@ -91,7 +91,7 @@ public partial class CachingIntegrationTests
         Assert.Contains("item_americano", dependencyKeys2);
         Assert.Contains("item_how_to_make_a_cappuccino", dependencyKeys2);
         Assert.Contains("taxonomy_personas", dependencyKeys2);
-        Assert.Contains(dependencyKeys2, key => key.StartsWith("asset_", StringComparison.Ordinal));
+        Assert.DoesNotContain(dependencyKeys2, key => key.StartsWith("asset_", StringComparison.Ordinal));
 
         mock.VerifyNoOutstandingExpectation();
     }

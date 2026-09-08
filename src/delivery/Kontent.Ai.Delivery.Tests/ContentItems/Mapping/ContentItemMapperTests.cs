@@ -261,9 +261,8 @@ public sealed class ContentItemMapperTests
         // Nothing mapped: the keys are read from the raw item and its modular content alone.
         var dependencies = ResponseDependencyExtractor.Extract([response.Item], response.ModularContent);
 
-        // Asset element payload carries the asset GUID in the URL path
-        Assert.Contains($"asset_{Guid.Parse("e700596b-03b0-4cee-ac5c-9212762c027a")}", dependencies);
         Assert.Contains(dependencies, d => d.StartsWith("item_"));
+        Assert.Contains("taxonomy_personas", dependencies);
     }
 
     [Fact]
