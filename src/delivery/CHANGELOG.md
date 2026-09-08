@@ -227,6 +227,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A DNS failure, a refused connection or a resilience-pipeline rejection produced `Error.Message` of `"Unknown error"`. It now carries the exception's message, such as `"No such host is known."`; the exception is still on `Error.Exception`.
 
+### Internal
+
+- **The developer guide describes the code as it is.**
+
+  `docs/for-developers.md` described OneOf results, dictionary-based Refit filters, parallel element processing and per-dependency semaphores, none of which exist. It is now a short map of the actual boundaries - registration, transport, queries, results, hydration, rich text, caching, logging, tests - each with the invariant it keeps and the file it lives in. The `ParseRichTextAsync` sample referred to a `GetDynamic` method that does not exist and is rewritten over a dynamic listing.
+
 ### Dependencies
 
 - **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11.**

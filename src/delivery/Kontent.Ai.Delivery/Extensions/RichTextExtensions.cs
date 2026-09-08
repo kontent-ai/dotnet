@@ -187,25 +187,21 @@ public static class RichTextExtensions
     /// <returns>The parsed rich text content, or null if parsing fails or the element is not a rich text type.</returns>
     /// <example>
     /// <code>
-    /// // Fetch dynamic item
-    /// var result = await client.Items
-    ///     .GetDynamic("article-codename")
-    ///     .ExecuteAsync();
+    /// // A listing read without a model keeps every element as JSON, and carries the modular content
+    /// // the rich text's embedded items are resolved from.
+    /// var result = await client.GetItems&lt;IDynamicElements&gt;().ExecuteAsync();
     ///
-    /// var item = result.Value;
-    /// var elements = item.Elements; // IDynamicElements (Dictionary&lt;string, JsonElement&gt;)
-    ///
-    /// // Parse rich text element
-    /// if (elements.TryGetValue("body_copy", out var bodyElement))
+    /// foreach (var item in result.Value.Items)
     /// {
-    ///     var richText = await bodyElement.ParseRichTextAsync(result.ModularContent);
-    ///
-    ///     if (richText is not null)
+    ///     if (item.Elements.TryGetValue("body_copy", out var bodyElement))
     ///     {
-    ///         // Now RichTextExtensions work!
-    ///         var html = await richText.ToHtmlAsync();
-    ///         var images = richText.GetInlineImages();
-    ///         var embedded = richText.GetEmbeddedContent();
+    ///         var richText = await bodyElement.ParseRichTextAsync(result.Value.ModularContent);
+    ///         if (richText is not null)
+    ///         {
+    ///             var html = await richText.ToHtmlAsync();
+    ///             var images = richText.GetInlineImages();
+    ///             var embedded = richText.GetEmbeddedContent();
+    ///         }
     ///     }
     /// }
     /// </code>
