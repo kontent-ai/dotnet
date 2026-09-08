@@ -13,11 +13,11 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Plan, build, pack and render the notes, but push nothing and create no releases'
+        description: 'Show what would be published without publishing it'
         type: boolean
         default: true
       products:
-        description: 'Products to publish or recover, space-separated (e.g. "delivery sync"). Empty selects unfinished releases - allowed only from main and vnext.'
+        description: 'Leave empty on main or vnext: every product whose version is not on nuget.org yet gets published. On any other branch, name them, e.g. "delivery sync".'
         type: string
         required: false
 

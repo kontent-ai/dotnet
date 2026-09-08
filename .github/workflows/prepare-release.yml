@@ -4,27 +4,28 @@ name: Prepare release
 # Publishes nothing - the Publish workflow does that once this PR is merged.
 on:
   workflow_dispatch:
-    # One free-text input per product, so an explicit version fits the same field as a bump word.
-    # Empty means the product is not part of this batch.
+    # One free-text field per product. Each takes a bump word - prerelease, release, patch, minor,
+    # major - or an explicit version such as 21.0.0-rc.1; empty leaves the product out. The form
+    # shows only per-field descriptions, so the first field carries that explanation for all five.
     inputs:
       aspnetcore:
-        description: 'ASP.NET Core extensions - prerelease, release, patch, minor, major, or an explicit version such as 1.2.0-rc.1'
+        description: 'Each field takes prerelease, release, patch, minor, major, or a version such as 21.0.0-rc.1. Empty skips the product. This one is the ASP.NET Core extensions.'
         type: string
         required: false
       delivery:
-        description: 'Delivery SDK - prerelease, release, patch, minor, major, or an explicit version'
+        description: 'Delivery SDK'
         type: string
         required: false
       management:
-        description: 'Management SDK - prerelease, release, patch, minor, major, or an explicit version'
+        description: 'Management SDK'
         type: string
         required: false
       model_generator:
-        description: 'Model generator - prerelease, release, patch, minor, major, or an explicit version'
+        description: 'Model generator'
         type: string
         required: false
       sync:
-        description: 'Sync SDK - prerelease, release, patch, minor, major, or an explicit version'
+        description: 'Sync SDK'
         type: string
         required: false
 
