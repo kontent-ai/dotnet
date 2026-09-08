@@ -163,6 +163,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `UseHybridCache`, an unreachable Redis threw `FusionCacheDistributedCacheException` out of every cached query. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker stops a dead Redis being retried per request, and FusionCache re-syncs when it is back. FusionCache's own diagnostics now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered.
 
+- **`InvalidateAsync` returns `false` when the distributed tier was not reached.**
+
+  In hybrid mode it returned `true` when the write to the distributed cache failed, or was skipped because FusionCache's circuit breaker for it was open, so a webhook handler retrying on `false` never retried and other nodes served the evicted content until it expired. It now returns `false` in both cases and when the backplane cannot publish; this node's memory tier is still cleared, and the retry completes the invalidation once the store is back. Reads are unchanged: an outage still degrades the cache rather than failing queries.
+
 - **An invalidation is no longer forgotten after thirty seconds.**
 
   `InvalidateAsync` records a tag-expiration entry, and it was stored with FusionCache's thirty-second default duration, so an entry not read within thirty seconds of the webhook was served again afterwards. Tag data is now stored with FusionCache's tag options, ten days by default and adjustable through `ConfigureFusionCache(f => f.TagsDefaultEntryOptions.Duration = …)`; set it above your longest expiration. `PurgeAsync` uses the same options.

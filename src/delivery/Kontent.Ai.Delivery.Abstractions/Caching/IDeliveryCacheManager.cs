@@ -102,6 +102,9 @@ public interface IDeliveryCacheManager
     /// <returns>
     /// <c>true</c> if invalidation completed successfully; <c>false</c> if an error occurred
     /// (the error is logged but not thrown, since invalidation is best-effort — TTL is the safety net).
+    /// In hybrid mode <c>false</c> also means the invalidation did not reach the distributed cache or the
+    /// backplane, because the store failed or FusionCache's circuit breaker for it was open; this node's
+    /// memory tier is cleared either way, and a retry once the store is back completes it for the rest.
     /// Callers who don't check the return value get fire-and-forget behavior;
     /// callers who care can check and retry.
     /// </returns>
