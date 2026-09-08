@@ -155,14 +155,9 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         return rendition;
     }
 
-    /// <summary>
-    /// The widths <c>srcset</c> is generated for. A width descriptor must be the candidate's real width,
-    /// and the CDN never upscales, so a configured width beyond the source is served at the source's
-    /// width and its descriptor would lie: candidates are capped at the natural width and de-duplicated.
-    /// The natural width is the original's, unless the URL already carries a rendition's query - what
-    /// <c>DeliveryOptions.DefaultRenditionPreset</c> produces - in which case it is that rendition's.
-    /// Unknown (no <see cref="IAsset.Width"/>, or a query matching no rendition) means no cap.
-    /// </summary>
+    // A srcset width descriptor must be the candidate's real width and the CDN never upscales, so the
+    // configured widths are capped at the natural width: the original's, or the applied rendition's when
+    // the URL already carries one (DeliveryOptions.DefaultRenditionPreset). No known width, no cap.
     private int[] CandidateWidths(int[] responsiveWidths)
     {
         if (responsiveWidths.Any(w => w <= 0))
@@ -196,11 +191,9 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         return builder.Url.ToString();
     }
 
-    /// <summary>
-    /// A rendition owns layout, so its query replaces whatever the URL already carries: the same preset
-    /// applied at mapping time by <c>DeliveryOptions.DefaultRenditionPreset</c>, or a different one.
-    /// Appending instead produced two <c>?</c>, which the CDN accepts and silently drops the crop from.
-    /// </summary>
+    // A rendition owns layout, so its query replaces whatever the URL already carries - the preset
+    // DeliveryOptions.DefaultRenditionPreset applied at mapping time, or a different one. Appending would
+    // give the CDN two "?", which it accepts and drops the crop from.
     private string BuildRenditionUrl(IAssetRendition rendition)
     {
         var builder = new ImageUrlBuilder(new UriBuilder(Asset!.Url) { Query = rendition.Query }.Uri);

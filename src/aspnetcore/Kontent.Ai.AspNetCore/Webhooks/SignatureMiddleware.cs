@@ -39,23 +39,19 @@ internal sealed class SignatureMiddleware
         var request = httpContext.Request;
 
         // Modern header first; the legacy one is the fallback for webhooks configured before the rename.
-        // Both are verified against the same secret, so precedence only decides which is read when a
-        // request carries both - but it is observable, so it is stated rather than incidental.
         var providedSignature = request.Headers["X-Kontent-ai-Signature"].FirstOrDefault()
             ?? request.Headers["X-KC-Signature"].FirstOrDefault();
 
-        // Decoded before the body is touched: a request with no verifiable signature is rejected without
-        // buffering its body, and a body that cannot be read surfaces as a 401 rather than an exception.
+        // Checked before the body is read: a request without a verifiable signature is rejected without
+        // buffering it, and a body that cannot be read is a 401 rather than an exception.
         if (!TryDecodeSignature(providedSignature, out var provided))
         {
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             return;
         }
 
-        // The signature covers the bytes the sender signed, so they are hashed as received from the
-        // buffered stream. Decoding to a string and re-encoding would put a lossy step in the middle: the
-        // decoder substitutes replacement characters for malformed input, so two different bodies can
-        // re-encode to the same bytes.
+        // Hashed as received: decoding to a string and re-encoding is lossy (malformed input becomes
+        // replacement characters), so two different bodies could hash the same.
         request.EnableBuffering();
         byte[] expected;
         try
@@ -72,9 +68,8 @@ internal sealed class SignatureMiddleware
             }
         }
 
-        // Compared over the raw digest bytes in constant time, not over the Base64 text: an ordinary
-        // string comparison returns as soon as two characters differ, which lets a caller who can time the
-        // response recover the expected signature one character at a time.
+        // Constant time over the digest bytes: a string comparison of the Base64 text returns at the first
+        // differing character, which a caller who can time the response can exploit.
         if (!CryptographicOperations.FixedTimeEquals(expected, provided))
         {
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
@@ -84,12 +79,9 @@ internal sealed class SignatureMiddleware
         await _next(httpContext);
     }
 
-    /// <summary>
-    /// Decodes the header into one HMAC-SHA256 digest. Length carries no secret: the digest is always the
-    /// same size, so anything that does not decode to exactly that many bytes is rejected outright.
-    /// The value is normalised the way the documented sample does, because a hosting pipeline or proxy
-    /// may quote it.
-    /// </summary>
+    // Decodes the header into one HMAC-SHA256 digest; anything that does not decode to exactly that many
+    // bytes is rejected. The value is normalised like the documented sample does, because a hosting
+    // pipeline or proxy may quote it.
     private static bool TryDecodeSignature(string? header, [NotNullWhen(true)] out byte[]? signature)
     {
         signature = null;
