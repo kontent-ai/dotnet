@@ -41,56 +41,12 @@ internal sealed class HtmlResolver : IHtmlResolver
             StringComparer.OrdinalIgnoreCase);
     }
 
-    public async ValueTask<string> ResolveAsync(IRichTextContent richText, CancellationToken cancellationToken = default)
+    public ValueTask<string> ResolveAsync(IRichTextContent richText, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(richText);
 
-        var htmlBuilder = new StringBuilder();
-
-        foreach (var block in richText)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var resolved = await ResolveBlockAsync(block).ConfigureAwait(false);
-            htmlBuilder.Append(resolved);
-        }
-
-        return htmlBuilder.ToString();
+        return new RenderPass(this, cancellationToken).ResolveChildrenAsync(richText);
     }
-
-    private ValueTask<string> ResolveBlockAsync(IRichTextBlock block)
-    {
-        return block switch
-        {
-            IHtmlNode htmlNode => ResolveHtmlNodeAsync(htmlNode),
-
-            ITextNode textNode => _options.TextNodeResolver(textNode, NoChildren),
-
-            IInlineImage image => _options.InlineImageResolver(image, NoChildren),
-
-            // Content item link resolution - type-specific takes precedence
-            IContentItemLink link when link.Metadata?.ContentTypeCodename is not null
-                && _contentItemLinkResolvers.TryGetValue(link.Metadata.ContentTypeCodename, out var typeResolver)
-                => typeResolver(link, ResolveChildrenAsync),
-
-            // Fallback to global content item link resolver
-            IContentItemLink link when _options.ContentItemLinkResolver is { } resolver
-                => resolver(link, ResolveChildrenAsync),
-
-            // No resolver found for content item link
-            IContentItemLink link => _options.ThrowOnMissingResolver
-                ? throw new InvalidOperationException($"No resolver registered for IContentItemLink (type: {link.Metadata?.ContentTypeCodename ?? "unknown"}, item ID: {link.ItemId})")
-                : ValueTask.FromResult(string.Format(MissingContentItemLinkResolver, link.Metadata?.ContentTypeCodename ?? "unknown", link.ItemId)),
-
-            // Embedded content (components/linked items) - type-based dispatch takes precedence
-            IEmbeddedContent content => ResolveEmbeddedContentAsync(content),
-
-            _ => throw new InvalidOperationException($"Unknown block type: {block.GetType().Name}")
-        };
-    }
-
-    // Text nodes and inline images are leaves, so their resolvers are handed a child resolver that
-    // has nothing to walk.
-    private static ValueTask<string> NoChildren(IEnumerable<IRichTextBlock> children) => ValueTask.FromResult(string.Empty);
 
     private ValueTask<string> ResolveEmbeddedContentAsync(IEmbeddedContent content)
     {
@@ -132,30 +88,90 @@ internal sealed class HtmlResolver : IHtmlResolver
         return modelType is not null;
     }
 
-    private async ValueTask<string> ResolveHtmlNodeAsync(IHtmlNode node)
+    /// <summary>
+    /// One render of one rich text: the token it runs under and the child resolver that carries it. Kept
+    /// off the resolver itself, which is shared and renders concurrently, so one render's token cannot
+    /// reach another's. The token is checked before every block at every depth, not only at the top
+    /// level; a resolver's public child callback carries no token, which is why the pass has to.
+    /// </summary>
+    private sealed class RenderPass
     {
-        // Conditional resolvers in registration order - first match wins, tag registrations included. A tag
-        // match is a name comparison rather than a predicate call, which is what the separate lookup was for;
-        // keeping them in one pass is what makes the documented order true.
-        var matchingResolver = _options.ConditionalHtmlNodeResolvers.FirstOrDefault(Matches);
+        private readonly HtmlResolver _owner;
+        private readonly CancellationToken _cancellationToken;
+        private readonly Func<IEnumerable<IRichTextBlock>, ValueTask<string>> _resolveChildren;
 
-        return matchingResolver is not null
-            ? await matchingResolver.Resolver(node, ResolveChildrenAsync).ConfigureAwait(false)
-            : await _options.DefaultHtmlNodeResolver(node, ResolveChildrenAsync).ConfigureAwait(false);
-
-        bool Matches(ConditionalHtmlNodeResolver candidate) => candidate.TagName is { } tag
-            ? node.TagName.Equals(tag, StringComparison.OrdinalIgnoreCase)
-            : candidate.Predicate(node);
-    }
-
-    private async ValueTask<string> ResolveChildrenAsync(IEnumerable<IRichTextBlock> children)
-    {
-        var builder = new StringBuilder();
-        foreach (var child in children)
+        public RenderPass(HtmlResolver owner, CancellationToken cancellationToken)
         {
-            builder.Append(await ResolveBlockAsync(child).ConfigureAwait(false));
+            _owner = owner;
+            _cancellationToken = cancellationToken;
+            _resolveChildren = ResolveChildrenAsync;
         }
-        return builder.ToString();
+
+        // Text nodes and inline images are leaves, so their resolvers are handed a child resolver that
+        // has nothing to walk.
+        private static ValueTask<string> NoChildren(IEnumerable<IRichTextBlock> children) => ValueTask.FromResult(string.Empty);
+
+        public async ValueTask<string> ResolveChildrenAsync(IEnumerable<IRichTextBlock> children)
+        {
+            var builder = new StringBuilder();
+            foreach (var child in children)
+            {
+                _cancellationToken.ThrowIfCancellationRequested();
+                builder.Append(await ResolveBlockAsync(child).ConfigureAwait(false));
+            }
+
+            _cancellationToken.ThrowIfCancellationRequested();
+            return builder.ToString();
+        }
+
+        private ValueTask<string> ResolveBlockAsync(IRichTextBlock block)
+        {
+            var options = _owner._options;
+
+            return block switch
+            {
+                IHtmlNode htmlNode => ResolveHtmlNodeAsync(htmlNode),
+
+                ITextNode textNode => options.TextNodeResolver(textNode, NoChildren),
+
+                IInlineImage image => options.InlineImageResolver(image, NoChildren),
+
+                // Content item link resolution - type-specific takes precedence
+                IContentItemLink link when link.Metadata?.ContentTypeCodename is not null
+                    && _owner._contentItemLinkResolvers.TryGetValue(link.Metadata.ContentTypeCodename, out var typeResolver)
+                    => typeResolver(link, _resolveChildren),
+
+                // Fallback to global content item link resolver
+                IContentItemLink link when options.ContentItemLinkResolver is { } resolver
+                    => resolver(link, _resolveChildren),
+
+                // No resolver found for content item link
+                IContentItemLink link => options.ThrowOnMissingResolver
+                    ? throw new InvalidOperationException($"No resolver registered for IContentItemLink (type: {link.Metadata?.ContentTypeCodename ?? "unknown"}, item ID: {link.ItemId})")
+                    : ValueTask.FromResult(string.Format(MissingContentItemLinkResolver, link.Metadata?.ContentTypeCodename ?? "unknown", link.ItemId)),
+
+                // Embedded content (components/linked items) - type-based dispatch takes precedence
+                IEmbeddedContent content => _owner.ResolveEmbeddedContentAsync(content),
+
+                _ => throw new InvalidOperationException($"Unknown block type: {block.GetType().Name}")
+            };
+        }
+
+        private async ValueTask<string> ResolveHtmlNodeAsync(IHtmlNode node)
+        {
+            // Conditional resolvers in registration order - first match wins, tag registrations included. A tag
+            // match is a name comparison rather than a predicate call, which is what the separate lookup was for;
+            // keeping them in one pass is what makes the documented order true.
+            var matchingResolver = _owner._options.ConditionalHtmlNodeResolvers.FirstOrDefault(Matches);
+
+            return matchingResolver is not null
+                ? await matchingResolver.Resolver(node, _resolveChildren).ConfigureAwait(false)
+                : await _owner._options.DefaultHtmlNodeResolver(node, _resolveChildren).ConfigureAwait(false);
+
+            bool Matches(ConditionalHtmlNodeResolver candidate) => candidate.TagName is { } tag
+                ? node.TagName.Equals(tag, StringComparison.OrdinalIgnoreCase)
+                : candidate.Predicate(node);
+        }
     }
 }
 
