@@ -56,17 +56,22 @@ foreach (var line in body.Replace("\r\n", "\n").Split('\n'))
     output.AppendLine(!inFence && line.StartsWith("###", StringComparison.Ordinal) ? line[1..] : line);
 }
 
-var primaryPackage = entry.GetProperty("expectedPackages").EnumerateArray().First().GetString()!;
-var prereleaseFlag = version.Contains('-') ? " --prerelease" : "";
+// Pinned to this version: an older release page must not install a newer major, and a
+// prerelease page must name its own prerelease. A tool package installs as a tool.
+var primaryPackage = entry.GetProperty("expectedPackages")[0].GetString()!;
+var primaryProject = File.ReadAllText(Path.Combine(repoRoot, entry.GetProperty("projects")[0].GetString()!));
+var install = primaryProject.Contains("<PackAsTool>true</PackAsTool>", StringComparison.OrdinalIgnoreCase)
+    ? $"dotnet tool install -g {primaryPackage} --version {version}"
+    : $"dotnet add package {primaryPackage} --version {version}";
 
 output.AppendLine();
 output.AppendLine("## Installation");
 output.AppendLine();
 output.AppendLine("```bash");
-output.AppendLine($"dotnet add package {primaryPackage}{prereleaseFlag}");
+output.AppendLine(install);
 output.AppendLine("```");
 output.AppendLine();
-output.AppendLine($"**Full changelog**: [`{changelogRel}`](https://github.com/kontent-ai/dotnet/blob/main/{changelogRel})");
+output.AppendLine($"**Full changelog**: [`{changelogRel}`](https://github.com/kontent-ai/dotnet/blob/{tag}/{changelogRel})");
 
 Console.Write(output.ToString());
 return 0;

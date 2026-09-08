@@ -76,7 +76,7 @@ dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|
 ```
 
 After merging that PR, **Actions → Publish** packs and pushes every product whose declared
-version is not yet on NuGet, dependencies first, and records each one as a
+version is not yet on NuGet, and records each one as a
 `<product>-v<version>` tag and a GitHub Release with notes taken from the product's
 changelog. It defaults to a dry run, which builds, packs and renders the notes without
 pushing anything, so run it once to see the plan and again to publish. A product whose
