@@ -16,6 +16,8 @@ public sealed class InvalidateAssetTests
     {
         var mock = new MockHttpMessageHandler();
         mock.When($"{BaseUrl}/assets/hero_image/used-in")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .WithQueryString("system.language[in]", "default,french")
             .Respond("application/json", await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory, "Fixtures", "DeliveryClient", "used_in.json")));
         var manager = new RecordingCacheManager();
 
@@ -40,8 +42,6 @@ public sealed class InvalidateAssetTests
     [Fact]
     public async Task InvalidateAssetAsync_InvalidatesNothing_WhenTheLookupFails()
     {
-        // A partial list would evict some items and leave the rest stale while reporting success; the walk
-        // throws instead, so the webhook fails and is delivered again.
         var mock = new MockHttpMessageHandler();
         mock.When($"{BaseUrl}/assets/hero_image/used-in").Respond(HttpStatusCode.InternalServerError);
         var manager = new RecordingCacheManager();
@@ -63,8 +63,125 @@ public sealed class InvalidateAssetTests
         Assert.False(await manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId));
     }
 
+    [Fact]
+    public async Task InvalidateAssetAsync_IncludesLanguagesFromEveryPage()
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.Expect($"{BaseUrl}/languages")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .Respond("application/json", LanguagePage("default", skip: 0, hasNext: true));
+        mock.Expect($"{BaseUrl}/languages")
+            .WithQueryString("skip", "1")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .Respond("application/json", LanguagePage("french", skip: 1));
+        mock.Expect($"{BaseUrl}/assets/hero_image/used-in")
+            .WithQueryString("system.language[in]", "default,french")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .Respond("application/json", UsagePage("french_article", "french"));
+        var manager = new RecordingCacheManager();
+
+        Assert.True(await manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId));
+
+        Assert.Contains("item_french_article", Assert.Single(manager.Invalidations));
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task InvalidateAssetAsync_InvalidatesNothing_WhenASecondUsagePageFails()
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.Expect($"{BaseUrl}/languages").Respond("application/json", LanguagePage("default"));
+        mock.Expect($"{BaseUrl}/assets/hero_image/used-in")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .Respond(_ => new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(UsagePage("article", "default"), System.Text.Encoding.UTF8, "application/json"),
+                Headers = { { "X-Continuation", "next-page" } },
+            });
+        mock.Expect($"{BaseUrl}/assets/hero_image/used-in")
+            .WithHeaders("X-Continuation", "next-page")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .WithQueryString("system.language[in]", "default")
+            .Respond(HttpStatusCode.InternalServerError);
+        var manager = new RecordingCacheManager();
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(() => manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId));
+
+        Assert.Empty(manager.Invalidations);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InvalidateAssetAsync_InvalidatesNothing_WhenALanguagePageFails(bool secondPage)
+    {
+        var mock = new MockHttpMessageHandler();
+        if (secondPage)
+        {
+            mock.Expect($"{BaseUrl}/languages").Respond("application/json", LanguagePage("default", hasNext: true));
+        }
+        mock.Expect($"{BaseUrl}/languages").Respond(HttpStatusCode.InternalServerError);
+        var manager = new RecordingCacheManager();
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(() => manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId));
+
+        Assert.Empty(manager.Invalidations);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task InvalidateAssetAsync_InvalidatesNothing_WhenNoLanguagesAreReturned()
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.Expect($"{BaseUrl}/languages").Respond("application/json", """
+            { "languages": [], "pagination": { "skip": 0, "limit": 0, "count": 0, "next_page": "" } }
+            """);
+        var manager = new RecordingCacheManager();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId));
+
+        Assert.Empty(manager.Invalidations);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task InvalidateAssetAsync_Cancellation_InvalidatesNothing()
+    {
+        var mock = new MockHttpMessageHandler();
+        var manager = new RecordingCacheManager();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => manager.InvalidateAssetAsync(CreateClient(mock), "hero_image", AssetId, cancellation.Token));
+
+        Assert.Empty(manager.Invalidations);
+    }
+
+    private static string LanguagePage(string codename, int skip = 0, bool hasNext = false) => $$"""
+        {
+          "languages": [{ "system": { "id": "11111111-1111-1111-1111-111111111111", "name": "{{codename}}", "codename": "{{codename}}" } }],
+          "pagination": { "skip": {{skip}}, "limit": 1, "count": 1, "next_page": "{{(hasNext ? $"{BaseUrl}/languages?skip={skip + 1}" : "")}}" }
+        }
+        """;
+
+    private static string UsagePage(string codename, string language) => $$"""
+        { "items": [{ "system": { "id": "22222222-2222-2222-2222-222222222222", "name": "{{codename}}", "codename": "{{codename}}", "language": "{{language}}", "type": "article", "collection": "default", "workflow": "default", "workflow_step": "published", "last_modified": "2026-09-08T00:00:00Z" } }] }
+        """;
+
     private static IDeliveryClient CreateClient(MockHttpMessageHandler mock)
     {
+        mock.When($"{BaseUrl}/languages")
+            .WithHeaders("X-KC-Wait-For-Loading-New-Content", "True")
+            .Respond("application/json", """
+                {
+                  "languages": [
+                    { "system": { "id": "11111111-1111-1111-1111-111111111111", "name": "Default", "codename": "default" } },
+                    { "system": { "id": "22222222-2222-2222-2222-222222222222", "name": "French", "codename": "french" } }
+                  ],
+                  "pagination": { "skip": 0, "limit": 2, "count": 2, "next_page": "" }
+                }
+                """);
         var services = new ServiceCollection();
         services.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false },

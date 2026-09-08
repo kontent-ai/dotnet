@@ -89,7 +89,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`InvalidateAssetAsync` on `IDeliveryCacheManager` handles an asset event in one call.**
 
-  It invalidates `ForAsset(id)` for the rich-text usages, then `ForItem` for every item `GetAssetUsedIn` returns and the items list scope, and returns what `InvalidateAsync` returns. A failed page of the lookup throws `DeliveryRequestException` before anything is invalidated, so a partial list never passes for a complete one.
+  It invalidates `ForAsset(id)` for rich-text usages, `ForItem` for every item using the asset, and the items-list scope. It discovers all languages and requests fresh content for both language and usage lookups. A failed lookup page throws `DeliveryRequestException` before anything is invalidated; otherwise it returns the invalidation outcome.
 
 - **`OrderByElement` and `OrderBySystem` on the item, feed and languages queries.**
 
