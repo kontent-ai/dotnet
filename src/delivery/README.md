@@ -6,7 +6,7 @@
 The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn/docs/apis/openapi/delivery-api/), enabling you to retrieve content from your Kontent.ai projects with a modern, type-safe, and highly extensible client library.
 
 > [!TIP]
-> **Building an ASP.NET Core app?** Check out [**Kontent.ai ASP.NET Core Extensions**](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) — a companion package that adds a `<rich-text>` tag helper for rendering Kontent.ai rich text in Razor views (with full `IHtmlResolver` integration), an `<img-asset>` tag helper for responsive images with automatic `srcset`/`sizes`, webhook signature validation middleware, and a mapper from a webhook notification to this SDK's cache dependency keys.
+> **Building an ASP.NET Core app?** Check out [**Kontent.ai ASP.NET Core Extensions**](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) — a companion package that adds a `<rich-text>` tag helper for rendering Kontent.ai rich text in Razor views (with full `IHtmlResolver` integration), an `<img-asset>` tag helper for responsive images with automatic `srcset`/`sizes`, webhook signature validation middleware, and cache invalidation straight from a webhook notification.
 
 ## Table of Contents
 
@@ -179,6 +179,8 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 #### Source-Generated Type Provider (Recommended)
 
 When you use the `[ContentTypeCodename]` attribute on your model classes (see [Generate Models](#generate-models)), the SDK's source generator automatically creates a `GeneratedTypeProvider`. The SDK auto-discovers this provider at runtime - no manual registration needed.
+
+A model is a class or a record class. The SDK hydrates elements on the instance it deserialized, so a struct would be copied and its values lost; the generator reports `KDSG003` for one, and the client throws `NotSupportedException` if a struct reaches it another way.
 
 > [!NOTE]
 > `Kontent.Ai.Delivery.SourceGeneration` emits `ContentTypeCodenameAttribute` and generates `GeneratedTypeProvider` during compilation.
@@ -627,11 +629,18 @@ var query = client.GetItems()
 
 ```csharp
 var result = await client.GetItems()
-    .OrderBy("system.last_modified", OrderingMode.Descending)
+    .OrderBySystem("last_modified", OrderingMode.Descending)
     .Skip(0)
     .Limit(10)
     .ExecuteAsync();
+
+// Order by an element; the generated codename constants work here too
+var articles = await client.GetItems<Article>()
+    .OrderByElement(Article.PublishDateCodename, OrderingMode.Descending)
+    .ExecuteAsync();
 ```
+
+`OrderByElement` and `OrderBySystem` add the `elements.` / `system.` prefix for you, the same way `Element()` and `System()` do in `Where`. `OrderBy("elements.publish_date")` still accepts a full path.
 
 #### Getting Total Count
 
@@ -735,7 +744,7 @@ The source generator emits `ContentTypeCodenameAttribute` and produces a `Genera
 **Compile-time diagnostics:**
 - `KDSG001`: Duplicate codename (error)
 - `KDSG002`: Invalid codename - null, empty, or whitespace (error)
-- `KDSG003`: Unsupported target type - interfaces and abstract classes (error)
+- `KDSG003`: Unsupported target type - interfaces, abstract classes and structs (error)
 
 #### Use Strongly-Typed Models
 
@@ -1452,32 +1461,50 @@ Typed listing queries include synthetic scope dependencies:
 - `GetTypes()` → `DeliveryCacheDependencies.TypesListScope`
 - `GetTaxonomies()` → `DeliveryCacheDependencies.TaxonomiesListScope`
 
-When processing webhooks, invalidate both entity-specific keys and the relevant list scope key. The
-[`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) package does
-this from the payload Kontent.ai actually sends — `notification.GetCacheDependencyKeys()` returns the
-item, type, taxonomy-group and asset keys plus the matching scopes for a whole batch — and validates the
-request's signature in front of it. The manager resolves unkeyed for the default client, keyed by name
-for a named one, and as `CacheManager` on a client from `DeliveryClient.Create`:
+When processing webhooks, invalidate both entity-specific keys and the relevant list scope key. `DeliveryCacheDependencies` composes the entity keys exactly as the SDK tags them, and the manager resolves unkeyed for the default client, keyed by name for a named one, and as `CacheManager` on a client from `DeliveryClient.Create`.
+
+The [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) package does the mapping from the payload Kontent.ai actually sends, routes asset events through the used-in lookup in the same call, and validates the request's signature in front of it:
 
 ```csharp
 using Kontent.Ai.AspNetCore.Webhooks;
+using Kontent.Ai.AspNetCore.Webhooks.Models;
 using Kontent.Ai.Delivery.Abstractions;
 
 app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegments("/webhooks"));
 
-app.MapPost("/webhooks/kontent", async (WebhookNotification notification, IDeliveryCacheManager cacheManager, CancellationToken ct) =>
+app.MapPost("/webhooks/kontent", async (WebhookNotification notification, IDeliveryCacheManager cacheManager, IDeliveryClient client, CancellationToken ct) =>
 {
     // A non-2xx makes Kontent.ai resend the notification, so a failed invalidation is retried rather than lost.
-    var invalidated = await cacheManager.InvalidateAsync(notification.GetCacheDependencyKeys(), ct);
+    var invalidated = await cacheManager.InvalidateAsync(notification, client, ct);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 ```
 
-Composing the keys by hand works too — `DeliveryCacheDependencies.ForItem` / `ForType` / `ForTaxonomy` /
-`ForAsset` produce exactly the strings the SDK tags with — but note that for a taxonomy *term* event the
-payload's codename is the term's, and the key is the group's. The [caching guide](docs/caching-guide.md#webhook-based-invalidation)
-has the complete endpoint: environment and delivery-slot filtering, the language-event purge, and what
-invalidation does not cover.
+Composing the keys by hand works too:
+
+```csharp
+using Kontent.Ai.Delivery.Abstractions;
+
+var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();
+
+// Item events
+await cacheManager.InvalidateAsync(
+    [DeliveryCacheDependencies.ForItem(itemCodename), DeliveryCacheDependencies.ItemsListScope]);
+
+// Type events
+await cacheManager.InvalidateAsync(
+    [DeliveryCacheDependencies.ForType(typeCodename), DeliveryCacheDependencies.TypesListScope]);
+
+// Taxonomy events: for a term event the payload's codename is the term's, and the key is the group's
+await cacheManager.InvalidateAsync(
+    [DeliveryCacheDependencies.ForTaxonomy(taxonomyGroupCodename), DeliveryCacheDependencies.TaxonomiesListScope]);
+
+// Asset events: ForAsset covers rich-text usages; an asset held in an asset element carries no asset id,
+// so those items are found through the used-in lookup. See the caching guide's "Asset events".
+await cacheManager.InvalidateAssetAsync(client, assetCodename, assetId);
+```
+
+The [caching guide](docs/caching-guide.md#webhook-based-invalidation) has the complete endpoint: environment and delivery-slot filtering, the language-event purge, and what invalidation does not cover.
 
 With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an answer from the origin - a `404` for an unpublished item, say - drops it.
 

@@ -8,39 +8,77 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Breaking changes
 
-- **The webhook models' always-present members are `required` and non-nullable.** The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the Sync and Delivery models mark such members `required`; this package marked every reference-type member nullable, which forced a null check or a `!` on every field a handler reads. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. Reading code compiles with fewer checks; code that constructs a payload by hand must set every required member. A payload that lacks one now fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls. This is what `required` does and all it does: an explicit JSON `null` is still accepted into a non-nullable member unless the host's serializer is told to respect nullable annotations, so event-specific fields still need checking in the handler. See the [upgrade guide](docs/upgrade/0-to-1.md), §5.
+- **The always-present webhook members are `required` and non-nullable.**
 
-- **`SignatureMiddleware` is `internal`.** Consumers reach it through `UseWebhookSignatureValidator`, which is the only registration the package documents; the type itself was public surface nothing needed. A direct `app.UseMiddleware<SignatureMiddleware>()` no longer compiles — replace it with `app.UseWebhookSignatureValidator(predicate)`, which also gives it the `UseWhen` branch the middleware expects.
+  The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the models marked every reference-type member nullable, so a handler checked or `!`-ed every field it read. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. A payload that lacks a required member fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls; an explicit JSON `null` is still accepted unless the host's serializer respects nullable annotations, so event-specific fields still need checking. Code that constructs a payload by hand must set every required member. See the [upgrade guide](docs/upgrade/0-to-1.md), §5.
 
-- **A missing `WebhookOptions.Secret` fails at startup, not at the first webhook.** The middleware read the secret per request and threw then. It now reads it once, when the host builds its pipeline, so a misconfigured deployment refuses to start — where every other options mistake surfaces — instead of running until Kontent.ai calls. Nothing changes for a configured secret.
+- **`SignatureMiddleware` is `internal`.**
+
+  Consumers reach it through `UseWebhookSignatureValidator`, the only registration the package documents. A direct `app.UseMiddleware<SignatureMiddleware>()` no longer compiles; replace it with `app.UseWebhookSignatureValidator(predicate)`, which also gives it the `UseWhen` branch the middleware expects.
+
+- **A missing `WebhookOptions.Secret` fails at startup, not at the first webhook.**
+
+  The secret is read once, when the host builds its pipeline, so a misconfigured deployment refuses to start instead of running until Kontent.ai calls. Nothing changes for a configured secret.
 
 ### Added
 
-- **`GetCacheDependencyKeys()` maps a webhook notification to the Delivery SDK's cache dependency keys.** Every Delivery guide showed a hand-written `switch` from a webhook to `DeliveryCacheDependencies` calls, and both copies got taxonomy wrong: for a term event the payload's `codename` is the term's, and the cache is keyed by the group. The extension composes the keys the SDK tags with, in the format `IDeliveryCacheManager` documents — item plus items-list scope, type plus types-list scope, taxonomy group plus taxonomies-list scope, asset — over a whole batch or any subset of it, without duplicates. A language notification maps to nothing, because the SDK keeps no language dependency; the README's endpoint sample shows the purge branch for it, the environment and delivery-slot filtering that precede it, and what invalidation does not cover (renames, CDN freshness).
+- **`InvalidateAsync(notification, client)` invalidates everything a webhook batch affects.**
 
-- **The webhook models carry every field the API sends.** `WebhookItem.TaxonomyGroup` (the group a taxonomy term belongs to — for term events `Codename` is the term's, so this is the only way to reach the group) and `WebhookMessage.ActionContext` (the previous workflow and step on a `workflow_step_changed` event). Both are `null` when the event does not carry them, as before the properties existed.
+  An extension on `IDeliveryCacheManager`. It invalidates the dependency keys of every notification and, for an asset event, the items using the asset through the SDK's `InvalidateAssetAsync`, which needs the client because an asset element carries no asset id. It returns `false` when any invalidation did not complete, so the endpoint can answer with a status Kontent.ai retries; a failed usage lookup throws `DeliveryRequestException`.
 
-- **`WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots`** hold the documented values of `ObjectType`, `Action` and `DeliverySlot` as string constants, so a handler's `switch` no longer spells them. Constants rather than enums: a value Kontent.ai adds later must deserialize, because a failed binding is a 400 that the sender retries for three days.
+- **`GetCacheDependencyKeys()` maps a webhook notification to the SDK's cache dependency keys.**
+
+  For a notification or any subset of a batch, without duplicates: item plus items-list scope, type plus types-list scope, taxonomy group plus taxonomies-list scope (for a term event the payload's codename is the term's and the cache is keyed by the group), asset. The keys are composed with `DeliveryCacheDependencies`, so they are the exact strings the SDK tags with. A language notification maps to nothing, because the SDK keeps no language dependency; the README's endpoint sample shows the purge for it.
+
+- **The webhook models carry every field the API sends.**
+
+  `WebhookItem.TaxonomyGroup`, the group a taxonomy term belongs to, and `WebhookMessage.ActionContext`, the previous workflow and step on a `workflow_step_changed` event. Both are `null` when the event does not carry them.
+
+- **`WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots` name the documented values.**
+
+  String constants rather than enums: a value Kontent.ai adds later must still deserialize, because a failed binding is a 400 that the sender retries for three days.
 
 ### Changed
 
-- **The signature header is checked before the request body is read.** A request with no signature, or one that is not a well-formed HMAC-SHA256 digest, is rejected without buffering its body; a body that cannot be read is a `401` rather than an exception. Previously the whole body was buffered and copied first. The body is now hashed straight from the buffered request stream, which removes one copy of every webhook payload; the stream is still rewound for the endpoint.
+- **The signature header is checked before the request body is read.**
 
-- **A quoted or padded signature header is accepted.** The documented validation sample normalises the header with `Trim().Trim('"')` because a hosting pipeline or proxy may quote it. The middleware rejected a quoted value; it now applies the same normalisation. Base64 never contains a quote or whitespace, so this admits nothing a well-formed signature could not already.
+  A request with no signature, or one that is not a well-formed HMAC-SHA256 digest, is rejected without buffering its body, and a body that cannot be read is a `401` rather than an exception. The body is hashed straight from the buffered request stream, which removes one copy of every payload; the stream is still rewound for the endpoint.
+
+- **A quoted or padded signature header is accepted.**
+
+  The documented validation sample normalises the header with `Trim().Trim('"')` because a hosting pipeline or proxy may quote it; the middleware now does the same. Base64 never contains a quote or whitespace, so this admits nothing a well-formed signature could not already.
 
 ### Fixed
 
-- **`<img-asset rendition="…">` no longer loses the crop when the Delivery client applies a default rendition preset.** With `DeliveryOptions.DefaultRenditionPreset` set, the SDK appends the preset's query to `Asset.Url` at mapping time. The tag helper appended the rendition's query again, producing a URL with two `?`. The CDN accepts that URL, reads the second `?` as part of the `rect` value, discards the crop, and serves the uncropped image at the rendition's bounds — so the page showed the wrong picture and nothing reported it. A rendition now replaces whatever query the URL carries, which is the same result whether the preset was applied already, not at all, or a different one was. Encoding transforms (`format`, `quality`, `auto-format`, `compression`) are composed through `ImageUrlBuilder` on both paths instead of being spelled out twice.
+- **`<img-asset rendition="…">` keeps the crop when a default rendition preset is applied.**
 
-- **`<img-asset>` no longer emits `srcset` width descriptors the CDN cannot honour.** The CDN never upscales, so a configured responsive width beyond the source image's width is served at the source's width — while the tag helper labelled it with the requested width. A width descriptor is what the browser derives a candidate's pixel density from, so an overstated one made the image render smaller than intended whenever that candidate was chosen. The README's own example did this: `w=2000 2000w` for a 1000-pixel image. Candidates are now capped at `IAsset.Width`, or at the rendition's width when the URL already carries a rendition query (`DeliveryOptions.DefaultRenditionPreset`), and de-duplicated; the fallback `src` is the largest remaining candidate. An asset without a known width is unchanged. A non-positive `ResponsiveWidths` entry now throws `InvalidOperationException` instead of producing `w=0`.
+  With `DeliveryOptions.DefaultRenditionPreset` set, the SDK appends the preset's query to `Asset.Url` at mapping time, and the tag helper appended the rendition's query again, producing a URL with two `?`. The CDN reads the second `?` as part of the `rect` value, discards the crop, and serves the uncropped image at the rendition's bounds. A rendition now replaces whatever query the URL carries. Encoding transforms (`format`, `quality`, `auto-format`, `compression`) are composed through `ImageUrlBuilder` on both paths.
 
-- **`<img-asset>` with a null asset renders nothing.** An empty asset element is a normal state (`Model.Image.FirstOrDefault()`), and the tag helper left the element untouched, so the page received a literal `<img-asset class="…"></img-asset>` — an unknown element carrying the view's attributes. The output is now suppressed, which is what `<rich-text>` already did for null content.
+- **`<img-asset>` no longer emits `srcset` width descriptors the CDN cannot honour.**
 
-- **`<media-condition>` is declared by name.** The tag helper targeted *every* child element of `<img-asset>` (`*`), so the element name existed only in the README and in `RestrictChildren`; any other child would have been silently swallowed. It now targets `media-condition` under `img-asset`. Correct markup is unaffected.
+  The CDN never upscales, so a configured responsive width beyond the source image's was served at the source's width while the descriptor claimed the requested one, and the browser derived the wrong pixel density from it. Candidates are capped at `IAsset.Width`, or at the rendition's width when the URL already carries a rendition query, and de-duplicated; the fallback `src` is the largest remaining candidate. An asset without a known width is unchanged. A non-positive `ResponsiveWidths` entry throws `InvalidOperationException` instead of producing `w=0`.
 
-- **`AddKontentRichText`'s documentation no longer claims `ToHtmlContentAsync` uses the registered resolver.** An extension method cannot see the container; without an explicit `resolver` it uses the SDK's built-in defaults, and only the `<rich-text>` tag helper picks the registered one up on its own. The README said this correctly, the XML docs did not. `ToHtmlContentAsync` itself is now the Delivery SDK's `ToHtmlAsync` wrapped in an `IHtmlContent`, rather than a second copy of it.
+- **`<img-asset>` with a null asset renders nothing.**
 
-- **The XML docs on the webhook models describe the current contract.** `ObjectType` claimed `content_item_variant` as a value; the API sends `content_item`. The docs now name the documented values and say which `WebhookItem` fields are sent for every object and which only for content items.
+  An empty asset element is a normal state (`Model.Image.FirstOrDefault()`), and the page received a literal `<img-asset class="…"></img-asset>`. The output is suppressed, as `<rich-text>` already does for null content.
+
+- **`<media-condition>` is declared by name.**
+
+  The tag helper targeted every child element of `<img-asset>`, so any other child was silently swallowed. It now targets `media-condition` under `img-asset`; correct markup is unaffected.
+
+- **`ToHtmlContentAsync` delegates to the SDK's `ToHtmlAsync`.**
+
+  It is that method wrapped in an `IHtmlContent` rather than a second copy of it. Its docs also say which resolver it uses: an extension method cannot see the container, so without an explicit `resolver` it uses the SDK's built-in defaults, and only the `<rich-text>` tag helper picks up the one registered with `AddKontentRichText`. The XML docs claimed otherwise.
+
+- **The XML docs on the webhook models describe the current contract.**
+
+  `ObjectType` claimed `content_item_variant` as a value; the API sends `content_item`. The docs name the documented values and say which `WebhookItem` fields are sent for every object and which only for content items.
+
+### Dependencies
+
+- **Delivery floors move to 20.0.0-rc.3.**
+
+  `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions` and `Kontent.Ai.Urls` **20.0.0-rc.2** → **20.0.0-rc.3**. The cache dependency keys are composed with `DeliveryCacheDependencies` and asset events go through `InvalidateAssetAsync`, both added in rc.3.
 
 ## 1.0.0-rc.2 (2026-08-12)  _(prerelease)_
 

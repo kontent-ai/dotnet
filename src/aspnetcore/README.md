@@ -205,14 +205,14 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 
 ### Cache invalidation
 
-`GetCacheDependencyKeys()` maps a notification, or any subset of a batch, to the keys the Delivery SDK tags cached responses with, in the format `IDeliveryCacheManager` documents, so they are exactly the strings `InvalidateAsync` matches:
+`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates everything a batch affects. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`, so they are exactly the strings the SDK tags cached responses with:
 
 | Notification | Keys |
 |---|---|
 | `content_item` | `item_{codename}`, items-list scope |
 | `content_type` | `type_{codename}`, types-list scope |
 | `taxonomy` | `taxonomy_{group}`, taxonomies-list scope (the group is `TaxonomyGroup` for a term event, `Codename` for a group event) |
-| `asset` | `asset_{id}` |
+| `asset` | `asset_{id}`, which reaches rich-text usages. An asset element carries no asset id, so the items holding the asset that way are found through the SDK's used-in lookup — that is why `InvalidateAsync` takes the client |
 | `language` | nothing — see below |
 
 A complete endpoint, with the Delivery client registered and a cache attached to it. `UseMemoryCache` comes
@@ -245,6 +245,7 @@ app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegme
 app.MapPost("/webhooks/kontent", async (
     WebhookNotification notification,
     IDeliveryCacheManager cache,
+    IDeliveryClient client,
     IOptions<DeliveryOptions> delivery,
     CancellationToken cancellationToken) =>
 {
@@ -268,14 +269,14 @@ app.MapPost("/webhooks/kontent", async (
 
     // InvalidateAsync reports failure instead of throwing (TTL is its backstop). A non-2xx makes Kontent.ai
     // resend the notification, so a failed invalidation gets a second chance rather than a 204.
-    var invalidated = await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
+    var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 
 app.Run();
 ```
 
-The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed invalidation wants.
+The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed invalidation wants. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset is invalidated; letting it propagate is a `500` and the same retry.
 
 What invalidation does not cover:
 

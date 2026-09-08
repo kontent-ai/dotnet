@@ -53,6 +53,8 @@ public static class ApplicationBuilderExtensions
 public static class WebhookNotificationExtensions
     static String[] GetCacheDependencyKeys(IEnumerable<WebhookModel> notifications)
     static String[] GetCacheDependencyKeys(WebhookNotification notification)
+    static Task<Boolean> InvalidateAsync(IDeliveryCacheManager cacheManager, IEnumerable<WebhookModel> notifications, IDeliveryClient client, CancellationToken cancellationToken)
+    static Task<Boolean> InvalidateAsync(IDeliveryCacheManager cacheManager, WebhookNotification notification, IDeliveryClient client, CancellationToken cancellationToken)
 
 // Kontent.Ai.AspNetCore.Webhooks
 public sealed class WebhookOptions

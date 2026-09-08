@@ -4,14 +4,19 @@ using Kontent.Ai.Delivery.Abstractions;
 namespace Kontent.Ai.AspNetCore.Webhooks;
 
 /// <summary>
-/// Maps webhook notifications to the Delivery SDK's cache dependency keys, for <see cref="IDeliveryCacheManager.InvalidateAsync"/>.
+/// Turns webhook notifications into Delivery SDK cache invalidations.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The keys follow the format documented on <see cref="IDeliveryCacheManager"/>, so they are exactly the strings the
-/// SDK tags cached responses with. A content item maps to its item key plus <see cref="DeliveryCacheDependencies.ItemsListScope"/>;
+/// The keys are composed with <see cref="DeliveryCacheDependencies"/>, so they are exactly the strings the SDK tags
+/// cached responses with. A content item maps to its item key plus <see cref="DeliveryCacheDependencies.ItemsListScope"/>;
 /// a content type to its type key plus <see cref="DeliveryCacheDependencies.TypesListScope"/>; a taxonomy to its group
 /// key plus <see cref="DeliveryCacheDependencies.TaxonomiesListScope"/>; an asset to its asset key.
+/// </para>
+/// <para>
+/// The asset key reaches rich-text usages only. An asset element carries no asset id, so the items holding the asset
+/// that way are found through the SDK's used-in lookup, which needs a client:
+/// <see cref="InvalidateAsync(IDeliveryCacheManager, WebhookNotification, IDeliveryClient, CancellationToken)"/> does both.
 /// </para>
 /// <para>
 /// A language notification maps to nothing: the SDK keeps no language dependency, and a language change can affect
@@ -39,24 +44,62 @@ public static class WebhookNotificationExtensions
         return [.. notifications.SelectMany(KeysFor).Distinct(StringComparer.Ordinal)];
     }
 
+    /// <summary>
+    /// Invalidates everything the batch affects: the dependency keys of every notification, and for an asset
+    /// notification also the items using the asset, which
+    /// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> resolves through <paramref name="client"/>.
+    /// </summary>
+    /// <returns><c>false</c> when any invalidation did not complete, so the webhook can be answered with a status Kontent.ai retries.</returns>
+    /// <exception cref="DeliveryRequestException">An asset's usage lookup failed; nothing was invalidated for that asset.</exception>
+    public static Task<bool> InvalidateAsync(
+        this IDeliveryCacheManager cacheManager,
+        WebhookNotification notification,
+        IDeliveryClient client,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(notification);
+        return cacheManager.InvalidateAsync(notification.Notifications, client, cancellationToken);
+    }
+
+    /// <inheritdoc cref="InvalidateAsync(IDeliveryCacheManager, WebhookNotification, IDeliveryClient, CancellationToken)"/>
+    public static async Task<bool> InvalidateAsync(
+        this IDeliveryCacheManager cacheManager,
+        IEnumerable<WebhookModel> notifications,
+        IDeliveryClient client,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(cacheManager);
+        ArgumentNullException.ThrowIfNull(notifications);
+        ArgumentNullException.ThrowIfNull(client);
+
+        var batch = notifications.ToList();
+        var keys = batch.Where(n => n.Message.ObjectType != WebhookObjectTypes.Asset).GetCacheDependencyKeys();
+        var invalidated = keys.Length == 0 || await cacheManager.InvalidateAsync(keys, cancellationToken);
+
+        var assets = batch
+            .Where(n => n.Message.ObjectType == WebhookObjectTypes.Asset)
+            .Select(n => n.Data.System)
+            .DistinctBy(asset => asset.Id);
+        foreach (var asset in assets)
+        {
+            invalidated &= await cacheManager.InvalidateAssetAsync(client, asset.Codename, asset.Id, cancellationToken);
+        }
+
+        return invalidated;
+    }
+
     private static string[] KeysFor(WebhookModel notification)
     {
         var system = notification.Data.System;
         return notification.Message.ObjectType switch
         {
-            WebhookObjectTypes.ContentItem => [Key("item", system.Codename), DeliveryCacheDependencies.ItemsListScope],
-            WebhookObjectTypes.ContentType => [Key("type", system.Codename), DeliveryCacheDependencies.TypesListScope],
+            WebhookObjectTypes.ContentItem => [DeliveryCacheDependencies.ForItem(system.Codename), DeliveryCacheDependencies.ItemsListScope],
+            WebhookObjectTypes.ContentType => [DeliveryCacheDependencies.ForType(system.Codename), DeliveryCacheDependencies.TypesListScope],
             // For a term event the codename is the term's and the group is carried separately; for a group
             // event the codename is the group's. The cache is keyed by group either way.
-            WebhookObjectTypes.Taxonomy => [Key("taxonomy", system.TaxonomyGroup ?? system.Codename), DeliveryCacheDependencies.TaxonomiesListScope],
-            WebhookObjectTypes.Asset => [$"asset_{system.Id:D}"],
+            WebhookObjectTypes.Taxonomy => [DeliveryCacheDependencies.ForTaxonomy(system.TaxonomyGroup ?? system.Codename), DeliveryCacheDependencies.TaxonomiesListScope],
+            WebhookObjectTypes.Asset => [DeliveryCacheDependencies.ForAsset(system.Id)],
             _ => [],
         };
     }
-
-    // The entity keys are composed here rather than through DeliveryCacheDependencies.ForItem/ForType/
-    // ForTaxonomy/ForAsset because those arrive in a Delivery release the declared floor does not reach
-    // yet. Same format and the same normalisation: codenames are lower-case by construction and the SDK
-    // compares keys ordinally, so a differently-cased copy is normalised rather than silently matching nothing.
-    private static string Key(string prefix, string codename) => $"{prefix}_{codename.Trim().ToLowerInvariant()}";
 }
