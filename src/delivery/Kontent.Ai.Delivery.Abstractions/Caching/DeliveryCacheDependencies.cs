@@ -44,8 +44,10 @@ public static class DeliveryCacheDependencies
     public static string ForTaxonomy(string codename) => $"taxonomy_{Normalize(codename)}";
 
     /// <summary>
-    /// The key of an asset: <c>asset_{id}</c>. Every cached response whose items reference the asset, in
-    /// an asset element or as a rich text image, carries it.
+    /// The key of an asset: <c>asset_{id}</c>. Every cached response whose items refer to the asset from
+    /// rich text - as an inline image or an asset link - carries it. A response that holds the asset in an
+    /// asset element does not: that value carries no asset id, only the file's URL. To reach those, resolve
+    /// the items using the asset with <c>GetAssetUsedIn</c> and invalidate them by <see cref="ForItem"/>.
     /// </summary>
     public static string ForAsset(Guid id) => $"asset_{id:D}";
 

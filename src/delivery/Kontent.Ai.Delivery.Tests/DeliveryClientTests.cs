@@ -96,7 +96,8 @@ public class DeliveryClientTests
         Assert.Contains("item_americano", dependencyKeys);
         Assert.Contains("item_how_to_make_a_cappuccino", dependencyKeys);
         Assert.Contains("taxonomy_personas", dependencyKeys);
-        Assert.Contains(dependencyKeys, key => key.StartsWith("asset_", StringComparison.Ordinal));
+        // The fixture's assets sit in asset elements, which carry no asset id; see the caching guide's asset event pattern.
+        Assert.DoesNotContain(dependencyKeys, key => key.StartsWith("asset_", StringComparison.Ordinal));
     }
 
     [Fact]

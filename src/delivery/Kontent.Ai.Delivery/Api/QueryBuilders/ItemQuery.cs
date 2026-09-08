@@ -183,7 +183,7 @@ internal sealed class ItemQuery<TModel>(
                 .ConfigureAwait(false);
         }
 
-        return (item, ResponseDependencyExtractor.Extract([item], resp.ModularContent, logger));
+        return (item, ResponseDependencyExtractor.Extract([item], resp.ModularContent));
     }
 
     private static IDeliveryResult<IContentItem<TModel>> CreateFailureResult(

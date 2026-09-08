@@ -164,12 +164,6 @@ internal static partial class LoggerMessages
     public static partial void EmbeddedContentMissingCodename(ILogger logger);
 
     [LoggerMessage(
-        EventId = LogEventIds.AssetUrlParsingFailed,
-        Level = LogLevel.Debug,
-        Message = "Asset URL '{Url}' could not be parsed for dependency tracking")]
-    public static partial void AssetUrlParsingFailed(ILogger logger, string url);
-
-    [LoggerMessage(
         EventId = LogEventIds.RichTextLinkIdParsingFailed,
         Level = LogLevel.Debug,
         Message = "Rich text link 'data-item-id' attribute '{DataItemId}' could not be parsed as GUID")]

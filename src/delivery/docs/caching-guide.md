@@ -566,11 +566,13 @@ var result = await client.GetItem<Article>("my-article")
 // - item_author1 (if linked)
 // - item_author2 (if linked)
 // - type_article (+ type_{codename} for each linked item's content type)
-// - asset_{id} for every asset element value, inline image and asset link in rich text
+// - asset_{id} for every inline image and asset link in rich text
 // - taxonomy_{group} for every taxonomy element
 ```
 
 The keys are read from the response's JSON - the item, everything in its `modular_content` and the elements of both - not collected while a model is mapped. Two models reading the same item therefore carry the same keys, which is what lets a raw-JSON cache entry be shared between them, and a model that leaves an element unmapped still sees the entry evicted when that element's asset or taxonomy changes. A linked item past the requested depth is tracked by codename even though its content did not come back.
+
+Asset elements are the exception: their values carry a URL and no asset id, and the GUID in the URL is the file's reference id, which changes when the file is replaced and appears in no asset event. Tagging by it would match nothing, so the SDK does not. An asset event reaches the items holding the asset through the used-in lookup instead; see [Asset events](#asset-events).
 
 This enables targeted cache invalidation when specific content changes.
 
@@ -670,13 +672,34 @@ Use this matrix when mapping webhook events to SDK dependency invalidation keys.
 | Items | `DeliveryCacheDependencies.ForItem(codename)` (`item_{codename}`) | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
 | Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
 | Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(codename)` (`taxonomy_{codename}`) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
-| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose asset elements or rich-text images reference it) | none - assets have no listing |
+| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose rich text refers to the asset as an inline image or a link). An asset held in an asset element is not tagged - see [Asset events](#asset-events) | none - assets have no listing |
 
 Recommended webhook pattern:
 - item event: invalidate `ForItem(codename)` + `ItemsListScope`
 - type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
 - taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
-- asset event: invalidate `ForAsset(id)`
+- asset event: invalidate `ForAsset(id)` for the rich-text usages, then `ForItem(codename)` for every item `GetAssetUsedIn(codename)` returns, plus `ItemsListScope` - see [Asset events](#asset-events)
+
+### Asset events
+
+An asset element value carries the asset's URL and no id, and the GUID in that URL identifies the binary file, not the asset: replacing the file changes it, and no asset event carries it. So there is nothing in a cached response an asset event could be matched against, and the SDK does not tag asset elements at all. Rich text is different - inline images and asset links carry the asset id - and `ForAsset(id)` covers those.
+
+The route to everything else is the used-in lookup, which asks the API which items hold the asset right now. Invalidate those by codename, and the items list scope since a listing may carry their asset element values:
+
+```csharp
+// notification.Data.Items entry with Type == "asset"
+var dependencies = new List<string> { DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)) };
+
+await foreach (var usage in client.GetAssetUsedIn(item.Codename).EnumerateAsync())
+{
+    dependencies.Add(DeliveryCacheDependencies.ForItem(usage.System.Codename));
+}
+dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
+
+await cacheManager.InvalidateAsync([.. dependencies]);
+```
+
+`EnumerateAsync` throws `DeliveryRequestException` if a page fails, so a partial list never passes for a complete one; let the exception fail the webhook so the platform redelivers it.
 
 ### Manual Invalidation
 
@@ -794,6 +817,7 @@ public class WebhookController : ControllerBase
     {
         // The default client's manager resolves unkeyed; a named client's under its name.
         var cacheManager = _serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
+        var client = _serviceProvider.GetRequiredKeyedService<IDeliveryClient>("production");
         var dependencies = new List<string>();
 
         foreach (var item in notification.Data.Items)
@@ -819,10 +843,16 @@ public class WebhookController : ControllerBase
                 dependencies.Add(DeliveryCacheDependencies.TypesListScope);
             }
 
-            // Asset changes affect every item that references the asset.
+            // Asset changes reach rich-text usages by asset id, and asset elements only through the items
+            // that hold them - the element value carries no asset id. See "Asset events" above.
             if (item.Type == "asset")
             {
                 dependencies.Add(DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)));
+                await foreach (var usage in client.GetAssetUsedIn(item.Codename).EnumerateAsync())
+                {
+                    dependencies.Add(DeliveryCacheDependencies.ForItem(usage.System.Codename));
+                }
+                dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
             }
         }
 

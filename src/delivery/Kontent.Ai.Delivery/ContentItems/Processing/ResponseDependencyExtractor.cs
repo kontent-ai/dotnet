@@ -1,8 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
-using Kontent.Ai.Delivery.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.ContentItems.Processing;
 
@@ -16,13 +14,19 @@ namespace Kontent.Ai.Delivery.ContentItems.Processing;
 /// model to prime it decided the tags for all of them; an untyped or runtime-typed read mapped nothing and
 /// tracked nothing beyond the items themselves. The element's <c>type</c> says what it holds, so no model
 /// is needed to know where to look.
+/// <para>
+/// Asset elements yield no key. Their values carry a URL and no id, and the GUID in that URL is the binary
+/// file's reference id, not the asset's: it changes when the file is replaced, and no asset event carries
+/// it, so a tag made of it can never be matched. Rich text does carry asset ids, for inline images and asset
+/// links, and those are tagged. An asset event reaches the items that use the asset through
+/// <c>GetAssetUsedIn</c>; the caching guide has the pattern.
+/// </para>
 /// </remarks>
 internal static partial class ResponseDependencyExtractor
 {
     public static string[] Extract(
         IEnumerable<IContentItem> items,
-        IReadOnlyDictionary<string, JsonElement>? modularContent,
-        ILogger? logger = null)
+        IReadOnlyDictionary<string, JsonElement>? modularContent)
     {
         var context = new DependencyTrackingContext();
 
@@ -33,7 +37,7 @@ internal static partial class ResponseDependencyExtractor
 
             if (item is IRawContentItem { RawItemJson: { } raw })
             {
-                TrackElements(raw, context, logger);
+                TrackElements(raw, context);
             }
         }
 
@@ -49,14 +53,14 @@ internal static partial class ResponseDependencyExtractor
                 }
 
                 context.TrackItemType(ContentItemJsonHelper.ExtractContentType(linked));
-                TrackElements(linked, context, logger);
+                TrackElements(linked, context);
             }
         }
 
         return [.. context.Dependencies];
     }
 
-    private static void TrackElements(JsonElement item, DependencyTrackingContext context, ILogger? logger)
+    private static void TrackElements(JsonElement item, DependencyTrackingContext context)
     {
         if (!item.TryGetProperty("elements", out var elements) || elements.ValueKind != JsonValueKind.Object)
         {
@@ -72,9 +76,6 @@ internal static partial class ResponseDependencyExtractor
 
             switch (envelope.TryGetProperty("type", out var type) ? type.GetString() : null)
             {
-                case "asset":
-                    TrackAssets(envelope, context, logger);
-                    break;
                 case "taxonomy":
                     TrackTaxonomyGroup(envelope, context);
                     break;
@@ -85,46 +86,6 @@ internal static partial class ResponseDependencyExtractor
                     TrackCodenames(envelope, "value", context);
                     break;
             }
-        }
-    }
-
-    private static void TrackAssets(JsonElement envelope, DependencyTrackingContext context, ILogger? logger)
-    {
-        if (!envelope.TryGetProperty("value", out var assets) || assets.ValueKind != JsonValueKind.Array)
-        {
-            return;
-        }
-
-        foreach (var asset in assets.EnumerateArray())
-        {
-            if (asset.ValueKind == JsonValueKind.Object)
-            {
-                TrackAssetFromUrl(asset, context, logger);
-            }
-        }
-    }
-
-    /// <remarks>
-    /// An asset element value carries no id, only the URL, whose path is
-    /// <c>/{environmentId}/{assetId}/{filename}</c>.
-    /// </remarks>
-    private static void TrackAssetFromUrl(JsonElement asset, DependencyTrackingContext context, ILogger? logger)
-    {
-        var url = asset.TryGetProperty("url", out var urlProperty) ? urlProperty.GetString() : null;
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return;
-        }
-
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && uri.Segments.Length >= 3
-            && Guid.TryParse(uri.Segments[2].Trim('/'), out var assetId))
-        {
-            context.TrackAsset(assetId);
-        }
-        else if (logger is not null)
-        {
-            LoggerMessages.AssetUrlParsingFailed(logger, url);
         }
     }
 
