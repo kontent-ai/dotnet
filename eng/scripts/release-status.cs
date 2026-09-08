@@ -3,9 +3,9 @@
 //   dotnet run eng/scripts/release-status.cs [-- --json | --order [--include-published]]
 //
 // Prepared-but-unpublished is a legitimate but invisible state, so the reporting modes exit 0
-// unless they cannot do the job. --order is the exception: it fails on a dependsOn cycle.
+// unless they cannot do the job. --order is the exception: it fails when a product has no version.
 //
-// --order emits the plan the Publish workflow works through, dependencies first, tab-separated:
+// --order emits the rows the Publish workflow works through, alphabetical, tab-separated:
 //   <product>\t<version>\t<tag>\t<release title>\t<NuGet status>\t<"prerelease"|"">
 // --include-published lets the workflow also find unfinished GitHub releases.
 
@@ -63,34 +63,10 @@ if (asOrder)
         Console.Error.WriteLine("release-status: a product has no declared version");
         return 1;
     }
-    var pendingRows = rows.Where(r => includePublished || r.Status != "published").ToList();
-    var pendingNames = pendingRows.Select(r => r.Product).ToHashSet(StringComparer.Ordinal);
-
-    // Kahn's algorithm over dependsOn, restricted to the products actually being released:
-    // a dependency that is already on NuGet imposes no ordering here.
-    var ordered = new List<Row>();
-    var remaining = new List<Row>(pendingRows);
-    while (remaining.Count > 0)
-    {
-        var ready = remaining
-            .Where(r => DependenciesOf(r.Product).Where(pendingNames.Contains)
-                            .All(d => ordered.Exists(o => o.Product == d)))
-            // Stable within a tier, so the same repository state always produces the same batch.
-            .OrderBy(r => r.Product, StringComparer.Ordinal)
-            .ToList();
-
-        if (ready.Count == 0)
-        {
-            // Naming the products leaves someone with the actual edit to make in eng/products.json.
-            Console.Error.WriteLine(
-                "release-status: dependsOn in eng/products.json has a cycle - these products cannot be ordered: " +
-                string.Join(", ", remaining.Select(r => r.Product).Order(StringComparer.Ordinal)));
-            return 1;
-        }
-
-        ordered.AddRange(ready);
-        remaining.RemoveAll(ready.Contains);
-    }
+    // Alphabetical, so the same repository state always produces the same batch. Every product
+    // builds against its siblings' published floors, so none has to ship before another.
+    var ordered = rows.Where(r => includePublished || r.Status != "published")
+        .OrderBy(r => r.Product, StringComparer.Ordinal);
 
     foreach (var r in ordered)
     {
@@ -154,10 +130,6 @@ async Task<bool> IsPublished(string id, string version)
     return doc.RootElement.GetProperty("versions").EnumerateArray()
         .Any(v => string.Equals(v.GetString(), version, StringComparison.OrdinalIgnoreCase));
 }
-
-IEnumerable<string> DependenciesOf(string product) =>
-    products.RootElement.GetProperty(product).GetProperty("dependsOn")
-        .EnumerateArray().Select(d => d.GetString()!);
 
 static string? FindRepoRoot()
 {

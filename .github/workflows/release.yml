@@ -49,8 +49,8 @@ jobs:
         with:
           global-json-file: global.json
 
-      # Built first so `dotnet run` below emits only each script's output, not cold-build
-      # diagnostics - the notes go into a release body verbatim.
+      # Built once here so every `dotnet run --no-build` below emits only the script's own output -
+      # the notes go into a release body verbatim.
       - name: Build the release scripts
         run: |
           dotnet build eng/scripts/release-status.cs
@@ -79,17 +79,14 @@ jobs:
             fi
           done
 
-          # Dependency-first, one product per line:
+          # One product per line, alphabetical:
           #   <product>\t<version>\t<tag>\t<release title>\t<NuGet status>\t<"prerelease"|"">
-          # Kept out of a pipeline so a dependsOn cycle (exit 1) fails the run, unlike an empty batch.
-          if ! dotnet run eng/scripts/release-status.cs -- --order --include-published > /tmp/order.raw; then
-            echo "::error::could not work out a publish order - see the message above"
+          # Kept out of a pipeline so a script failure (exit 1) fails the run, unlike an empty batch.
+          if ! dotnet run eng/scripts/release-status.cs --no-build -- --order --include-published > /tmp/candidates.tsv; then
+            echo "::error::could not read the release status - see the message above"
             exit 1
           fi
-          # `dotnet run` writes build diagnostics to stdout, so keep only well-formed rows.
-          awk -F'\t' 'NF == 6' /tmp/order.raw > /tmp/candidates.tsv
           if [ -n "$PRODUCTS" ]; then
-            # Filtered in place rather than by input order, so dependencies still go first.
             awk -F'\t' -v keep=" $PRODUCTS " 'index(keep, " " $1 " ")' /tmp/candidates.tsv > /tmp/selected.tsv
           else
             cp /tmp/candidates.tsv /tmp/selected.tsv
@@ -126,7 +123,7 @@ jobs:
 
       - name: Verify published dependency floors
         if: steps.plan.outputs.count != '0'
-        run: dotnet run eng/scripts/dependency-floors.cs
+        run: dotnet run eng/scripts/dependency-floors.cs --no-build
 
       # Explicit, not inherited: in source mode the nuspec would take sibling versions from
       # eng/Versions.props instead of the declared floors. Restore alone is not an exact floor
@@ -172,7 +169,7 @@ jobs:
             fi
 
             # Fails when the changelog has no '## <version>' heading or the entry is empty.
-            dotnet run eng/scripts/release-notes.cs -- "$tag" > "$out/notes.md"
+            dotnet run eng/scripts/release-notes.cs --no-build -- "$tag" > "$out/notes.md"
             echo "--- release notes ---"
             cat "$out/notes.md"
             { echo "## $title"; echo; cat "$out/notes.md"; echo; } >> "$GITHUB_STEP_SUMMARY"
@@ -202,7 +199,9 @@ jobs:
         run: |
           set -euo pipefail
           while IFS=$'\t' read -r product version tag _; do
-            existing=$(git ls-remote origin "refs/tags/$tag" | cut -f1)
+            # The second pattern lists the peeled commit of an annotated tag, last; a lightweight
+            # tag lists its commit once. Either way the last line is the commit.
+            existing=$(git ls-remote --tags origin "refs/tags/$tag" "refs/tags/$tag^{}" | tail -n1 | cut -f1)
             if [ -z "$existing" ]; then
               gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/$tag" -f "sha=$GITHUB_SHA" >/dev/null
             elif [ "$existing" != "$GITHUB_SHA" ]; then
@@ -232,7 +231,10 @@ jobs:
             echo "::group::$tag"
 
             # --skip-duplicate makes a re-run after a partial failure a no-op for what already landed.
-            dotnet nuget push "$out/*.nupkg" -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY" --skip-duplicate
+            # Symbols go separately: NuGet skips a package's symbols when the package itself was a
+            # duplicate, so a retry after a failed symbol upload would otherwise never push them.
+            dotnet nuget push "$out/*.nupkg" -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY" --skip-duplicate --no-symbols
+            dotnet nuget push "$out/*.snupkg" -s https://api.nuget.org/v3/index.json -k "$NUGET_KEY" --skip-duplicate
 
             # Draft until the assets are up: leaving draft is what marks the release complete.
             if ! gh release view "$tag" >/dev/null 2>&1; then
