@@ -85,7 +85,7 @@ changelog has no entry for its version is refused, and so is one whose cross-pro
 names a version that is not on NuGet. The packages and notes of every run, dry or not, are
 kept as a workflow artifact.
 
-The job runs under the `publish` GitHub environment. Its settings, not the workflow, decide
+The job runs under the `nuget.org` GitHub environment. Its settings, not the workflow, decide
 which branches may publish and whether a reviewer has to approve the run. Releases stay
 independent: any one can be published or dropped without affecting the rest.
 

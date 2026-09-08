@@ -35,8 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # The environment carries the protection rules, in repository settings rather than here:
-    # which branches may publish, and who approves. See README.md#releasing.
-    environment: publish
+    # which branches may publish, and who approves. Named for where the packages go, so the
+    # Deployments tab reads as a publishing log. See README.md#releasing.
+    environment:
+      name: nuget.org
+      url: https://www.nuget.org/profiles/kontent-ai
     permissions:
       id-token: write   # OIDC for NuGet/login
       contents: write   # tags, releases and their assets
