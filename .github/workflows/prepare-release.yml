@@ -4,11 +4,29 @@ name: Prepare release
 # Publishes nothing - the Publish workflow does that once this PR is merged.
 on:
   workflow_dispatch:
+    # One free-text input per product, so an explicit version fits the same field as a bump word.
+    # Empty means the product is not part of this batch.
     inputs:
-      bumps:
-        description: 'Space-separated <product>=<bump>, where bump is prerelease, release, patch, minor, major or an explicit version. E.g. "delivery=minor sync=2.1.0-rc.1". Products are the keys of eng/products.json.'
+      aspnetcore:
+        description: 'ASP.NET Core extensions - prerelease, release, patch, minor, major, or an explicit version such as 1.2.0-rc.1'
         type: string
-        required: true
+        required: false
+      delivery:
+        description: 'Delivery SDK - prerelease, release, patch, minor, major, or an explicit version'
+        type: string
+        required: false
+      management:
+        description: 'Management SDK - prerelease, release, patch, minor, major, or an explicit version'
+        type: string
+        required: false
+      model_generator:
+        description: 'Model generator - prerelease, release, patch, minor, major, or an explicit version'
+        type: string
+        required: false
+      sync:
+        description: 'Sync SDK - prerelease, release, patch, minor, major, or an explicit version'
+        type: string
+        required: false
 
 # Queue rather than cancel: a cancelled run can leave a pushed branch behind with no PR.
 concurrency:
@@ -30,28 +48,24 @@ jobs:
         with:
           global-json-file: global.json
 
-      # The input is user-supplied: passed as a quoted env var, never interpolated into the shell.
+      # Inputs are user-supplied: passed as quoted env vars, never interpolated into the shell.
       - name: Bump versions and promote changelogs
         id: bump
         env:
-          BUMPS: ${{ inputs.bumps }}
+          ASPNETCORE: ${{ inputs.aspnetcore }}
+          DELIVERY: ${{ inputs.delivery }}
+          MANAGEMENT: ${{ inputs.management }}
+          MODEL_GENERATOR: ${{ inputs.model_generator }}
+          SYNC: ${{ inputs.sync }}
         run: |
           set -euo pipefail
 
           : > /tmp/summary.txt
           : > /tmp/tags.txt
 
-          for token in $BUMPS; do
-            product="${token%%=*}"
-            bump="${token#*=}"
-            if [ "$product" = "$token" ] || [ -z "$bump" ]; then
-              echo "::error::'$token' is not <product>=<bump>"
-              exit 1
-            fi
-            if ! jq -e --arg p "$product" 'has($p)' eng/products.json >/dev/null; then
-              echo "::error::Unknown product '$product'. Known: $(jq -r 'keys | join(", ")' eng/products.json)"
-              exit 1
-            fi
+          bump_one() {
+            product="$1"; bump="$(printf '%s' "$2" | tr -d '[:space:]')"
+            [ -n "$bump" ] || return 0
 
             echo "::group::$product ($bump)"
             dotnet run eng/scripts/update-version.cs -- "$product" "$bump"
@@ -61,10 +75,17 @@ jobs:
             new=$(dotnet msbuild eng/Versions.props -getProperty:"$prop" | tr -d '[:space:]')
             printf -- '- %s %s\n' "$product" "$new" >> /tmp/summary.txt
             printf -- '%s-v%s\n' "$product" "$new" >> /tmp/tags.txt
-          done
+          }
+
+          # Product name here must match the key in eng/products.json.
+          bump_one aspnetcore      "$ASPNETCORE"
+          bump_one delivery        "$DELIVERY"
+          bump_one management      "$MANAGEMENT"
+          bump_one model-generator "$MODEL_GENERATOR"
+          bump_one sync            "$SYNC"
 
           if [ ! -s /tmp/summary.txt ]; then
-            echo "::error::No bumps given - nothing to prepare."
+            echo "::error::Every product is empty - nothing to prepare."
             exit 1
           fi
 
