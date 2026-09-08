@@ -5,7 +5,8 @@ one guarantees, and points at the file where the guarantee lives. Consumer-facin
 [README](../README.md); caching in depth is in the [caching guide](caching-guide.md); rich text
 rendering in the [rich text guide](rich-text-customization.md).
 
-Paths below are relative to `src/delivery/`. Where a file is shared with the other SDKs it lives under
+Unless a package or repository path is given, paths below are relative to `src/delivery/Kontent.Ai.Delivery/`.
+`Abstractions/` refers to the sibling `Kontent.Ai.Delivery.Abstractions/` project. Shared code lives under
 `src/common/` and is compiled into this assembly; see [that README](../../common/README.md) for why
 it is source rather than a package.
 
@@ -18,15 +19,15 @@ IDeliveryClient.GetItem<T>(codename)            DeliveryClient.cs
         miss -> IDeliveryApi (Refit)             Api/IDeliveryApi.*.cs
                 -> handler chain                 Handlers/, src/common/Http/
                 -> converters keep the raw JSON  Serialization/Converters/
-             -> dependency keys from that JSON   ContentItems/Processing/ResponseDependencyExtractor.cs
              -> hydrate elements onto the model  ContentItems/Mapping/
+             -> dependency keys from that JSON   ContentItems/Processing/ResponseDependencyExtractor.cs
              -> store (hydrated or raw)          Kontent.Ai.Delivery.Caching
   -> IDeliveryResult<T>                          Abstractions/SharedModels/DeliveryResult.cs
 ```
 
 Every layer is internal except the two ends: `IDeliveryClient` and the query interfaces at the top,
 `IDeliveryResult<T>` and the models at the bottom. The public API is gated per package by an approval
-snapshot in each test project's `ApiApproval` folder; a change to it fails the build until the
+snapshot in each package's test project under `ApiApproval`; a change to it fails the approval test until the
 `.received.txt` is reviewed and accepted.
 
 ## Registration
@@ -100,9 +101,9 @@ for its content type. They are not cached: the result type varies per item.
 
 `IDeliveryResult<T>` (`Abstractions/SharedModels/`) is the one return shape: `Value`, `IsSuccess`,
 `Error`, `StatusCode`, `HasStaleContent`, `ResponseHeaders`, `RequestUrl`, and two things the cache
-adds - `ResponseSource` (`Origin`, `Cdn`, `Cache`, `FailSafe`) and `DependencyKeys`. Dependency keys
-are on every successful result whether or not a cache is attached, so an application can tag its own
-output cache with them.
+adds - `ResponseSource` (`Origin`, `Cdn`, `Cache`, `FailSafe`) and `DependencyKeys`. Successful item,
+type and taxonomy queries expose dependency keys even without a cache manager, for downstream output
+caching. Languages, element definitions and used-in results do not provide dependency keys.
 
 ## Deserialization and hydration
 
@@ -140,7 +141,8 @@ inline images, content item links, and embedded content, which is a linked item 
 through the same `LinkedItemResolver`. The public model exposes the tree, never AngleSharp.
 
 Rendering is `ContentItems/RichText/Resolution/HtmlResolver.cs` over the options assembled by
-`HtmlResolverBuilder.cs`. The resolver is immutable and shared; each render is a `RenderPass` that
+`HtmlResolverBuilder.cs`. A resolver can be reused concurrently; `ToHtmlAsync` creates one when none is supplied.
+Each render is a `RenderPass` that
 owns the cancellation token and the child-resolver delegate, so concurrent renders do not interfere
 and cancellation is checked before every block at every depth. Dispatch order per block: a type-based
 resolver for embedded content, then a codename-based one, then a missing-resolver comment or
