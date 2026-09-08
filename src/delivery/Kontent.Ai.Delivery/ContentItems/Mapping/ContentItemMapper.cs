@@ -105,6 +105,10 @@ internal sealed class ContentItemMapper(
             CancellationToken = cancellationToken
         };
 
+        // The root is registered before hydration, as in CompleteItemAsync, so a linked item that refers
+        // back to it gets this instance rather than a second copy of the root.
+        context.ItemsBeingHydrated[contentItem.System.Codename] = contentItem;
+
         await HydrateContentItemIfNeededAsync(contentItem, modelType, context).ConfigureAwait(false);
 
         return contentItem;

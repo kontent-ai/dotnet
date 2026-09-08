@@ -167,6 +167,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `UseHybridCache`, an unreachable Redis threw `FusionCacheDistributedCacheException` out of every cached query. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker stops a dead Redis being retried per request, and FusionCache re-syncs when it is back. FusionCache's own diagnostics now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered.
 
+- **A runtime-typed item that refers back to itself gets the same instance, as a typed one does.**
+
+  `GetItem(codename)` with a type provider hydrated the root without registering it first, so a linked item that pointed back at the root received a second copy of it and closed the cycle on that. Code comparing by reference to detect a cycle, or editing the graph, saw a different shape from `GetItem<T>(codename)` for the same content. Both paths now register the root before hydration.
+
 - **Dependency keys come from the response, not from the model that reads it.**
 
   Assets, taxonomy groups and rich-text references were collected while a model's properties were mapped, so a raw-JSON cache entry primed by a model that mapped only a title carried no asset or taxonomy keys, and every model sharing that entry kept getting it after the asset changed. A dynamic or runtime-typed read mapped nothing and carried only item and type keys, on the SDK's cache and on `DependencyKeys` alike. The keys are now read from the item, its `modular_content` and the elements of both, so every model gets the same set. Links to assets in rich text are included, which they never were: the API lists only inline images under `images`, and the link carries its asset id in the HTML alone. Entries may carry more keys than before, which means an invalidation can evict more - that is the direction to err in.
