@@ -51,6 +51,13 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
     private readonly EventHandler<FusionCacheEntryEventArgs> _failSafeActivateHandler;
     private readonly EventHandler<FusionCacheEntryHitEventArgs> _hitHandler;
+    private readonly EventHandler<FusionCacheCircuitBreakerChangeEventArgs> _distributedBreakerHandler;
+    private readonly EventHandler<FusionCacheCircuitBreakerChangeEventArgs> _backplaneBreakerHandler;
+
+    // While a breaker is open FusionCache skips that tier without throwing, so an invalidation that ran
+    // during an outage looks the same as one that reached every node. These say which it was.
+    private volatile bool _distributedCircuitOpen;
+    private volatile bool _backplaneCircuitOpen;
     private int _disposeState;
 
     private FusionCacheManager(
@@ -70,8 +77,12 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         _failSafeActivateHandler = HandleFailSafeActivate;
         _hitHandler = HandleHit;
+        _distributedBreakerHandler = (_, e) => _distributedCircuitOpen = !e.IsClosed;
+        _backplaneBreakerHandler = (_, e) => _backplaneCircuitOpen = !e.IsClosed;
         _cache.Events.FailSafeActivate += _failSafeActivateHandler;
         _cache.Events.Hit += _hitHandler;
+        _cache.Events.Distributed.CircuitBreakerChange += _distributedBreakerHandler;
+        _cache.Events.Backplane.CircuitBreakerChange += _backplaneBreakerHandler;
     }
 
     /// <summary>
@@ -274,12 +285,20 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// they write are stored with.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The <see cref="FusionCacheEntryOptions.Duration"/> is deliberately left at FusionCache's own
     /// default for tag data, ten days: it is how long an invalidation is remembered for an entry that
     /// has not been read since, so it has to outlive every entry it could apply to. Passing write options
     /// here instead would store the tag data for the entries' duration - with a bare
     /// <c>FusionCacheEntryOptions</c>, for thirty seconds - and a webhook's invalidation would be
     /// forgotten before a quiet entry was next read.
+    /// </para>
+    /// <para>
+    /// Unlike a read, a failure here is thrown, not worked around: a tag entry that never reached the
+    /// distributed tier is an invalidation the other nodes will never see, and <see cref="InvalidateAsync"/>
+    /// turns the exception into the <c>false</c> a webhook handler retries on. Background operations stay
+    /// off so nothing is deferred past that return.
+    /// </para>
     /// </remarks>
     private static void ConfigureTagEntries(FusionCacheEntryOptions tagOptions, bool memoryOnly)
     {
@@ -287,9 +306,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         tagOptions.IsFailSafeEnabled = false;
         tagOptions.SkipDistributedCacheRead = memoryOnly;
         tagOptions.SkipDistributedCacheWrite = memoryOnly;
-        tagOptions.ReThrowDistributedCacheExceptions = false;
-        tagOptions.ReThrowSerializationExceptions = false;
-        tagOptions.ReThrowBackplaneExceptions = false;
+        tagOptions.ReThrowDistributedCacheExceptions = true;
+        tagOptions.ReThrowSerializationExceptions = true;
+        tagOptions.ReThrowBackplaneExceptions = true;
         tagOptions.AllowBackgroundDistributedCacheOperations = false;
         tagOptions.AllowBackgroundBackplaneOperations = false;
     }
@@ -425,6 +444,22 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
                     cancellationToken)
                 .ConfigureAwait(false);
 
+            // The call above still cleared this node's memory tier, so the retry this asks for has less to
+            // do, not more. Read after the call: a breaker that opened during it counts too.
+            var unreachedTier = (_distributedCircuitOpen, _backplaneCircuitOpen) switch
+            {
+                (true, _) => "distributed cache",
+                (_, true) => "backplane",
+                _ => null,
+            };
+            if (unreachedTier is not null)
+            {
+                if (_logger is not null)
+                    LoggerMessages.CacheInvalidationNotDistributed(_logger, validKeys.Length, unreachedTier);
+
+                return false;
+            }
+
             if (_logger is not null)
             {
                 foreach (var dependencyKey in validKeys)
@@ -467,6 +502,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         _cache.Events.FailSafeActivate -= _failSafeActivateHandler;
         _cache.Events.Hit -= _hitHandler;
+        _cache.Events.Distributed.CircuitBreakerChange -= _distributedBreakerHandler;
+        _cache.Events.Backplane.CircuitBreakerChange -= _backplaneBreakerHandler;
         _cache.Dispose();
     }
 

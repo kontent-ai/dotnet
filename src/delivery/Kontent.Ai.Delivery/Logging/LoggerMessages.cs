@@ -70,6 +70,12 @@ internal static partial class LoggerMessages
     public static partial void CacheInvalidationFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = LogEventIds.CacheInvalidationNotDistributed,
+        Level = LogLevel.Warning,
+        Message = "Cache invalidation for {DependencyCount} dependencies cleared the memory tier but did not reach the {Tier}: its circuit breaker is open. Retry once the store is back")]
+    public static partial void CacheInvalidationNotDistributed(ILogger logger, int dependencyCount, string tier);
+
+    [LoggerMessage(
         EventId = LogEventIds.CacheModularContentParseFailed,
         Level = LogLevel.Warning,
         Message = "Failed to parse modular content JSON for codename '{Codename}', skipping corrupted cache entry")]

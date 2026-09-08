@@ -43,6 +43,9 @@ internal static class LogEventIds
     /// <summary>Cache invalidation operation failed.</summary>
     public const int CacheInvalidationFailed = 1143;
 
+    /// <summary>Cache invalidation cleared the memory tier but did not reach the distributed tier or backplane.</summary>
+    public const int CacheInvalidationNotDistributed = 1145;
+
     /// <summary>Failed to parse modular content from cached JSON payload.</summary>
     public const int CacheModularContentParseFailed = 1144;
 
