@@ -274,6 +274,14 @@ Shipped floors on `Kontent.Ai.Sync` moved up, all .NET 10 aligned:
 Refit 14 builds request logic at compile time rather than by reflection. `ISyncApi` generates completely and gained that with no changes.
 
 
+## 1.0.1 (2026-09-02)
+
+### Dependencies
+
+- **Refit moves to 10.2.0.**
+
+  10.1.6 was withdrawn over a package signature issue; the floor moves past it. Released from the `net8` maintenance branch.
+
 ## 1.0.0 (2026-04-16)
 
 First stable release of the **Kontent.ai Sync SDK for .NET**, targeting the [Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
