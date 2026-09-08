@@ -225,6 +225,29 @@ public sealed class ContentItemMapperTests
     }
 
     [Fact]
+    public async Task TryRuntimeTypeItemAsync_CircularReference_ReturnsSameRootInstance()
+    {
+        // Same fixture and cycle as above, through the runtime-typed path: the root is deserialized from
+        // its raw JSON after the type provider names the model, and must still be the instance the cycle
+        // closes on.
+        var json = await LoadFixtureAsync("onroast_recursive_linked_items.json");
+        var response = JsonSerializer.Deserialize<DeliveryItemResponse<IDynamicElements>>(json, _jsonOptions)!;
+        var rawItem = (IRawContentItem)response.Item;
+
+        var runtimeItem = await _mapper.TryRuntimeTypeItemAsync(rawItem.RawItemJson!.Value, response.ModularContent);
+
+        var item = Assert.IsAssignableFrom<IContentItem<Article>>(runtimeItem);
+        var coffeeProcessing = item.Elements.RelatedArticles!
+            .OfType<IContentItem<Article>>()
+            .First(a => a.System.Codename == "coffee_processing_techniques");
+        var circularOnRoasts = coffeeProcessing.Elements.RelatedArticles!
+            .OfType<IContentItem<Article>>()
+            .First(a => a.System.Codename == "on_roasts");
+
+        Assert.Same(item, circularOnRoasts);
+    }
+
+    [Fact]
     public async Task MapElementsAsync_HandlesRecursiveInlineLinkedItems_WithoutStackOverflow()
     {
         // This fixture has on_roasts with body_copy rich text containing an inline reference to itself
