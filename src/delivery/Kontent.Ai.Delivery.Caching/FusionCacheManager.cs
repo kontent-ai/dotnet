@@ -24,6 +24,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     private readonly string _keyPrefix;
     private readonly ILogger? _logger;
     private readonly FusionCacheEntryOptions _baseWriteOptions;
+    private readonly FusionCacheEntryOptions _invalidationOptions;
 
     /// <summary>
     /// What every entry weighs under a <see cref="MemoryCacheOptions.SizeLimit"/>. The application's
@@ -55,7 +56,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     private readonly EventHandler<FusionCacheCircuitBreakerChangeEventArgs> _backplaneBreakerHandler;
 
     // While a breaker is open FusionCache skips that tier without throwing, so an invalidation that ran
-    // during an outage looks the same as one that reached every node. These say which it was.
+    // during an outage looks the same as one that reached every node. These say whether a breaker is open,
+    // as of the last distributed operation: FusionCache closes a breaker lazily, on the first operation
+    // after its duration, so the flag is only current right after an operation has run.
     private volatile bool _distributedCircuitOpen;
     private volatile bool _backplaneCircuitOpen;
     private int _disposeState;
@@ -66,7 +69,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         TimeSpan defaultExpiration,
         string keyPrefix,
         ILogger? logger,
-        FusionCacheEntryOptions baseWriteOptions)
+        FusionCacheEntryOptions baseWriteOptions,
+        FusionCacheEntryOptions invalidationOptions)
     {
         _cache = cache;
         _storageMode = storageMode;
@@ -74,6 +78,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         _keyPrefix = keyPrefix;
         _logger = logger;
         _baseWriteOptions = baseWriteOptions;
+        _invalidationOptions = invalidationOptions;
 
         _failSafeActivateHandler = HandleFailSafeActivate;
         _hitHandler = HandleHit;
@@ -147,7 +152,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             cacheOptions.DefaultExpiration,
             fusionCacheOptions.CacheKeyPrefix ?? string.Empty,
             logger,
-            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: true));
+            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: true),
+            InvalidationOptions(fusionCacheOptions));
     }
 
     /// <summary>
@@ -218,7 +224,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             cacheOptions.DefaultExpiration,
             fusionCacheOptions.CacheKeyPrefix ?? string.Empty,
             logger,
-            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: false));
+            WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: false),
+            InvalidationOptions(fusionCacheOptions));
     }
 
     /// <summary>
@@ -294,10 +301,10 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// forgotten before a quiet entry was next read.
     /// </para>
     /// <para>
-    /// Unlike a read, a failure here is thrown, not worked around: a tag entry that never reached the
-    /// distributed tier is an invalidation the other nodes will never see, and <see cref="InvalidateAsync"/>
-    /// turns the exception into the <c>false</c> a webhook handler retries on. Background operations stay
-    /// off so nothing is deferred past that return.
+    /// These are also the options FusionCache reads tag data with when it checks an entry's tags on a hit,
+    /// so they fail open like the entries do: a store that is down must not turn a memory hit into an
+    /// exception. The stricter copy that <see cref="InvalidateAsync"/> passes is built by
+    /// <see cref="InvalidationOptions"/> from these, after the consumer's callback has run.
     /// </para>
     /// </remarks>
     private static void ConfigureTagEntries(FusionCacheEntryOptions tagOptions, bool memoryOnly)
@@ -306,11 +313,29 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         tagOptions.IsFailSafeEnabled = false;
         tagOptions.SkipDistributedCacheRead = memoryOnly;
         tagOptions.SkipDistributedCacheWrite = memoryOnly;
-        tagOptions.ReThrowDistributedCacheExceptions = true;
-        tagOptions.ReThrowSerializationExceptions = true;
-        tagOptions.ReThrowBackplaneExceptions = true;
+        tagOptions.ReThrowDistributedCacheExceptions = false;
+        tagOptions.ReThrowSerializationExceptions = false;
+        tagOptions.ReThrowBackplaneExceptions = false;
         tagOptions.AllowBackgroundDistributedCacheOperations = false;
         tagOptions.AllowBackgroundBackplaneOperations = false;
+    }
+
+    /// <summary>
+    /// The options an invalidation writes its tag data with: the tag defaults, lifetime included, but with
+    /// every failure thrown. A tag entry that never reached the distributed tier is an invalidation the
+    /// other nodes will never see, and <see cref="InvalidateAsync"/> turns the exception into the
+    /// <c>false</c> a webhook handler retries on. Background operations stay off so nothing is deferred
+    /// past that return.
+    /// </summary>
+    private static FusionCacheEntryOptions InvalidationOptions(FusionCacheOptions fusionCacheOptions)
+    {
+        var options = fusionCacheOptions.TagsDefaultEntryOptions.Duplicate();
+        options.ReThrowDistributedCacheExceptions = true;
+        options.ReThrowSerializationExceptions = true;
+        options.ReThrowBackplaneExceptions = true;
+        options.AllowBackgroundDistributedCacheOperations = false;
+        options.AllowBackgroundBackplaneOperations = false;
+        return options;
     }
 
     public CacheStorageMode StorageMode => _storageMode;
@@ -435,52 +460,48 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         if (_logger is not null && validKeys.Length > 0)
             LoggerMessages.CacheInvalidateStarting(_logger, validKeys.Length);
 
-        try
+        var failed = false;
+        var skipped = false;
+
+        // One tag per call: FusionCache stops at the first tag that throws, and the tags after it would not
+        // even leave this node's memory tier. A failure is remembered and the rest still go.
+        foreach (var dependencyKey in validKeys)
         {
-            // No options: FusionCache then uses TagsDefaultEntryOptions, which ConfigureTagEntries set up.
-            await _cache.RemoveByTagAsync(
-                    validKeys,
-                    options: null,
-                    cancellationToken)
-                .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
 
-            // The call above still cleared this node's memory tier, so the retry this asks for has less to
-            // do, not more. Read after the call: a breaker that opened during it counts too.
-            var unreachedTier = (_distributedCircuitOpen, _backplaneCircuitOpen) switch
+            try
             {
-                (true, _) => "distributed cache",
-                (_, true) => "backplane",
-                _ => null,
-            };
-            if (unreachedTier is not null)
-            {
-                if (_logger is not null)
-                    LoggerMessages.CacheInvalidationNotDistributed(_logger, validKeys.Length, unreachedTier);
+                await _cache.RemoveByTagAsync(dependencyKey, _invalidationOptions, cancellationToken).ConfigureAwait(false);
 
-                return false;
-            }
-
-            if (_logger is not null)
-            {
-                foreach (var dependencyKey in validKeys)
+                // Read after the call, per tag: a breaker still open once the tag was written means the
+                // tier was skipped for it, while a tag that found the duration elapsed closed the breaker
+                // and went through. A breaker that opened during the call threw, and is caught below.
+                if (_distributedCircuitOpen || _backplaneCircuitOpen)
+                {
+                    skipped = true;
+                }
+                else if (_logger is not null)
                 {
                     LoggerMessages.CacheInvalidateCompleted(_logger, dependencyKey);
                 }
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                failed = true;
+                if (_logger is not null)
+                    LoggerMessages.CacheInvalidationFailed(_logger, ex);
+            }
+        }
 
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            if (_logger is not null)
-                LoggerMessages.CacheInvalidationFailed(_logger, ex);
+        // The memory tier is cleared either way, so the retry this asks for has less to do, not more.
+        if (skipped && _logger is not null)
+            LoggerMessages.CacheInvalidationNotDistributed(_logger, validKeys.Length);
 
-            return false;
-        }
+        return !failed && !skipped;
     }
 
     public async Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)

@@ -52,6 +52,40 @@ public sealed class HybridCacheInvalidationOutcomeTests
     }
 
     [Fact]
+    public async Task GetOrSetAsync_ServesTheMemoryTier_WhileTheStoreIsDown()
+    {
+        // The tag options are shared with reads: FusionCache checks an entry's tags on a hit with them, so
+        // strictness there would turn every memory hit during an outage into an exception.
+        var store = new SwitchableDistributedCache();
+        using var manager = FusionCacheManager.CreateHybrid(store, Options);
+        await PrimeAsync(manager, "article", "item_article");
+
+        store.Down = true;
+        var hit = await manager.GetOrSetAsync("article", _ => Task.FromResult<CacheEntry<Payload>?>(new(new Payload("fresh"), ["item_article"])));
+
+        Assert.False(hit!.FromFactory);
+        Assert.Equal("cached", hit.Value.Text);
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_ClearsEveryKeyLocally_WhenTheStoreIsDown()
+    {
+        // FusionCache stops at the first tag that throws; the manager must not, or the second item stays.
+        var store = new SwitchableDistributedCache();
+        using var manager = FusionCacheManager.CreateHybrid(store, Options);
+        await PrimeAsync(manager, "article", "item_article");
+        await PrimeAsync(manager, "page", "item_page");
+        store.Down = true;
+
+        Assert.False(await manager.InvalidateAsync(["item_article", "item_page"]));
+
+        var article = await manager.GetOrSetAsync("article", _ => Task.FromResult<CacheEntry<Payload>?>(new(new Payload("fresh"), ["item_article"])));
+        var page = await manager.GetOrSetAsync("page", _ => Task.FromResult<CacheEntry<Payload>?>(new(new Payload("fresh"), ["item_page"])));
+        Assert.True(article!.FromFactory);
+        Assert.True(page!.FromFactory);
+    }
+
+    [Fact]
     public async Task InvalidateAsync_StillClearsTheMemoryTier_WhenItReturnsFalse()
     {
         var store = new SwitchableDistributedCache();

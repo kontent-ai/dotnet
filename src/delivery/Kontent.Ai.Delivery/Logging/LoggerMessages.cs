@@ -72,8 +72,8 @@ internal static partial class LoggerMessages
     [LoggerMessage(
         EventId = LogEventIds.CacheInvalidationNotDistributed,
         Level = LogLevel.Warning,
-        Message = "Cache invalidation for {DependencyCount} dependencies cleared the memory tier but did not reach the {Tier}: its circuit breaker is open. Retry once the store is back")]
-    public static partial void CacheInvalidationNotDistributed(ILogger logger, int dependencyCount, string tier);
+        Message = "Cache invalidation for {DependencyCount} dependencies cleared the memory tier, but a circuit breaker was open and the distributed cache or backplane was skipped for some of them. Retry once the store is back")]
+    public static partial void CacheInvalidationNotDistributed(ILogger logger, int dependencyCount);
 
     [LoggerMessage(
         EventId = LogEventIds.CacheModularContentParseFailed,
