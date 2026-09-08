@@ -36,10 +36,8 @@ public class SignatureMiddlewareTests
         Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
     }
 
-    // Without a secret nothing can be verified. Accepting the request would admit unsigned traffic, and
-    // the previous behaviour - hashing with an empty key - accepted anything signed with that same
-    // empty key. A misconfigured deployment should fail loudly, and at construction: the host builds
-    // the pipeline at startup, so this is what makes it fail there rather than at the first webhook.
+    // Without a secret nothing can be verified, so construction fails: the host builds the pipeline at
+    // startup, which is what makes a misconfigured deployment fail there rather than at the first webhook.
     [Theory]
     [InlineData(null)]
     [InlineData("")]

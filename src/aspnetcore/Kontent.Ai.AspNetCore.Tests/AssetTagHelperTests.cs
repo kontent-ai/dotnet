@@ -74,8 +74,7 @@ public class AssetTagHelperTests
         Assert.False(output.Attributes.ContainsName("srcset"));
     }
 
-    // An empty asset element (Model.Image.FirstOrDefault()) is a normal state. Leaving the element alone
-    // rendered a literal <img-asset class="…"></img-asset> into the page.
+    // An empty asset element is a normal state; a literal <img-asset> must not reach the page.
     [Fact]
     public async Task ProcessAsync_WithoutAsset_RendersNothing()
     {
@@ -449,9 +448,8 @@ public class AssetTagHelperTests
         Assert.Contains("auto=format", src);
     }
 
-    // DeliveryOptions.DefaultRenditionPreset makes the SDK append the preset's query to Asset.Url at mapping
-    // time. Appending it again produced "...?w=500&...?w=500&..." - the CDN takes the second "?" as part of
-    // the rect value, discards it, and serves the uncropped image.
+    // DeliveryOptions.DefaultRenditionPreset puts the preset's query on Asset.Url at mapping time; a second
+    // query appended to it makes the CDN drop the crop.
     [Theory]
     [InlineData("")]
     [InlineData("?w=500&h=403&fit=clip&rect=52,0,500,403")]
