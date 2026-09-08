@@ -49,6 +49,16 @@ internal sealed class PropertyMappingInfo
     /// </summary>
     public static PropertyMappingInfo[] CreateMappings(Type modelType)
     {
+        // Elements are hydrated in place through a compiled setter that takes the model as object. A value
+        // type would be boxed on the way in and the box discarded, so every mapped element would read as
+        // empty on a result that says it succeeded. Refused once per type, here, where the setters are built.
+        if (modelType.IsValueType)
+        {
+            throw new NotSupportedException(
+                $"'{modelType.FullName}' is a value type. A content model must be a class or a record class: " +
+                "the SDK hydrates elements on the instance it deserialized, and a struct would be copied and its hydrated values lost.");
+        }
+
         return modelType
             .GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Where(p => p.CanWrite)

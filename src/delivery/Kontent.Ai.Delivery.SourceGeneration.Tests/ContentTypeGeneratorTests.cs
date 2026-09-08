@@ -177,9 +177,10 @@ public class ContentTypeGeneratorTests
     }
 
     [Fact]
-    public void Generator_WithStruct_GeneratesRegistry()
+    public void Generator_WithStruct_ReportsUnsupportedTargetType()
     {
-        // Arrange
+        // A struct compiles and deserializes, but the SDK hydrates elements on the deserialized instance and
+        // a struct's would be lost in a copy - so it is refused at build time rather than emptied at runtime.
         var source = """
             using Kontent.Ai.Delivery.Attributes;
 
@@ -189,12 +190,10 @@ public class ContentTypeGeneratorTests
             public struct Article { }
             """;
 
-        // Act
         var (diagnostics, output) = RunGenerator(source);
 
-        // Assert
-        diagnostics.Should().BeEmpty();
-        output.Should().Contain("typeof(global::TestApp.Models.Article)");
+        diagnostics.Should().ContainSingle(d => d.Id == "KDSG003").Which.GetMessage().Should().Contain("Article");
+        output.Should().NotContain("typeof(global::TestApp.Models.Article)");
     }
 
     [Fact]
