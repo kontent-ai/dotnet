@@ -87,7 +87,8 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             textSpan: location.SourceSpan,
             lineSpan: location.GetLineSpan().Span,
             isInterface: typeSymbol.TypeKind == TypeKind.Interface,
-            isAbstract: typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class);
+            isAbstract: typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class,
+            isValueType: typeSymbol.IsValueType);
     }
 
     private static void Execute(SourceProductionContext context, ImmutableArray<ContentTypeInfo> infos)
@@ -107,8 +108,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // Check for unsupported target types
-            if (info.IsInterface || info.IsAbstract)
+            // Check for unsupported target types. A struct compiles and deserializes, but the SDK hydrates
+            // elements on the instance it deserialized, so a struct's would be lost in a copy.
+            if (info.IsInterface || info.IsAbstract || info.IsValueType)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     DiagnosticDescriptors.UnsupportedTargetType,
@@ -240,7 +242,8 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         TextSpan textSpan,
         LinePositionSpan lineSpan,
         bool isInterface,
-        bool isAbstract) : IEquatable<ContentTypeInfo>
+        bool isAbstract,
+        bool isValueType) : IEquatable<ContentTypeInfo>
     {
         public string? Codename { get; } = codename;
         public string FullyQualifiedTypeName { get; } = fullyQualifiedTypeName;
@@ -251,13 +254,15 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         public Location Location => Location.Create(FilePath, TextSpan, LineSpan);
         public bool IsInterface { get; } = isInterface;
         public bool IsAbstract { get; } = isAbstract;
+        public bool IsValueType { get; } = isValueType;
 
         public bool Equals(ContentTypeInfo other) =>
             Codename == other.Codename &&
             FullyQualifiedTypeName == other.FullyQualifiedTypeName &&
             TypeName == other.TypeName &&
             IsInterface == other.IsInterface &&
-            IsAbstract == other.IsAbstract;
+            IsAbstract == other.IsAbstract &&
+            IsValueType == other.IsValueType;
 
         public override bool Equals(object? obj) => obj is ContentTypeInfo other && Equals(other);
 

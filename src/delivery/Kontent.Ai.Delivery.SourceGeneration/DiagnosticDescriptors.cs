@@ -34,14 +34,14 @@ internal static class DiagnosticDescriptors
         description: "The content type codename must be a non-empty string.");
 
     /// <summary>
-    /// KDSG003: Unsupported target type - interface or abstract class.
+    /// KDSG003: Unsupported target type - interface, abstract class or struct.
     /// </summary>
     public static readonly DiagnosticDescriptor UnsupportedTargetType = new(
         id: "KDSG003",
         title: "Unsupported target type for [ContentTypeCodename]",
-        messageFormat: "[ContentTypeCodename] cannot be applied to interface or abstract class '{0}'",
+        messageFormat: "[ContentTypeCodename] cannot be applied to '{0}': a content model must be a concrete class or record class, not an interface, an abstract class or a struct",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "[ContentTypeCodename] can only be applied to concrete classes or structs.");
+        description: "[ContentTypeCodename] can only be applied to concrete classes. The SDK hydrates elements on the instance it deserialized, so a struct's values would be lost in a copy.");
 }

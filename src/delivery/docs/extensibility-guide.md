@@ -173,7 +173,7 @@ The source generator reports errors during compilation:
 |----|----------|-------------|
 | `KDSG001` | Error | Duplicate codename - two or more types have the same codename |
 | `KDSG002` | Error | Invalid codename - null, empty, or whitespace |
-| `KDSG003` | Error | Unsupported target - interfaces and abstract classes cannot be content types |
+| `KDSG003` | Error | Unsupported target - interfaces, abstract classes and structs cannot be content types |
 
 Example error:
 

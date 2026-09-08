@@ -180,6 +180,8 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 
 When you use the `[ContentTypeCodename]` attribute on your model classes (see [Generate Models](#generate-models)), the SDK's source generator automatically creates a `GeneratedTypeProvider`. The SDK auto-discovers this provider at runtime - no manual registration needed.
 
+A model is a class or a record class. The SDK hydrates elements on the instance it deserialized, so a struct would be copied and its values lost; the generator reports `KDSG003` for one, and the client throws `NotSupportedException` if a struct reaches it another way.
+
 > [!NOTE]
 > `Kontent.Ai.Delivery.SourceGeneration` emits `ContentTypeCodenameAttribute` and generates `GeneratedTypeProvider` during compilation.
 > If your models are generated into a separate project, reference `Kontent.Ai.Delivery.SourceGeneration` in that models project.
@@ -742,7 +744,7 @@ The source generator emits `ContentTypeCodenameAttribute` and produces a `Genera
 **Compile-time diagnostics:**
 - `KDSG001`: Duplicate codename (error)
 - `KDSG002`: Invalid codename - null, empty, or whitespace (error)
-- `KDSG003`: Unsupported target type - interfaces and abstract classes (error)
+- `KDSG003`: Unsupported target type - interfaces, abstract classes and structs (error)
 
 #### Use Strongly-Typed Models
 
