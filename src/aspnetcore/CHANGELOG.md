@@ -12,23 +12,23 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`WebhookNotification.Notifications` is `IReadOnlyList<WebhookModel>?` instead of `WebhookModel[]?`.**
 
-  `WebhookNotification` is a record, so it compares by value — except that an array member compares by reference, which meant two notifications carrying identical payloads were never equal. The array was also handed out mutable, so a caller could rewrite a deserialized payload in place. Reading the collection is unaffected: indexing, `foreach`, `Count` (rather than `Length`) and LINQ all work as before. Code that assigned an array to the property still compiles; code that declared the receiving variable as `WebhookModel[]` needs `IReadOnlyList<WebhookModel>` or `var`.
+  A record compares by value, but an array member compares by reference, so two notifications with identical payloads were never equal, and the array was handed out mutable. Reading is unaffected: indexing, `foreach`, `Count` (rather than `Length`) and LINQ work as before. Code that declared the receiving variable as `WebhookModel[]` needs `IReadOnlyList<WebhookModel>` or `var`.
 
 ### Changed
 
 - **The modern signature header wins when a request carries both.**
 
-  `X-Kontent-ai-Signature` is read first and `X-KC-Signature` is the fallback, rather than the other way round. Both were always verified against the same secret, so this is not a security change — a request with only one header behaves exactly as before. It only settles which is authoritative when both are present, and it matches how the README and the header names themselves present the two.
+  `X-Kontent-ai-Signature` is read first and `X-KC-Signature` is the fallback, rather than the other way round. Both are verified against the same secret, so a request with only one header behaves as before; this only settles which is authoritative when both are present.
 
 ### Fixed
 
 - **A null `predicate` passed to `UseWebhookSignatureValidator` is rejected at registration.**
 
-  Every other argument on those overloads was guarded; this one was dereferenced later by `UseWhen`, so the mistake surfaced away from the call that made it.
+  Every other argument on those overloads was guarded; this one was dereferenced later by `UseWhen`, far from the call that made the mistake.
 
 - **The webhook signature is computed over the bytes as received.**
 
-  The body was decoded to a string and re-encoded before hashing. The decoder substitutes replacement characters for malformed input rather than failing, so that round trip could map two different request bodies onto the same bytes — and a comment claimed the opposite property, that a body which is not valid UTF-8 could not hash like one that is. Verification is fail-closed either way, so no invalid signature was ever accepted; the round trip and the comment are both gone.
+  The body was decoded to a string and re-encoded before hashing, and the decoder substitutes replacement characters for malformed input, so two different bodies could hash the same. Verification is fail-closed either way, so no invalid signature was ever accepted; the round trip is gone.
 
 ### Internal
 

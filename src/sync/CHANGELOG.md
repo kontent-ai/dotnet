@@ -9,7 +9,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`AddSyncClient` takes a builder, and `SyncClientBuilder` is `SyncClient.Create`.**
 
-  Eleven overloads of `AddSyncClient` - one per way of supplying options, doubled for named clients, with the HTTP and resilience hooks as trailing parameters - become three: `AddSyncClient(configure)`, `AddSyncClient(name, configure)` and `AddSyncClient(options, configure)`, all taking an `Action<ISyncClientBuilder>`. The builder exposes the client's `OptionsBuilder<SyncOptions>` as `Options`, its `IHttpClientBuilder` as `HttpClient`, a `ConfigureResilience` method, and `Services` / `Name` for anything attached to the client by hand, so every option-supplying form and every hook is a chained call on a type Microsoft ships. `SyncClientBuilder`, `ISyncOptionsBuilder` and `SyncOptionsBuilder` are removed; `SyncClient.Create(configure)` and `Create(options, configure)` take the same builder and run it over a private container the client owns, and the two-property members of the options builder survive as extension methods on `SyncOptions` - `UsePreviewApi`, `UseProductionApi`, `UseCustomEndpoint` - with single properties set directly. The options builder's `UseSecureApi(key)`, obsolete since `UseProductionApi(key)` replaced it, goes with the builder.
+  Eleven overloads become three - `AddSyncClient(configure)`, `AddSyncClient(name, configure)` and `AddSyncClient(options, configure)` - all taking an `Action<ISyncClientBuilder>`. The builder exposes `Options` (an `OptionsBuilder<SyncOptions>`), `HttpClient` (an `IHttpClientBuilder`), `ConfigureResilience`, and `Services` / `Name` for anything attached by hand. `SyncClientBuilder`, `ISyncOptionsBuilder` and `SyncOptionsBuilder` are removed: `SyncClient.Create(configure)` and `Create(options, configure)` take the same builder over a private container the client owns, and the options builder's `UsePreviewApi`, `UseProductionApi` and `UseCustomEndpoint` survive as extension methods on `SyncOptions`. The obsolete `UseSecureApi(key)` goes with the builder.
 
   ```csharp
   // Before
@@ -27,11 +27,11 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   await using var client = SyncClient.Create(sync => sync.Options.Configure(o => { o.EnvironmentId = "…"; o.UsePreviewApi("…"); }));
   ```
 
-  `SyncOptions.CopyTo` is public, because it is how a named client takes a pre-built instance: `AddSyncClient("name", sync => sync.Options.Configure(instance.CopyTo))`. The default client's options are also the unnamed `IOptions<SyncOptions>` and `IOptionsMonitor<SyncOptions>.CurrentValue` - a copy of the named ones that follows their configuration reloads - so an application that reads the SDK's options itself keeps working. Invalid options throw `OptionsValidationException` from `Create`, the same exception the container raises - `SyncClientBuilder.Build()` threw `ValidationException`, so a `catch (ValidationException)` around standalone construction must change. Whatever is chained after `AddSyncClient` runs after the SDK's own setup, which is what the old "the `configureHttpClient` hook is applied last" note becomes. The upgrade guide's §9 maps every removed form to its replacement.
+  `SyncOptions.CopyTo` is public so a named client can take a pre-built instance: `sync.Options.Configure(instance.CopyTo)`. The default client's options are also the unnamed `IOptions<SyncOptions>`, so code that reads the SDK's options keeps working. Invalid options throw `OptionsValidationException` from `Create`, where `SyncClientBuilder.Build()` threw `ValidationException`, so a `catch (ValidationException)` around standalone construction must change. Anything chained after `AddSyncClient` runs after the SDK's own setup. Section 9 of the 1 → 2 upgrade guide maps every removed form.
 
 - **`SyncChange<TData>.Data` is `required` and no longer nullable.**
 
-  The Sync API documents `data` as required on all four delta objects, deletions included — a deleted entry names what was deleted. The SDK typed it `TData?` and the README taught that it was null for deletions, so every consumer wrote `item.Data?.System` against a property the API always sends. Drop the `?`; nothing else changes.
+  The Sync API documents `data` as required on all four delta objects, deletions included, yet the SDK typed it `TData?` and the README taught that it was null for deletions. Drop the `?`:
 
   ```csharp
   // Before
@@ -41,19 +41,17 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   var codename = item.Data.System.Codename;
   ```
 
-  A response that omits `data`, or sends it as null, now fails as an unsuccessful result carrying the deserialization exception rather than yielding a null in a non-nullable property. The same holds for the four delta collections, which are also required: a null one used to reach the enumeration's emptiness check as a null list.
+  A response that omits `data` now fails as an unsuccessful result carrying the deserialization exception, and so does one missing any of the four delta collections, which are required too.
 
 - **`SyncLanguageSystem.Id`, `.Name` and `.Codename` are `required` and no longer nullable.**
 
-  The API reference leaves the three unmarked, unlike every other `system` property, and the SDK read that as "may be absent". It cannot be: a language without an id, a name or a codename is not something the API can describe, and the other three payloads already model the same invariant as required. A response missing one now fails as an unsuccessful result, as a missing `data` does. Drop the `?` and any null checks.
+  The API reference leaves the three unmarked, but a language without an id, a name or a codename is not something the API can describe, and the other three payloads already model the same invariant as required. A response missing one now fails as an unsuccessful result. Drop the `?` and any null checks.
 
 ### Added
 
 - **`SyncOptions.Timeout` bounds the whole call.**
 
-  The ceiling on a request was decided entirely inside the SDK — lifted when its own resilience pipeline was installed, left at `HttpClient`'s 100-second default otherwise — with no way to read it off the options or change it. Supplying your own pipeline through `ConfigureResilience` was the sharp case: a pipeline configured for two minutes was still cut off at 100 seconds, silently. A container-free client had no recourse at all.
-
-  `Timeout` is unset by default and nothing changes for anyone who leaves it alone. Set it and it always wins, whatever the pipeline; `Timeout.InfiniteTimeSpan` removes the ceiling outright. It outranks `Retry-After`: the API's backoff is honoured in full until the budget runs out, then the call is cut short.
+  The ceiling on a request was decided inside the SDK, and a pipeline supplied through `ConfigureResilience` was still cut off at `HttpClient`'s 100-second default; a container-free client had no recourse at all. `Timeout` is unset by default and always wins when set; `Timeout.InfiniteTimeSpan` removes the ceiling. It outranks `Retry-After`: the API's backoff is honoured until the budget runs out.
 
   ```csharp
   services.AddSyncClient(sync => sync.Options.Configure(o => { o.EnvironmentId = "…"; o.Timeout = TimeSpan.FromMinutes(5); }));
@@ -66,53 +64,51 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **Standalone clients are built through the same registration as container-resolved ones.**
 
-  The container-free client assembled a second copy of the HTTP pipeline by hand. `SyncClient.Create` runs the same `AddSyncClient` registration inside a private container the built client owns, so a standalone client gets what the container path already had: a bounded connection lifetime, so a long-running singleton picks up DNS changes, and the HTTP client factory's diagnostics when logging is configured. The client owns the container it was built over rather than an `HttpClient` of its own — disposing it still fails every further request.
-
-  Two differences a consumer can observe. Pooled connections now close when the factory releases the handler rather than at the moment of disposal, which is how a container-resolved client has always behaved. And the `SyncOptions` instance handed to `Create(options)` is copied into the container, as `AddSyncClient(SyncOptions)` has always done, so a change made to that instance after `Create` no longer reaches the client - previously the standalone client read the caller's object on every request, so an API key rotated on it took effect on the next call. That was never documented and neither the container path nor the Delivery SDK's standalone client did it; to rotate a key, build a new client or register through a container and reconfigure the options there.
+  `SyncClient.Create` now runs the same `AddSyncClient` registration inside a private container the client owns, so a standalone client gets a bounded connection lifetime and the HTTP client factory's diagnostics. Two observable differences: pooled connections close when the factory releases the handler rather than at disposal, and the `SyncOptions` instance handed to `Create(options)` is copied, so a change made to it afterwards no longer reaches the client. To rotate a key, build a new client or reconfigure the options through a container.
 
 - **The `X-KC-SOURCE` header falls back to the calling assembly's name.**
 
-  When a tool declares a version but no package name, `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"` — a leading separator identifying nothing. It now falls back to the assembly's own name, as it already did when the version was read from the assembly.
+  `[assembly: SyncSourceTrackingHeaderAttribute(null!, 1, 2, 3)]` composed the header as `";1.2.3"`. It now falls back to the assembly's own name, as it already did when the version came from the assembly.
 
 - **Cancellation during body reading throws instead of failing the result.**
 
-  Refit captures it with the 2xx status already in hand, so it arrived as "the response body could not be read" with the cancellation buried in `Error.Exception` - and `Task.IsCanceled` stayed unset for anything awaiting the call. It now throws `OperationCanceledException` like a cancellation anywhere else in the SDK, matching the Delivery and Management SDKs.
+  Refit captured it with the 2xx status already in hand, so it arrived as "the response body could not be read" with the cancellation buried in `Error.Exception`, and `Task.IsCanceled` stayed unset. It now throws `OperationCanceledException`, matching the Delivery and Management SDKs.
 
 - **Walking the delta feed stops if the API repeats a continuation token.**
 
-  Every response carries a fresh one, and the walk advances by storing it — so a response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
+  A response that returned the token just used, with changes still in the page, would have re-requested that page indefinitely. The enumeration now ends there, leaving the caller a token it can resume from.
 
 - **`SyncOptions` describes what its properties do.**
 
-  The two endpoint properties were documented as a "format", carried over from the Delivery SDK where they are format strings — here they are plain base URLs. `EnableResilience` now records that it is read once when the HTTP pipeline is built and that switching it off also restores `HttpClient`'s 100-second ceiling over the whole call. `Validate`'s summary no longer claims that yielding is what lets the attribute-based validations run.
+  The two endpoint properties were documented as a "format" when they are plain base URLs. `EnableResilience` now records that it is read once when the pipeline is built and that switching it off restores `HttpClient`'s 100-second ceiling. `Validate`'s summary no longer claims that yielding is what runs the attribute-based validations.
 
 - **`IError.ErrorCode` is the API's error code again, not the HTTP status.**
 
-  Every failed result stamped the response's status code into `ErrorCode` when the API had not supplied one, so a consumer could not tell an API error code of 429 from an HTTP 429 that carried none. It is now null unless the error envelope contained one, matching the Delivery and Management SDKs and the property's own documentation.
+  Every failed result stamped the HTTP status into `ErrorCode` when the API supplied none, so an API error code of 429 was indistinguishable from an HTTP 429. It is now null unless the error envelope contained one, matching the Delivery and Management SDKs.
 
 - **A success status with an unreadable body is reported as such.**
 
-  A 2xx whose payload did not match the delta models produced a failed result reading `Unknown error` with `ErrorCode` 200 — a failure whose error code was a success status, and no indication of the cause. It now names it: *"The Sync API returned a success status but its response body could not be read: JSON deserialization for type … was missing required properties including: 'data'."*
+  A 2xx whose payload did not match the delta models produced `Unknown error` with `ErrorCode` 200. It now says: *"The Sync API returned a success status but its response body could not be read: JSON deserialization for type … was missing required properties including: 'data'."*
 
 - **`Error.Exception` has the same type on every failure path.**
 
-  A body that was not the error envelope produced an `AggregateException` wrapping both the request failure and the parse failure, while every other path produced the `ApiException` — so a consumer testing `Error.Exception is ApiException` got different answers depending on what the server happened to return. It is always the request failure now; the parse failure is still described in `Error.Message` alongside the raw body.
+  A body that was not the error envelope produced an `AggregateException` wrapping the request and parse failures, while every other path produced the `ApiException`. It is always the request failure now; the parse failure is still described in `Error.Message` alongside the raw body.
 
 ### Dependencies
 
 - **Refit moves to 15.2.0, and the `Microsoft.Extensions.*` packages to 10.0.11.**
 
-  Refit 15 adds a keyed registration for source-generated clients, which is the one registration the SDK had to hand-roll and now uses instead; nothing else in the release touches what the SDK uses, and the whole test suite passes on it unchanged. The package's Refit dependency floor moves accordingly, so an application that pins Refit 14 alongside this package must move to 15 as well.
+  Refit 15 adds a keyed registration for source-generated clients, which replaces the one the SDK hand-rolled. The package's Refit floor moves with it, so an application pinning Refit 14 alongside this package must move to 15.
 
 - **`Microsoft.Extensions.Configuration` and its binder are no longer direct dependencies.**
 
-  Nothing in the package used `Microsoft.Extensions.Configuration` or `Microsoft.Extensions.Configuration.Binder`. `Microsoft.Extensions.Options.ConfigurationExtensions` stays and brings the binder with it, so `Options.BindConfiguration` on the builder works unchanged; an application that built its own `ConfigurationBuilder` on the package's transitive reference must reference `Microsoft.Extensions.Configuration` itself.
+  Nothing in the package used `Microsoft.Extensions.Configuration` or `Microsoft.Extensions.Configuration.Binder`. `Options.BindConfiguration` on the builder works unchanged through `Microsoft.Extensions.Options.ConfigurationExtensions`; an application that relied on the transitive reference must add `Microsoft.Extensions.Configuration` itself.
 
 ### Internal
 
 - **The JSON options no longer configure what the wire models already settle.**
 
-  Every model names its own properties and `ChangeType` names its own converter, so the snake_case naming policy and the enum converter applied to nothing, and the SDK sends no request body for the null-writing rule to act on. Case-insensitive property matching stays: unlike the others it is not overridden by `[JsonPropertyName]` but decides how the wire name is matched against it, which is why the Management and Delivery SDKs both keep it too.
+  Every model names its own properties and `ChangeType` names its own converter, so the snake_case policy and the enum converter applied to nothing. Case-insensitive property matching stays, as in the Management and Delivery SDKs.
 
 ## 2.0.0-rc.2 (2026-08-12)  _(prerelease)_
 
