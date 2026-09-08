@@ -1484,13 +1484,7 @@ await cacheManager.InvalidateAsync(
 
 // Asset events: ForAsset covers rich-text usages; an asset held in an asset element carries no asset id,
 // so those items are found through the used-in lookup. See the caching guide's "Asset events".
-var assetDependencyKeys = new List<string> { DeliveryCacheDependencies.ForAsset(assetId) };
-await foreach (var usage in client.GetAssetUsedIn(assetCodename).EnumerateAsync())
-{
-    assetDependencyKeys.Add(DeliveryCacheDependencies.ForItem(usage.System.Codename));
-}
-assetDependencyKeys.Add(DeliveryCacheDependencies.ItemsListScope);
-await cacheManager.InvalidateAsync([.. assetDependencyKeys]);
+await cacheManager.InvalidateAssetAsync(client, assetCodename, assetId);
 ```
 
 With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an answer from the origin - a `404` for an unpublished item, say - drops it.

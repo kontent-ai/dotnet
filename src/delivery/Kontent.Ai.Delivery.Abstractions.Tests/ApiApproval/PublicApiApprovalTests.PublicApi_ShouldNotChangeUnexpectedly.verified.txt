@@ -46,6 +46,10 @@ public static class DeliveryCacheDependencies
     static String ForType(String codename)
 
 // Kontent.Ai.Delivery.Abstractions
+public static class DeliveryCacheManagerExtensions
+    static Task<Boolean> InvalidateAssetAsync(IDeliveryCacheManager cacheManager, IDeliveryClient client, String assetCodename, Guid assetId, CancellationToken cancellationToken)
+
+// Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryCacheOptions
     .ctor()
     Action<Object>? ConfigureFusionCacheOptions { get; set; }

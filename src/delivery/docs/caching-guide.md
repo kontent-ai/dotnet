@@ -678,28 +678,30 @@ Recommended webhook pattern:
 - item event: invalidate `ForItem(codename)` + `ItemsListScope`
 - type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
 - taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
-- asset event: invalidate `ForAsset(id)` for the rich-text usages, then `ForItem(codename)` for every item `GetAssetUsedIn(codename)` returns, plus `ItemsListScope` - see [Asset events](#asset-events)
+- asset event: `cacheManager.InvalidateAssetAsync(client, codename, id)` - see [Asset events](#asset-events)
 
 ### Asset events
 
 An asset element value carries the asset's URL and no id, and the GUID in that URL identifies the binary file, not the asset: replacing the file changes it, and no asset event carries it. So there is nothing in a cached response an asset event could be matched against, and the SDK does not tag asset elements at all. Rich text is different - inline images and asset links carry the asset id - and `ForAsset(id)` covers those.
 
-The route to everything else is the used-in lookup, which asks the API which items hold the asset right now. Invalidate those by codename, and the items list scope since a listing may carry their asset element values:
+The route to everything else is the used-in lookup, which asks the API which items hold the asset right now. `InvalidateAssetAsync` does the whole thing in one call - the asset key, `ForItem` for every item the lookup returns, and the items list scope since a listing may carry their asset element values:
 
 ```csharp
 // notification.Data.Items entry with Type == "asset"
-var dependencies = new List<string> { DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)) };
+var invalidated = await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
+```
 
+It returns what `InvalidateAsync` returns, so `false` means retry. If a page of the lookup fails it throws `DeliveryRequestException` before invalidating anything, since a partial list would evict some items and leave the rest stale; let the exception fail the webhook so the platform delivers it again. Written out, the call is:
+
+```csharp
+var dependencies = new List<string> { DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)) };
 await foreach (var usage in client.GetAssetUsedIn(item.Codename).EnumerateAsync())
 {
     dependencies.Add(DeliveryCacheDependencies.ForItem(usage.System.Codename));
 }
 dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
-
 await cacheManager.InvalidateAsync([.. dependencies]);
 ```
-
-`EnumerateAsync` throws `DeliveryRequestException` if a page fails, so a partial list never passes for a complete one; let the exception fail the webhook so the platform redelivers it.
 
 ### Manual Invalidation
 
@@ -847,12 +849,7 @@ public class WebhookController : ControllerBase
             // that hold them - the element value carries no asset id. See "Asset events" above.
             if (item.Type == "asset")
             {
-                dependencies.Add(DeliveryCacheDependencies.ForAsset(Guid.Parse(item.Id)));
-                await foreach (var usage in client.GetAssetUsedIn(item.Codename).EnumerateAsync())
-                {
-                    dependencies.Add(DeliveryCacheDependencies.ForItem(usage.System.Codename));
-                }
-                dependencies.Add(DeliveryCacheDependencies.ItemsListScope);
+                await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
             }
         }
 

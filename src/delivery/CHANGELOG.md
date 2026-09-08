@@ -87,6 +87,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
+- **`InvalidateAssetAsync` on `IDeliveryCacheManager` handles an asset event in one call.**
+
+  It invalidates `ForAsset(id)` for the rich-text usages, then `ForItem` for every item `GetAssetUsedIn` returns and the items list scope, and returns what `InvalidateAsync` returns. A failed page of the lookup throws `DeliveryRequestException` before anything is invalidated, so a partial list never passes for a complete one.
+
 - **`OrderByElement` and `OrderBySystem` on the item, feed and languages queries.**
 
   Ordering took a full path, so a query filtered with `.Element(Article.PublishDateCodename)` was ordered with `$"elements.{Article.PublishDateCodename}"` next to it ([#9](https://github.com/kontent-ai/dotnet/issues/9)). The two methods take a bare codename or property name and build the path the way `Where`'s `Element()` and `System()` do, trimmed and lower-cased, so the cache key no longer depends on how the caller spelled it. `OrderBy(path)` is unchanged and still takes a full path.
@@ -169,7 +173,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **Asset elements are no longer tagged with the GUID from their URL.**
 
-  That GUID is the binary file's reference id, not the asset's: it changes when the file is replaced and appears in no asset event, so `InvalidateAsync(ForAsset(id))` with the id a webhook carries never matched an entry because of an asset element, while the tag made the invalidation matrix look complete. Rich text still tags by asset id, for inline images and asset links, and `ForAsset` reaches those. An asset event reaches the items holding the asset in an asset element through `GetAssetUsedIn`; the caching guide's "Asset events" section has the handler, and its webhook sample follows it.
+  That GUID is the binary file's reference id, not the asset's: it changes when the file is replaced and appears in no asset event, so `InvalidateAsync(ForAsset(id))` with the id a webhook carries never matched an entry because of an asset element, while the tag made the invalidation matrix look complete. Rich text still tags by asset id, for inline images and asset links, and `ForAsset` reaches those. An asset event reaches the items holding the asset in an asset element through `GetAssetUsedIn`, which `InvalidateAssetAsync` does in one call; the caching guide's "Asset events" section and its webhook sample use it.
 
 - **`InvalidateAsync` returns `false` when the distributed tier was not reached.**
 
