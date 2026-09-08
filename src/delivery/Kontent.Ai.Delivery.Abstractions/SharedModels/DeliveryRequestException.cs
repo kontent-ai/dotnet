@@ -3,7 +3,8 @@ using System.Net;
 namespace Kontent.Ai.Delivery.Abstractions;
 
 /// <summary>
-/// Thrown when a request made during a <see cref="DeliveryEnumeration{T}"/> walk fails.
+/// Thrown when a request made during a <see cref="DeliveryEnumeration{T}"/> walk or
+/// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> lookup fails.
 /// </summary>
 /// <remarks>
 /// Single-request calls report failure through <see cref="IDeliveryResult{T}"/> and never throw this. Enumeration has
