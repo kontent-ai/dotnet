@@ -75,7 +75,6 @@ internal sealed class DynamicItemQuery(
             var runtimeItem = await contentItemMapper.TryRuntimeTypeItemAsync(
                 rawContentItem.RawItemJson.Value,
                 _inner.LatestModularContent,
-                dependencyContext: null,
                 defaultRenditionPreset,
                 customAssetDomain,
                 cancellationToken).ConfigureAwait(false);

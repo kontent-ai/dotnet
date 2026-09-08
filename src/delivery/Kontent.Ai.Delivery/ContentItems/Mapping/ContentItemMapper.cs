@@ -22,14 +22,12 @@ internal sealed class ContentItemMapper(
     /// </summary>
     /// <param name="item">The partially deserialized content item.</param>
     /// <param name="modularContent">Dictionary of linked items from API response.</param>
-    /// <param name="dependencyContext">Optional context for cache dependency tracking.</param>
     /// <param name="defaultRenditionPreset">Optional default asset rendition preset codename used when mapping asset URLs.</param>
     /// <param name="customAssetDomain">Optional custom domain for rewriting asset URLs.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public Task CompleteItemAsync<TModel>(
         IContentItem<TModel> item,
         IReadOnlyDictionary<string, JsonElement>? modularContent,
-        DependencyTrackingContext? dependencyContext = null,
         string? defaultRenditionPreset = null,
         Uri? customAssetDomain = null,
         CancellationToken cancellationToken = default)
@@ -52,7 +50,6 @@ internal sealed class ContentItemMapper(
         var context = new MappingContext
         {
             ModularContent = modularContent,
-            DependencyContext = dependencyContext,
             DefaultRenditionPreset = defaultRenditionPreset,
             CustomAssetDomain = customAssetDomain,
             CancellationToken = cancellationToken
@@ -72,7 +69,6 @@ internal sealed class ContentItemMapper(
     /// </summary>
     /// <param name="rawItemJson">The full JSON of the content item.</param>
     /// <param name="modularContent">Dictionary of linked items from API response.</param>
-    /// <param name="dependencyContext">Optional context for cache dependency tracking.</param>
     /// <param name="defaultRenditionPreset">Optional default asset rendition preset codename used when mapping asset URLs.</param>
     /// <param name="customAssetDomain">Optional custom domain for rewriting asset URLs.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -82,7 +78,6 @@ internal sealed class ContentItemMapper(
     public async Task<IContentItem?> TryRuntimeTypeItemAsync(
         JsonElement rawItemJson,
         IReadOnlyDictionary<string, JsonElement>? modularContent,
-        DependencyTrackingContext? dependencyContext = null,
         string? defaultRenditionPreset = null,
         Uri? customAssetDomain = null,
         CancellationToken cancellationToken = default)
@@ -105,7 +100,6 @@ internal sealed class ContentItemMapper(
         var context = new MappingContext
         {
             ModularContent = modularContent,
-            DependencyContext = dependencyContext,
             DefaultRenditionPreset = defaultRenditionPreset,
             CustomAssetDomain = customAssetDomain,
             CancellationToken = cancellationToken
@@ -145,7 +139,6 @@ internal sealed class ContentItemMapper(
                 var runtimeItem = await TryRuntimeTypeItemAsync(
                     rawContentItem.RawItemJson.Value,
                     modularContent,
-                    dependencyContext: null,
                     defaultRenditionPreset,
                     customAssetDomain,
                     cancellationToken).ConfigureAwait(false);

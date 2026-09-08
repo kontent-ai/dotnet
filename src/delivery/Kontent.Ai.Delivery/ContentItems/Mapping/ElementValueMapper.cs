@@ -33,9 +33,9 @@ internal sealed class ElementValueMapper(
                 return await MapRichTextAsync(prop.ElementCodename, envelope, getLinkedItem, context)
                     .ConfigureAwait(false);
             case ElementMappingKind.Assets:
-                return MapAssets(envelope, context.DefaultRenditionPreset, context.CustomAssetDomain, context.DependencyContext);
+                return MapAssets(envelope, context.DefaultRenditionPreset, context.CustomAssetDomain);
             case ElementMappingKind.Taxonomy:
-                return MapTaxonomy(envelope, context.DependencyContext);
+                return MapTaxonomy(envelope);
             case ElementMappingKind.DateTime:
                 return MapDateTime(envelope);
             case ElementMappingKind.LinkedItems:
@@ -120,10 +120,10 @@ internal sealed class ElementValueMapper(
             richTextData = richTextData with { Images = rewritten };
         }
 
-        return await _richTextParser.ConvertAsync(richTextData, getLinkedItem, context.DependencyContext, context.CancellationToken).ConfigureAwait(false);
+        return await _richTextParser.ConvertAsync(richTextData, getLinkedItem, context.CancellationToken).ConfigureAwait(false);
     }
 
-    private List<Asset>? MapAssets(JsonElement envelope, string? defaultRenditionPreset, Uri? customAssetDomain, DependencyTrackingContext? dependencyContext)
+    private static List<Asset>? MapAssets(JsonElement envelope, string? defaultRenditionPreset, Uri? customAssetDomain)
     {
         if (!TryGetArrayValue(envelope, out var arrayValue))
         {
@@ -139,23 +139,18 @@ internal sealed class ElementValueMapper(
                 continue;
             }
 
-            TrackAssetDependencyFromUrl(assetEl, dependencyContext);
             assets.Add(CreateAsset(assetEl, defaultRenditionPreset, customAssetDomain));
         }
 
         return assets;
     }
 
-    private static IReadOnlyList<TaxonomyTerm>? MapTaxonomy(JsonElement envelope, DependencyTrackingContext? dependencyContext)
-    {
-        ContentDependencyExtractor.ExtractFromTaxonomyElement(envelope, dependencyContext);
-
-        return !TryGetArrayValue(envelope, out var arrayValue)
+    private static IReadOnlyList<TaxonomyTerm>? MapTaxonomy(JsonElement envelope) =>
+        !TryGetArrayValue(envelope, out var arrayValue)
             ? null
             : [.. arrayValue.EnumerateArray()
-            .Where(term => term.ValueKind == JsonValueKind.Object)
-            .Select(CreateTaxonomyTerm)];
-    }
+                .Where(term => term.ValueKind == JsonValueKind.Object)
+                .Select(CreateTaxonomyTerm)];
 
     private static DateTimeContent? MapDateTime(JsonElement envelope)
     {
@@ -189,15 +184,6 @@ internal sealed class ElementValueMapper(
         if (codenames.Count == 0)
         {
             return [];
-        }
-
-        // Track dependencies for cache invalidation.
-        if (context.DependencyContext is not null)
-        {
-            foreach (var codename in codenames)
-            {
-                context.DependencyContext.TrackItem(codename);
-            }
         }
 
         var items = new List<IEmbeddedContent>(codenames.Count);
@@ -303,47 +289,4 @@ internal sealed class ElementValueMapper(
         prop.TryGetDateTime(out var value)
             ? value
             : null;
-
-    private void TrackAssetDependencyFromUrl(JsonElement assetElement, DependencyTrackingContext? dependencyContext)
-    {
-        if (dependencyContext is null)
-        {
-            return;
-        }
-
-        var url = GetStringProperty(assetElement, "url");
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            return;
-        }
-
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-        {
-            if (logger is not null)
-            {
-                LoggerMessages.AssetUrlParsingFailed(logger, url);
-            }
-            return;
-        }
-
-        // Expected: "/", "{environmentId}/", "{assetId}/", "{filename}".
-        if (uri.Segments.Length < 3)
-        {
-            if (logger is not null)
-            {
-                LoggerMessages.AssetUrlParsingFailed(logger, url);
-            }
-            return;
-        }
-
-        var assetIdSegment = uri.Segments[2].Trim('/');
-        if (Guid.TryParse(assetIdSegment, out var assetId))
-        {
-            dependencyContext.TrackAsset(assetId);
-        }
-        else if (logger is not null)
-        {
-            LoggerMessages.AssetUrlParsingFailed(logger, url);
-        }
-    }
 }
