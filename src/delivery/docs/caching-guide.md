@@ -437,7 +437,7 @@ When `WaitForLoadingNewContent(true)` is enabled for a query, the SDK bypasses l
 
 When a client is configured with `UsePreviewApi = true`, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered.
 
-A typed query whose model is `IDynamicElements` or `DynamicElements` is cached, but its elements are not mapped, so only item, type and list-scope dependencies are tracked for it - not the assets, taxonomy groups and rich-text links a mapped model would add.
+Dependency keys are read from the response itself, not from the model that reads it, so a query whose model is `IDynamicElements` or `DynamicElements` carries the same keys a fully mapped model would.
 
 ### Cache Keys
 
@@ -566,8 +566,13 @@ var result = await client.GetItem<Article>("my-article")
 // - item_author1 (if linked)
 // - item_author2 (if linked)
 // - type_article (+ type_{codename} for each linked item's content type)
-// - Any assets used in the content
+// - asset_{id} for every inline image and asset link in rich text
+// - taxonomy_{group} for every taxonomy element
 ```
+
+The keys are read from the response's JSON - the item, everything in its `modular_content` and the elements of both - not collected while a model is mapped. Two models reading the same item therefore carry the same keys, which is what lets a raw-JSON cache entry be shared between them, and a model that leaves an element unmapped still sees the entry evicted when that element's asset or taxonomy changes. A linked item past the requested depth is tracked by codename even though its content did not come back.
+
+Asset elements are the exception: their values carry a URL and no asset id, and the GUID in the URL is the file's reference id, which changes when the file is replaced and appears in no asset event. Tagging by it would match nothing, so the SDK does not. An asset event reaches the items holding the asset through the used-in lookup instead; see [Asset events](#asset-events).
 
 This enables targeted cache invalidation when specific content changes.
 
@@ -667,13 +672,28 @@ Use this matrix when mapping webhook events to SDK dependency invalidation keys.
 | Items | `DeliveryCacheDependencies.ForItem(codename)` (`item_{codename}`) | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
 | Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
 | Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(codename)` (`taxonomy_{codename}`) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
-| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose asset elements or rich-text images reference it) | none - assets have no listing |
+| Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose rich text refers to the asset as an inline image or a link). An asset held in an asset element is not tagged - see [Asset events](#asset-events) | none - assets have no listing |
 
 Recommended webhook pattern:
 - item event: invalidate `ForItem(codename)` + `ItemsListScope`
 - type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
 - taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
-- asset event: invalidate `ForAsset(id)`
+- asset event: `cacheManager.InvalidateAssetAsync(client, codename, id)` - see [Asset events](#asset-events)
+
+From a webhook, `Kontent.Ai.AspNetCore` does all four in one call - `cacheManager.InvalidateAsync(notification, client)` - see [Webhook-Based Invalidation](#webhook-based-invalidation).
+
+### Asset events
+
+An asset element value carries the asset's URL and no id, and the GUID in that URL identifies the binary file, not the asset: replacing the file changes it, and no asset event carries it. So there is nothing in a cached response an asset event could be matched against, and the SDK does not tag asset elements at all. Rich text is different - inline images and asset links carry the asset id - and `ForAsset(id)` covers those.
+
+`InvalidateAssetAsync` fetches all language pages, then queries asset usages with an explicit language filter. Both lookups wait for fresh content. It invalidates the asset key, `ForItem` for each usage, and the items-list scope. The language lookup is required because the used-in endpoint defaults to the default language and does not apply language fallbacks.
+
+```csharp
+// notification.Data.Items entry with Type == "asset"
+var invalidated = await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
+```
+
+It returns what `InvalidateAsync` returns, so `false` means retry. A failed language or usage page throws `DeliveryRequestException` before anything is invalidated. Return a failure response from the webhook for either outcome so Kontent.ai can retry it.
 
 ### Manual Invalidation
 
@@ -745,15 +765,17 @@ if (cacheManager is IDeliveryCachePurger purger)
 
 Kontent.ai webhooks tell you which object changed; the cache needs the dependency keys that object was
 tagged with. The [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore)
-package owns the three pieces in between and is the supported way to wire them:
+package owns the pieces in between and is the supported way to wire them:
 
 - `UseWebhookSignatureValidator` — middleware that rejects requests Kontent.ai did not sign (HMAC-SHA256
   over the raw body, constant-time comparison, header checked before the body is read).
 - `WebhookNotification` — the payload the API sends, with the documented `object_type` / `action` /
   `delivery_slot` values as constants.
-- `GetCacheDependencyKeys()` — maps a notification, or any subset of a batch, to the keys this SDK tags
-  with: item plus `ItemsListScope`, type plus `TypesListScope`, taxonomy *group* plus `TaxonomiesListScope`
-  (for a term event the payload's codename is the term's; the group is carried separately), asset.
+- `InvalidateAsync(notification, client)` on `IDeliveryCacheManager` — invalidates everything a batch, or
+  any subset of one, affects: item plus `ItemsListScope`, type plus `TypesListScope`, taxonomy *group* plus
+  `TaxonomiesListScope` (for a term event the payload's codename is the term's; the group is carried
+  separately), and for an asset event `InvalidateAssetAsync` through the client, which is what reaches the
+  items holding the asset in an asset element. `GetCacheDependencyKeys()` exposes the key mapping alone.
 
 ```csharp
 using Kontent.Ai.AspNetCore.Webhooks;
@@ -775,6 +797,7 @@ app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegme
 app.MapPost("/webhooks/kontent", async (
     WebhookNotification notification,
     IDeliveryCacheManager cache,
+    IDeliveryClient client,
     IOptions<DeliveryOptions> delivery,
     CancellationToken cancellationToken) =>
 {
@@ -798,7 +821,7 @@ app.MapPost("/webhooks/kontent", async (
 
     // InvalidateAsync reports failure instead of throwing (TTL is its backstop). A non-2xx makes Kontent.ai
     // resend the notification, so a failed invalidation gets a second chance rather than a 204.
-    var invalidated = await cache.InvalidateAsync(relevant.GetCacheDependencyKeys(), cancellationToken);
+    var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });
 ```
@@ -807,7 +830,8 @@ The default client's manager resolves unkeyed; a named client's is keyed by its 
 (`[FromKeyedServices("production")]`); a client from `DeliveryClient.Create` exposes it as `CacheManager`.
 Respond `2xx` once the invalidation is done, and with anything else when it is not — any other status
 makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed
-invalidation wants.
+invalidation wants. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset
+is invalidated ([Asset events](#asset-events)); letting it propagate is a `500` and the same retry.
 
 What this does not cover:
 
@@ -1118,7 +1142,7 @@ public class CacheWarmupService : IHostedService
         // Pre-load recent articles
         await _client.GetItems<Article>()
             .Where(f => f.System("type").IsEqualTo("article"))
-            .OrderBy("system.last_modified", OrderingMode.Descending)
+            .OrderBySystem("last_modified", OrderingMode.Descending)
             .Limit(10)
             .ExecuteAsync(cancellationToken);
     }
