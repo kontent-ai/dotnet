@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.0-rc.3 (2026-09-08)  _(prerelease)_
+
 ### Breaking changes
 
 - **`IClassDefinitionFactory` and `IManagementElementService` are removed; their implementations are static.**
