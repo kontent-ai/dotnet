@@ -176,7 +176,6 @@ internal sealed class EnumerateItemsQuery<TModel>(
                 await contentItemMapper.CompleteItemAsync(
                         item,
                         content.ModularContent,
-                        dependencyContext: null,
                         defaultRenditionPreset,
                         customAssetDomain,
                         cancellationToken)

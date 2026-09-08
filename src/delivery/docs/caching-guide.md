@@ -437,7 +437,7 @@ When `WaitForLoadingNewContent(true)` is enabled for a query, the SDK bypasses l
 
 When a client is configured with `UsePreviewApi = true`, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered.
 
-A typed query whose model is `IDynamicElements` or `DynamicElements` is cached, but its elements are not mapped, so only item, type and list-scope dependencies are tracked for it - not the assets, taxonomy groups and rich-text links a mapped model would add.
+Dependency keys are read from the response itself, not from the model that reads it, so a query whose model is `IDynamicElements` or `DynamicElements` carries the same keys a fully mapped model would.
 
 ### Cache Keys
 
@@ -566,8 +566,11 @@ var result = await client.GetItem<Article>("my-article")
 // - item_author1 (if linked)
 // - item_author2 (if linked)
 // - type_article (+ type_{codename} for each linked item's content type)
-// - Any assets used in the content
+// - asset_{id} for every asset element value, inline image and asset link in rich text
+// - taxonomy_{group} for every taxonomy element
 ```
+
+The keys are read from the response's JSON - the item, everything in its `modular_content` and the elements of both - not collected while a model is mapped. Two models reading the same item therefore carry the same keys, which is what lets a raw-JSON cache entry be shared between them, and a model that leaves an element unmapped still sees the entry evicted when that element's asset or taxonomy changes. A linked item past the requested depth is tracked by codename even though its content did not come back.
 
 This enables targeted cache invalidation when specific content changes.
 

@@ -4,8 +4,7 @@ namespace Kontent.Ai.Delivery.ContentItems.Mapping;
 
 /// <summary>
 /// State container for content item mapping operations.
-/// Holds the modular content for linked item resolution, dependency tracking context,
-/// and cycle detection / memoization state.
+/// Holds the modular content for linked item resolution and the cycle detection / memoization state.
 /// </summary>
 internal sealed class MappingContext
 {
@@ -23,11 +22,6 @@ internal sealed class MappingContext
     /// Custom domain for asset URL rewriting. When set, asset URL hosts are replaced with this domain.
     /// </summary>
     public Uri? CustomAssetDomain { get; init; }
-
-    /// <summary>
-    /// Dependency tracking for cache invalidation.
-    /// </summary>
-    public DependencyTrackingContext? DependencyContext { get; init; }
 
     /// <summary>
     /// Items currently being hydrated: codename -> instance.

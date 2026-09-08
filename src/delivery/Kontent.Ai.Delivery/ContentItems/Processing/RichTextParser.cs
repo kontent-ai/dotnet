@@ -23,7 +23,6 @@ internal sealed class RichTextParser(
     internal async Task<IRichTextContent> ConvertAsync(
         IRichTextElementValue element,
         Func<string, Task<object?>> getLinkedItem,
-        DependencyTrackingContext? dependencyContext,
         CancellationToken cancellationToken = default)
     {
         using var document = await parser.ParseDocumentAsync(element.Value, cancellationToken).ConfigureAwait(false);
@@ -36,9 +35,6 @@ internal sealed class RichTextParser(
             }
             throw new InvalidOperationException("Failed to parse rich text HTML: document body is null.");
         }
-
-        // Extract dependencies for caching (delegated to extractor)
-        ContentDependencyExtractor.ExtractFromRichTextElement(element, dependencyContext);
 
         List<IRichTextBlock> blocks = [];
         foreach (var childNode in document.Body.ChildNodes)

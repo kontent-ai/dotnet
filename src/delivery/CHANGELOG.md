@@ -163,6 +163,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `UseHybridCache`, an unreachable Redis threw `FusionCacheDistributedCacheException` out of every cached query. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker stops a dead Redis being retried per request, and FusionCache re-syncs when it is back. FusionCache's own diagnostics now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered.
 
+- **Dependency keys come from the response, not from the model that reads it.**
+
+  Assets, taxonomy groups and rich-text references were collected while a model's properties were mapped, so a raw-JSON cache entry primed by a model that mapped only a title carried no asset or taxonomy keys, and every model sharing that entry kept getting it after the asset changed. A dynamic or runtime-typed read mapped nothing and carried only item and type keys, on the SDK's cache and on `DependencyKeys` alike. The keys are now read from the item, its `modular_content` and the elements of both, so every model gets the same set. Links to assets in rich text are included, which they never were: the API lists only inline images under `images`, and the link carries its asset id in the HTML alone. Entries may carry more keys than before, which means an invalidation can evict more - that is the direction to err in.
+
 - **`InvalidateAsync` returns `false` when the distributed tier was not reached.**
 
   In hybrid mode it returned `true` when the write to the distributed cache failed, or was skipped because FusionCache's circuit breaker for it was open, so a webhook handler retrying on `false` never retried and other nodes served the evicted content until it expired. It now returns `false` in both cases and when the backplane cannot publish; this node's memory tier is still cleared, and the retry completes the invalidation once the store is back. Reads are unchanged: an outage still degrades the cache rather than failing queries.

@@ -103,7 +103,6 @@ internal static class CachePayloadHelper
             await contentItemMapper.CompleteItemAsync(
                     item,
                     modularContent,
-                    dependencyContext: null,
                     defaultRenditionPreset,
                     customAssetDomain,
                     cancellationToken)
@@ -144,7 +143,6 @@ internal static class CachePayloadHelper
                 await contentItemMapper.CompleteItemAsync(
                         item,
                         modularContent,
-                        dependencyContext: null,
                         defaultRenditionPreset,
                         customAssetDomain,
                         cancellationToken)

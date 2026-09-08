@@ -16,8 +16,7 @@ public class RichTextParserTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             parser.ConvertAsync(
                 element,
-                _ => Task.FromResult<object?>(null),
-                dependencyContext: null));
+                _ => Task.FromResult<object?>(null)));
 
         Assert.Contains("data-codename", exception.Message);
     }
@@ -30,8 +29,7 @@ public class RichTextParserTests
 
         var result = await parser.ConvertAsync(
             element,
-            _ => Task.FromResult<object?>(null),
-            dependencyContext: null);
+            _ => Task.FromResult<object?>(null));
 
         Assert.NotNull(result);
         Assert.Empty(result.GetInlineImages());
@@ -45,8 +43,7 @@ public class RichTextParserTests
 
         var result = await parser.ConvertAsync(
             element,
-            _ => Task.FromResult<object?>(null),
-            dependencyContext: null);
+            _ => Task.FromResult<object?>(null));
 
         Assert.NotNull(result);
         Assert.Empty(result.GetInlineImages());
@@ -64,8 +61,7 @@ public class RichTextParserTests
 
         var result = await parser.ConvertAsync(
             element,
-            _ => Task.FromResult<object?>(null),
-            dependencyContext: null);
+            _ => Task.FromResult<object?>(null));
 
         Assert.NotNull(result);
         Assert.Empty(result.GetContentItemLinks());
@@ -85,8 +81,7 @@ public class RichTextParserTests
 
         var result = await parser.ConvertAsync(
             element,
-            _ => Task.FromResult<object?>(null),
-            dependencyContext: null);
+            _ => Task.FromResult<object?>(null));
 
         Assert.NotNull(result);
         Assert.Empty(result.GetInlineImages());

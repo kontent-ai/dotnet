@@ -4,6 +4,7 @@ using Kontent.Ai.Delivery.Abstractions;
 using Kontent.Ai.Delivery.Configuration;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
+using Kontent.Ai.Delivery.ContentItems.Processing;
 using Kontent.Ai.Delivery.Generated;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 
@@ -252,48 +253,17 @@ public sealed class ContentItemMapperTests
     }
 
     [Fact]
-    public async Task MapElementsAsync_TracksAssetDependencies()
+    public async Task Dependencies_ComeFromTheWire_NotFromMapping()
     {
         var json = await LoadFixtureAsync("coffee_beverages_explained.json");
         var response = JsonSerializer.Deserialize<DeliveryItemResponse<Article>>(json, _jsonOptions)!;
-        var item = response.Item;
-        var rawItem = (IRawContentItem)item;
 
-        var dependencyContext = new DependencyTrackingContext();
-        var context = new MappingContext
-        {
-            ModularContent = response.ModularContent,
-            DependencyContext = dependencyContext,
-            CancellationToken = CancellationToken.None
-        };
+        // Nothing mapped: the keys are read from the raw item and its modular content alone.
+        var dependencies = ResponseDependencyExtractor.Extract([response.Item], response.ModularContent);
 
-        await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
-
-        // Asset element payload extracts the asset GUID from the URL path
-        var expectedAssetId = Guid.Parse("e700596b-03b0-4cee-ac5c-9212762c027a");
-        Assert.Contains($"asset_{expectedAssetId}", dependencyContext.Dependencies);
-    }
-
-    [Fact]
-    public async Task MapElementsAsync_TracksLinkedItemDependencies()
-    {
-        var json = await LoadFixtureAsync("coffee_beverages_explained.json");
-        var response = JsonSerializer.Deserialize<DeliveryItemResponse<Article>>(json, _jsonOptions)!;
-        var item = response.Item;
-        var rawItem = (IRawContentItem)item;
-
-        var dependencyContext = new DependencyTrackingContext();
-        var context = new MappingContext
-        {
-            ModularContent = response.ModularContent,
-            DependencyContext = dependencyContext,
-            CancellationToken = CancellationToken.None
-        };
-
-        await _mapper.MapElementsAsync(item.Elements, GetRawElements(rawItem), context);
-
-        // Should track linked items as dependencies
-        Assert.Contains(dependencyContext.Dependencies, d => d.StartsWith("item_"));
+        // Asset element payload carries the asset GUID in the URL path
+        Assert.Contains($"asset_{Guid.Parse("e700596b-03b0-4cee-ac5c-9212762c027a")}", dependencies);
+        Assert.Contains(dependencies, d => d.StartsWith("item_"));
     }
 
     [Fact]

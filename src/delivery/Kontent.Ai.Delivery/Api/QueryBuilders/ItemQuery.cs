@@ -5,6 +5,7 @@ using Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 using Kontent.Ai.Delivery.Caching;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
+using Kontent.Ai.Delivery.ContentItems.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders;
@@ -170,38 +171,19 @@ internal sealed class ItemQuery<TModel>(
     {
         LatestModularContent = resp.ModularContent;
         var item = resp.Item;
-        var dependencyContext = new DependencyTrackingContext();
-
-        dependencyContext.TrackItem(item.System.Codename);
-        dependencyContext.TrackItemType(item.System.Type);
-        if (resp.ModularContent is not null)
-        {
-            foreach (var (itemCodename, linkedItem) in resp.ModularContent)
-            {
-                // A component is invalidated through the item that owns it, so a key of its own is dead
-                // weight. Its type still matters: the response does contain an item of that type.
-                if (!ContentItemJsonHelper.IsComponent(linkedItem))
-                {
-                    dependencyContext.TrackItem(itemCodename);
-                }
-
-                dependencyContext.TrackItemType(ContentItemJsonHelper.ExtractContentType(linkedItem));
-            }
-        }
 
         if (!IsDynamicModel)
         {
             await contentItemMapper.CompleteItemAsync(
                     item,
                     resp.ModularContent,
-                    dependencyContext,
                     defaultRenditionPreset,
                     customAssetDomain,
                     cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        return (item, [.. dependencyContext.Dependencies]);
+        return (item, ResponseDependencyExtractor.Extract([item], resp.ModularContent, logger));
     }
 
     private static IDeliveryResult<IContentItem<TModel>> CreateFailureResult(

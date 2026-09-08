@@ -7,9 +7,9 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class is designed to be used during a single API response processing pipeline.
-/// As elements are hydrated (rich text, taxonomies, linked items), dependencies are
-/// tracked by calling <see cref="TrackItem"/>, <see cref="TrackAsset"/>, or <see cref="TrackTaxonomy"/>.
+/// One instance covers one API response. The keys are read from the response's wire JSON - the items,
+/// their modular content and the elements of both - by calling <see cref="TrackItem"/>,
+/// <see cref="TrackAsset"/> or <see cref="TrackTaxonomy"/>, independently of which model, if any, reads it.
 /// </para>
 /// <para>
 /// Thread-safety: This class is thread-safe and can be safely accessed from multiple

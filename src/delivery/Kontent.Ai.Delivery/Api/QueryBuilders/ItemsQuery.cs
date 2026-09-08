@@ -5,6 +5,7 @@ using Kontent.Ai.Delivery.Api.QueryBuilders.Helpers;
 using Kontent.Ai.Delivery.Caching;
 using Kontent.Ai.Delivery.ContentItems;
 using Kontent.Ai.Delivery.ContentItems.Mapping;
+using Kontent.Ai.Delivery.ContentItems.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Kontent.Ai.Delivery.Api.QueryBuilders;
@@ -230,31 +231,6 @@ internal sealed class ItemsQuery<TModel>(
         DeliveryItemListingResponse<TModel> resp, CancellationToken cancellationToken)
     {
         var items = resp.Items;
-        var dependencyContext = new DependencyTrackingContext();
-
-        if (items is { Count: > 0 })
-        {
-            foreach (var system in items.Select(item => item.System))
-            {
-                dependencyContext.TrackItem(system.Codename);
-                dependencyContext.TrackItemType(system.Type);
-            }
-        }
-
-        if (resp.ModularContent is not null)
-        {
-            foreach (var (codename, linkedItem) in resp.ModularContent)
-            {
-                // A component is invalidated through the item that owns it, so a key of its own is dead
-                // weight. Its type still matters: the response does contain an item of that type.
-                if (!ContentItemJsonHelper.IsComponent(linkedItem))
-                {
-                    dependencyContext.TrackItem(codename);
-                }
-
-                dependencyContext.TrackItemType(ContentItemJsonHelper.ExtractContentType(linkedItem));
-            }
-        }
 
         if (!IsDynamicModel)
         {
@@ -263,7 +239,6 @@ internal sealed class ItemsQuery<TModel>(
                 await contentItemMapper.CompleteItemAsync(
                         item,
                         resp.ModularContent,
-                        dependencyContext,
                         defaultRenditionPreset,
                         customAssetDomain,
                         cancellationToken)
@@ -271,7 +246,7 @@ internal sealed class ItemsQuery<TModel>(
             }
         }
 
-        return (resp, [.. dependencyContext.Dependencies, DeliveryCacheDependencies.ItemsListScope]);
+        return (resp, [.. ResponseDependencyExtractor.Extract(items, resp.ModularContent, logger), DeliveryCacheDependencies.ItemsListScope]);
     }
 
     private static IDeliveryResult<IDeliveryItemListingResponse<TModel>> CreateFailureResult(
