@@ -106,14 +106,14 @@ jobs:
             echo "Review each version property and its promoted changelog entry, then merge."
             echo
             echo "Once this is merged, run **Actions -> Publish** from this PR's base branch. It packs"
-            echo "and pushes every product whose declared version is not yet on NuGet, dependencies"
-            echo "first, then records each as a tag and a GitHub Release:"
+            echo "and pushes every product whose declared version is not yet on NuGet, then records"
+            echo "each as a tag and a GitHub Release:"
             echo
             echo '```'
             cat /tmp/tags.txt
             echo '```'
             echo
-            echo "It defaults to a dry run, and re-running skips whatever is already published."
+            echo "It defaults to a dry run. A run that fails part-way is fixed by re-running that run."
             echo
             echo "Releases are independent - publish or abandon one without affecting the others."
             echo
