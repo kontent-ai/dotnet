@@ -167,6 +167,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `UseHybridCache`, an unreachable Redis threw `FusionCacheDistributedCacheException` out of every cached query. The distributed tier is now worked around: the memory tier or the origin answers, a two-second circuit breaker stops a dead Redis being retried per request, and FusionCache re-syncs when it is back. FusionCache's own diagnostics now log under `ZiggyCreatures.Caching.Fusion.FusionCache` whenever logging is registered.
 
+- **Cancelling a rich-text render stops it at every depth.**
+
+  The token was checked only between top-level blocks, so a cancellation raised while a nested list or table was being resolved ran every remaining descendant and returned complete HTML. It is now checked before every block at every level. A custom resolver's child callback is unchanged; the token travels with the render, not the callback.
+
 - **A runtime-typed item that refers back to itself gets the same instance, as a typed one does.**
 
   `GetItem(codename)` with a type provider hydrated the root without registering it first, so a linked item that pointed back at the root received a second copy of it and closed the cycle on that. Code comparing by reference to detect a cycle, or editing the graph, saw a different shape from `GetItem<T>(codename)` for the same content. Both paths now register the root before hydration.
