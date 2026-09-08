@@ -21,6 +21,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The Management emitter read a multiple-choice element's options but not its `mode`, so a single-select element came out as `IEnumerable<TEnum>?`. The mode now decides: `TEnum?` for single, `IEnumerable<TEnum>?` for multiple. `MultipleChoiceElementInput` carries it as a trailing `Mode` parameter defaulting to multiple. Reading and writing the `TEnum?` shape needs the `Kontent.Ai.Management` release that ships alongside this one.
 
+## 11.0.0-rc.2 (2026-08-12)  _(prerelease)_
+
 ### Fixed
 
 - **A blank comment argument reports `ArgumentException`, not `ArgumentNullException`.**
