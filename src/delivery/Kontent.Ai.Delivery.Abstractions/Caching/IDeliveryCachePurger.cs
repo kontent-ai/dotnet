@@ -24,6 +24,13 @@ public interface IDeliveryCachePurger
     /// When <c>true</c>, entries are marked as logically expired but remain available as fail-safe fallbacks.
     /// </param>
     /// <param name="cancellationToken">Cancellation token.</param>
+    /// <remarks>
+    /// Built-in cache managers throw when a distributed clear-marker write or configured backplane
+    /// publication fails or is skipped by an open circuit breaker. Local entries may already be
+    /// invalidated when an exception is thrown. Normal completion does not acknowledge processing by
+    /// every other node.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">A circuit breaker prevented the purge from completing.</exception>
+    /// <exception cref="OperationCanceledException">The operation was canceled.</exception>
     Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default);
 }
-

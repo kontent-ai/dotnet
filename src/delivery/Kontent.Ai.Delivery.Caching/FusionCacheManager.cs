@@ -491,9 +491,15 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
 
         await _cache.ClearAsync(
                 allowFailSafe,
-                options: null,
+                _invalidationOptions,
                 cancellationToken)
             .ConfigureAwait(false);
+
+        // An open breaker skips the write without throwing, even with strict entry options.
+        if (_distributedCircuitOpen || _backplaneCircuitOpen)
+        {
+            throw new InvalidOperationException("The cache purge did not reach the distributed cache or backplane because a circuit breaker is open.");
+        }
     }
 
     public void Dispose()
