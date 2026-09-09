@@ -8,6 +8,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **`PurgeAsync` throws when a distributed purge cannot complete.**
+
+  Built-in cache managers propagate failed distributed clear-marker writes and configured backplane publications. An open circuit breaker that skips either operation now causes `InvalidOperationException` instead of normal completion. Both `allowFailSafe` modes are affected; the `Task` signature is unchanged. Local entries may already be invalidated when the call throws. Callers that require best-effort purging must handle the exception explicitly. Ordinary cache reads remain fail-open.
+
 ## 20.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
 ### Breaking changes

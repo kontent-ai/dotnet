@@ -1512,6 +1512,10 @@ With fail-safe on, an invalidated entry may still be served stale while the orig
 
 Built-in cache managers support invalidating **all** cached entries at once via the optional `IDeliveryCachePurger` capability:
 
+Both purge modes throw if a distributed clear-marker write or configured backplane publication fails or
+is skipped by an open circuit breaker. Local entries may already be invalidated. Normal completion is
+not an acknowledgment from every other node; ordinary cache reads remain fail-open.
+
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
 using Microsoft.Extensions.DependencyInjection;

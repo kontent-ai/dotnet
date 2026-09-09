@@ -744,6 +744,12 @@ Sometimes you need to invalidate **everything at once** (e.g., after a deploymen
 
 The SDK exposes an **optional** capability interface `IDeliveryCachePurger` that is implemented by built-in cache managers.
 
+In both `allowFailSafe` modes, built-in managers throw if a distributed clear-marker write or configured
+backplane publication fails. A circuit breaker that skips an operation causes `InvalidOperationException`.
+Local invalidation may already have happened; the operation is not atomic across tiers. Normal completion
+does not acknowledge processing by every other node. Handle failures explicitly if purging is best-effort
+in your application. Ordinary cache reads remain fail-open.
+
 > [!NOTE]
 > If you're using a custom cache manager that does not implement `IDeliveryCachePurger`, use provider-specific purge tooling or key-prefix rotation.
 
