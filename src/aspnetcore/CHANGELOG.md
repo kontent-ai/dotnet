@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 1.0.0-rc.3 (2026-09-09)  _(prerelease)_
+
 ### Breaking changes
 
 - **The always-present webhook members are `required` and non-nullable.**
