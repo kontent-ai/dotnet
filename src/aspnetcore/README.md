@@ -205,15 +205,17 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 
 ### Cache invalidation
 
-`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates everything a batch affects. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`, so they are exactly the strings the SDK tags cached responses with:
+`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates the supported dependency keys and asset usages for a batch. Language changes require a separate purge, and renames cannot invalidate detail keys using the old codename. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`:
 
 | Notification | Keys |
 |---|---|
 | `content_item` | `item_{codename}`, items-list scope |
-| `content_type` | `type_{codename}`, types-list scope |
-| `taxonomy` | `taxonomy_{group}`, taxonomies-list scope (the group is `TaxonomyGroup` for a term event, `Codename` for a group event) |
+| `content_type` | `type_{codename}`, types-list scope, items-list scope |
+| `taxonomy` | `taxonomy_{group}`, taxonomies-list scope, items-list scope (the group is `TaxonomyGroup` for a term event, `Codename` for a group event) |
 | `asset` | `asset_{id}`, which reaches rich-text usages. An asset element carries no asset id, so the items holding the asset that way are found through the SDK's used-in lookup — that is why `InvalidateAsync` takes the client |
 | `language` | nothing — see below |
+
+Type and taxonomy changes can alter item-list membership. The items-list scope also reaches empty or projected responses that have no matching type or taxonomy key.
 
 A complete endpoint, with the Delivery client registered and a cache attached to it. `UseMemoryCache` comes
 from `Kontent.Ai.Delivery.Caching`, which this package does not depend on — add it alongside:
@@ -267,8 +269,7 @@ app.MapPost("/webhooks/kontent", async (
         return Results.NoContent();
     }
 
-    // InvalidateAsync reports failure instead of throwing (TTL is its backstop). A non-2xx makes Kontent.ai
-    // resend the notification, so a failed invalidation gets a second chance rather than a 204.
+    // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.
     var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });

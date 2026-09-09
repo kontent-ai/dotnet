@@ -23,6 +23,7 @@
     <!-- Core dependencies -->
     <PackageVersion Include="Kontent.Ai.Delivery" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="20.0.0-rc.3" />
+    <PackageVersion Include="Kontent.Ai.Delivery.Caching" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Urls" Version="20.0.0-rc.3" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
     <!-- Test dependencies -->

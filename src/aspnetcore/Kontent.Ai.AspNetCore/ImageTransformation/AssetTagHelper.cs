@@ -217,8 +217,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     /// HTML allows values the image API has no equivalent for - <c>100%</c>, <c>auto</c>, a CSS calc - and
     /// those must still render: the attribute stays on the element and simply does not drive the
     /// transformation. Parsing is invariant because the value is authored in markup and because
-    /// <see cref="ImageUrlBuilder"/> formats it back invariantly; reading it in the server's culture made
-    /// the round trip asymmetric, so <c>width="1.5"</c> became <c>w=15</c> wherever <c>.</c> groups digits.
+    /// <see cref="ImageUrlBuilder"/> formats it back invariantly, regardless of the server's culture.
     /// </remarks>
     private static double? ParseNumeric(object? value) =>
         double.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)

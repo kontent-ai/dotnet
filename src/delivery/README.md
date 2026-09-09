@@ -1493,18 +1493,18 @@ await cacheManager.InvalidateAsync(
 
 // Type events
 await cacheManager.InvalidateAsync(
-    [DeliveryCacheDependencies.ForType(typeCodename), DeliveryCacheDependencies.TypesListScope]);
+    [DeliveryCacheDependencies.ForType(typeCodename), DeliveryCacheDependencies.TypesListScope, DeliveryCacheDependencies.ItemsListScope]);
 
 // Taxonomy events: for a term event the payload's codename is the term's, and the key is the group's
 await cacheManager.InvalidateAsync(
-    [DeliveryCacheDependencies.ForTaxonomy(taxonomyGroupCodename), DeliveryCacheDependencies.TaxonomiesListScope]);
+    [DeliveryCacheDependencies.ForTaxonomy(taxonomyGroupCodename), DeliveryCacheDependencies.TaxonomiesListScope, DeliveryCacheDependencies.ItemsListScope]);
 
 // Asset events: ForAsset covers rich-text usages; an asset held in an asset element carries no asset id,
 // so those items are found through the used-in lookup. See the caching guide's "Asset events".
 await cacheManager.InvalidateAssetAsync(client, assetCodename, assetId);
 ```
 
-The [caching guide](docs/caching-guide.md#webhook-based-invalidation) has the complete endpoint: environment and delivery-slot filtering, the language-event purge, and what invalidation does not cover.
+Type and taxonomy events also invalidate the items-list scope because a membership change can affect empty or projected listings without matching detail keys. The [caching guide](docs/caching-guide.md#webhook-based-invalidation) has the complete endpoint: environment and delivery-slot filtering, the language-event purge, and what invalidation does not cover.
 
 With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an answer from the origin - a `404` for an unpublished item, say - drops it.
 

@@ -1,7 +1,6 @@
 namespace Kontent.Ai.AspNetCore.Webhooks.Models;
 
-// The event vocabulary is kept as string constants rather than enums: a value Kontent.ai adds later must
-// deserialize rather than fail, because a 400 makes the sender retry the notification for three days.
+// Strings preserve unknown event values during deserialization.
 
 /// <summary>
 /// Values of <see cref="WebhookMessage.ObjectType"/>.

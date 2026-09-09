@@ -22,13 +22,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Added
 
-- **`InvalidateAsync(notification, client)` invalidates everything a webhook batch affects.**
+- **`InvalidateAsync(notification, client)` invalidates a webhook batch's supported dependencies and asset usages.**
 
-  An extension on `IDeliveryCacheManager`. It invalidates the dependency keys of every notification and, for an asset event, the items using the asset through the SDK's `InvalidateAssetAsync`, which needs the client because an asset element carries no asset id. It returns `false` when any invalidation did not complete, so the endpoint can answer with a status Kontent.ai retries; a failed usage lookup throws `DeliveryRequestException`.
+  An extension on `IDeliveryCacheManager`. It invalidates the supported dependency keys and, for an asset event, the items using the asset through the SDK's `InvalidateAssetAsync`, which needs the client because an asset element carries no asset id. It returns `false` when any invalidation did not complete; a failed usage lookup throws `DeliveryRequestException`. Language events require a separate purge, and renames cannot invalidate detail keys using the old codename.
 
 - **`GetCacheDependencyKeys()` maps a webhook notification to the SDK's cache dependency keys.**
 
-  For a notification or any subset of a batch, without duplicates: item plus items-list scope, type plus types-list scope, taxonomy group plus taxonomies-list scope (for a term event the payload's codename is the term's and the cache is keyed by the group), asset. The keys are composed with `DeliveryCacheDependencies`, so they are the exact strings the SDK tags with. A language notification maps to nothing, because the SDK keeps no language dependency; the README's endpoint sample shows the purge for it.
+  For a notification or any subset of a batch, without duplicates: item plus items-list scope, type plus types-list and items-list scopes, taxonomy group plus taxonomies-list and items-list scopes, asset. For a term event the payload's codename is the term's and the cache is keyed by the group. Type and taxonomy changes also evict empty or projected item listings whose dependencies do not include the changed object. The keys are composed with `DeliveryCacheDependencies`. A language notification maps to nothing; the README's endpoint sample shows the purge for it.
 
 - **The webhook models carry every field the API sends.**
 
@@ -42,7 +42,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **The signature header is checked before the request body is read.**
 
-  A request with no signature, or one that is not a well-formed HMAC-SHA256 digest, is rejected without buffering its body, and a body that cannot be read is a `401` rather than an exception. The body is hashed straight from the buffered request stream, which removes one copy of every payload; the stream is still rewound for the endpoint.
+  A request with no signature, or one that is not a well-formed HMAC-SHA256 digest, is rejected without buffering its body. With a well-formed header, body-read failures still propagate. The body is hashed straight from the buffered request stream, which removes one copy of every payload; the stream is still rewound for the endpoint.
 
 - **A quoted or padded signature header is accepted.**
 
@@ -86,7 +86,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`WebhookNotification.Notifications` is `IReadOnlyList<WebhookModel>?` instead of `WebhookModel[]?`.**
 
-  A record compares by value, but an array member compares by reference, so two notifications with identical payloads were never equal, and the array was handed out mutable. Reading is unaffected: indexing, `foreach`, `Count` (rather than `Length`) and LINQ work as before. Code that declared the receiving variable as `WebhookModel[]` needs `IReadOnlyList<WebhookModel>` or `var`.
+  The collection is exposed through a read-only interface; it is not deeply immutable. Equality is unchanged: the deserialized collection compares by reference, so separately deserialized identical payloads are not equal. Indexing, `foreach` and LINQ are unchanged; use `Count` instead of `Length`. Code that declared the receiving variable as `WebhookModel[]` needs `IReadOnlyList<WebhookModel>` or `var`.
 
 ### Changed
 

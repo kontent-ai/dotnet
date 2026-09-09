@@ -18,8 +18,8 @@ public class WebhookNotificationExtensionsTests
     [Theory]
     [InlineData("ContentItemPublished.json", "item_this_changes_everything", DeliveryCacheDependencies.ItemsListScope)]
     [InlineData("ContentItemWorkflowStepChanged.json", "item_solutions_imaging", DeliveryCacheDependencies.ItemsListScope)]
-    [InlineData("ContentTypeChanged.json", "type_page", DeliveryCacheDependencies.TypesListScope)]
-    [InlineData("TaxonomyTermCreated.json", "taxonomy_product_category", DeliveryCacheDependencies.TaxonomiesListScope)]
+    [InlineData("ContentTypeChanged.json", "type_page", DeliveryCacheDependencies.TypesListScope, DeliveryCacheDependencies.ItemsListScope)]
+    [InlineData("TaxonomyTermCreated.json", "taxonomy_product_category", DeliveryCacheDependencies.TaxonomiesListScope, DeliveryCacheDependencies.ItemsListScope)]
     [InlineData("AssetMetadataChanged.json", "asset_f24e4721-f081-50ef-9a47-2ebd45b0c915")]
     [InlineData("LanguageDeleted.json")]
     public void EveryDocumentedPayload_MapsToTheSdkKeys(string file, params string[] expected)
@@ -140,12 +140,14 @@ public class WebhookNotificationExtensionsTests
         Assert.Empty(manager.Invalidations);
     }
 
-    [Fact]
-    public async Task InvalidateAsync_ReturnsFalse_WhenAnyInvalidationDidNotComplete()
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task InvalidateAsync_ReturnsFalse_WhenAnyInvalidationDidNotComplete(bool itemOutcome, bool assetOutcome)
     {
         var mock = new MockHttpMessageHandler();
         mock.When($"{BaseUrl}/assets/sofia_patel_jpg/used-in").Respond("application/json", UsagePage("about"));
-        var manager = new RecordingCacheManager { Outcomes = new([true, false]) };
+        var manager = new RecordingCacheManager { Outcomes = new([itemOutcome, assetOutcome]) };
         var batch = new WebhookNotification
         {
             Notifications = [Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero"), .. Load("AssetMetadataChanged.json").Notifications]

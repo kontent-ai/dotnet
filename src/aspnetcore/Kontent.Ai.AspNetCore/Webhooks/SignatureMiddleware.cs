@@ -42,8 +42,7 @@ internal sealed class SignatureMiddleware
         var providedSignature = request.Headers["X-Kontent-ai-Signature"].FirstOrDefault()
             ?? request.Headers["X-KC-Signature"].FirstOrDefault();
 
-        // Checked before the body is read: a request without a verifiable signature is rejected without
-        // buffering it, and a body that cannot be read is a 401 rather than an exception.
+        // Reject missing or malformed signature headers before buffering the body.
         if (!TryDecodeSignature(providedSignature, out var provided))
         {
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
