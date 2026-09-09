@@ -665,20 +665,22 @@ An invalidation and fail-safe compose the same way. `InvalidateAsync` expires th
 
 ### Invalidation Matrix (RC-ready)
 
-Use this matrix when mapping webhook events to SDK dependency invalidation keys. Compose the detail keys with `DeliveryCacheDependencies` rather than by hand: they are the exact strings the SDK tags with, trimmed and lower-cased, and `InvalidateAsync` matches case-insensitively.
+This matrix lists response dependency tags, not the complete set of keys to invalidate for an event. The recommended webhook pattern below also covers item-list membership changes. Compose detail keys with `DeliveryCacheDependencies`: they are the exact strings the SDK tags with, trimmed and lower-cased, and `InvalidateAsync` matches case-insensitively.
 
 | Endpoint family | Detail dependency key | Listing scope dependency key |
 |---|---|---|
 | Items | `DeliveryCacheDependencies.ForItem(codename)` (`item_{codename}`) | `DeliveryCacheDependencies.ItemsListScope` (`scope_items_list`) |
-| Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list caches containing items of that type) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`) |
-| Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(codename)` (`taxonomy_{codename}`) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`) |
+| Types | `DeliveryCacheDependencies.ForType(codename)` (`type_{codename}`; also tags item/item-list responses containing items of that type, but not empty item listings) | `DeliveryCacheDependencies.TypesListScope` (`scope_types_list`; type listings only) |
+| Taxonomies | `DeliveryCacheDependencies.ForTaxonomy(groupCodename)` (`taxonomy_{codename}`; also tags item responses carrying the group's taxonomy element) | `DeliveryCacheDependencies.TaxonomiesListScope` (`scope_taxonomies_list`; taxonomy listings only) |
 | Assets | `DeliveryCacheDependencies.ForAsset(id)` (`asset_{id}`; tags every item cache whose rich text refers to the asset as an inline image or a link). An asset held in an asset element is not tagged - see [Asset events](#asset-events) | none - assets have no listing |
 
 Recommended webhook pattern:
 - item event: invalidate `ForItem(codename)` + `ItemsListScope`
-- type event: invalidate `ForType(codename)` + `TypesListScope` — the type key covers both the cached type definition and every item/item-list cache whose payload references items of that type, so content-type changes or deletions do not require falling back to `ItemsListScope`
-- taxonomy event: invalidate `ForTaxonomy(codename)` + `TaxonomiesListScope`
+- type event: invalidate `ForType(codename)` + `TypesListScope` + `ItemsListScope`
+- taxonomy event: invalidate `ForTaxonomy(groupCodename)` + `TaxonomiesListScope` + `ItemsListScope`; use `TaxonomyGroup` for a term event, or `Codename` for a group event
 - asset event: `cacheManager.InvalidateAssetAsync(client, codename, id)` - see [Asset events](#asset-events)
+
+Type and taxonomy changes can alter item-list membership. Empty or projected item listings may have no matching detail key, so their invalidation requires `ItemsListScope` as well.
 
 From a webhook, `Kontent.Ai.AspNetCore` does all four in one call - `cacheManager.InvalidateAsync(notification, client)` - see [Webhook-Based Invalidation](#webhook-based-invalidation).
 
@@ -771,11 +773,12 @@ package owns the pieces in between and is the supported way to wire them:
   over the raw body, constant-time comparison, header checked before the body is read).
 - `WebhookNotification` — the payload the API sends, with the documented `object_type` / `action` /
   `delivery_slot` values as constants.
-- `InvalidateAsync(notification, client)` on `IDeliveryCacheManager` — invalidates everything a batch, or
-  any subset of one, affects: item plus `ItemsListScope`, type plus `TypesListScope`, taxonomy *group* plus
-  `TaxonomiesListScope` (for a term event the payload's codename is the term's; the group is carried
+- `InvalidateAsync(notification, client)` on `IDeliveryCacheManager` — invalidates a batch's supported
+  dependencies: item plus `ItemsListScope`, type plus `TypesListScope` and `ItemsListScope`, taxonomy *group* plus
+  `TaxonomiesListScope` and `ItemsListScope` (for a term event the payload's codename is the term's; the group is carried
   separately), and for an asset event `InvalidateAssetAsync` through the client, which is what reaches the
-  items holding the asset in an asset element. `GetCacheDependencyKeys()` exposes the key mapping alone.
+  items holding the asset in an asset element. Language events require a separate purge; renames cannot
+  invalidate old-codename detail keys. `GetCacheDependencyKeys()` exposes the key mapping alone.
 
 ```csharp
 using Kontent.Ai.AspNetCore.Webhooks;
@@ -819,8 +822,7 @@ app.MapPost("/webhooks/kontent", async (
         return Results.NoContent();
     }
 
-    // InvalidateAsync reports failure instead of throwing (TTL is its backstop). A non-2xx makes Kontent.ai
-    // resend the notification, so a failed invalidation gets a second chance rather than a 204.
+    // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.
     var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 });

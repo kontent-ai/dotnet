@@ -67,8 +67,6 @@ public class SignatureMiddlewareTests
         Assert.True(nextCalled);
     }
 
-    // The header is checked before the body is read, so a request with no verifiable signature costs no
-    // buffering, and a body that cannot be read is a 401 rather than an exception.
     [Fact]
     public async Task RequestWithoutSignature_IsRejectedWithoutReadingTheBody()
     {

@@ -12,6 +12,8 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 /// cached responses with. A content item maps to its item key plus <see cref="DeliveryCacheDependencies.ItemsListScope"/>;
 /// a content type to its type key plus <see cref="DeliveryCacheDependencies.TypesListScope"/>; a taxonomy to its group
 /// key plus <see cref="DeliveryCacheDependencies.TaxonomiesListScope"/>; an asset to its asset key.
+/// Type and taxonomy events also invalidate <see cref="DeliveryCacheDependencies.ItemsListScope"/> because they can
+/// change membership of empty or projected item listings that carry no matching detail key.
 /// </para>
 /// <para>
 /// The asset key reaches rich-text usages only. An asset element carries no asset id, so the items holding the asset
@@ -45,10 +47,13 @@ public static class WebhookNotificationExtensions
     }
 
     /// <summary>
-    /// Invalidates everything the batch affects: the dependency keys of every notification, and for an asset
-    /// notification also the items using the asset, which
+    /// Invalidates the batch's supported dependency keys and, for an asset notification, the items using the asset, which
     /// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> resolves through <paramref name="client"/>.
     /// </summary>
+    /// <remarks>
+    /// Language events require a separate purge. Renames cannot invalidate detail keys using the old codename.
+    /// Environment and delivery-slot filtering are the caller's responsibility.
+    /// </remarks>
     /// <returns><c>false</c> when any invalidation did not complete, so the webhook can be answered with a status Kontent.ai retries.</returns>
     /// <exception cref="DeliveryRequestException">An asset's usage lookup failed; nothing was invalidated for that asset.</exception>
     public static Task<bool> InvalidateAsync(
@@ -94,10 +99,10 @@ public static class WebhookNotificationExtensions
         return notification.Message.ObjectType switch
         {
             WebhookObjectTypes.ContentItem => [DeliveryCacheDependencies.ForItem(system.Codename), DeliveryCacheDependencies.ItemsListScope],
-            WebhookObjectTypes.ContentType => [DeliveryCacheDependencies.ForType(system.Codename), DeliveryCacheDependencies.TypesListScope],
+            WebhookObjectTypes.ContentType => [DeliveryCacheDependencies.ForType(system.Codename), DeliveryCacheDependencies.TypesListScope, DeliveryCacheDependencies.ItemsListScope],
             // For a term event the codename is the term's and the group is carried separately; for a group
             // event the codename is the group's. The cache is keyed by group either way.
-            WebhookObjectTypes.Taxonomy => [DeliveryCacheDependencies.ForTaxonomy(system.TaxonomyGroup ?? system.Codename), DeliveryCacheDependencies.TaxonomiesListScope],
+            WebhookObjectTypes.Taxonomy => [DeliveryCacheDependencies.ForTaxonomy(system.TaxonomyGroup ?? system.Codename), DeliveryCacheDependencies.TaxonomiesListScope, DeliveryCacheDependencies.ItemsListScope],
             WebhookObjectTypes.Asset => [DeliveryCacheDependencies.ForAsset(system.Id)],
             _ => [],
         };
