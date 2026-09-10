@@ -3,6 +3,7 @@ using Kontent.Ai.Delivery.Caching;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Backplane.Memory;
 
 namespace Kontent.Ai.Delivery.Tests.Caching;
@@ -78,8 +79,14 @@ public class HybridCacheCoherenceTests
         Assert.Equal("v1", fromB!.Value.Value);
     }
 
+    // FusionCache subscribes to the backplane on a background thread unless told to wait, and a
+    // notification published before a node is subscribed is not queued, so the node must be subscribed
+    // before the test invalidates.
     private static FusionCacheManager NewNode(IDistributedCache cache, MemoryBackplane? backplane) =>
-        FusionCacheManager.CreateHybrid(cache, new DeliveryCacheOptions(), backplane: backplane);
+        FusionCacheManager.CreateHybrid(
+            cache,
+            new DeliveryCacheOptions { ConfigureFusionCacheOptions = o => ((FusionCacheOptions)o).WaitForInitialBackplaneSubscribe = true },
+            backplane: backplane);
 
     // Both nodes join one in-process channel, standing in for a shared Redis backplane.
     private static MemoryBackplane NewBackplane(string channel) =>
