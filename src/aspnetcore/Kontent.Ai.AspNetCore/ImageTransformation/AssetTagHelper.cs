@@ -188,7 +188,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         if (height.HasValue) builder.WithHeight(height.Value);
         if (Fit.HasValue) builder.WithFitMode(Fit.Value);
         ApplyEncodingTransforms(builder);
-        return builder.Url.ToString();
+        return builder.Url.AbsoluteUri;
     }
 
     // A rendition owns layout, so its query replaces whatever the URL already carries - the preset
@@ -198,7 +198,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     {
         var builder = new ImageUrlBuilder(new UriBuilder(Asset!.Url) { Query = rendition.Query }.Uri);
         ApplyEncodingTransforms(builder);
-        return builder.Url.ToString();
+        return builder.Url.AbsoluteUri;
     }
 
     private void ApplyEncodingTransforms(ImageUrlBuilder builder)

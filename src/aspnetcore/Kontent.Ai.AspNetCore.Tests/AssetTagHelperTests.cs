@@ -554,6 +554,33 @@ public class AssetTagHelperTests
         }
     }
 
+    // The API percent-encodes the filename. Uri.ToString() is the display form and unescapes it, so a
+    // literal space would land in srcset, where a space is the delimiter between a candidate and its
+    // width descriptor.
+    [Fact]
+    public async Task ProcessAsync_KeepsTheFilenameEncoding_InSrcAndSrcset()
+    {
+        const string encodedUrl = "https://assets.example.com/folder/Patient%20care%20caf%C3%A9.jpg";
+        var helper = new AssetTagHelper
+        {
+            Asset = new TestAsset { Url = encodedUrl, Renditions = new Dictionary<string, IAssetRendition> { ["default"] = new TestRendition { Query = "w=500&h=403&fit=clip&rect=52,0,500,403" } } },
+            ResponsiveWidths = [200, 400]
+        };
+        var context = CreateContext();
+        var output = CreateOutput();
+
+        await helper.ProcessAsync(context, output);
+
+        Assert.Equal($"{encodedUrl}?w=200 200w,{encodedUrl}?w=400 400w", AttrValue(output, "srcset"));
+        Assert.Equal($"{encodedUrl}?w=400", AttrValue(output, "src"));
+
+        helper.Rendition = "default";
+        var renditionOutput = CreateOutput();
+        await helper.ProcessAsync(CreateContext(), renditionOutput);
+
+        Assert.Equal($"{encodedUrl}?w=500&h=403&fit=clip&rect=52,0,500,403", AttrValue(renditionOutput, "src"));
+    }
+
     private static TagHelperContext CreateContext(params (string name, object value)[] attributes)
     {
         var attrs = new TagHelperAttributeList(
