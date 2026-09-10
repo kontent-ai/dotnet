@@ -6,6 +6,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **`<img-asset>` keeps the percent-encoding of the asset's filename.**
+
+  The transformed URL was rendered with `Uri.ToString()`, the display form, which unescapes `%20` and non-ASCII characters. An asset named `Patient care.jpg` was emitted with a literal space, which `srcset` reads as the delimiter before the width descriptor, so every candidate for such an asset was malformed and `src` carried an unencoded URL. Both the responsive and the rendition path now render `AbsoluteUri`, which is the escaped absolute URL.
+
 ## 1.0.0-rc.3 (2026-09-09)  _(prerelease)_
 
 ### Breaking changes
