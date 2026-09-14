@@ -36,6 +36,25 @@ its own schedule, so a product consumes its siblings the way an external consume
 through `PackageReference`, at the version declared in
 [`Directory.Packages.props`](./Directory.Packages.props).
 
+### Branches
+
+`main` tracks released packages, `vnext` is for the next major, and `maintenance/**` carries
+hotfixes for earlier lines. Documentation follows the code on each branch.
+
+### Building and testing
+
+Use the .NET SDK pinned in [`global.json`](./global.json). Run `dotnet build` and `dotnet test`
+from the repository root to build and test everything, or from `src/<product>/` to work on one
+product. Each product has its own solution file.
+
+Test coverage is opt-in locally:
+
+```sh
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+```
+
+CI collects coverage and enforces each product's coverage threshold.
+
 ### Two build modes
 
 ```sh
@@ -85,7 +104,7 @@ to lag — raising one forces every downstream consumer to upgrade too.
 Do not edit `eng/Versions.props` in a feature pull request. Versions are bumped by the
 *Prepare release* workflow, which promotes each product's `## Unreleased` changelog section at
 the same time and opens one pull request for the batch. Your job is the changelog entry; the
-release decides which version it lands under. The root [`README.md`](./README.md#releasing)
+release decides which version it lands under. The [release guide](./RELEASING.md)
 describes the full flow.
 
 CI enforces this: the *Release guardrails* job fails a pull request that touches

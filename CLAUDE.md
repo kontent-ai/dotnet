@@ -61,6 +61,8 @@ README for the prose.
 
 ## Versioning and releases — GitHub Actions are the source of truth
 
+[RELEASING.md](RELEASING.md) describes the same machinery for maintainers; what follows is the agent's brief. The overlap is deliberate — nobody should have to open an agent instruction file to run a release — so a change to the workflows updates both, and user-facing instructions go only in RELEASING.md.
+
 **`eng/Versions.props`** holds one version property per product (e.g. `<ManagementVersion>`); each `src/<product>/Directory.Build.props` applies its own. This file — not tags, not changelogs — is what the machinery trusts. The workflows under `.github/workflows/` define the process; when in doubt about how releasing works, read them rather than guessing:
 
 - **`ci.yml`** — build + test on every PR and push to `main`, `vnext` and `maintenance/**`, Ubuntu and Windows, both reference modes.

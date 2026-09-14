@@ -6,192 +6,52 @@
 [![codecov][codecov-shield]][codecov-url]
 [![MIT License][license-shield]][license-url]
 
-A monorepo for the Kontent.ai .NET SDKs and tooling — the Delivery, Management and Sync
-clients, the ASP.NET Core extensions and the model generator. Each keeps its own version,
-changelog and release cadence, so a change touching several of them is one pull request
-rather than a coordinated release across five repositories.
+Official .NET SDKs and tools for Kontent.ai. Choose a product below for installation,
+examples, and guides. Each product has its own version and release cadence.
 
-| Product | Use it to | Version | Readme |
-|---|---|---|---|
-| Delivery SDK | Read published content into a .NET app | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) |
-| Management SDK | Create, update and publish content | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) |
-| Sync SDK | Process what changed since last time | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
-| ASP.NET Core extensions | Render content and receive webhooks in ASP.NET Core | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) |
-| Model generator | Generate typed C# records from your content model | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
+| Product | Use it to | Latest stable release |
+|---|---|---|
+| [Delivery SDK](./src/delivery/README.md) | Read published content into a .NET app | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] |
+| [Management SDK](./src/management/README.md) | Create, update and publish content | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] |
+| [Sync SDK](./src/sync/README.md) | Process content changes since the last sync | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] |
+| [ASP.NET Core extensions](./src/aspnetcore/README.md) | Render content and receive webhooks in ASP.NET Core | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] |
+| [Model generator](./src/model-generator/README.md) | Generate typed C# records from your content model | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] |
 
-The badges show what is published on nuget.org — `stable` per product in the table above, and both
-`stable` and `latest` in each product's README. They do not say which version *this checkout*
-describes: documentation lives with its code, so the branch you are reading is the answer to that.
-
-`main` tracks the released packages, `vnext` is where the next major is developed, and `maintenance/**`
-carries hotfixes for earlier lines. Documentation lives with its code, so a branch's docs describe that
-branch.
-
-> [!NOTE]
-> This repository is where every Kontent.ai .NET SDK and tool is developed and published from.
-> The former per-product repositories — [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net),
-> [management-sdk-net](https://github.com/kontent-ai/management-sdk-net),
-> [sync-sdk-net](https://github.com/kontent-ai/sync-sdk-net),
-> [aspnetcore-extensions](https://github.com/kontent-ai/aspnetcore-extensions) and
-> [model-generator-net](https://github.com/kontent-ai/model-generator-net) — are frozen and kept
-> only for their earlier release history, so open issues and pull requests here.
-
-## Layout
-
-```
-src/<product>/     each product, with its own CHANGELOG.md and package metadata
-src/common/        source compiled into the SDKs rather than shipped as a package
-src/testing/       test infrastructure shared across products; ships nothing
-eng/               version source of truth, release routing, build scripts
-.github/workflows/ CI and the Prepare release / Publish workflows
-```
+The badges show published package versions. Documentation describes the code on the branch
+you are viewing.
 
 ## Building
 
-Requires the .NET SDK pinned in [`global.json`](./global.json).
+Requires the .NET SDK pinned in [`global.json`](./global.json). From the repository root:
 
 ```sh
-dotnet build          # everything, against published sibling packages
-dotnet test           # everything
-
-# Coverage is opt-in. CI adds these, and the per-product thresholds fail the run below them.
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+dotnet build
+dotnet test
 ```
 
-Each product also has its own solution under `src/<product>/` if you only want to open one.
+See [CONTRIBUTING](./CONTRIBUTING.md#working-in-this-repository) for building individual products,
+using sibling products from source, and collecting test coverage.
 
-Products consume each other as `PackageReference`, so the default build is what ships.
-`-p:UseProjectReferences=true` swaps those for the source in this tree and answers the other
-question — whether the five products at this commit work together. CI runs both and both
-block the merge. See [`CONTRIBUTING.md`](./CONTRIBUTING.md#two-build-modes).
+## Layout
+
+Each product lives under `src/<product>/`. Shared infrastructure lives in:
+
+- [`src/common/`](./src/common/README.md) — source compiled into the SDKs.
+- [`src/testing/`](./src/testing/README.md) — shared test infrastructure.
+- `eng/` — version definitions and build/release scripts.
 
 ## Releasing
 
-Versions live in [`eng/Versions.props`](./eng/Versions.props), one property per product.
-A release is a version bump plus a changelog entry; publishing compares that file with
-nuget.org and ships whatever is missing.
-
-**Actions → Prepare release** is the first step. Each product has its own field, taking
-`prerelease`, `release`, `patch`, `minor`, `major` or an explicit version such as `2.1.0-rc.1`;
-leave a field empty to skip that product. One run bumps several products at once and opens a
-single PR covering the batch. The same bump can be done locally if you prefer:
-
-```sh
-dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|minor|major>
-```
-
-### Releasing a new stable major
-
-A release page renders only its own changelog section, so a major promoted straight from
-`## Unreleased` describes the delta since the last release candidate — often nothing, and never what
-someone upgrading from the previous stable major needs. Such a release needs an **overview**, and the
-*Prepare release* PR is where to write it, because by then the version heading exists.
-
-In that PR, open the product's `CHANGELOG.md` and add prose between the new version heading and the
-first `###`:
-
-```diff
- ## 20.0.0 (2026-09-17)
-+
-+The first stable release of the **20.x** line. Targets `net10.0`.
-+
-+Coming from **19.x**, the compile-time work is registration and caching: …
-+
-+Full migration: [19 → 20](…/src/delivery/docs/upgrade/19-to-20.md).
-
- ### Breaking changes
-```
-
-Check how it will read by rendering the page from the release branch:
-
-```sh
-dotnet run eng/scripts/release-notes.cs -- delivery-v20.0.0
-```
-
-`CLAUDE.md` has the four parts an overview covers. *Publish* refuses a new stable major that has none,
-and refuses an empty entry outright — both on the dry run, before anything is pushed.
-
-After merging that PR, **Actions → Publish** packs and pushes every product whose declared
-version is not yet on NuGet, and records each one as a
-`<product>-v<version>` tag and a GitHub Release with notes taken from the product's
-changelog. It defaults to a dry run, which builds, packs and renders the notes without
-pushing anything, so run it once to see the plan and again to publish. A product whose
-changelog has no entry for its version is refused, and so is one whose cross-product floor
-names a version that is not on NuGet. The packages and notes of every run, dry or not, are
-kept as a workflow artifact.
-
-The job runs under the `nuget.org` GitHub environment. Its settings, not the workflow, decide
-which branches may publish and whether a reviewer has to approve the run. Releases stay
-independent: any one can be published or dropped without affecting the rest.
-
-### When a publish run fails
-
-Uploads to NuGet are immutable and a product can span several packages, so the workflow
-binds each version to one commit before pushing anything: it creates the `<product>-v<version>`
-tag first, and the GitHub Release stays a draft until every package and asset is up. To finish
-an interrupted run, **re-run that run** from the Actions UI - it keeps the original commit,
-skips what already landed and completes the rest. A fresh dispatch from a later commit is
-refused for that version, because the packages already on NuGet came from the tagged one.
-Only when none of a version's packages reached NuGet may its tag be deleted and the publish
-dispatched again.
-
-A fresh dispatch finds unfinished work by itself: any product whose packages are on NuGet but
-whose release is missing or still a draft is included in the plan, and a product that is
-complete is skipped, with a notice if it was named explicitly.
-
-### Hotfixing an earlier major
-
-Branch from the last tag of that line as `maintenance/<name>`, cherry-pick the fix, then run
-both workflows from that branch: *Prepare release* opens its PR against the branch, and
-*Publish* needs the product named explicitly, because an older branch declares every product
-at whatever version it had then.
-
-### Cross-product dependency floors
-
-Releasing a product does **not** update the version its siblings depend on. Those floors live
-in [`Directory.Packages.props`](./Directory.Packages.props), and raising one is a third step,
-in its own PR, after the dependency is on NuGet — doing it sooner makes the repo
-unrestorable, including the release that would have published that version.
-
-A floor is the minimum a published package promises to work with, so it is meant to lag
-behind the newest sibling. Raise it only when the consuming code actually needs the newer
-API. [`CONTRIBUTING.md`](./CONTRIBUTING.md#changing-an-api-that-another-product-consumes) has
-the full sequence.
-
-To see where the floors stand:
-
-```sh
-dotnet run eng/scripts/dependency-floors.cs
-```
-
-Every *Prepare release* PR carries the same report in its body, and **Actions → Dependency
-floors** runs it monthly. It only fails if a floor names a version that is not on NuGet at
-all — being behind is reported, never enforced.
-
-### Prepared but not published
-
-Merging a *Prepare release* PR and running *Publish* are separate steps, so a product can sit
-with a bumped version that is not on NuGet. To see where each product stands:
-
-```sh
-dotnet run eng/scripts/release-status.cs
-```
-
-The one thing to avoid in that state is preparing the same product *again*: the bump would
-move on from a version that was never published, silently skipping it. To abandon a prepared
-version instead, restore it in `eng/Versions.props` and delete the `## <version> (<date>)`
-heading so its notes sit under `## Unreleased` again.
+Maintainers: see the [release guide](./RELEASING.md) for preparing, publishing, and
+recovering releases.
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+See [CONTRIBUTING](./CONTRIBUTING.md) and the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## License
 
-Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more information.
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://github.com/kontent-ai/Home/wiki/Checklist-for-publishing-a-new-OS-project#badges-->
+Distributed under the MIT License. See [LICENSE](./LICENSE.md).
 
 [dotnet-shield]: https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
 [dotnet-url]: https://dotnet.microsoft.com/download/dotnet/10.0

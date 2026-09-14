@@ -54,7 +54,7 @@ if (Regex.IsMatch(version, @"^\d+\.0\.0$") && body.StartsWith("###", StringCompa
     return Fail(
         $"the '## {version}' entry in {changelogRel} is a new stable major with no overview. " +
         "Add prose above the first '###' saying what the release is, what a consumer upgrading from " +
-        "the previous stable major has to do, and where the upgrade guide is. See CLAUDE.md.");
+        "the previous stable major has to do, and where the upgrade guide is. See RELEASING.md.");
 
 // Promote the entry's own headings one level: "### Fixes" reads better as "## Fixes" on a
 // release page. Fenced code blocks are skipped so shell comments are not rewritten.

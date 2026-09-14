@@ -144,7 +144,7 @@ jobs:
               done <<< "$MAJORS"
               echo "> \`\`\`"
               echo ">"
-              echo "> *Publish* refuses a new stable major that has none. The repository README has the shape."
+              echo "> *Publish* refuses a new stable major that has none. See [RELEASING.md](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/RELEASING.md) for the overview requirements."
               echo
             fi
             echo "Review each version property and its promoted changelog entry, then merge."
