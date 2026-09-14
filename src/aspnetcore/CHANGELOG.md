@@ -6,6 +6,18 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release. Targets `net10.0` and requires `Kontent.Ai.Delivery` **20** or later.
+
+Coming from **0.16.x / 0.17.x**, the public surface was tightened while the package was still pre-1.0.
+Two changes are behavioural and worth reading even where the compiler is quiet: a missing webhook
+secret now stops the host from starting instead of admitting unsigned requests, and a webhook payload
+missing a documented member fails to bind rather than arriving half-populated.
+
+Full migration: [0 → 1](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md).
+
+The sections below list what changed since `1.0.0-rc.2`; the `rc` entries further down record the rest
+of the line.
+
 ### Fixed
 
 - **`<img-asset>` keeps the percent-encoding of the asset's filename.**

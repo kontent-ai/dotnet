@@ -5,6 +5,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release of the **2.x** line. Targets `net10.0` and Sync API v2.
+
+Coming from **1.x**: `Kontent.Ai.Sync.Abstractions` is folded into the main package, the four delta
+interfaces collapse into one `SyncChange<TData>` with a typed payload, and paging is a stream you
+enumerate with `EnumerateDeltaAsync` rather than a call that buffers everything. `SyncToken` is
+non-nullable, and registration is one builder.
+
+Full migration: [1 → 2](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Coming from the sync methods that used to
+live in `Kontent.Ai.Delivery` — removed in Delivery 19.0 — start at the same guide.
+
+The sections below list what changed since `2.0.0-rc.3`; the `rc` entries further down record the rest
+of the line.
+
 ### Fixed
 
 - **A missing default client no longer reports the internal `'Default'` name.**

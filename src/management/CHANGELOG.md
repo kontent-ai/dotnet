@@ -6,6 +6,20 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release of the **9.x** line, and the GA of the modernization the `9.0.0-beta` and
+`9.0.0-rc` series delivered. Targets `net10.0`.
+
+Coming from **8.x**, the shape of the API changed throughout: calls return an `IManagementResult`
+instead of throwing, listings come back materialized rather than paged by hand, serialization moved to
+`System.Text.Json`, strongly-typed models are immutable records, and registration is one builder.
+Retries are idempotency-aware — a `429` is retried for every method, other transient failures only for
+idempotent ones — so a `POST` that fails mid-flight is never replayed.
+
+Full migration: [8 → 9](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md).
+
+The sections below list what changed since `9.0.0-rc.3`; the `beta` and `rc` entries further down
+record the rest of the line.
+
 ### Fixed
 
 - **A missing default client no longer reports the internal `'Default'` name.**

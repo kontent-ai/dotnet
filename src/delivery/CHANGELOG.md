@@ -8,6 +8,22 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release of the **20.x** line, and the GA of everything the `20.0.0-rc` series
+introduced. Targets `net10.0`.
+
+Coming from **19.x**, the compile-time work is registration and caching: `AddDeliveryClient` and
+`DeliveryClient.Create` both take a builder, and a cache attaches to that builder with `UseMemoryCache`
+/ `UseHybridCache` instead of its own `Add…` call. Three changes compile unchanged and behave
+differently — a failed page in `EnumerateAsync()` throws instead of ending the walk, transport failures
+arrive as results rather than exceptions, and the 100-second call ceiling is gone under the default
+resilience pipeline. Distributed cache keys change shape, so existing Redis entries expire unread.
+
+Full migration: [19 → 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md). Coming from 18.x, read
+[18 → 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) first.
+
+The sections below list what changed since `20.0.0-rc.3`; the `rc` entries further down record the rest
+of the line.
+
 ### Breaking changes
 
 - **`PurgeAsync` throws when a distributed purge cannot complete.**
