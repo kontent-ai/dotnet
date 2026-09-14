@@ -7,6 +7,8 @@ Official .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs
 
 Use this SDK to initialize sync and process delta updates for content items, content types, languages, and taxonomies.
 
+This README documents **2.x**, which targets `net10.0`. Coming from 1.x? See [Upgrade Guide](#upgrade-guide).
+
 > [!IMPORTANT]
 > This SDK targets **Sync API v2** exclusively. Sync API v1 is deprecated and not supported.
 

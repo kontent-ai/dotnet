@@ -20,8 +20,8 @@ rather than a coordinated release across five repositories.
 | Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
 | Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
 
-The badge tracks each product's flagship package on nuget.org, prereleases included, so it
-shows the release candidates ahead of a GA rather than the stable line they supersede.
+Each badge tracks the latest stable release of that product's flagship package on nuget.org.
+Prereleases are published too, but a product README always documents the stable line.
 
 > [!NOTE]
 > This repository is where every Kontent.ai .NET SDK and tool is developed and published from.
@@ -171,13 +171,13 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 [license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet.svg?style=for-the-badge
 [license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
 
-[aspnetcore-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.AspNetCore
+[aspnetcore-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore?style=for-the-badge
 [aspnetcore-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.AspNetCore
-[delivery-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Delivery
+[delivery-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Delivery?style=for-the-badge
 [delivery-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Delivery
-[management-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Management
+[management-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge
 [management-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
-[model-generator-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.ModelGenerator
+[model-generator-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge
 [model-generator-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.ModelGenerator
-[sync-nuget-shield]: https://img.shields.io/nuget/vpre/Kontent.Ai.Sync
+[sync-nuget-shield]: https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge
 [sync-nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Sync

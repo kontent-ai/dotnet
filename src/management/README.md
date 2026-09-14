@@ -3,14 +3,9 @@
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
 
-> [!WARNING]
-> **This is a beta release.** The SDK is undergoing a ground-up modernization, and this README documents the new, **modernized API** — result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. While in beta it is published as a **prerelease**, and **breaking changes may land between prereleases** until the first stable major version ships. Pin an exact version if you need stability during the beta.
->
-> **For production, use the latest stable release** — the `8.x` line, which exposes the previous API and is installed without the `--prerelease` flag. See the [package on NuGet][nuget-url] for the current stable version.
->
-> Migrating from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md).
-
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.
+
+This README documents **9.x**: result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. Coming from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) — the API changed shape throughout.
 
 ## Table of Contents
 
@@ -42,10 +37,8 @@ The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/lea
 
 ## Installation
 
-Install the SDK via the NuGet Package Manager. The modernized API documented here ships as a **prerelease** during the beta, so include the `--prerelease` flag — without it you get the previous stable API, which these examples do not match:
-
 ```bash
-dotnet add package Kontent.Ai.Management --prerelease
+dotnet add package Kontent.Ai.Management
 ```
 
 The SDK targets `net10.0`.
@@ -957,5 +950,3 @@ See the [contributing](https://github.com/kontent-ai/dotnet/blob/main/CONTRIBUTI
 ## License
 
 Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.
-
-[nuget-url]: https://www.nuget.org/packages/Kontent.Ai.Management
