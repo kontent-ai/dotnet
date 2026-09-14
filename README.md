@@ -1,3 +1,5 @@
+<img src=".github/assets/kontent-ai-dotnet.png" alt="Kontent.ai and .NET" width="480">
+
 # Kontent.ai .NET
 
 [![.NET][dotnet-shield]][dotnet-url]
