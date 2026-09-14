@@ -156,7 +156,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## 9.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
-Targets .NET 10, completing the framework move that the `9.x` line was always heading for, and upgrades Refit across four major versions. The result pattern, transport architecture and model conventions introduced in the earlier betas are unchanged — see the [9.0.0-beta-1 release notes](docs/release-notes-9.0.0-beta-1.md) for that overview.
+Targets .NET 10, completing the framework move that the `9.x` line was always heading for, and upgrades Refit across four major versions. The result pattern, transport architecture and model conventions introduced in the earlier betas are unchanged — see the [9.0.0-beta-1 entry](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md#900-beta-1-2026-06-26--prerelease) for that overview.
 
 > [!WARNING]
 > Still a **prerelease**. Install with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe.
@@ -255,7 +255,7 @@ A packaging-only fix on top of 9.0.0-beta-4. No API or behavior change — if yo
 
 ## 9.0.0-beta-4 (2026-07-20)  _(prerelease)_
 
-Fourth beta of the modernized Management SDK, and primarily a **security** release: it closes a path-traversal issue in how caller-supplied identifiers become request paths. It also fixes several correctness and reliability bugs and adds a small ergonomic improvement. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 release notes](docs/release-notes-9.0.0-beta-1.md).
+Fourth beta of the modernized Management SDK, and primarily a **security** release: it closes a path-traversal issue in how caller-supplied identifiers become request paths. It also fixes several correctness and reliability bugs and adds a small ergonomic improvement. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 entry](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md#900-beta-1-2026-06-26--prerelease).
 
 > [!WARNING]
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
@@ -319,7 +319,7 @@ Identifier values are now consistently encoded and validated as a single URL pat
 
 ## 9.0.0-beta-3 (2026-07-13)  _(prerelease)_
 
-Third beta of the modernized Management SDK — an **ergonomics-and-alignment** release. It rounds off the API surface with small, explicit conveniences drawn from real call-site friction, finishes the naming and collection-type conventions the rewrite started, and modernizes every doc sample to teach the patterns the SDK actually ships. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 release notes](docs/release-notes-9.0.0-beta-1.md).
+Third beta of the modernized Management SDK — an **ergonomics-and-alignment** release. It rounds off the API surface with small, explicit conveniences drawn from real call-site friction, finishes the naming and collection-type conventions the rewrite started, and modernizes every doc sample to teach the patterns the SDK actually ships. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 entry](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md#900-beta-1-2026-06-26--prerelease).
 
 > [!WARNING]
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
@@ -370,7 +370,7 @@ dotnet add package Kontent.Ai.Management --prerelease
 
 ## 9.0.0-beta-2 (2026-07-09)  _(prerelease)_
 
-Second beta of the modernized Management SDK — a **fixes-and-refinements** release. No new surface area; it hardens the beta-1 rewrite with bug fixes and small API corrections drawn from beta feedback and an independent code review. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 release notes](docs/release-notes-9.0.0-beta-1.md).
+Second beta of the modernized Management SDK — a **fixes-and-refinements** release. No new surface area; it hardens the beta-1 rewrite with bug fixes and small API corrections drawn from beta feedback and an independent code review. For the full overview of the rewrite (result pattern, Refit + `System.Text.Json` transport, materialized listings, DI + fluent builder, immutable strongly-typed models), see the [9.0.0-beta-1 entry](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md#900-beta-1-2026-06-26--prerelease).
 
 > [!WARNING]
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.

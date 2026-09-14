@@ -17,7 +17,7 @@ The pillars:
 
 ## Current phase
 
-Late `9.0` beta, targeting `net10.0`. The framework bump the `9.x` line was heading for has landed, across the whole Kontent.ai .NET stack at once. GA is next, and every package in the repo takes a major at that point, with an `rc.1` before it. **The window for casual breaking changes is closing**: a break now needs a real defect or a clearly better architecture behind it, an entry in the release notes *and* the upgrade guide, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
+`9.0` has shipped stable on `net10.0`, alongside every other package in the repo. **The window for casual breaking changes is closed**: a break now waits for the next major, and needs a real defect or a clearly better architecture behind it, a `CHANGELOG.md` entry under `## Unreleased`, an entry in the upgrade guide for the major in progress, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
 
 ## Sibling products are canonical references
 
@@ -58,7 +58,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 3. **Declaration + XML docs** in `IManagementClient.cs` (docs describe the operation and the result; typed overloads cross-reference the environment-bound caveat).
 4. **Tests** in `Kontent.Ai.Management.Tests/ManagementClientTests/{Domain}Tests.cs`: MockHttp `Expect` on the exact URL, JSON fixture under `Data/{Domain}/`, `CaptureBody` + `ShouldMatchSerialized` for write bodies, `PagedFixtures.ConcatPages` for listings, null-guard tests.
 5. **Approval snapshot**: the Verify test fails on any public-surface change; review the `.received.txt` diff line-by-line, then copy it over `.verified.txt` — only for intended changes.
-6. **Docs**: README section for the new surface, release-notes entry, and - if breaking - an entry in the upgrade guide for the major in progress (`docs/upgrade/<from>-to-<to>.md`; one guide per major, frozen the day its major ships stable, the next one opened by the first breaking change after it). *A public-surface change without a README touch is an incomplete change.*
+6. **Docs**: README section for the new surface, a `CHANGELOG.md` entry under `## Unreleased`, and - if breaking - an entry in the upgrade guide for the major in progress (`docs/upgrade/<from>-to-<to>.md`; one guide per major, frozen the day its major ships stable, the next one opened by the first breaking change after it). *A public-surface change without a README touch is an incomplete change.*
 7. Wire contract in doubt? Verify against the OpenAPI reference or the JS SDK's contracts (`kontent-ai/management-sdk-js`, `lib/models`/`lib/contracts`) — and say what you verified against.
 
 ## Testing conventions
@@ -91,7 +91,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 - `Kontent.Ai.Management.Tests/` — mirrors the above; `Base/` holds the shared test infrastructure.
 - `src/management/Directory.Build.props` — this product's package metadata and its `<Version>`, taken from `eng/Versions.props`. Build settings, package versions and the SDK pin are repo-level. No Abstractions or Helpers project — considered and dropped; public contracts live with the implementation.
 - `CHANGELOG.md` — every user-visible change goes under `## Unreleased`; the release workflow promotes it.
-- `docs/` — per-release notes and the `8.x` → `9.x` upgrade guide. Keep both current with every user-visible change.
+- `docs/upgrade/` — one upgrade guide per major. Release notes live in `CHANGELOG.md`; the release workflow renders the GitHub Release from it, so a link in an entry must be absolute.
 
 ## Development commands
 
@@ -104,7 +104,7 @@ Prefer commands without explicit paths so they keep working if layout shifts.
 
 ## Commits and versioning
 
-- Commit messages follow `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching the branch history. Branch names follow `TICKET-ID_Short_description`.
+- Commit messages follow `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching the branch history. Branch names follow the repo convention in the root `CLAUDE.md`: `<type>/<short-description>`, with a ticket ID in the type slot when the work tracks one.
 - Keep each PR scoped: infra separate from per-domain work separate from model changes.
 - Package version comes from `<ManagementVersion>` in `eng/Versions.props`, applied by `src/management/Directory.Build.props`. Releases are tag-routed (`management-v<version>`), and the release workflow **refuses to publish if the tag and the property disagree** — the manifest is the source of truth, not the tag.
 - `Kontent.Ai.*` versions in the root `Directory.Packages.props` are declared dependency floors, not just pins. A floor must already be on nuget.org, so floors are raised in their own PR *after* the dependency ships — never in the batch that bumps it. The file's own header has the full reasoning.
