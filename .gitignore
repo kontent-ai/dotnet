@@ -258,5 +258,8 @@ coverage.json
 *.opencover.xml
 coverage-local/
 
+# BenchmarkDotNet writes a timestamped run folder beside the benchmark project
+BenchmarkDotNet.Artifacts/
+
 # Local plans, analyses and probes; never committed (see CLAUDE.md)
 scratch/
