@@ -41,7 +41,7 @@ The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dot
   The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
 - Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
   Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
-  client, and every call returns `ISyncResult<T>` rather than throwing.
+  client, and calls return an `ISyncResult` rather than throwing.
 
 ## Quick Start
 
@@ -67,7 +67,7 @@ shows the pieces as they come up.
 ```csharp
 public sealed class SyncService(ISyncClient syncClient)
 {
-    public async Task<string?> InitializeAsync(CancellationToken cancellationToken = default)
+    public async Task<string> InitializeAsync(CancellationToken cancellationToken = default)
     {
         var result = await syncClient.InitializeSyncAsync(cancellationToken);
 
@@ -378,10 +378,18 @@ services.AddSyncClient("preview", sync => sync.Options.Bind(configuration.GetSec
 
 ## Error Handling
 
-Every call returns a result rather than throwing. `ISyncResult` carries the outcome — success, error,
+A failed request is a result, not an exception. `ISyncResult` carries the outcome — success, error,
 status, the continuation token — and `ISyncResult<T>` adds `Value` for the calls that return content.
 `InitializeSyncAsync` returns the non-generic form, because initialization produces a token rather than
 content; `GetDeltaAsync` and `EnumerateDeltaAsync` return the generic one.
+
+> [!IMPORTANT]
+> Four things still throw:
+>
+> - **Cancellation** — a cancelled call throws `OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers behave normally.
+> - **Programmer errors** — a `null` argument throws `ArgumentNullException`.
+> - **Invalid configuration** — validated when the client is built or registered, as `OptionsValidationException`.
+> - **A successful response with no `X-Continuation` header** — `InvalidOperationException`. There is no result worth handing back: you could read that page and then be unable to advance.
 
 ```csharp
 var result = await syncClient.GetDeltaAsync(syncToken);
@@ -411,8 +419,8 @@ Important fields:
 
 The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into
 the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. Every successful response carries one, so it is
-never null on a successful result; a response without it fails rather than returning a result you could
-not continue from.
+never null on a successful result. A successful response that omits it throws rather than handing back a
+result you could not continue from.
 
 Where you store it during a walk is a choice. Saving once after the loop means a crash part-way through
 reprocesses from the previous token — some changes arrive twice, none are missed. Saving after each page
