@@ -13,13 +13,18 @@ The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn
 - [Installation](#installation)
 - [Upgrade Guide](#upgrade-guide)
 - [Quick Start](#quick-start)
+- [Documentation](#documentation) - every task guide
+  - [Querying](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/queries.md) - items, filtering, ordering, paging, languages
+  - [Content Models](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md) - generated records, linked items, dynamic access
+  - [Caching](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md) - memory, hybrid, invalidation
+  - [Rich Text](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md) - resolvers, inline images, blocks
+  - [Assets and Images](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/assets-and-images.md) - renditions and transformations
 - [Setting Up the Delivery Client](#setting-up-the-delivery-client)
 - [Caching](#caching)
 - [Rich Text](#rich-text)
 - [Configuration Options](#configuration-options)
 - [Error Handling](#error-handling)
 - [Source Tracking (for Tool Authors)](#source-tracking-for-tool-authors)
-- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -87,6 +92,29 @@ A call returns a result rather than throwing, so `IsSuccess` is the check every 
 
 This is the standalone form, which suits a console app, a script or a test. In an application, register
 the client in your container instead: [Setting Up the Delivery Client](#setting-up-the-delivery-client).
+
+Reading `result.Value.System.Name` works without a model, but everything past metadata wants one.
+Generate records with the [model generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator),
+then query them with `GetItem<Article>(...)` - see [Content Models](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md)
+and [Querying](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/queries.md). Typed queries are the
+baseline throughout the guides below.
+
+## Documentation
+
+This README covers installation, registration and configuration. Everything else lives beside it:
+
+| Guide | What it answers |
+|---|---|
+| **[Querying](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/queries.md)** | Items, types, taxonomies, used-in lookups, filtering, ordering, projection, paging, languages, and what a result carries |
+| **[Content Models](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md)** | Generated records, source-generated type resolution, linked items, dynamic access when the type is unknown until runtime |
+| **[Caching](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md)** | Memory and hybrid caches, keys, expiration, dependency keys, webhook invalidation, purging, multi-tenancy |
+| **[Rich Text](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md)** | Link and embedded-content resolvers, inline images, custom HTML nodes, reading blocks |
+| **[Assets and Images](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/assets-and-images.md)** | Renditions, a custom asset domain, and `ImageUrlBuilder` transformations |
+| **[Multiple Clients](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** | Named clients, preview vs production, multi-tenant and multi-brand setups |
+| **[Performance](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** | Query shaping, rate limits, parallelism, monitoring |
+| **[Extensibility](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** | Custom type providers and property mappers |
+| **[Architecture](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/for-developers.md)** | How the SDK is put together, one invariant per boundary - start here to contribute |
+| **[Upgrade Guides](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade)** | One per major: [18 &rarr; 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md), [19 &rarr; 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md) |
 
 ## Setting Up the Delivery Client
 
@@ -276,13 +304,16 @@ var html = await result.Value.Elements.BodyCopy.ToHtmlAsync();
 ```
 
 The default resolver handles text, images and standard HTML. To control how content item links and
-embedded content render, build a resolver and pass it in:
+embedded content render, build a resolver and pass it in. A resolver's return value is inserted as
+HTML unescaped, so encode every element value you interpolate (`HtmlEncoder` is in
+`System.Text.Encodings.Web`); the rendered output of `resolveChildren` is already HTML and must not
+be encoded:
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
     .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
-        $"<a href=\"/articles/{link.Metadata?.UrlSlug}\">{await resolveChildren(link.Children)}</a>")
-    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
+        $"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{await resolveChildren(link.Children)}</a>")
+    .WithContentResolver<Tweet>(t => $"<blockquote>{HtmlEncoder.Default.Encode(t.Elements.TweetText)}</blockquote>")
     .Build();
 
 var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
@@ -436,23 +467,6 @@ Every request the SDK sends carries two analytics headers:
 // Pin both, independent of assembly metadata.
 [assembly: DeliverySourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
 ```
-
-## Documentation
-
-This README covers installation, registration and configuration. Everything else lives beside it:
-
-| Guide | What it answers |
-|---|---|
-| **[Querying](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/queries.md)** | Items, types, taxonomies, used-in lookups, filtering, ordering, projection, paging, languages, and what a result carries |
-| **[Content Models](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md)** | Generated records, source-generated type resolution, linked items, dynamic access when the type is unknown until runtime |
-| **[Caching](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md)** | Memory and hybrid caches, keys, expiration, dependency keys, webhook invalidation, purging, multi-tenancy |
-| **[Rich Text](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md)** | Link and embedded-content resolvers, inline images, custom HTML nodes, reading blocks |
-| **[Assets and Images](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/assets-and-images.md)** | Renditions, a custom asset domain, and `ImageUrlBuilder` transformations |
-| **[Multiple Clients](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** | Named clients, preview vs production, multi-tenant and multi-brand setups |
-| **[Performance](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** | Query shaping, rate limits, parallelism, monitoring |
-| **[Extensibility](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** | Custom type providers and property mappers |
-| **[Architecture](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/for-developers.md)** | How the SDK is put together, one invariant per boundary - start here to contribute |
-| **[Upgrade Guides](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade)** | One per major: [18 &rarr; 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md), [19 &rarr; 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md) |
 
 ## Contributing
 

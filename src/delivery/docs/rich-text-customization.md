@@ -37,12 +37,6 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
   - [Element-Based Resolution](#element-based-resolution)
   - [Attribute-Based Resolution](#attribute-based-resolution)
 - [Resolution Context](#resolution-context)
-- [Best Practices](#best-practices)
-  - [1. Use Type-Safe Resolvers](#1-use-type-safe-resolvers)
-  - [2. Performance Optimization](#2-performance-optimization)
-  - [2. Security](#2-security)
-  - [3. Maintainability](#3-maintainability)
-  - [4. Testability](#4-testability)
 - [Troubleshooting](#troubleshooting)
   - [Content Not Rendering](#content-not-rendering)
   - [Links Not Working](#links-not-working)
@@ -97,7 +91,8 @@ comments into exceptions.
 > - **URLs are attribute values** — encode them too.
 > - **`resolveChildren(...)` output is already-rendered HTML** — do *not* encode it, or the children come out double-escaped.
 >
-> The SDK encodes what it renders itself (text nodes, default image URLs). Anything your resolver builds is yours to encode.
+> The SDK encodes what it renders itself (text nodes, default image URLs). Anything your resolver builds
+> is yours to encode. `HtmlEncoder` is in `System.Text.Encodings.Web`; the examples below take it as read.
 
 ### Custom Resolution
 
@@ -321,8 +316,8 @@ var resolver = new HtmlResolverBuilder()
 
         return $@"
             <blockquote class=""pullquote"">
-                <p>{quoteText}</p>
-                {(attribution != null ? $"<cite>{attribution}</cite>" : "")}
+                <p>{HtmlEncoder.Default.Encode(quoteText)}</p>
+                {(attribution != null ? $"<cite>{HtmlEncoder.Default.Encode(attribution)}</cite>" : "")}
             </blockquote>";
     })
     .Build();
@@ -506,13 +501,13 @@ Chain one `WithContentResolver<T>` per model type. Each names its type once and 
 ```csharp
 var resolver = new HtmlResolverBuilder()
     .WithContentResolver<Tweet>(tweet =>
-        $"<div class=\"twitter-embed\"><a href=\"{tweet.Elements.Url}\">View Tweet</a></div>")
+        $"<div class=\"twitter-embed\"><a href=\"{HtmlEncoder.Default.Encode(tweet.Elements.Url)}\">View Tweet</a></div>")
     .WithContentResolver<Quote>(quote =>
         quote.Elements.Attribution != null
-            ? $"<blockquote><p>{quote.Elements.QuoteText}</p><cite>{quote.Elements.Attribution}</cite></blockquote>"
-            : $"<blockquote><p>{quote.Elements.QuoteText}</p></blockquote>")
+            ? $"<blockquote><p>{HtmlEncoder.Default.Encode(quote.Elements.QuoteText)}</p><cite>{HtmlEncoder.Default.Encode(quote.Elements.Attribution)}</cite></blockquote>"
+            : $"<blockquote><p>{HtmlEncoder.Default.Encode(quote.Elements.QuoteText)}</p></blockquote>")
     .WithContentResolver<CodeSnippet>(snippet =>
-        $"<pre><code class=\"language-{snippet.Elements.Language}\">{System.Web.HttpUtility.HtmlEncode(snippet.Elements.Code)}</code></pre>")
+        $"<pre><code class=\"language-{HtmlEncoder.Default.Encode(snippet.Elements.Language)}\">{HtmlEncoder.Default.Encode(snippet.Elements.Code)}</code></pre>")
     .Build();
 ```
 
@@ -548,15 +543,15 @@ var resolver = new HtmlResolverBuilder()
             var text = Value(q, "quote_text");
             var by = Value(q, "attribution");
             return by is null
-                ? $"<blockquote><p>{text}</p></blockquote>"
-                : $"<blockquote><p>{text}</p><cite>{by}</cite></blockquote>";
+                ? $"<blockquote><p>{HtmlEncoder.Default.Encode(text)}</p></blockquote>"
+                : $"<blockquote><p>{HtmlEncoder.Default.Encode(text)}</p><cite>{HtmlEncoder.Default.Encode(by)}</cite></blockquote>";
         }),
         ("code_snippet", content =>
         {
             if (content is not IContentItem<IDynamicElements> c) return string.Empty;
 
             var lang = Value(c, "language") ?? "plaintext";
-            return $"<pre><code class=\"language-{lang}\">{HttpUtility.HtmlEncode(Value(c, "code"))}</code></pre>";
+            return $"<pre><code class=\"language-{HtmlEncoder.Default.Encode(lang)}\">{HtmlEncoder.Default.Encode(Value(c, "code"))}</code></pre>";
         })
     )
     .Build();
@@ -581,8 +576,8 @@ var resolver = new HtmlResolverBuilder()
                 var url = image.Elements.Image?.FirstOrDefault()?.Url;
                 return $"""
                     <figure class="gallery-item">
-                        <img src="{url}" alt="{caption}" />
-                        {(caption is null ? "" : $"<figcaption>{caption}</figcaption>")}
+                        <img src="{HtmlEncoder.Default.Encode(url ?? "")}" alt="{HtmlEncoder.Default.Encode(caption ?? "")}" />
+                        {(caption is null ? "" : $"<figcaption>{HtmlEncoder.Default.Encode(caption)}</figcaption>")}
                     </figure>
                     """;
             }) ?? [];
@@ -640,7 +635,7 @@ instead — worth it where an unhandled type is a bug rather than a gap:
 ```csharp
 var resolver = new HtmlResolverBuilder()
     .ThrowOnMissingResolver()
-    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
+    .WithContentResolver<Tweet>(t => $"<blockquote>{HtmlEncoder.Default.Encode(t.Elements.TweetText)}</blockquote>")
     .Build();
 ```
 
@@ -654,12 +649,12 @@ services.AddSingleton<IHtmlResolver>(sp => new HtmlResolverBuilder()
     .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
     {
         var innerHtml = await resolveChildren(link.Children);
-        return $"<a href=\"/articles/{link.Metadata?.UrlSlug}\">{innerHtml}</a>";
+        return $"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{innerHtml}</a>";   // innerHtml is rendered HTML - not encoded
     })
     .WithContentResolver<Tweet>(tweet =>
-        $"<blockquote>{tweet.Elements.TweetText}</blockquote>")
+        $"<blockquote>{HtmlEncoder.Default.Encode(tweet.Elements.TweetText)}</blockquote>")
     .WithContentResolver<Video>(video =>
-        $"<iframe src=\"https://youtube.com/embed/{video.Elements.VideoId}\"></iframe>")
+        $"<iframe src=\"https://youtube.com/embed/{HtmlEncoder.Default.Encode(video.Elements.VideoId)}\"></iframe>")
     .Build());
 ```
 
@@ -960,175 +955,20 @@ var resolver = new HtmlResolverBuilder()
         // Render the link's authored text (and any inline formatting)
         var linkContent = await resolveChildren(link.Children);
 
-        var url = $"/content/{link.Metadata?.UrlSlug}";
+        var url = $"/content/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}";
 
         return $"<a href=\"{url}\" class=\"content-link\">{linkContent}</a>";
     })
     .WithHtmlNodeResolver("p", async (node, resolveChildren) =>
     {
         var content = await resolveChildren(node.Children);
-        return $"<p>{content}</p>";
+        return $"<p>{content}</p>";   // already-rendered HTML - encoding it would double-escape
     })
     .Build();
 ```
 
 > [!NOTE]
 > `IHtmlNode` exposes only `TagName`, `Attributes`, and `Children` — there is no `PreviousSibling` / `NextSibling` / parent navigation. If you need positional context (e.g., "first paragraph in section"), apply CSS selectors like `:first-child` instead.
-
-## Best Practices
-
-### 1. Use Type-Safe Resolvers
-
-**Prefer type-safe resolvers over codename-based resolvers:**
-
-```csharp
-// Preferred where a model exists: compile-time checked, no cast
-.WithContentResolver<Quote>(quote =>
-{
-    return $"<blockquote>{quote.Elements.Text}</blockquote>";
-})
-
-// Codename-keyed: no compile-time check, and the cast below stops matching the moment the
-// type gains a generated model. Correct for types you have no model for; second choice otherwise.
-.WithContentResolver("quote", content => content is IContentItem<IDynamicElements> q
-    ? $"<blockquote>{Value(q, "text")}</blockquote>"
-    : string.Empty)
-```
-
-**Benefits:**
-- Compile-time type safety prevents runtime errors
-- IntelliSense support improves developer experience
-- Refactoring tools work correctly with strongly-typed properties
-- Better performance (no dictionary lookups for element access)
-
-### 2. Performance Optimization
-
-**Use Synchronous Resolvers When Possible:**
-
-```csharp
-// Good: Synchronous type-safe resolver
-.WithContentResolver<Quote>(quote =>
-{
-    return $"<blockquote>{quote.Elements.Text}</blockquote>";
-})
-
-// Only use async when necessary
-.WithContentResolver<ProductShowcase>(async showcase =>
-{
-    var data = await _externalService.GetDataAsync();  // Genuinely async
-    return $"<div>{data}</div>";
-})
-```
-
-**Cache Resolver Results:**
-
-```csharp
-private readonly IMemoryCache _cache;
-
-.WithContentResolver("expensive_component", async content =>
-{
-    var cacheKey = $"component_{content.System.Id}";
-
-    return await _cache.GetOrCreateAsync(cacheKey, async entry =>
-    {
-        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-        return await GenerateExpensiveHtmlAsync(content);
-    });
-})
-```
-
-### 2. Security
-
-**Always HTML-Encode User Content:**
-
-```csharp
-using System.Web;
-
-.WithContentResolver("user_comment", content =>
-{
-    if (content is not IContentItem<IDynamicElements> comment) return string.Empty;
-
-    var safeText = HttpUtility.HtmlEncode(Value(comment, "comment"));
-
-    return $"<div class=\"comment\">{safeText}</div>";
-})
-```
-
-### 3. Maintainability
-
-**Extract Resolvers to Methods:**
-
-```csharp
-public class RichTextResolvers
-{
-    // Type-safe resolver methods
-    public static string ResolveTweet(IEmbeddedContent<Tweet> tweet)
-    {
-        var url = tweet.Elements.Url;
-        return $"<blockquote class=\"twitter-tweet\"><a href=\"{url}\">Tweet</a></blockquote>";
-    }
-
-    public static string ResolveVideo(IEmbeddedContent<HostedVideo> video)
-    {
-        var videoId = video.Elements.VideoId;
-        return $"<iframe src=\"https://youtube.com/embed/{videoId}\"></iframe>";
-    }
-}
-
-// Usage with type-safe resolvers
-var resolver = new HtmlResolverBuilder()
-    .WithContentResolver<Tweet>(RichTextResolvers.ResolveTweet)
-    .WithContentResolver<HostedVideo>(RichTextResolvers.ResolveVideo)
-    .Build();
-```
-
-### 4. Testability
-
-**Make Resolvers Testable:**
-
-```csharp
-public class HtmlResolverFactory
-{
-    private readonly IProductService _productService;
-    private readonly IConfiguration _config;
-
-    public HtmlResolverFactory(IProductService productService, IConfiguration config)
-    {
-        _productService = productService;
-        _config = config;
-    }
-
-    public IHtmlResolver CreateResolver()
-    {
-        return new HtmlResolverBuilder()
-            .WithContentResolver<ProductShowcase>(ResolveProductAsync)
-            .Build();
-    }
-
-    // Type-safe testable method
-    internal async Task<string> ResolveProductAsync(IEmbeddedContent<ProductShowcase> showcase)
-    {
-        var productId = Guid.Parse(showcase.Elements.Product.System.Id);
-        var product = await _productService.GetProductAsync(productId);
-        return $"<div>{product.Name}</div>";
-    }
-}
-
-// In tests - easier to test with strongly-typed mocks
-[Fact]
-public async Task ResolveProductAsync_ReturnsCorrectHtml()
-{
-    var mockService = new Mock<IProductService>();
-    var factory = new HtmlResolverFactory(mockService.Object, config);
-
-    // Create strongly-typed test data
-    var mockShowcase = CreateMockShowcase();
-
-    var html = await factory.ResolveProductAsync(mockShowcase);
-
-    Assert.Contains("Product Name", html);
-}
-```
 
 ## Troubleshooting
 

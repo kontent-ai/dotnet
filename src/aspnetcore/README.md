@@ -132,11 +132,12 @@ Renders Kontent.ai structured rich-text content as HTML in Razor views. Integrat
 `Program.cs` (optional DI registration):
 
 ```csharp
+using System.Text.Encodings.Web;
 using Kontent.Ai.AspNetCore.RichText;
 
 builder.Services.AddKontentRichText(resolverBuilder => resolverBuilder
     .WithContentResolver<Article>(a =>
-        $"<div class='article'><h2>{a.Elements.Title}</h2></div>")
+        $"<div class='article'><h2>{HtmlEncoder.Default.Encode(a.Elements.Title)}</h2></div>")
     .WithContentItemLinkResolver("article", (link, _) =>
         ValueTask.FromResult($"<a href=\"/articles/{link.ItemId}\">link</a>")));
 ```

@@ -12,13 +12,13 @@ clients, the ASP.NET Core extensions and the model generator. Each keeps its own
 changelog and release cadence, so a change touching several of them is one pull request
 rather than a coordinated release across five repositories.
 
-| Product | Version | Readme |
-|---|---|---|
-| ASP.NET Core extensions | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) |
-| Delivery SDK | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) |
-| Management SDK | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) |
-| Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
-| Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
+| Product | Use it to | Version | Readme |
+|---|---|---|---|
+| Delivery SDK | Read published content into a .NET app | [![Kontent.Ai.Delivery][delivery-nuget-shield]][delivery-nuget-url] | [`src/delivery/README.md`](./src/delivery/README.md) |
+| Management SDK | Create, update and publish content | [![Kontent.Ai.Management][management-nuget-shield]][management-nuget-url] | [`src/management/README.md`](./src/management/README.md) |
+| Sync SDK | Process what changed since last time | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
+| ASP.NET Core extensions | Render content and receive webhooks in ASP.NET Core | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) |
+| Model generator | Generate typed C# records from your content model | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
 
 Each badge shows the latest release of that product's flagship package on nuget.org. The products
 version independently; a product's README and changelog describe the line it ships on.
