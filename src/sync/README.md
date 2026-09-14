@@ -12,11 +12,34 @@ This README documents **2.x**, which targets `net10.0`. Coming from 1.x? See [Up
 > [!IMPORTANT]
 > This SDK targets **Sync API v2** exclusively. Sync API v1 is deprecated and not supported.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Upgrade Guide](#upgrade-guide)
+- [Quick Start](#quick-start)
+- [What a delta page contains](#what-a-delta-page-contains)
+- [Configuration](#configuration)
+- [Standalone client (without DI)](#standalone-client-without-di)
+- [Named Clients](#named-clients)
+- [Error Handling](#error-handling)
+- [Token Persistence](#token-persistence)
+- [Source Tracking (for Tool Authors)](#source-tracking-for-tool-authors)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Installation
 
 ```bash
 dotnet add package Kontent.Ai.Sync
 ```
+
+## Upgrade Guide
+
+- Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
+  The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
+- Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
+  Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
+  client, and every call returns `ISyncResult<T>` rather than throwing.
 
 ## Quick Start
 
@@ -413,14 +436,6 @@ Every request the SDK sends carries two analytics headers:
 // Pin both, independent of assembly metadata.
 [assembly: SyncSourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
 ```
-
-## Upgrade Guide
-
-- Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
-  The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
-- Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
-  Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
-  client, and every call returns `ISyncResult<T>` rather than throwing.
 
 ## Contributing
 

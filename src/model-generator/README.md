@@ -13,18 +13,17 @@ This utility generates strongly-typed **record-based models** for:
 >
 > If you need models for the legacy Delivery SDK (v18.x and earlier) or for Extended Delivery, use the [previous stable release](https://github.com/kontent-ai/model-generator-net/tree/9.0.0).
 
-## What's New in Updated Delivery Models
+## Table of Contents
 
-The generated models use modern C# features and patterns:
-
-- **Records** - Immutable `record` types with `{ get; init; }` accessors
-- **Modern types** - `RichTextContent`, `Asset`, `TaxonomyTerm`, `IEmbeddedContent`
-- **Partial records** - Easily extendable without modifying generated code
-- **`ContentTypeCodename` attribute** - For source-generated TypeProvider discovery
-- **`ContentTypeCodename` constant** - Access the content type codename at compile time (usable in `switch`/`case` labels, attribute arguments, and other contexts that require a compile-time constant) without reflection
-
-> [!NOTE]
-> If an element codename would produce a property or constant that collides with the built-in `ContentTypeCodename` constant (e.g., an element named `content_type_codename` or `content_type`), the element's member is automatically prefixed with an underscore (`_ContentTypeCodename`) to avoid conflicts. The `[JsonPropertyName]` attribute ensures deserialization still works correctly.
+- [Installation & Usage](#installation--usage)
+- [Delivery Model Features](#delivery-model-features)
+- [Generated Model Example (Delivery)](#generated-model-example-delivery)
+- [Nullability mode](#nullability-mode)
+- [Customizing Generated Models](#customizing-generated-models)
+- [Management Models](#management-models)
+- [Need Legacy Delivery SDK or Extended Delivery Support?](#need-legacy-delivery-sdk-or-extended-delivery-support)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation & Usage
 
@@ -127,6 +126,19 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    ```
 
 2. An `appSettings.json` in the directory you run the tool from — see [Config file](#config-file)
+
+## Delivery Model Features
+
+The generated models use modern C# features and patterns:
+
+- **Records** - Immutable `record` types with `{ get; init; }` accessors
+- **Modern types** - `RichTextContent`, `Asset`, `TaxonomyTerm`, `IEmbeddedContent`
+- **Partial records** - Easily extendable without modifying generated code
+- **`ContentTypeCodename` attribute** - For source-generated TypeProvider discovery
+- **`ContentTypeCodename` constant** - Access the content type codename at compile time (usable in `switch`/`case` labels, attribute arguments, and other contexts that require a compile-time constant) without reflection
+
+> [!NOTE]
+> If an element codename would produce a property or constant that collides with the built-in `ContentTypeCodename` constant (e.g., an element named `content_type_codename` or `content_type`), the element's member is automatically prefixed with an underscore (`_ContentTypeCodename`) to avoid conflicts. The `[JsonPropertyName]` attribute ensures deserialization still works correctly.
 
 ## Generated Model Example (Delivery)
 
@@ -374,7 +386,7 @@ public enum ArticleCategory
 > - **Legacy Delivery SDK (v18.x and earlier)** models
 > - **Extended Delivery** models
 
-## Feedback & Contributing
+## Contributing
 
 Found a bug or have a feature request? [Open an issue](https://github.com/kontent-ai/dotnet/issues). Pull requests are welcome!
 
@@ -388,4 +400,4 @@ We would like to express our thanks to the following people who contributed and 
 
 ## License
 
-[MIT](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.

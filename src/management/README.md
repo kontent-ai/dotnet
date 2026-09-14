@@ -13,11 +13,6 @@ This README documents **9.x**: result-based return types, materialized listings,
 - [Upgrade Guide](#upgrade-guide)
 - [Quick Start](#quick-start)
 - [Creating the Client](#creating-the-client)
-  - [With Dependency Injection](#with-dependency-injection)
-  - [Standalone](#standalone)
-  - [From Configuration](#from-configuration)
-  - [Multiple Named Clients](#multiple-named-clients)
-  - [Resilience and the HTTP Pipeline](#resilience-and-the-http-pipeline)
 - [Configuration Options](#configuration-options)
 - [The Result Pattern](#the-result-pattern)
 - [Error Handling](#error-handling)
@@ -31,6 +26,7 @@ This README documents **9.x**: result-based return types, materialized listings,
 - [Content Model](#content-model)
 - [Workflows](#workflows)
 - [Environment and Administration](#environment-and-administration)
+- [Source Tracking (for Tool Authors)](#source-tracking-for-tool-authors)
 - [Further Information](#further-information)
 - [Contributing](#contributing)
 - [License](#license)
@@ -225,8 +221,17 @@ services.AddManagementClient(management =>
 
 The two `IHttpClientBuilder`s are there for anything else: `management.HttpClient.AddHttpMessageHandler<MyAuditingHandler>()` puts a handler on the environment-scoped transport, `management.SubscriptionHttpClient` on the subscription-scoped one.
 
-> [!NOTE]
-> Unlike the sibling Delivery and Sync SDKs, the Management pipeline has **no default per-attempt timeout** — asset and file uploads can legitimately run long, and a blind retry would just re-upload. Add one through `ConfigureResilience` if you need it. The ceiling on the call as a whole is `Timeout`, which defaults to 30 minutes and covers every attempt plus the waits between them — enough to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link. Raise it for slower links, or lower it if you would rather fail fast.
+#### Timeouts
+
+Two clocks bound a request, and this SDK sets them differently from its siblings:
+
+- **Per attempt** — there is **no default per-attempt timeout**. Asset and file uploads can legitimately run long, and cutting one off only to retry it re-uploads the same bytes. Add one through `ConfigureResilience` if your workload wants it.
+- **The whole call** — `ManagementOptions.Timeout` covers every attempt *and* the waits between them. It defaults to **30 minutes**, sized to carry a maximum-size (2 GB) asset over roughly a 10 Mbps link.
+
+Raise `Timeout` for slower links, lower it if you would rather fail fast, or set `Timeout.InfiniteTimeSpan`
+to be bounded only by your `CancellationToken`. Note that it outranks `Retry-After`: when the API
+rate-limits you, the pipeline waits exactly as long as the server asked, but the call is still cut short
+if your ceiling runs out first.
 
 #### Uploading a file
 
