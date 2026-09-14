@@ -336,15 +336,46 @@ For advanced scenarios, implement a custom cache manager. The `IDeliveryCacheMan
 
 Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-object caching (memory), or override `StorageMode` to `CacheStorageMode.RawJson` for raw JSON payload caching (distributed). A manager that serves stale copies while the origin is unreachable sets `IsStale` on the results it serves that way; the SDK reports them as `ResponseSource.FailSafe`.
 
-#### Hydrated-object cache manager (memory style)
+> [!TIP]
+> **You probably do not need one.** The built-in managers are [FusionCache](https://github.com/ZiggyCreatures/FusionCache)-backed and `UseHybridCache` works over any `IDistributedCache`, which already covers Redis, SQL Server and Azure Cache. Write a manager only for a store FusionCache cannot reach, or a policy you must own outright.
+
+#### What an implementation has to do
+
+| Requirement | Why it matters |
+|---|---|
+| Invoke the factory **at most once** per key under concurrency | Stampede protection. Without it a cold key sends one origin request per concurrent caller. |
+| Return the factory's dependencies as `DependencyKeys` — on hits as well as misses | They drive webhook invalidation and output-cache tagging. Returning `[]` on a hit silently disables both. |
+| Set `FromFactory` when the factory produced the value | In `RawJson` mode the SDK reuses the value the factory already hydrated. Leave it `false` and the same payload is parsed and mapped a second time on every miss. |
+| Set `IsStale` on a copy served because the origin was unreachable | This is what surfaces as `ResponseSource.FailSafe`. Never setting it means fail-safe can never be reported. |
+| Honour `expiration`, falling back to your own default when it is `null` | It carries the per-query `WithCacheExpiration` override. |
+| Evict on `InvalidateAsync`: cascade over dependency keys, match case-insensitively, stay idempotent | Return `false` when invalidation did not complete. Returning `true` unconditionally tells a webhook endpoint its work succeeded when nothing was evicted. |
+| `null` from the factory: cache nothing, drop any stale copy, return `null` | This is how an unpublished item stops being served. |
+| Declare `StorageMode`, and implement `IDeliveryCachePurger` if your store can be cleared | Purge is what a language webhook needs; the ASP.NET Core sample pattern-matches for it. |
+
+That list is the reason there is no starter implementation here: a sketch that satisfies half of it is
+worse than none, because the half it misses fails silently. The worked reference is
+[`FusionCacheManager.cs`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/Kontent.Ai.Delivery.Caching/FusionCacheManager.cs)
+in `Kontent.Ai.Delivery.Caching` — read it before starting.
+
+> [!WARNING]
+> In `RawJson` mode the `T` handed to your manager is an **SDK-internal payload record**, not your model. Serializing it into a durable store couples that store to a type outside the public contract, which can change between releases. Plan to clear the store when you upgrade the SDK.
+
+#### Decorating an existing manager
+
+Adding logging, metrics or a key prefix is better done by wrapping a manager than replacing one. A
+decorator has to forward everything it does not change — including the parts that are easy to miss:
 
 ```csharp
-using System.Collections.Concurrent;
 using Kontent.Ai.Delivery.Abstractions;
+using Microsoft.Extensions.Logging;
 
-public class CustomMemoryCacheManager : IDeliveryCacheManager
+// Drop IDeliveryCachePurger from the declaration if the manager you wrap does not implement it.
+public sealed class LoggingCacheManager(IDeliveryCacheManager inner, ILogger<LoggingCacheManager> logger)
+    : IDeliveryCacheManager, IDeliveryCachePurger
 {
-    private readonly ConcurrentDictionary<string, object> _cache = new();
+    // StorageMode is a default interface member: omit it and the decorator reports HydratedObject
+    // whatever it wraps, which changes both the storage path and the shape of the cache key.
+    public CacheStorageMode StorageMode => inner.StorageMode;
 
     public async Task<CacheResult<T>?> GetOrSetAsync<T>(
         string cacheKey,
@@ -352,79 +383,45 @@ public class CustomMemoryCacheManager : IDeliveryCacheManager
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class
     {
-        if (_cache.TryGetValue(cacheKey, out var cached))
-            return new CacheResult<T>((T)cached, []);
+        var result = await inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
 
-        var entry = await factory(cancellationToken);
-        if (entry is null) return null;
+        // Read the provenance off the result. A flag set inside the factory would be wrong under eager
+        // refresh, where the factory runs in the background for a call that has already returned.
+        logger.LogInformation("Cache {Result} for key: {Key}",
+            result switch
+            {
+                null => "MISS",
+                { FromFactory: true } => "MISS+SET",
+                { IsStale: true } => "STALE",
+                _ => "HIT"
+            },
+            cacheKey);
 
-        _cache.TryAdd(cacheKey, entry.Value);
-        return new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
+        return result;
     }
 
     public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-    {
-        // Implement dependency tracking + invalidation for production use
-        return Task.FromResult(true);
-    }
+        => inner.InvalidateAsync(dependencyKeys, cancellationToken);
+
+    public Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
+        => ((IDeliveryCachePurger)inner).PurgeAsync(allowFailSafe, cancellationToken);
 }
 ```
 
-#### Raw JSON cache manager (hybrid style)
+#### Registering your manager
 
 ```csharp
-using System.Text.Json;
-using Kontent.Ai.Delivery.Abstractions;
-using Microsoft.Extensions.Caching.Distributed;
-
-public class CustomHybridCacheManager : IDeliveryCacheManager
-{
-    private readonly IDistributedCache _cache;
-
-    public CustomHybridCacheManager(IDistributedCache cache) => _cache = cache;
-
-    // Tell the SDK to cache raw JSON payloads instead of hydrated objects
-    public CacheStorageMode StorageMode => CacheStorageMode.RawJson;
-
-    public async Task<CacheResult<T>?> GetOrSetAsync<T>(
-        string cacheKey,
-        Func<CancellationToken, Task<CacheEntry<T>?>> factory,
-        TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        var json = await _cache.GetStringAsync(cacheKey, cancellationToken);
-        if (json is not null)
-            return new CacheResult<T>(JsonSerializer.Deserialize<T>(json)!, []);
-
-        var entry = await factory(cancellationToken);
-        if (entry is null) return null;
-
-        var options = new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = expiration ?? TimeSpan.FromHours(1)
-        };
-
-        var serialized = JsonSerializer.Serialize(entry.Value);
-        await _cache.SetStringAsync(cacheKey, serialized, options, cancellationToken);
-
-        // Implement dependency index + invalidation for production use
-        return new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
-    }
-
-    public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-        => Task.FromResult(true);
-}
-
-// Registration
 services.AddDeliveryClient("production", delivery =>
 {
-    delivery.Options.Configure(options =>
-    {
-        options.EnvironmentId = "your-environment-id";
-    });
-    delivery.UseCacheManager(sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseCacheManager(sp => new LoggingCacheManager(
+        BuildInnerManager(sp),
+        sp.GetRequiredService<ILogger<LoggingCacheManager>>()));
 });
 ```
+
+`UseCacheManager` comes from `Kontent.Ai.Delivery.Caching`, so the package is needed even when the
+manager is your own. Attaching more than one cache to a client keeps the last.
 
 ## How Caching Works
 
@@ -1288,33 +1285,9 @@ Console.WriteLine($"Current entry count: {stats.CurrentEntryCount}");
 
 ### Logging
 
-```csharp
-public class LoggingCacheManager : IDeliveryCacheManager
-{
-    private readonly IDeliveryCacheManager _inner;
-    private readonly ILogger _logger;
-
-    public async Task<CacheResult<T>?> GetOrSetAsync<T>(
-        string cacheKey,
-        Func<CancellationToken, Task<CacheEntry<T>?>> factory,
-        TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
-
-        // Read the classification off the result. A flag set inside the factory would be wrong under
-        // eager refresh, where the factory runs in the background for a call that already returned.
-        _logger.LogInformation("Cache {Result} for key: {Key}",
-            result switch { null => "MISS", { FromFactory: true } => "MISS+SET", { IsStale: true } => "STALE", _ => "HIT" },
-            cacheKey);
-
-        return result;
-    }
-
-    public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-        => _inner.InvalidateAsync(dependencyKeys, cancellationToken);
-}
-```
+Wrap the cache manager to log every lookup — see
+[Decorating an existing manager](#decorating-an-existing-manager) for a decorator that forwards the
+whole contract, `StorageMode` and purging included.
 
 ## Troubleshooting
 
