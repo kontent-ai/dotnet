@@ -5,7 +5,7 @@
 
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.
 
-This README documents **9.x**, which targets `net10.0`: result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. Coming from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) — the API changed shape throughout.
+Calls return a result rather than throwing, listings come back materialized, serialization is `System.Text.Json`, and content models are strongly typed. Coming from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) — the API changed shape throughout.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ This README documents **9.x**, which targets `net10.0`: result-based return type
 dotnet add package Kontent.Ai.Management
 ```
 
-See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md) for what each release changed.
+The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md) for what each release changed.
 
 ## Upgrade Guide
 

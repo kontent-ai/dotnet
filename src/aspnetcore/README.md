@@ -5,8 +5,6 @@
 
 Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) that provides ASP.NET Core–specific helpers: responsive image tag helpers, a rich-text tag helper that renders structured content via `IHtmlResolver`, and webhook signature validation middleware.
 
-This README documents **1.x**, which targets `net10.0` and needs `Kontent.Ai.Delivery` 20 or later.
-
 ## Table of Contents
 
 - [Installation](#installation)
@@ -22,7 +20,7 @@ This README documents **1.x**, which targets `net10.0` and needs `Kontent.Ai.Del
 dotnet add package Kontent.Ai.AspNetCore
 ```
 
-Its version is its own — see the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/CHANGELOG.md) for what each release changed.
+The package targets `net10.0` and depends on `Kontent.Ai.Delivery` **20** or later. Its version is its own — see the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/CHANGELOG.md) for what each release changed.
 
 ## Upgrade Guide
 

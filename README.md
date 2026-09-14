@@ -20,8 +20,8 @@ rather than a coordinated release across five repositories.
 | Model generator | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
 | Sync SDK | [![Kontent.Ai.Sync][sync-nuget-shield]][sync-nuget-url] | [`src/sync/README.md`](./src/sync/README.md) |
 
-Each badge shows the latest stable release of that product's flagship package on nuget.org. Each README
-states at the top which major it documents, since the products version independently.
+Each badge shows the latest release of that product's flagship package on nuget.org. The products
+version independently; a product's README and changelog describe the line it ships on.
 
 > [!NOTE]
 > This repository is where every Kontent.ai .NET SDK and tool is developed and published from.

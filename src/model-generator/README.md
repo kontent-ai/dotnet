@@ -3,8 +3,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
 
-This README documents **11.x**, which runs on .NET 10. It generates strongly-typed **record-based
-models** for:
+This utility generates strongly-typed **record-based models** for:
 
 - the [Kontent.ai Delivery SDK for .NET (v19+)](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) — default mode, for reading content
 - the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows.
