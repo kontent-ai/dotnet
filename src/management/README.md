@@ -37,7 +37,7 @@ This README documents **9.x**: result-based return types, materialized listings,
 dotnet add package Kontent.Ai.Management
 ```
 
-The SDK targets `net10.0`.
+The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md) for what each release changed.
 
 ## Upgrade Guide
 

@@ -37,6 +37,8 @@ The recommended way of obtaining this tool is installing it as a [.NET Tool](htt
 dotnet tool install -g Kontent.Ai.ModelGenerator
 ```
 
+See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/CHANGELOG.md) for what each release changed.
+
 Delivery (default):
 
 ```bash

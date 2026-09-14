@@ -66,6 +66,8 @@ dotnet add package Kontent.Ai.Delivery.Caching
 dotnet add package Kontent.Ai.Delivery.SourceGeneration
 ```
 
+All of them ship on one version. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/CHANGELOG.md) for what each release changed.
+
 ## Upgrade Guide
 
 Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/delivery/docs/upgrade); skipping a major means reading them in sequence.

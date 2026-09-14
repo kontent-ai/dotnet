@@ -4,31 +4,30 @@ about: Create a report to help us improve
 
 ---
 
+### Affected product
+
+Which package, and which version? (e.g. `Kontent.Ai.Delivery` 20.0.0)
+
 ### Brief bug description
 
 What went wrong?
 
 ### Repro steps
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+1. ...
+2. ...
+3. See error
 
 ### Expected behavior
 
 What is the correct behavior?
 
-### Test environment
+### Environment
 
- - Platform/OS: [e.g. .NET Core 2.1, iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+ - Package version:
+ - .NET version:
+ - OS:
 
 ### Additional context
 
-Add any other context about the problem here.
-
-### Screenshots
-
-Add links to screenshots, if possible.
+Anything else that helps — a request ID from `IError.RequestId`, a stack trace, a minimal project.

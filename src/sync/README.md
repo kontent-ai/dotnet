@@ -33,6 +33,8 @@ This README documents **2.x**, which targets `net10.0`. Coming from 1.x? See [Up
 dotnet add package Kontent.Ai.Sync
 ```
 
+The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/sync/CHANGELOG.md) for what each release changed.
+
 ## Upgrade Guide
 
 - Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
