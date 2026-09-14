@@ -18,27 +18,47 @@ Registration and configuration live in the [README](../README.md); this guide as
 
 ## Retrieving Content
 
-> [!TIP]
-> Every query here has a strongly-typed counterpart — `GetItem<Article>(…)`, `GetItems<Article>()` — which hydrates your generated models and adds the `system.type` filter for you. That is the recommended path: see [Working with Strongly-Typed Models](models.md#working-with-strongly-typed-models). The typeless calls shown below are [dynamic access](models.md#dynamic-content-access), for when the type is not known until runtime.
+The examples below use the generic form — `GetItem<Article>(…)`, `GetItems<Article>()` — which is the
+recommended one: it hydrates your [generated models](models.md), gives you compile-time names, and adds
+the `system.type` filter for you.
+
+Every one of them has a non-generic overload, and dropping the type argument does **not** mean giving up
+typing. With generated models in the project, the type provider resolves each item to its model at
+*runtime* instead, and you recover it by pattern matching — see
+[Runtime Type Resolution](models.md#runtime-type-resolution-with-type-provider). Reach for the
+non-generic form when:
+
+- **the type genuinely varies** — a mixed listing, a search result, a webhook handler;
+- **you do not need the model at all** — a script, a one-off probe, or anything that only reads `System` metadata.
+
+> [!NOTE]
+> The non-generic `GetItem()` and `GetItems()` are never cached, because their result type is resolved per response. They always reach the API and report `IsCacheHit == false`.
 
 ### Get a Single Item
 
 ```csharp
 // By codename
-var result = await client.GetItem("coffee_beverages_explained")
+var result = await client.GetItem<Article>("coffee_beverages_explained")
     .ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    var article = result.Value;
-    Console.WriteLine($"Title: {article.System.Name}");
+    Console.WriteLine($"{result.Value.System.Name}: {result.Value.Elements.Title}");
 }
+```
+
+Without the type argument the same call returns an `IContentItem`, resolved to its model at runtime
+where one exists:
+
+```csharp
+var result = await client.GetItem("coffee_beverages_explained").ExecuteAsync();
+Console.WriteLine(result.Value?.System.Name);
 ```
 
 ### Get Multiple Items
 
 ```csharp
-var result = await client.GetItems()
+var result = await client.GetItems<Article>()
     .Limit(10)
     .ExecuteAsync();
 
@@ -46,7 +66,7 @@ if (result.IsSuccess)
 {
     foreach (var item in result.Value.Items)
     {
-        Console.WriteLine($"- {item.System.Name}");
+        Console.WriteLine($"- {item.Elements.Title}");
     }
 }
 ```
@@ -60,13 +80,13 @@ synchronization, bulk export:
 
 ```csharp
 // Every item, one by one.
-await foreach (var item in client.GetItemsFeed().EnumerateAsync())
+await foreach (var item in client.GetItemsFeed<Article>().EnumerateAsync())
 {
-    Console.WriteLine($"Item: {item.System.Name}");
+    Console.WriteLine($"Item: {item.Elements.Title}");
 }
 
 // Page by page, when you want the continuation token for checkpointing.
-await foreach (var page in client.GetItemsFeed().EnumerateAsync().AsPages())
+await foreach (var page in client.GetItemsFeed<Article>().EnumerateAsync().AsPages())
 {
     foreach (var item in page.Items)
     {
@@ -287,9 +307,8 @@ The SDK provides a type-safe filtering API with support for various operators:
 ### Basic Filtering
 
 ```csharp
-var result = await client.GetItems()
+var result = await client.GetItems<Article>()
     .Where(f => f
-        .System("type").IsEqualTo("article")
         // [contains] is for arrays (taxonomy/linked items/multiple choice), not strings.
         // See Delivery API docs: https://kontent.ai/learn/docs/apis/delivery-api/filtering-parameters?sl=1
         .Element("category").Contains("coffee"))
@@ -298,7 +317,7 @@ var result = await client.GetItems()
 ```
 
 > [!TIP]
-> When using strongly-typed queries with source generation (e.g., `GetItems<Article>()`), the `system.type` filter is added automatically based on the `[ContentTypeCodename]` attribute. You only need manual type filtering for dynamic queries.
+> No `system.type` filter above: `GetItems<Article>()` adds it from the `[ContentTypeCodename]` attribute. Filter on `system.type` yourself only in a non-generic query.
 
 ### Property paths
 
@@ -380,15 +399,15 @@ The DSL builds property paths for you:
 ### Ordering and Pagination
 
 ```csharp
-var result = await client.GetItems()
+var result = await client.GetItems<Article>()
     .OrderBySystem("last_modified", OrderingMode.Descending)
     .Skip(0)
     .Limit(10)
     .ExecuteAsync();
 
-// Order by an element; the generated codename constants work here too
+// Order by an element; the generated codename constants avoid a magic string
 var articles = await client.GetItems<Article>()
-    .OrderByElement(Article.PublishDateCodename, OrderingMode.Descending)
+    .OrderByElement(Article.PostDateCodename, OrderingMode.Descending)
     .ExecuteAsync();
 ```
 
@@ -397,7 +416,7 @@ var articles = await client.GetItems<Article>()
 ### Getting Total Count
 
 ```csharp
-var result = await client.GetItems()
+var result = await client.GetItems<Article>()
     .WithTotalCount()
     .Limit(10)
     .ExecuteAsync();
@@ -447,10 +466,8 @@ needs the deeper level.
 ### Combining filters with other query parameters
 
 ```csharp
-var result = await client.GetItems()
-    .Where(f => f
-        .System("type").IsEqualTo("article")
-        .Element("tags").ContainsAny("beginner", "intermediate"))
+var result = await client.GetItems<Article>()
+    .Where(f => f.Element("tags").ContainsAny("beginner", "intermediate"))
     .WithLanguage("en-US")
     .WithElements("title", "summary")
     .Depth(2)
@@ -461,7 +478,9 @@ var result = await client.GetItems()
 
 ### Incremental query composition (deferred execution)
 
-The query is not sent until you call `ExecuteAsync()`, so you can build it up conditionally:
+The query is not sent until you call `ExecuteAsync()`, so you can build it up conditionally. This is a
+case where the non-generic form earns its keep: the content type is itself one of the conditions, so
+there is no type argument to give:
 
 ```csharp
 var query = client.GetItems()
@@ -498,14 +517,13 @@ Retrieve content in specific language variants:
 ### Basic Language Variant Retrieval
 
 ```csharp
-// Get Spanish version
-var result = await client.GetItem("homepage")
+// Get the Spanish variant
+var result = await client.GetItem<Article>("coffee_beverages_explained")
     .WithLanguage("es-ES")
     .ExecuteAsync();
 
-// Get all articles in German (strongly typed)
+// Every article in German
 var articlesResult = await client.GetItems<Article>()
-    .Where(f => f.System("type").IsEqualTo("article"))
     .WithLanguage("de-DE")
     .ExecuteAsync();
 ```
