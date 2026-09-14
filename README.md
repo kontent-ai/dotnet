@@ -1,8 +1,8 @@
+# Kontent.ai .NET
+
 [![.NET][dotnet-shield]][dotnet-url]
 [![codecov][codecov-shield]][codecov-url]
 [![MIT License][license-shield]][license-url]
-
-# Kontent.ai .NET
 
 A monorepo for the Kontent.ai .NET SDKs and tooling — the Delivery, Management and Sync
 clients, the ASP.NET Core extensions and the model generator. Each keeps its own version,
