@@ -88,6 +88,9 @@ the same time and opens one pull request for the batch. Your job is the changelo
 release decides which version it lands under. The root [`README.md`](./README.md#releasing)
 describes the full flow.
 
+CI enforces this: the *Release guardrails* job fails a pull request that touches
+`eng/Versions.props` from any branch other than the `release/*` one *Prepare release* creates.
+
 
 ## Submitting pull requests
 <img align="right" width="100" height="100" src="https://i.imgur.com/aSeiliy.png">

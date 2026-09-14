@@ -12,6 +12,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Versions are bumped by the Prepare release workflow, never by hand. A checkbox asking
+  # people to remember that is worth less than a check that will not let them forget.
+  guardrails:
+    name: Release guardrails
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: eng/Versions.props is the release workflow's to change
+        shell: bash
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+
+          # Prepare release opens its batch PR from release/batch-<date>-<run>, including the
+          # hotfix path, where a bump is the whole point.
+          if [[ "$HEAD_REF" == release/* ]]; then
+            echo "Release branch - version bumps expected here."
+            exit 0
+          fi
+
+          if git diff --name-only "origin/${BASE_REF}...HEAD" | grep -qx 'eng/Versions.props'; then
+            echo "::error file=eng/Versions.props::Versions are bumped by the Prepare release workflow, not by hand."
+            echo "Branch '${HEAD_REF}' changes eng/Versions.props."
+            echo "Run Actions -> Prepare release instead: it bumps the version and promotes the"
+            echo "product's '## Unreleased' changelog section together, in one batched PR."
+            exit 1
+          fi
+
+          echo "eng/Versions.props untouched."
+
   build:
     name: Build & test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,27 @@
+name: Label
+
+on:
+  # pull_request_target so pull requests from forks are labelled too - a plain pull_request
+  # run gets a read-only token for those. Nothing here checks out or executes the pull
+  # request's code: the action reads .github/labeler.yml from the base branch through the
+  # API, which is what makes the elevated token safe.
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  label:
+    name: Apply path labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v6
+        with:
+          configuration-path: .github/labeler.yml
+          sync-labels: true

@@ -1,0 +1,53 @@
+# Which product a pull request touches is knowable from its paths, so it is labelled here
+# rather than asked for in the pull request template. Keep in step with eng/products.json.
+#
+# actions/labeler does not create labels - each one below has to exist in the repository
+# (Issues -> Labels) or it is silently skipped.
+
+"product: aspnetcore":
+  - changed-files:
+      - any-glob-to-any-file: "src/aspnetcore/**"
+
+"product: delivery":
+  - changed-files:
+      - any-glob-to-any-file: "src/delivery/**"
+
+"product: management":
+  - changed-files:
+      - any-glob-to-any-file: "src/management/**"
+
+"product: model-generator":
+  - changed-files:
+      - any-glob-to-any-file: "src/model-generator/**"
+
+"product: sync":
+  - changed-files:
+      - any-glob-to-any-file: "src/sync/**"
+
+# Shared source is compiled into every SDK, so a change here reaches all of them at once.
+"shared source":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/common/**"
+          - "src/testing/**"
+
+"build & release":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - "eng/**"
+          - "Directory.Build.props"
+          - "Directory.Build.targets"
+          - "Directory.Packages.props"
+          - "global.json"
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "src/*/docs/**"
+
+# Raising a Kontent.Ai.* floor is its own step, after the dependency is on nuget.org.
+"dependency floor":
+  - changed-files:
+      - any-glob-to-any-file: "Directory.Packages.props"

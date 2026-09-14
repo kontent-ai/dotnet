@@ -1,21 +1,26 @@
-### Motivation
+## What and why
 
-Which issue does this fix? Fixes #`issue number`
+Fixes #
 
-If no issue exists, what is the fix or new feature? Were there any reasons to fix/implement things that are not obvious?
+<!-- One or two sentences. If the reasoning is not obvious from the diff, put it here. -->
 
-### Checklist
+## Consumer impact
 
-- [ ] Code follows the conventions held in this repo
-- [ ] Automated tests have been added
-- [ ] Tests are passing
-- [ ] Every user-visible change has a `CHANGELOG.md` entry under `## Unreleased`, in the product it belongs to
-- [ ] A breaking change is written up in that product's upgrade guide for the major in progress
-- [ ] A public API change is reflected in the product's approval snapshot, reviewed line by line
-- [ ] Docs have been updated (if applicable)
-- [ ] No version bump — those come from the *Prepare release* workflow
-- [ ] Temporary settings (e.g. variables used during development and testing) have been reverted to defaults
+<!-- Delete all but one:
 
-### How to test
+  None      - internal; no published surface changes
+  Additive  - new API; existing code compiles and behaves unchanged
+  Breaking  - existing code stops compiling, or behaves differently
 
-If manual testing is required, what are the steps?
+Breaking also needs a section in the upgrade guide for the major in progress
+(src/<product>/docs/upgrade/<from>-to-<to>.md) - link it here. -->
+
+## Reviewer, please confirm
+
+- [ ] The `## Unreleased` changelog entry reads the way it should on the release page — it is copied there verbatim
+- [ ] Every line of any `.received.txt` diff is intended (CI passes either way — this is the only gate on it)
+- [ ] Anything checked against the live API says what was checked, against what
+
+## How to verify
+
+<!-- Only if the tests do not already show it. -->
