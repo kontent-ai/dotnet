@@ -23,6 +23,10 @@ rather than a coordinated release across five repositories.
 Each badge shows the latest release of that product's flagship package on nuget.org. The products
 version independently; a product's README and changelog describe the line it ships on.
 
+`main` tracks the released packages, `vnext` is where the next major is developed, and `maintenance/**`
+carries hotfixes for earlier lines. Documentation lives with its code, so a branch's docs describe that
+branch.
+
 > [!NOTE]
 > This repository is where every Kontent.ai .NET SDK and tool is developed and published from.
 > The former per-product repositories — [delivery-sdk-net](https://github.com/kontent-ai/delivery-sdk-net),
