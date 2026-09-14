@@ -56,6 +56,17 @@ foreach (var line in body.Replace("\r\n", "\n").Split('\n'))
     output.AppendLine(!inFence && line.StartsWith("###", StringComparison.Ordinal) ? line[1..] : line);
 }
 
+// Repository links in a changelog entry point at main, which is right in the repository and wrong
+// on a release page: main moves on, so a published page would come to describe a later major. The
+// tag is immutable and exists before the first package is pushed, so the page keeps pointing at the
+// docs that shipped with it.
+var rendered = output.ToString().Replace(
+    "https://github.com/kontent-ai/dotnet/blob/main/",
+    $"https://github.com/kontent-ai/dotnet/blob/{tag}/",
+    StringComparison.Ordinal);
+output.Clear();
+output.Append(rendered);
+
 // Pinned to this version: an older release page must not install a newer major, and a
 // prerelease page must name its own prerelease. A tool package installs as a tool.
 var primaryPackage = entry.GetProperty("expectedPackages")[0].GetString()!;
