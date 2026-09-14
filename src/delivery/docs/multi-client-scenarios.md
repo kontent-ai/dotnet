@@ -299,9 +299,8 @@ services.AddDeliveryClient("preview", delivery =>
 
 ### Selecting the Preview Client
 
-Preview is a named client, so choosing it is one call. The part that matters is what comes *before*
-that call: a preview key reads unpublished content, so the decision must be an authorization outcome,
-never something the caller can ask for.
+Preview is a named client, so choosing it is one call. What matters is what comes *before* it: the
+decision must be an authorization outcome, never something the caller can ask for.
 
 ```csharp
 // Authorize first, then choose the client.

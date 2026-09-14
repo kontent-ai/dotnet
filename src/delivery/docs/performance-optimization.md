@@ -142,9 +142,8 @@ the SDK.
 The Delivery API rate-limits by requests per second, burst capacity and monthly quota; the current
 figures are in the [Kontent.ai documentation](https://kontent.ai/learn/docs/apis/delivery-api).
 
-**The SDK already handles a `429`.** The default resilience pipeline retries it with exponential
-backoff and honours a server-sent `Retry-After`, so a brief overshoot is absorbed without any code of
-yours. What that cannot absorb is sustained over-limit traffic, which surfaces as a failed result.
+**The SDK already handles a `429`**: the default pipeline retries with exponential backoff and honours
+`Retry-After`. Sustained over-limit traffic still surfaces as a failed result.
 
 To change how hard it tries, replace the pipeline:
 
@@ -173,9 +172,8 @@ Retrying is the last defence, not the first. In order of effect:
 
 ## Monitoring and Diagnostics
 
-Timing belongs on the transport, not on the client: `IDeliveryClient` has fourteen query members, and
-decorating it to time one of them is both laborious and easy to get wrong. The SDK exposes the named
-`IHttpClientBuilder`, so a `DelegatingHandler` sees every request the client makes, retries included:
+Time the transport, not the client. A `DelegatingHandler` on the builder's `HttpClient` sees every
+request, retries included:
 
 ```csharp
 public sealed class TimingHandler(ILogger<TimingHandler> logger) : DelegatingHandler
@@ -206,11 +204,10 @@ services.AddDeliveryClient(delivery =>
 });
 ```
 
-A handler added this way sits inside the SDK's own handlers, so a retried request runs it again - which
-is what you want when measuring what the API actually cost.
+The handler sits inside the SDK's own, so a retried request runs it again.
 
-To tell a cached response from a fetched one without timing anything, read
-[`ResponseSource`](caching-guide.md#detecting-cache-hits) off the result.
+To tell a cached response from a fetched one, read
+[`ResponseSource`](caching-guide.md#detecting-cache-hits) off the result rather than timing it.
 
 ## Production Best Practices
 

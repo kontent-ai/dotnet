@@ -352,18 +352,17 @@ Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-o
 | `null` from the factory: cache nothing, drop any stale copy, return `null` | This is how an unpublished item stops being served. |
 | Declare `StorageMode`, and implement `IDeliveryCachePurger` if your store can be cleared | Purge is what a language webhook needs; the ASP.NET Core sample pattern-matches for it. |
 
-That list is the reason there is no starter implementation here: a sketch that satisfies half of it is
-worse than none, because the half it misses fails silently. The worked reference is
-[`FusionCacheManager.cs`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/Kontent.Ai.Delivery.Caching/FusionCacheManager.cs)
-in `Kontent.Ai.Delivery.Caching` — read it before starting.
+There is no starter implementation here because a sketch that satisfies half of that list fails
+silently. Start from the worked reference:
+[`FusionCacheManager.cs`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/Kontent.Ai.Delivery.Caching/FusionCacheManager.cs).
 
 > [!WARNING]
 > In `RawJson` mode the `T` handed to your manager is an **SDK-internal payload record**, not your model. Serializing it into a durable store couples that store to a type outside the public contract, which can change between releases. Plan to clear the store when you upgrade the SDK.
 
 #### Decorating an existing manager
 
-Adding logging, metrics or a key prefix is better done by wrapping a manager than replacing one. A
-decorator has to forward everything it does not change — including the parts that are easy to miss:
+Logging, metrics or a key prefix want a wrapper, not a new manager. Forward everything you do not
+change — including the two that are easy to miss:
 
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
