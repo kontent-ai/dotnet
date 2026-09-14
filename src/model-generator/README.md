@@ -9,13 +9,19 @@ This utility generates strongly-typed **record-based models** for:
 - the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows.
 
 > [!IMPORTANT]
-> Generated models are compiled against the SDK that ships alongside this generator: **`Kontent.Ai.Delivery` 19.0 or newer** for Delivery mode, **`Kontent.Ai.Management` 9.0 or newer** for Management mode. Older SDKs do not carry the types the emitted code references.
+> Three version requirements, and they are independent:
+> - **The tool** needs the **.NET 10** runtime.
+> - **Generated Delivery models** need `Kontent.Ai.Delivery` **19.0** or newer, and `--nullability semantic` needs **19.2.0** for `RichTextContent.Empty`.
+> - **Generated Management models** need `Kontent.Ai.Management` **9.0** or newer.
+>
+> Your own project's target framework is not constrained by the tool — only by the SDK the models reference.
 >
 > If you need models for the legacy Delivery SDK (v18.x and earlier) or for Extended Delivery, use the [previous stable release](https://github.com/kontent-ai/model-generator-net/tree/9.0.0).
 
 ## Table of Contents
 
 - [Installation & Usage](#installation--usage)
+- [Upgrade Guide](#upgrade-guide)
 - [Delivery Model Features](#delivery-model-features)
 - [Generated Model Example (Delivery)](#generated-model-example-delivery)
 - [Nullability mode](#nullability-mode)
@@ -39,25 +45,20 @@ dotnet tool install -g Kontent.Ai.ModelGenerator
 
 See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/CHANGELOG.md) for what each release changed.
 
-Delivery (default):
+Delivery models (default mode):
 
 ```bash
-KontentModelGenerator --environmentId "<environmentId>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"] \
-    [--baseRecord "<base-record-name>"] \
-    [--nullability strict|semantic]
+KontentModelGenerator --environmentId "<environmentId>" --namespace "MyProject.Models" --outputdir "./Models"
 ```
 
-Management (see [Management Models](#management-models)):
+Management models (see [Management Models](#management-models)):
 
 ```bash
-KontentModelGenerator --management \
-    --environmentId "<environmentId>" \
-    --apiKey "<management-api-key>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"]
+KontentModelGenerator --management --environmentId "<environmentId>" --apiKey "<management-api-key>" --outputdir "./Models"
 ```
+
+Only `--environmentId` is required (plus `--apiKey` in Management mode); everything else has a default.
+See [Parameters](#parameters) for the full set.
 
 #### Local Tool
 
@@ -67,11 +68,7 @@ dotnet tool install Kontent.Ai.ModelGenerator
 ```
 
 ```bash
-dotnet tool run KontentModelGenerator --environmentId "<environmentId>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"] \
-    [--baseRecord "<base-record-name>"] \
-    [--nullability strict|semantic]
+dotnet tool run KontentModelGenerator --environmentId "<environmentId>" --outputdir "./Models"
 ```
 
 ### Standalone apps for Windows, Linux, macOS
@@ -83,8 +80,11 @@ yourself:
 ```bash
 git clone https://github.com/kontent-ai/dotnet.git
 cd dotnet/src/model-generator/Kontent.Ai.ModelGenerator
-dotnet publish -c release -r <RID>
+dotnet publish -c release -r <RID> --self-contained true
 ```
+
+`--self-contained true` is not optional: since .NET 8 a runtime identifier alone produces a
+framework-dependent build, which still needs .NET 10 installed.
 
 See the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog) for `<RID>`.
 
@@ -109,7 +109,7 @@ belonging to the mode you run is read.
 
 ### CLI Syntax
 
-Short keys such as `-n "MyModels"` are interchangeable with the long keys `--namespace "MyModels"`. Other possible syntax is `-n=MyModels` or `--namespace=MyModels`. Parameter values are case-insensitive. To see all aspects of the syntax, see the [MS docs](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.commandlineconfigurationextensions.addcommandline).
+Short keys such as `-n "MyModels"` are interchangeable with the long keys `--namespace "MyModels"`, and `-n=MyModels` / `--namespace=MyModels` work too. Parameter **names** are case-insensitive, as are the values of `--nullability`; every other value — namespaces, paths, keys — is used exactly as written. To see all aspects of the syntax, see the [MS docs](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.commandlineconfigurationextensions.addcommandline).
 
 ### Config file
 
@@ -128,6 +128,12 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    ```
 
 2. An `appSettings.json` in the directory you run the tool from — see [Config file](#config-file)
+
+## Upgrade Guide
+
+Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator/docs/upgrade); skipping a major means reading them in sequence.
+
+- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move and the removal of `--withtypeprovider` are the work; the generated code itself is unchanged.
 
 ## Delivery Model Features
 
