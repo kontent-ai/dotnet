@@ -205,19 +205,32 @@ public class ContentMigrator(IManagementClientFactory clientFactory)
 
 ### Resilience and the HTTP Pipeline
 
-Every client comes with a built-in resilience pipeline (powered by [`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience)): retries on transient failures and `429` responses, exponential backoff with jitter, and `Retry-After` handling. Set `EnableResilience = false` to turn it into a passthrough.
+Every client comes with a built-in resilience pipeline (powered by [`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience)): exponential backoff with jitter, `Retry-After` handling, and **idempotency-aware retries**. A `429` is retried for every method, because the request was rejected rather than applied. Other transient failures - `408`, `5xx`, transport errors - are retried only for idempotent methods (`GET`, `HEAD`, `OPTIONS`, `PUT`, `DELETE`); a `POST` or `PATCH` that fails mid-flight is never replayed, because the write may already have landed. Set `EnableResilience = false` to turn the pipeline into a passthrough.
 
-To replace the pipeline wholesale, call `ConfigureResilience` on the builder - it applies to both the environment-scoped and the subscription-scoped transport:
+`ConfigureResilience` on the builder **replaces** that pipeline rather than adding to it, and applies to
+both the environment-scoped and the subscription-scoped transport. Replacing it drops the idempotency
+rule with everything else, so put it back - `DisableFor` is the shortest way:
 
 ```csharp
+var retry = new HttpRetryStrategyOptions { MaxRetryAttempts = 5 };
+retry.DisableFor(HttpMethod.Post, HttpMethod.Patch);   // do not replay writes
+
 services.AddManagementClient(management =>
 {
     management.Options.Configure(options => { options.EnvironmentId = "..."; options.ApiKey = "..."; });
     management.ConfigureResilience(pipeline => pipeline
-        .AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 })
+        .AddRetry(retry)
         .AddTimeout(TimeSpan.FromSeconds(30)));
 });
 ```
+
+> [!WARNING]
+> A bare `new HttpRetryStrategyOptions()` retries **every** method on **every** transient failure, `POST` and `PATCH` included. Against a write API that turns one ambiguous failure into duplicate content items.
+
+`DisableFor` is close to the built-in rule but not identical: it excludes those methods by *method*, so a
+rate-limited `POST` is not retried either, where the default would have honoured `Retry-After` and backed
+off. That errs on the safe side, but under the Management API's per-minute rate limit you may see writes
+fail that the default would have carried through.
 
 The two `IHttpClientBuilder`s are there for anything else: `management.HttpClient.AddHttpMessageHandler<MyAuditingHandler>()` puts a handler on the environment-scoped transport, `management.SubscriptionHttpClient` on the subscription-scoped one.
 
