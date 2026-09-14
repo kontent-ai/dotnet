@@ -17,7 +17,6 @@ This guide covers advanced scenarios where you need to work with multiple Konten
   - [Tenant-Specific Configuration](#tenant-specific-configuration)
 - [Multi-Brand Scenarios](#multi-brand-scenarios)
 - [Preview vs Production](#preview-vs-production)
-- [Preview API](#preview-api)
 - [Environment-Specific Configuration](#environment-specific-configuration)
 - [Best Practices](#best-practices)
 - [Real-World Examples](#real-world-examples)
@@ -542,6 +541,21 @@ public class AggregatedContentService
 
 ## Preview vs Production
 
+### Enabling Preview
+
+One client, reading unpublished content:
+
+```csharp
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.UsePreviewApi = true;
+    options.PreviewApiKey = "your-preview-api-key";
+}));
+```
+
+Most applications want both, though - published content for visitors, preview for whoever is editing.
+
 ### Separate Clients for Preview and Production
 
 ```csharp
@@ -569,133 +583,42 @@ services.AddDeliveryClient("preview", delivery =>
 
 `UsePreviewApi = true` clients always bypass SDK cache reads/writes. Registering a cache manager for preview is optional and does not change that behavior.
 
-### Preview Mode Service
+### Selecting the Preview Client
+
+Preview is a named client, so choosing it is one call. The part that matters is what comes *before*
+that call: a preview key reads unpublished content, so the decision must be an authorization outcome,
+never something the caller can ask for.
 
 ```csharp
-public class ContentPreviewService
+// Authorize first, then choose the client.
+[Authorize(Policy = "CanPreviewContent")]
+[HttpGet("preview/{codename}")]
+public async Task<IActionResult> GetDraft(
+    string codename,
+    [FromServices] IDeliveryClientFactory factory,
+    CancellationToken cancellationToken)
 {
-    private readonly IDeliveryClientFactory _factory;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public IDeliveryClient GetClient()
-    {
-        var httpContext = _httpContextAccessor.HttpContext;
-
-        // Check for preview mode (from query string, cookie, or user claim)
-        var isPreview = httpContext.Request.Query.ContainsKey("preview") ||
-                       httpContext.Request.Cookies.ContainsKey("preview_mode") ||
-                       httpContext.User.IsInRole("ContentEditor");
-
-        return _factory.Get(isPreview ? "preview" : "production");
-    }
-}
-
-// Usage in controller
-public class ArticleController : ControllerBase
-{
-    private readonly ContentPreviewService _previewService;
-
-    [HttpGet("{codename}")]
-    public async Task<IActionResult> GetArticle(string codename)
-    {
-        var client = _previewService.GetClient();
-        var result = await client.GetItem<Article>(codename).ExecuteAsync();
-
-        return result.IsSuccess ? Ok(result.Value) : NotFound();
-    }
+    var result = await factory.Get("preview").GetItem<Article>(codename).ExecuteAsync(cancellationToken);
+    return result.IsSuccess ? Ok(result.Value) : NotFound();
 }
 ```
 
-### Preview Toggle Middleware
+Define `CanPreviewContent` with
+[ASP.NET Core authorization](https://learn.microsoft.com/aspnet/core/security/authorization/policies) —
+how you establish that identity is your application's concern, not the SDK's.
 
-```csharp
-public class PreviewModeMiddleware
-{
-    private readonly RequestDelegate _next;
+> [!WARNING]
+> **Never derive preview from a query string, a cookie, or a shared URL secret.** Any of those can be supplied by the caller, which hands an unauthenticated visitor your server-held preview key and every unpublished item in the environment.
 
-    public async Task InvokeAsync(HttpContext context)
-    {
-        // Enable preview mode with ?preview=true&key=secret
-        if (context.Request.Query.TryGetValue("preview", out var preview) &&
-            preview == "true" &&
-            ValidatePreviewKey(context.Request.Query["key"]))
-        {
-            context.Response.Cookies.Append("preview_mode", "true", new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddHours(1)
-            });
-        }
+Two things that are easy to miss once the endpoint works:
 
-        // Disable preview mode
-        if (context.Request.Query["preview"] == "false")
-        {
-            context.Response.Cookies.Delete("preview_mode");
-        }
-
-        await _next(context);
-    }
-
-    private bool ValidatePreviewKey(string key)
-    {
-        // Validate preview access key
-        return key == "your-secret-preview-key";
-    }
-}
-
-// Register middleware
-app.UseMiddleware<PreviewModeMiddleware>();
-```
-
-## Preview API
-
-The Preview API allows you to retrieve unpublished content for preview purposes.
-
-### Enable Preview API
-
-```csharp
-services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
-{
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "your-preview-api-key";
-}));
-```
-
-When `UsePreviewApi` is enabled, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered. This keeps preview responses fresh by default.
-
-### Dynamic Switching (Production vs Preview)
-
-You can configure named clients for different environments:
-
-```csharp
-services.AddDeliveryClient("production", delivery => delivery.Options.Configure(options =>
-{
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = false;
-}));
-
-services.AddDeliveryClient("preview", delivery => delivery.Options.Configure(options =>
-{
-    options.EnvironmentId = "your-environment-id";
-    options.UsePreviewApi = true;
-    options.PreviewApiKey = "your-preview-api-key";
-}));
-
-// Inject factory and get appropriate client
-var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
-var client = isPreviewMode ? factory.Get("preview") : factory.Get("production");
-```
-
-For more on named clients and multi-environment scenarios, see the [Multi-Client Scenarios Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md).
-
-### Preview API Security
-
-**Never expose Preview API keys in client-side code.** A preview key reads unpublished content, so it
-belongs on the server only. For a web application, put the preview client behind your own endpoint and
-authenticate the caller there.
+- **Keep preview responses out of shared caches.** A `UsePreviewApi = true` client bypasses the *SDK's*
+  cache, and that is all it does. ASP.NET Core output caching, a reverse proxy and a CDN are each
+  unaware of it, so a preview response can still be stored and served to the next visitor. Mark the
+  endpoint `[OutputCache(NoStore = true)]`, or keep it off any cached route.
+- **Preview preference is not authorization.** An editor who *may* preview may still want to see the
+  published site. Let the request carry that preference — a query flag is fine for this — but read it
+  only after the policy has already granted access.
 
 ## Environment-Specific Configuration
 
