@@ -17,7 +17,9 @@ The pillars:
 
 ## Current phase
 
-`9.0` has shipped stable on `net10.0`, alongside every other package in the repo. **The window for casual breaking changes is closed**: a break now waits for the next major, and needs a real defect or a clearly better architecture behind it, a `CHANGELOG.md` entry under `## Unreleased`, an entry in the upgrade guide for the major in progress, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
+`eng/Versions.props` is the authority on where this product is; read it rather than trusting a sentence here. `9.x` on `net10.0` is the modernized line, `8.x` the previous API.
+
+**The window for casual breaking changes is closed.** A break needs a real defect or a clearly better architecture behind it, a `CHANGELOG.md` entry under `## Unreleased`, an entry in the upgrade guide for the major in progress, and an approval-snapshot update. Renaming stable, sensible API purely to modernize naming does not clear the bar — familiarity has value.
 
 ## Sibling products are canonical references
 

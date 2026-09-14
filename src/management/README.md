@@ -5,7 +5,7 @@
 
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.
 
-This README documents **9.x**: result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. Coming from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) — the API changed shape throughout.
+This README documents **9.x**, which targets `net10.0`: result-based return types, materialized listings, `System.Text.Json` serialization, and strongly-typed content models. Coming from `8.x`? Start with the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) — the API changed shape throughout.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ This README documents **9.x**: result-based return types, materialized listings,
 dotnet add package Kontent.Ai.Management
 ```
 
-The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md) for what each release changed.
+See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/management/CHANGELOG.md) for what each release changed.
 
 ## Upgrade Guide
 
@@ -678,7 +678,7 @@ Each wrapper has an implicit conversion for the common case, so `PublishingDate 
 > A date & time value is stored as a **UTC instant**; `DisplayTimeZone` is only a hint for how the editor renders it and never changes the instant. The element accepts a `DateTimeOffset` (not a `DateTime`) so the moment is unambiguous — a bare `DateTime` would be resolved against the machine's local zone. Whatever offset you supply is normalized to UTC on the wire.
 
 > [!TIP]
-> You don't have to hand-write these models. The [**Kontent.ai model generator**](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) generates strongly-typed records from your content model. Management-model generation is currently in active development — watch the repository for its release.
+> You don't have to hand-write these models. The [**Kontent.ai model generator**](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) emits them from your content model — run it with `-m` / `--management`, and see [Management Models](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator#management-models) for the shapes it produces.
 
 ### Rich text and inline components
 
