@@ -1,7 +1,5 @@
 [![.NET][dotnet-shield]][dotnet-url]
 [![codecov][codecov-shield]][codecov-url]
-[![Contributors][contributors-shield]][contributors-url]
-[![Issues][issues-shield]][issues-url]
 [![MIT License][license-shield]][license-url]
 
 # Kontent.ai .NET
@@ -196,10 +194,6 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 [dotnet-url]: https://dotnet.microsoft.com/download/dotnet/10.0
 [codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge
 [codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
-[contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet.svg?style=for-the-badge
-[contributors-url]: https://github.com/kontent-ai/dotnet/graphs/contributors
-[issues-shield]: https://img.shields.io/github/issues/kontent-ai/dotnet.svg?style=for-the-badge
-[issues-url]: https://github.com/kontent-ai/dotnet/issues
 [license-shield]: https://img.shields.io/github/license/kontent-ai/dotnet.svg?style=for-the-badge
 [license-url]: https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md
 
