@@ -54,6 +54,7 @@ public class ManagementClassCodeGeneratorTests
         code.Should().Contain("using Kontent.Ai.Management;");
         code.Should().Contain("using Kontent.Ai.Management.Annotations;");
         code.Should().Contain("using Kontent.Ai.Management.Models.Content;");
+        code.Should().Contain("using Kontent.Ai.Management.Models.Shared;");
         // No constraint attributes are emitted, so neither DataAnnotations nor the FileType namespace is pulled in.
         code.Should().NotContain("using System.ComponentModel.DataAnnotations;");
         code.Should().NotContain("using Kontent.Ai.Management.Models.Types.Elements;");
@@ -305,10 +306,11 @@ public class ManagementClassCodeGeneratorTests
         result.Success.Should().BeTrue(errors);
     }
 
-    // Minimal stubs for the SDK types the emitted code references. Layout mirrors the real
-    // management-sdk-net (vnext): IElementsModel at the root namespace, content-value types in
-    // Models.Content, and the three identity attributes in Annotations. No constraint attributes —
-    // the SDK no longer defines them, so a generated model that referenced one would fail to compile.
+    // Minimal stubs for the SDK types the emitted code references. The namespaces must match
+    // Kontent.Ai.Management exactly, or this test certifies code that does not build against the real
+    // SDK: IElementsModel at the root, the identity attributes in Annotations, the content-value types
+    // in Models.Content - but Reference in Models.Shared. No constraint attributes; the SDK no longer
+    // defines them, so a generated model that referenced one would fail to compile.
     private const string SdkStubsSource = @"
 namespace Kontent.Ai.Management
 {
@@ -317,9 +319,13 @@ namespace Kontent.Ai.Management
 
 namespace Kontent.Ai.Management.Models.Content
 {
-    public sealed class Reference { }
     public sealed class RichTextValue { }
     public sealed class AssetReference { }
+}
+
+namespace Kontent.Ai.Management.Models.Shared
+{
+    public sealed class Reference { }
 }
 
 namespace Kontent.Ai.Management.Annotations

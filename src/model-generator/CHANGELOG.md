@@ -12,8 +12,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 The first stable release of the **11.x** line. The tool needs the **.NET 10** runtime, and
 `Kontent.Ai.ModelGenerator.Core` targets `net10.0`.
 
-Coming from **10.x**, the emitted code is unchanged for any content model that generated valid code
-before — regenerating produces no diff. The work is the runtime move and the removal of
+Coming from **10.x**, the emitted code is unchanged apart from one added `using` in Management mode,
+so regenerating Delivery models produces no diff. The work is the runtime move and the removal of
 `--withtypeprovider` / `-t`, which the Delivery SDK's own compile-time provider replaced. Arguments are
 now validated against the SDKs' own rules before any request, so a malformed `--environmentId` or a
 flag that belongs to the other mode fails immediately instead of part-way through a run.
@@ -22,6 +22,15 @@ Generated Delivery models need `Kontent.Ai.Delivery` 19.0 or newer (19.2.0 for `
 semantic`); generated Management models need `Kontent.Ai.Management` 9.0 or newer.
 
 Full migration: [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md).
+
+### Fixed
+
+- **Generated Management models compile when a content type has linked items, subpages or taxonomy.**
+
+  All three elements emit `IEnumerable<Reference>?`, but `Reference` lives in
+  `Kontent.Ai.Management.Models.Shared` and the emitter only wrote a `using` for `Models.Content`, so
+  the generated file failed with `CS0246`. Management mode now emits both namespaces. Regenerate, or
+  add `using Kontent.Ai.Management.Models.Shared;` to the affected files by hand.
 
 ## 11.0.0-rc.3 (2026-09-08)  _(prerelease)_
 

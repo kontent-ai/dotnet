@@ -332,6 +332,7 @@ using System.Collections.Generic;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Annotations;
 using Kontent.Ai.Management.Models.Content;
+using Kontent.Ai.Management.Models.Shared;
 
 namespace MyProject.Models;
 
