@@ -103,7 +103,7 @@ var resolver = new HtmlResolverBuilder()
     .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
     {
         var inner = await resolveChildren(link.Children);
-        return $"<a href=\"/articles/{link.Metadata?.UrlSlug}\">{inner}</a>";
+        return $"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{inner}</a>";
     })
     .Build();
 
@@ -150,8 +150,8 @@ var resolver = new HtmlResolverBuilder()
     {
         // Fallback URL if metadata is not available
         var url = link.Metadata?.UrlSlug is { Length: > 0 }
-            ? $"/content/{link.Metadata.UrlSlug}"
-            : $"/content/{link.ItemId}";
+            ? $"/content/{HtmlEncoder.Default.Encode(link.Metadata.UrlSlug)}"
+            : $"/content/{HtmlEncoder.Default.Encode(link.ItemId.ToString())}";
 
         var inner = await resolveChildren(link.Children);
         return $"<a href=\"{url}\">{inner}</a>";
@@ -192,19 +192,19 @@ var resolver = new HtmlResolverBuilder()
     {
         var slug = link.Metadata?.UrlSlug ?? link.ItemId.ToString();
         var inner = await resolveChildren(link.Children);
-        return $"<a href=\"/articles/{slug}\">{inner}</a>";
+        return $"<a href=\"/articles/{HtmlEncoder.Default.Encode(slug)}\">{inner}</a>";
     })
     .WithContentItemLinkResolver("product", async (link, resolveChildren) =>
     {
         var slug = link.Metadata?.UrlSlug ?? link.ItemId.ToString();
         var inner = await resolveChildren(link.Children);
-        return $"<a href=\"/shop/products/{slug}\">{inner}</a>";
+        return $"<a href=\"/shop/products/{HtmlEncoder.Default.Encode(slug)}\">{inner}</a>";
     })
     .WithContentItemLinkResolver("author", async (link, resolveChildren) =>
     {
         var codename = link.Metadata?.Codename ?? link.ItemId.ToString();
         var inner = await resolveChildren(link.Children);
-        return $"<a href=\"/about/team/{codename}\">{inner}</a>";
+        return $"<a href=\"/about/team/{HtmlEncoder.Default.Encode(codename)}\">{inner}</a>";
     })
     .Build();
 ```
@@ -246,17 +246,17 @@ var resolver = new HtmlResolverBuilder()
         ("article", async (link, resolveChildren) =>
         {
             var inner = await resolveChildren(link.Children);
-            return $"<a href=\"/articles/{link.Metadata?.UrlSlug}\">{inner}</a>";
+            return $"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{inner}</a>";
         }),
         ("product", async (link, resolveChildren) =>
         {
             var inner = await resolveChildren(link.Children);
-            return $"<a href=\"/shop/products/{link.Metadata?.UrlSlug}\">{inner}</a>";
+            return $"<a href=\"/shop/products/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{inner}</a>";
         }),
         ("author", async (link, resolveChildren) =>
         {
             var inner = await resolveChildren(link.Children);
-            return $"<a href=\"/about/team/{link.Metadata?.Codename}\">{inner}</a>";
+            return $"<a href=\"/about/team/{HtmlEncoder.Default.Encode(link.Metadata?.Codename ?? "")}\">{inner}</a>";
         }))
     .Build();
 ```
@@ -280,7 +280,7 @@ var resolver = new HtmlResolverBuilder()
             ? "featured-link"
             : "standard-link";
 
-        return $"<a href=\"{url}\" class=\"{cssClass}\" data-item-id=\"{link.ItemId}\">{inner}</a>";
+        return $"<a href=\"{HtmlEncoder.Default.Encode(url)}\" class=\"{cssClass}\" data-item-id=\"{HtmlEncoder.Default.Encode(link.ItemId.ToString())}\">{inner}</a>";
     })
     .Build();
 ```
@@ -304,9 +304,9 @@ var resolver = new HtmlResolverBuilder()
 
         return $@"
             <blockquote class=""twitter-tweet"">
-                <p>{tweetText}</p>
-                <cite>@{author}</cite>
-                <a href=""{tweetUrl}"">View on Twitter</a>
+                <p>{HtmlEncoder.Default.Encode(tweetText)}</p>
+                <cite>@{HtmlEncoder.Default.Encode(author)}</cite>
+                <a href=""{HtmlEncoder.Default.Encode(tweetUrl)}"">View on Twitter</a>
             </blockquote>";
     })
     .WithContentResolver<Quote>(quote =>
@@ -393,9 +393,9 @@ var resolver = new HtmlResolverBuilder()
 
         return $"""
             <blockquote class="twitter-tweet">
-                <p>{Value(dynamic, "tweet_text")}</p>
-                <cite>@{Value(dynamic, "author_handle")}</cite>
-                <a href="{Value(dynamic, "tweet_url")}">View on Twitter</a>
+                <p>{HtmlEncoder.Default.Encode(Value(dynamic, "tweet_text"))}</p>
+                <cite>@{HtmlEncoder.Default.Encode(Value(dynamic, "author_handle"))}</cite>
+                <a href="{HtmlEncoder.Default.Encode(Value(dynamic, "tweet_url"))}">View on Twitter</a>
             </blockquote>
             """;
     })
@@ -430,12 +430,12 @@ var resolver = new HtmlResolverBuilder()
         var videoData = await _videoService.GetVideoDataAsync(videoId);
 
         return $@"
-            <div class=""video-embed"" data-video-id=""{videoId}"">
-                <iframe src=""https://youtube.com/embed/{videoId}""
-                        title=""{videoData.Title}""
+            <div class=""video-embed"" data-video-id=""{HtmlEncoder.Default.Encode(videoId)}"">
+                <iframe src=""https://youtube.com/embed/{HtmlEncoder.Default.Encode(videoId)}""
+                        title=""{HtmlEncoder.Default.Encode(videoData.Title)}""
                         width=""560"" height=""315"">
                 </iframe>
-                <p class=""video-caption"">{videoData.Description}</p>
+                <p class=""video-caption"">{HtmlEncoder.Default.Encode(videoData.Description)}</p>
             </div>";
     })
     .WithContentResolver<ProductShowcase>(async showcase =>
@@ -447,11 +447,11 @@ var resolver = new HtmlResolverBuilder()
 
         return $@"
             <div class=""product-card"">
-                <img src=""{product.ImageUrl}"" alt=""{product.Name}"" />
-                <h3>{product.Name}</h3>
+                <img src=""{HtmlEncoder.Default.Encode(product.ImageUrl)}"" alt=""{HtmlEncoder.Default.Encode(product.Name)}"" />
+                <h3>{HtmlEncoder.Default.Encode(product.Name)}</h3>
                 <p class=""price"">${product.CurrentPrice:F2}</p>
-                <p class=""stock"">{product.StockStatus}</p>
-                <a href=""/products/{product.Id}"">View Details</a>
+                <p class=""stock"">{HtmlEncoder.Default.Encode(product.StockStatus)}</p>
+                <a href=""/products/{HtmlEncoder.Default.Encode(product.Id)}"">View Details</a>
             </div>";
     })
     .Build();
@@ -478,7 +478,7 @@ resolver = new HtmlResolverBuilder()
 
         return $"""
             <div class="callout-box">
-                <h4>{callout.Elements.Title}</h4>
+                <h4>{HtmlEncoder.Default.Encode(callout.Elements.Title)}</h4>
                 <div class="callout-body">{bodyHtml}</div>
             </div>
             """;
@@ -522,7 +522,7 @@ to give it.
 var builder = new HtmlResolverBuilder();
 foreach (var modelType in modelTypesFoundAtRuntime)
 {
-    builder.WithContentResolvers((modelType, content => $"<div>{content.System.Codename}</div>"));
+    builder.WithContentResolvers((modelType, content => $"<div>{HtmlEncoder.Default.Encode(content.System.Codename)}</div>"));
 }
 var resolver = builder.Build();
 ```
@@ -534,7 +534,7 @@ var resolver = builder.Build();
 var resolver = new HtmlResolverBuilder()
     .WithContentResolvers(
         ("tweet", content => content is IContentItem<IDynamicElements> t
-            ? $"<div class=\"twitter-embed\"><a href=\"{Value(t, "url")}\">View Tweet</a></div>"
+            ? $"<div class=\"twitter-embed\"><a href=\"{HtmlEncoder.Default.Encode(Value(t, "url"))}\">View Tweet</a></div>"
             : string.Empty),
         ("quote", content =>
         {
@@ -620,7 +620,7 @@ every embedded item whatever its type:
 
 ```csharp
 .WithContentResolver("any_type", content => $"""
-    <div data-id="{content.System.Id}" data-type="{HtmlEncoder.Default.Encode(content.System.Type)}">
+    <div data-id="{HtmlEncoder.Default.Encode(content.System.Id)}" data-type="{HtmlEncoder.Default.Encode(content.System.Type)}">
         {HtmlEncoder.Default.Encode(content.System.Name)}
     </div>
     """)
@@ -822,7 +822,7 @@ var resolver = new HtmlResolverBuilder()
         var height = image.Height;
 
         return ValueTask.FromResult(
-            $"<img src=\"{url}\" alt=\"{description}\" width=\"{width}\" height=\"{height}\" />");
+            $"<img src=\"{HtmlEncoder.Default.Encode(url)}\" alt=\"{HtmlEncoder.Default.Encode(description)}\" width=\"{width}\" height=\"{height}\" />");
     })
     .Build();
 ```
@@ -884,11 +884,11 @@ var resolver = new HtmlResolverBuilder()
         var url = image.Url;
         var description = image.Description;
 
-        var imgTag = $"<img src=\"{url}\" alt=\"{description ?? ""}\" loading=\"lazy\" />";
+        var imgTag = $"<img src=\"{HtmlEncoder.Default.Encode(url)}\" alt=\"{HtmlEncoder.Default.Encode(description ?? "")}\" loading=\"lazy\" />";
 
         return ValueTask.FromResult(
             description != null
-                ? $"<figure><img src=\"{url}\" alt=\"{description}\" /><figcaption>{description}</figcaption></figure>"
+                ? $"<figure><img src=\"{HtmlEncoder.Default.Encode(url)}\" alt=\"{HtmlEncoder.Default.Encode(description)}\" /><figcaption>{HtmlEncoder.Default.Encode(description)}</figcaption></figure>"
                 : imgTag);
     })
     .Build();
@@ -929,7 +929,7 @@ var resolver = new HtmlResolverBuilder()
         var language = node.Attributes.GetValueOrDefault("data-language") ?? "plaintext";
 
         return $@"
-            <pre><code class=""language-{language}"">{code}</code></pre>";
+            <pre><code class=""language-{HtmlEncoder.Default.Encode(language)}"">{code}</code></pre>";
     })
     .WithHtmlNodeResolverForAttribute("data-component", "alert", async (node, resolveChildren) =>
     {
@@ -937,7 +937,7 @@ var resolver = new HtmlResolverBuilder()
         var type = node.Attributes.GetValueOrDefault("data-type") ?? "info";
 
         return $@"
-            <div class=""alert alert-{type}"" role=""alert"">
+            <div class=""alert alert-{HtmlEncoder.Default.Encode(type)}"" role=""alert"">
                 {content}
             </div>";
     })
@@ -1001,7 +1001,7 @@ var resolver = new HtmlResolverBuilder()
     .WithContentItemLinkResolver(async (link, resolveChildren) =>
     {
         var inner = await resolveChildren(link.Children);
-        return $"<a href=\"/content/{link.ItemId}\">{inner}</a>";
+        return $"<a href=\"/content/{HtmlEncoder.Default.Encode(link.ItemId.ToString())}\">{inner}</a>";
     })
     .Build();
 ```

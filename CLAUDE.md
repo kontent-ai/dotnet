@@ -78,7 +78,7 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 - A bullet opens with a **bold lead of at most a dozen words** that names the change, and nothing else on that line. Rationale, consumer impact and migration go in a paragraph of their own inside the bullet, after a blank line; code blocks stay where they are. Read the bold lines alone and the release should still make sense.
 - Headings come from one set, in this order when present: `Breaking changes`, `Security`, `Added`, `Changed`, `Fixed`, `Dependencies`, `Internal`. Nothing else — a stray heading reaches the release page as is.
-- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. `release-notes.cs` rewrites `blob/main/` to `blob/<tag>/` when it renders, so a published page keeps pointing at the docs that shipped with it.
+- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. `release-notes.cs` rewrites `blob/main/` to `blob/<tag>/` when it renders, so the release page's own links land on the docs that shipped with it. That pins the first hop only — links *inside* the tagged guide still point at `main`, so a reader can step off the version by following one. Version-consistent navigation across the whole journey is unfinished.
 - **A new stable major opens with an overview** — free-form prose between the `## <version>` heading and the first `###`, with no heading of its own. Everything below it describes the delta since the last prerelease, which is not what someone upgrading from the previous stable major needs. Four parts, in this order:
 
   1. What this is — the line, and the target framework.

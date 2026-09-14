@@ -19,8 +19,9 @@ rather than a coordinated release across five repositories.
 | ASP.NET Core extensions | Render content and receive webhooks in ASP.NET Core | [![Kontent.Ai.AspNetCore][aspnetcore-nuget-shield]][aspnetcore-nuget-url] | [`src/aspnetcore/README.md`](./src/aspnetcore/README.md) |
 | Model generator | Generate typed C# records from your content model | [![Kontent.Ai.ModelGenerator][model-generator-nuget-shield]][model-generator-nuget-url] | [`src/model-generator/README.md`](./src/model-generator/README.md) |
 
-Each badge shows the latest release of that product's flagship package on nuget.org. The products
-version independently; a product's README and changelog describe the line it ships on.
+The badges show what is published on nuget.org — `stable` per product in the table above, and both
+`stable` and `latest` in each product's README. They do not say which version *this checkout*
+describes: documentation lives with its code, so the branch you are reading is the answer to that.
 
 `main` tracks the released packages, `vnext` is where the next major is developed, and `maintenance/**`
 carries hotfixes for earlier lines. Documentation lives with its code, so a branch's docs describe that
