@@ -9,15 +9,11 @@ This guide provides comprehensive strategies for optimizing the performance of a
 - [Caching Strategies](#caching-strategies)
 - [Network Optimization](#network-optimization)
   - [HTTP Client Configuration](#http-client-configuration)
-  - [Connection Pooling](#connection-pooling)
-  - [Retry Policies](#retry-policies)
 - [Parallel Operations](#parallel-operations)
 - [Rate Limit Management](#rate-limit-management)
 - [Monitoring and Diagnostics](#monitoring-and-diagnostics)
 - [Production Best Practices](#production-best-practices)
 - [Performance Benchmarks](#performance-benchmarks)
-  - [Typical Response Times](#typical-response-times)
-  - [Cache Hit Rate Targets](#cache-hit-rate-targets)
 - [Troubleshooting](#troubleshooting)
   - [Slow Queries](#slow-queries)
   - [High Memory Usage](#high-memory-usage)
@@ -84,40 +80,9 @@ services.AddDeliveryClient(delivery =>
 });
 ```
 
-### Connection Pooling
-
-Use HTTP client factory for proper connection pooling (handled automatically by SDK):
-
-```csharp
-// SDK handles this automatically through HttpClientFactory
-// No manual configuration needed - just benefits you get for free!
-```
-
-**Impact**: Connection pooling prevents port exhaustion and reduces latency by 20-30%.
-
-### Retry Policies
-
-Configure resilience policies for transient failures:
-
-```csharp
-services.AddDeliveryClient(delivery =>
-{
-    delivery.Options.Configure(options => { ... });
-
-    delivery.ConfigureResilience(builder =>
-    {
-        builder.AddRetry(new HttpRetryStrategyOptions
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            BackoffType = DelayBackoffType.Exponential,
-            UseJitter = true
-        });
-
-        builder.AddTimeout(TimeSpan.FromSeconds(30));
-    });
-});
-```
+The SDK builds its transport on `IHttpClientFactory`, so connection pooling and handler rotation are
+already handled — there is nothing to configure and no `HttpClient` to own. Retry and backoff are
+covered under [Rate Limit Management](#rate-limit-management).
 
 ## Parallel Operations
 
@@ -222,20 +187,22 @@ To tell a cached response from a fetched one, read
 
 ## Performance Benchmarks
 
-### Typical Response Times
+This guide publishes no numbers: they depend on your content, payload size, region and cache
+configuration, and a figure measured elsewhere tells you nothing about your application.
 
-| Operation | No Cache | With Cache | Improvement |
-|-----------|----------|------------|-------------|
-| Get Single Item | 150-300ms | 1-5ms | 50-300x |
-| Get 10 Items | 200-400ms | 2-10ms | 40-200x |
-| Get Items Feed (100 items) | 500-1000ms | 5-20ms | 50-200x |
-| Rich Text Resolution | 50-100ms | <1ms | 50-100x |
+The repository carries a [BenchmarkDotNet
+project](https://github.com/kontent-ai/dotnet/tree/main/src/delivery/Kontent.Ai.Delivery.Benchmarks)
+that measures the SDK's own overhead — deserialization, mapping, rich-text parsing — against recorded
+fixtures over a mock transport, so the network is out of the picture:
 
-### Cache Hit Rate Targets
+```bash
+dotnet run -c Release --project src/delivery/Kontent.Ai.Delivery.Benchmarks
+```
 
-- **Good**: 80%+ cache hit rate
-- **Excellent**: 90%+ cache hit rate
-- **Outstanding**: 95%+ cache hit rate
+For end-to-end numbers, measure your own endpoints with the
+[`TimingHandler`](#monitoring-and-diagnostics) above, and read
+[`ResponseSource`](caching-guide.md#detecting-cache-hits) to know which tier answered before drawing a
+conclusion from a duration.
 
 ## Troubleshooting
 
@@ -257,17 +224,12 @@ To tell a cached response from a fetched one, read
 
 **Solutions**:
 
-1. **Configure cache limits**:
-```csharp
-services.AddMemoryCache(options =>
-{
-    options.SizeLimit = 512;
-});
-```
-
-2. **Use hybrid cache** instead of memory cache
-3. **Limit depth** and elements in queries
-4. **Monitor for memory leaks**
+1. **Bound the cache.** `AddMemoryCache(o => o.SizeLimit = …)` does *not* size the SDK's cache — the
+   built-ins are FusionCache-backed, so their memory tier is configured through
+   [`ConfigureFusionCache`](caching-guide.md#reaching-into-fusioncache). Shorten
+   `DefaultExpiration` first; it is the blunter and more reliable lever.
+2. **Switch to `UseHybridCache`**, which keeps the bulk in the distributed tier.
+3. **Project and lower depth** — a cached response is as large as the payload that produced it.
 
 ### Rate Limit Errors
 
