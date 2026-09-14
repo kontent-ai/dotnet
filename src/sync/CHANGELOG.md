@@ -167,7 +167,7 @@ signal the API actually sends rather than on an inferred page size; the result c
 initialization stops pretending to return content; and disposal moves off the client interface onto the
 client that owns resources. Most consumers touch one loop and nothing else.
 
-See the [1.0 → 2.0 upgrade guide](docs/upgrade/1-to-2.md) for the migration, change by change.
+See the [1.0 → 2.0 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md) for the migration, change by change.
 
 ### Breaking changes
 
@@ -436,7 +436,7 @@ dotnet add package Kontent.Ai.Sync
 
 ### Migration from Delivery SDK
 
-If you're currently using sync functionality from Delivery SDK v18.x, refer to the [README](README.md) for complete setup instructions with the new standalone SDK.
+If you're currently using sync functionality from Delivery SDK v18.x, refer to the [README](https://github.com/kontent-ai/dotnet/blob/main/src/sync/README.md) for complete setup instructions with the new standalone SDK.
 
 ### Requirements
 

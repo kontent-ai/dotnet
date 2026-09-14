@@ -345,7 +345,7 @@ Third beta of the modernized Management SDK — an **ergonomics-and-alignment** 
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
 
 > [!IMPORTANT]
-> **Upgrading from `8.x`?** Read the [upgrade guide](docs/upgrade/8-to-9.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-2`, see [API refinements](#api-refinements-breaking-vs-900-beta-2) below for the beta-to-beta changes.
+> **Upgrading from `8.x`?** Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-2`, see [API refinements](#api-refinements-breaking-vs-900-beta-2) below for the beta-to-beta changes.
 
 ### New
 
@@ -396,7 +396,7 @@ Second beta of the modernized Management SDK — a **fixes-and-refinements** rel
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
 
 > [!IMPORTANT]
-> **Upgrading from `8.x`?** Read the [upgrade guide](docs/upgrade/8-to-9.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-1`, see [API refinements](#api-refinements-breaking-vs-900-beta-1) below for the beta-to-beta changes.
+> **Upgrading from `8.x`?** Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) first — it covers every breaking change with before/after examples. If you're already on `9.0.0-beta-1`, see [API refinements](#api-refinements-breaking-vs-900-beta-1) below for the beta-to-beta changes.
 
 ### Fixes
 
@@ -436,7 +436,7 @@ First public beta of the **ground-up modernized Management SDK**, targeting the 
 > This is a **prerelease**. Install it with `--prerelease` — without that flag you get the stable `8.x` API, which these notes do **not** describe. Breaking changes may still land between prereleases until the first stable `9.x` ships; pin an exact version if you need stability during the beta. For production today, stay on the latest stable `8.x`.
 
 > [!IMPORTANT]
-> **Upgrading from `8.x`?** Read the [upgrade guide](docs/upgrade/8-to-9.md) before you start — it covers every breaking change with before/after examples. The sections below are a summary.
+> **Upgrading from `8.x`?** Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) before you start — it covers every breaking change with before/after examples. The sections below are a summary.
 
 ### Highlights
 
@@ -451,15 +451,15 @@ First public beta of the **ground-up modernized Management SDK**, targeting the 
 
 ### Breaking changes (from `8.x`)
 
-All detailed in the [upgrade guide](docs/upgrade/8-to-9.md); the ones you're most likely to hit:
+All detailed in the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md); the ones you're most likely to hit:
 
-- **Error handling** → result pattern ([§2](docs/upgrade/8-to-9.md#2-response-handling-exceptions--result-pattern)).
-- **Serialization** → `System.Text.Json`; Newtonsoft is gone. Custom Newtonsoft converters and `[JsonProperty]` against SDK models no longer apply ([§8](docs/upgrade/8-to-9.md#8-serialization-newtonsoft--systemtextjson)).
-- **Listings** → materialized `List…Async` / streaming `Enumerate…PagesAsync`; the `IListingResponseModel<T>` paging surface is gone ([§3](docs/upgrade/8-to-9.md#3-listings-manual-paging--materialized-results)).
-- **Strongly-typed models** → immutable records; element properties are values / `*Value` records, not mutable element wrappers ([§4](docs/upgrade/8-to-9.md#4-language-variants-and-strongly-typed-models)).
-- **Untyped authoring** → typed `BaseElement` records; `ElementBuilder.GetElementsAsDynamic(...)` and `dynamic[]` removed ([§5](docs/upgrade/8-to-9.md#5-authoring-elements-without-a-generated-model)).
-- **Assets** → non-generic `AssetCreateModel`; the two asset-reference types collapsed onto `AssetReference` (a rendition is a `RenditionReference`; `Renditions = null` keeps them, `[]` removes them) ([§7](docs/upgrade/8-to-9.md#7-assets)).
-- **DTO contracts** → widespread `required` members, nullability corrections, and a focused set of renames/retypes to match the Management API v2 wire contract — including response/request collections standardized on `IReadOnlyList<T>` and the environment id typed as `Guid`. The compiler surfaces each one ([§10](docs/upgrade/8-to-9.md#10-model-and-dto-changes)).
+- **Error handling** → result pattern ([§2](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#2-response-handling-exceptions--result-pattern)).
+- **Serialization** → `System.Text.Json`; Newtonsoft is gone. Custom Newtonsoft converters and `[JsonProperty]` against SDK models no longer apply ([§8](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#8-serialization-newtonsoft--systemtextjson)).
+- **Listings** → materialized `List…Async` / streaming `Enumerate…PagesAsync`; the `IListingResponseModel<T>` paging surface is gone ([§3](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#3-listings-manual-paging--materialized-results)).
+- **Strongly-typed models** → immutable records; element properties are values / `*Value` records, not mutable element wrappers ([§4](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#4-language-variants-and-strongly-typed-models)).
+- **Untyped authoring** → typed `BaseElement` records; `ElementBuilder.GetElementsAsDynamic(...)` and `dynamic[]` removed ([§5](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#5-authoring-elements-without-a-generated-model)).
+- **Assets** → non-generic `AssetCreateModel`; the two asset-reference types collapsed onto `AssetReference` (a rendition is a `RenditionReference`; `Renditions = null` keeps them, `[]` removes them) ([§7](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#7-assets)).
+- **DTO contracts** → widespread `required` members, nullability corrections, and a focused set of renames/retypes to match the Management API v2 wire contract — including response/request collections standardized on `IReadOnlyList<T>` and the environment id typed as `Guid`. The compiler surfaces each one ([§10](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md#10-model-and-dto-changes)).
 
 ### Removed
 

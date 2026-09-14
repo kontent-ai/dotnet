@@ -78,6 +78,7 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 - A bullet opens with a **bold lead of at most a dozen words** that names the change, and nothing else on that line. Rationale, consumer impact and migration go in a paragraph of their own inside the bullet, after a blank line; code blocks stay where they are. Read the bold lines alone and the release should still make sense.
 - Headings come from one set, in this order when present: `Breaking changes`, `Security`, `Added`, `Changed`, `Fixed`, `Dependencies`, `Internal`. Nothing else — a stray heading reaches the release page as is.
+- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. Promoting a prerelease to a stable major also needs an overview above the `###` sections — see [`README.md`](./README.md#releasing).
 - A breaking entry's paragraph keeps one order: what changed, what a consumer sees, what to do about it.
 
 ## Commits and PRs

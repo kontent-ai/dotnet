@@ -497,7 +497,7 @@ These are implementation-only changes with no public API or behavior impact:
 Minor release adding a canonical empty value for rich text and sealing `RichTextContent` against post-construction mutation. Pre-requisite for upcoming improvements to model generator (default values instead of strict nullability everywhere).
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade/18-to-19.md) before you start.
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) before you start.
 
 #### What's new
 
@@ -522,7 +522,7 @@ The public parameterless `RichTextContent()` constructor has been removed. It pr
 Minor release adding `IServiceProvider`-aware DI registration overloads so SDK options can be composed from sibling services already registered in the container.
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade/18-to-19.md) before you start.
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) before you start.
 
 #### What's new
 
@@ -554,7 +554,7 @@ No code changes required. Use the new `(IServiceProvider, options)` overloads wh
 Production release of the revamped 19.0 SDK, consolidating pre-release iterations into a stable GA. Changes vs RC5: SDK tracking headers no longer leak SourceLink build metadata, and per-content-type cache invalidation tags now flow through to cached item entries.
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** 19.0 is a ground-up design overhaul of the SDK — every public surface area has changed. Read the [upgrade guide](docs/upgrade/18-to-19.md) and the [quick migration checklist](docs/upgrade/18-to-19.md#quick-migration-checklist) before you start.
+> **Upgrading from 18.x?** 19.0 is a ground-up design overhaul of the SDK — every public surface area has changed. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) and the [quick migration checklist](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md#quick-migration-checklist) before you start.
 
 #### Public API surface changes
 
@@ -570,7 +570,7 @@ Production release of the revamped 19.0 SDK, consolidating pre-release iteration
 - **DI registration** — New overloads, keyed services, named clients, and `ConfigureServices(...)` hook; `AddDeliveryClientCache` split into `AddDeliveryMemoryCache` / `AddDeliveryHybridCache`.
 - **Sync API** — Removed from this package; moved to the standalone [`Kontent.Ai.Sync`](https://github.com/kontent-ai/sync-sdk-net) package.
 
-The full type-by-type surface diff, including renamed / removed / added members across every RC, is enumerated in the [upgrade guide](docs/upgrade/18-to-19.md). The public-API approval snapshot (`Kontent.Ai.Delivery.Abstractions.Tests/ApiApproval/PublicApiApprovalTests.PublicApi_ShouldNotChangeUnexpectedly.verified.txt`) is the authoritative reference for the 19.0.0 surface.
+The full type-by-type surface diff, including renamed / removed / added members across every RC, is enumerated in the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md). The public-API approval snapshot (`Kontent.Ai.Delivery.Abstractions.Tests/ApiApproval/PublicApiApprovalTests.PublicApi_ShouldNotChangeUnexpectedly.verified.txt`) is the authoritative reference for the 19.0.0 surface.
 
 #### Bug fixes from rc5
 
@@ -602,7 +602,7 @@ The full type-by-type surface diff, including renamed / removed / added members 
 
 #### Migration from 18.x
 
-See [`docs/upgrade-guide.md`](docs/upgrade/18-to-19.md). Every call site that uses the SDK will need code changes — the guide is structured as an eleven-section walkthrough with before/after snippets for each area, plus a quick checklist.
+See [`docs/upgrade-guide.md`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md). Every call site that uses the SDK will need code changes — the guide is structured as an eleven-section walkthrough with before/after snippets for each area, plus a quick checklist.
 
 #### Migration from RC5
 
@@ -949,7 +949,7 @@ Attribute-based type resolution with source generation, plus performance and rel
 
 - **Rich text hardening** - Adds a max parsing depth guard to prevent stack overflow on deeply nested HTML and improves null-safety for inline images.
 
-- **Dynamic mode rich text parsing** - New `ParseRichTextAsync` extension method on `JsonElement` enables rich text resolution when using dynamic content access. See [Dynamic Mode Resolution](docs/rich-text-customization.md#dynamic-mode-resolution) in the Rich Text Customization Guide.
+- **Dynamic mode rich text parsing** - New `ParseRichTextAsync` extension method on `JsonElement` enables rich text resolution when using dynamic content access. See [Dynamic Mode Resolution](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md#dynamic-mode-resolution) in the Rich Text Customization Guide.
 
 - **Generic rich text resolver interface** — New `IRichTextResolver<TOutput>` base interface enables custom rich text resolution to any output format (Markdown, portable text, view models, etc.). `IHtmlResolver` extends `IRichTextResolver<string>` for HTML output.
 
