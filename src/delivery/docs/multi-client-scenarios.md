@@ -337,57 +337,32 @@ Two things that are easy to miss once the endpoint works:
 
 ### Environment-Based Registration
 
+One client, configured differently per environment. Register it **without a name** — that is what makes
+it the default, resolvable as a plain `IDeliveryClient` and by the factory's parameterless `Get()`:
+
 ```csharp
-public static class DeliveryClientRegistration
-{
-    public static void AddKontentDeliveryClients(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        IWebHostEnvironment environment)
+public static IServiceCollection AddKontentDelivery(
+    this IServiceCollection services,
+    IConfiguration configuration,
+    IWebHostEnvironment environment) =>
+    services.AddDeliveryClient(delivery =>
     {
+        delivery.Options.BindConfiguration("DeliveryOptions");
+
         if (environment.IsDevelopment())
         {
-            // Development: shorter cache, preview API
-            services.AddDeliveryClient("default", delivery =>
-            {
-                delivery.Options.Configure(options =>
-                {
-                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                    options.UsePreviewApi = true;
-                    options.PreviewApiKey = configuration["Kontent:PreviewApiKey"];
-                });
-                delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
-            });
+            delivery.Options.Configure(options => options.UsePreviewApi(configuration["Kontent:PreviewApiKey"]!));
+            delivery.UseMemoryCache(cache => cache.DefaultExpiration = TimeSpan.FromMinutes(5));
         }
-        else if (environment.IsStaging())
+        else
         {
-            // Staging: moderate cache, production API
-            services.AddDeliveryClient("default", delivery =>
-            {
-                delivery.Options.Configure(options =>
-                {
-                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                    options.UsePreviewApi = false;
-                });
-                delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(30));
-            });
+            delivery.UseHybridCache(cache => cache.DefaultExpiration = TimeSpan.FromHours(4));
         }
-        else // Production
-        {
-            // Production: hybrid cache, production API, resilience
-            services.AddDeliveryClient("default", delivery =>
-            {
-                delivery.Options.Configure(options =>
-                {
-                    options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-                    options.EnableResilience = true;
-                });
-                delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
-            });
-        }
-    }
-}
+    });
 ```
+
+> [!IMPORTANT]
+> `AddDeliveryClient("default", …)` does **not** register the default client — it registers an ordinary named client that happens to be called `default`. The unnamed overload is the only way to register the default, and client names are compared **ordinally**, so `Get("Production")` will not find a client registered as `"production"`.
 
 ## Best Practices
 
