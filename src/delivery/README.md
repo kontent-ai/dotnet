@@ -180,30 +180,29 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 
 ### Source-Generated Type Provider (Recommended)
 
-When you use the `[ContentTypeCodename]` attribute on your model classes (see [Generate Models](#generate-models)), the SDK's source generator automatically creates a `GeneratedTypeProvider`. The SDK auto-discovers this provider at runtime - no manual registration needed.
-
-A model is a class or a record class. The SDK hydrates elements on the instance it deserialized, so a struct would be copied and its values lost; the generator reports `KDSG003` for one, and the client throws `NotSupportedException` if a struct reaches it another way.
-
-> [!NOTE]
-> `Kontent.Ai.Delivery.SourceGeneration` emits `ContentTypeCodenameAttribute` and generates `GeneratedTypeProvider` during compilation.
-> If your models are generated into a separate project, reference `Kontent.Ai.Delivery.SourceGeneration` in that models project.
+Nothing to register. When your models carry the `[ContentTypeCodename]` attribute and the models project
+references `Kontent.Ai.Delivery.SourceGeneration`, the generator emits a `GeneratedTypeProvider` at compile
+time and the SDK discovers it at runtime, searching the entry assembly and its references:
 
 ```csharp
-// Just register the delivery client - type provider is auto-discovered
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 {
     options.EnvironmentId = "your-environment-id";
 }));
 ```
 
-The auto-discovery searches the entry assembly and its references for the generated provider.
+Keep the attributed models in a *single* project for auto-discovery to be predictable. If they are split
+across compilations on purpose, register an `ITypeProvider` explicitly instead. See [Source Generation for
+Type Resolution](#source-generation-for-type-resolution) for what the generator produces and the
+diagnostics it reports.
 
-For predictable auto-discovery, keep your attributed models in a single models project that references `Kontent.Ai.Delivery.SourceGeneration`.
-If your models are intentionally split across multiple projects/compilations, register an explicit `ITypeProvider` yourself (for example one produced by the Kontent.ai model generator tool).
+> [!NOTE]
+> A model must be a class or a record class. The SDK hydrates elements on the instance it deserialized, so a struct would be copied and its values lost — the generator reports `KDSG003`, and the client throws `NotSupportedException` if a struct reaches it another way.
 
 ### Registering a Custom Type Provider
 
-If you need to override the auto-discovered provider or use a custom implementation, register your type provider on the collection - before the client, or on the builder's `Services`:
+To override the auto-discovered provider, register your own — before the client, or on the builder's
+`Services`. The SDK registers its default with `TryAddSingleton`, so yours wins either way:
 
 ```csharp
 services.AddDeliveryClient(delivery =>
@@ -213,58 +212,43 @@ services.AddDeliveryClient(delivery =>
 });
 ```
 
-The SDK registers its default type provider with `TryAddSingleton`, so your registration takes precedence whether it comes before the client or through the builder.
-
 ### Without Dependency Injection
 
-For console applications, scripts, or scenarios where DI is not available, build the client with
-`DeliveryClient.Create`. It takes the same builder as `AddDeliveryClient` and runs the same registration
-inside a private container the client owns:
+For console applications, scripts, or anywhere a container is not available, `DeliveryClient.Create` takes
+the same builder as `AddDeliveryClient` and runs the same registration inside a private container the
+client owns:
 
 ```csharp
-// Simple usage with Production API
 await using var client = DeliveryClient.Create(delivery => delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id"));
 
-// With Preview API (preview mode bypasses local cache reads/writes)
-await using var previewClient = DeliveryClient.Create(delivery => delivery.Options.Configure(o =>
-{
-    o.EnvironmentId = "your-environment-id";
-    o.UsePreviewApi("your-preview-api-key");
-}));
-
-// With Production API and in-memory caching (requires Kontent.Ai.Delivery.Caching package)
+// Anything the container path can do, this can do - caching, resilience, an explicit type provider.
 await using var cachedClient = DeliveryClient.Create(delivery =>
 {
     delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id");
     delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(30));
 });
 
-// Or explicitly provide a type provider if needed
-await using var typedClient = DeliveryClient.Create(delivery =>
-{
-    delivery.Services.AddSingleton<ITypeProvider>(new GeneratedTypeProvider());
-    delivery.Options.Configure(o => o.EnvironmentId = "your-environment-id");
-});
-
-// From a pre-built options instance
+// Or from a pre-built options instance.
 await using var fromOptions = DeliveryClient.Create(new DeliveryOptions { EnvironmentId = "your-environment-id" });
 ```
 
 The builder is one type in both hosting modes:
-- `.Options` - the client's `OptionsBuilder<DeliveryOptions>` (`Configure`, `Bind`, `BindConfiguration`, ...)
-- `.HttpClient` - the named `IHttpClientBuilder` the transport is built on (`ConfigurePrimaryHttpMessageHandler`, `AddHttpMessageHandler`, ...)
-- `.ConfigureResilience(...)` - replaces the default resilience pipeline
-- `.Services` and `.Name` - what anything else attaches to: a custom `ITypeProvider`, an `ILoggerFactory`, the caching package's `UseMemoryCache` / `UseHybridCache` / `UseCacheManager`
 
-`Create` returns the concrete `DeliveryClient`, which owns the container it was built from - disposing
-it tears that down, which is why the examples use `await using`. Keep the result as `var` (or
-`DeliveryClient`); widening it to `IDeliveryClient` drops the disposal, because the interface
-deliberately does not carry it. A client resolved from a container is owned by the container, so there
-is nothing for you to dispose there. `IDeliveryClientFactory` is the other half of that split: it resolves
-named clients from a container you own, while `Create` builds a standalone one over a container it owns.
-Invalid options surface as `OptionsValidationException` from `Create`.
+- `.Options` — the client's `OptionsBuilder<DeliveryOptions>` (`Configure`, `Bind`, `BindConfiguration`, …)
+- `.HttpClient` — the named `IHttpClientBuilder` the transport is built on (`ConfigurePrimaryHttpMessageHandler`, `AddHttpMessageHandler`, …)
+- `.ConfigureResilience(...)` — replaces the default resilience pipeline
+- `.Services` and `.Name` — what everything else attaches to: a custom `ITypeProvider`, an `ILoggerFactory`, the caching package's `UseMemoryCache` / `UseHybridCache` / `UseCacheManager`
 
-`UseCustomEndpoint(...)` applies the same endpoint to both Production and Preview URLs. In most real deployments these endpoints differ, so if you need both modes with custom domains, register separate clients (for example named clients) and configure each with its corresponding endpoint.
+`Create` returns the concrete `DeliveryClient`, which owns the container it was built from — disposing it
+tears that down, which is why the examples use `await using`. Keep the result as `var` (or
+`DeliveryClient`); widening it to `IDeliveryClient` drops the disposal, because the interface deliberately
+does not carry it. A client resolved from a container is owned by that container, so there is nothing for
+you to dispose there. `IDeliveryClientFactory` is the other half of that split: it resolves named clients
+from a container you own, while `Create` builds a standalone one over a container it owns. Invalid options
+surface as `OptionsValidationException` from `Create`.
+
+> [!NOTE]
+> `UseCustomEndpoint(...)` sets the same endpoint for both Production and Preview. Real deployments usually differ, so if you need both modes on custom domains, register separate named clients and give each its own endpoint.
 
 ## Retrieving Content
 
@@ -747,97 +731,60 @@ if (result.IsSuccess)
 
 ## Dynamic Content Access
 
-When you don't have strongly-typed models or need to access content dynamically, use the typeless query methods (`GetItem()`, `GetItems()`, `GetItemsFeed()`). You may also use them for runtime type resolution, if your project uses generated models.
+The typeless query methods — `GetItem()`, `GetItems()`, `GetItemsFeed()` — return content without a model
+type. Use them for prototyping before models exist, for migration and sync tools that process every type,
+and for admin utilities that inspect content generically. For everything else, prefer [strongly-typed
+models](#working-with-strongly-typed-models).
 
 > [!NOTE]
-> Dynamic item/list queries (`GetItem()` and `GetItems()`) are intentionally non-cacheable because their final result type is resolved at runtime. Even with SDK caching configured, these queries always fetch from the API and return `IsCacheHit == false`.
+> `GetItem()` and `GetItems()` resolve their result type at runtime and are therefore never cached — they always fetch from the API and report `IsCacheHit == false`.
 
 ### Retrieve Content Without Type Parameters
 
+Elements arrive as `IDynamicElements`, a read-only dictionary of `JsonElement` keyed by codename:
+
 ```csharp
-// Get a single item dynamically
 var result = await client.GetItem("homepage").ExecuteAsync();
 
-if (result.IsSuccess)
+if (result.IsSuccess && result.Value is IContentItem<IDynamicElements> item)
 {
-    var item = result.Value;
-    Console.WriteLine($"Name: {item.System.Name}");
-    Console.WriteLine($"Type: {item.System.Type}");
+    Console.WriteLine($"{item.System.Name} ({item.System.Type})");
 
-    // Access elements via pattern matching to IDynamicElements
-    if (item is IContentItem<IDynamicElements> dynamicItem)
+    if (item.Elements.TryGetValue("title", out var title))
     {
-        if (dynamicItem.Elements.TryGetValue("title", out var titleElement))
-        {
-            Console.WriteLine($"Title: {titleElement}");
-        }
-    }
-}
-
-// Get multiple items dynamically
-var itemsResult = await client.GetItems()
-    .Where(f => f.System("type").IsEqualTo("article"))
-    .Limit(10)
-    .ExecuteAsync();
-
-if (itemsResult.IsSuccess)
-{
-    foreach (var item in itemsResult.Value.Items)
-    {
-        Console.WriteLine($"- {item.System.Name}");
+        Console.WriteLine($"Title: {title}");
     }
 }
 ```
 
 ### Runtime Type Resolution with Type Provider
 
-When using source generation with `[ContentTypeCodename]` attributes, the SDK auto-discovers the generated `ITypeProvider`. Typeless queries automatically resolve items to their strongly-typed models at runtime:
+If your project has generated models, a typeless query is not untyped — the auto-discovered
+`ITypeProvider` resolves each item to its model, and you recover it by pattern matching. Linked items and
+embedded rich-text content inside those items resolve the same way:
 
 ```csharp
-// Type provider is auto-discovered from source generation - no manual registration needed
-services.AddDeliveryClient(delivery => delivery.Options.Configure(options => { ... }));
-
-// Typeless queries return runtime-typed results
 var result = await client.GetItem("on_roasts").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    // Pattern match to access strongly-typed content
     switch (result.Value)
     {
         case IContentItem<Article> article:
             Console.WriteLine($"Article: {article.Elements.Title}");
-            Console.WriteLine($"Summary: {article.Elements.Summary}");
             break;
         case IContentItem<Product> product:
-            Console.WriteLine($"Product: {product.Elements.Name}");
-            Console.WriteLine($"Price: ${product.Elements.Price}");
+            Console.WriteLine($"Product: {product.Elements.Name} — ${product.Elements.Price}");
             break;
         default:
-            // Fallback to dynamic access
-            Console.WriteLine($"Unknown type: {result.Value.System.Type}");
+            Console.WriteLine($"Unmodelled type: {result.Value.System.Type}");
             break;
     }
 }
 ```
 
-This is particularly useful for:
-- **Mixed content listings**: Displaying articles, products, and other types together
-- **Search results**: Content types vary based on search query
-- **Webhook handlers**: Processing content where type isn't known until runtime
-
-Linked items and rich text embedded content within runtime-typed items are also automatically resolved to their strongly-typed models.
-
-### When to Use Dynamic Access
-
-Dynamic access is intended for edge cases where strongly-typed models are impractical:
-
-- **Prototyping**: Quick exploration before generating models
-- **Migration/sync tools**: Bulk processing across all content types
-- **Admin utilities**: Generic content inspection tools
-
-> [!TIP]
-> For production applications, always use [strongly-typed models](#working-with-strongly-typed-models). They provide compile-time safety, IntelliSense support, and better maintainability.
+That is what makes typeless queries the right tool for mixed content listings, search results, and
+webhook handlers — anywhere the type is not known until the response arrives.
 
 ## Working with Linked Items
 
