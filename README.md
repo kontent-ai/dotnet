@@ -80,6 +80,16 @@ single PR covering the batch. The same bump can be done locally if you prefer:
 dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|minor|major>
 ```
 
+> [!IMPORTANT]
+> **Before promoting a prerelease to a stable major, write the overview first.** A release page renders
+> only its own changelog section, so a GA promoted straight from `## Unreleased` describes what changed
+> since the last release candidate — which is often nothing, and is never what someone upgrading from
+> the previous stable major needs. Put a short overview at the top of `## Unreleased`, above the
+> `###` sections: the target framework, the main consumer-facing changes since the previous stable
+> line, and a link to the upgrade guide. The `rc` entries below it keep the detailed history.
+>
+> An empty `## Unreleased` is only a warning at this step, but *Publish* refuses to render notes for it.
+
 After merging that PR, **Actions → Publish** packs and pushes every product whose declared
 version is not yet on NuGet, and records each one as a
 `<product>-v<version>` tag and a GitHub Release with notes taken from the product's
