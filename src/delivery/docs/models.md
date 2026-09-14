@@ -37,8 +37,8 @@ The [Kontent.ai Model Generator](https://github.com/kontent-ai/dotnet/tree/main/
 
 Add the source generation package to enable these features:
 
-```xml
-<PackageReference Include="Kontent.Ai.Delivery.SourceGeneration" Version="<latest>" />
+```sh
+dotnet add package Kontent.Ai.Delivery.SourceGeneration
 ```
 
 > [!IMPORTANT]

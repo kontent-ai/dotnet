@@ -272,7 +272,9 @@ public partial record Article
     public string Slug => Title?.ToLowerInvariant().Replace(" ", "-") ?? string.Empty;
 
     // Add custom methods
-    public bool IsPublished() => PostDate is { DateTime: var dt } && dt <= DateTime.Now;
+    public DateTime? PostedLocal() => PostDate is { Value: { } utc, DisplayTimezone: { } zone }
+        ? TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.FindSystemTimeZoneById(zone))
+        : PostDate?.Value;
 
     // Add validation
     public bool IsValid() => !string.IsNullOrEmpty(Title) && BodyCopy != null;
@@ -403,7 +405,7 @@ Found a bug or have a feature request? [Open an issue](https://github.com/konten
 
 We would like to express our thanks to the following people who contributed and made the project possible:
 
-- [Drazen Janjicek](https://github.com/djanjicek) - [EXLRT](http://www.exlrt.com/)
+- Drazen Janjicek - [EXLRT](http://www.exlrt.com/)
 - [Kashif Jamal Soofi](https://github.com/kashifsoofi)
 - [Casey Brown](https://github.com/MajorGrits)
 

@@ -451,4 +451,4 @@ Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/dot
 
 ## License
 
-Licensed under the MIT License. See `LICENSE.md` for details.
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.

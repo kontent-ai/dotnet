@@ -865,7 +865,7 @@ https://www.nuget.org/packages/Kentico.Kontent.ModelGenerator/6.0.0
 https://www.nuget.org/packages/Kentico.Kontent.ModelGenerator/5.0.1
 
 Bug fixes:
-- [JsonProperty attributes in CM API models were generated incorrectly](https://github.com/Kentico/kontent-generators-net/issues/102)
+- [JsonProperty attributes in CM API models were generated incorrectly](https://github.com/kontent-ai/model-generator-net/issues/102)
 
 ## 5.0.0 (2020-03-31)
 

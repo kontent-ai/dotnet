@@ -1260,14 +1260,14 @@ This returns the cached value immediately while refreshing in the background —
 
 In high-traffic scenarios, a popular cache key can expire (or be invalidated) and cause many concurrent requests to miss the cache at the same time. If every request then calls the Delivery API, you get a spike of redundant calls (the "thundering herd" problem).
 
-The SDK mitigates this for cached query execution by **coalescing concurrent cache misses**:
+Cached query execution goes through FusionCache's `GetOrSetAsync`, which **coalesces concurrent cache
+misses**:
 - The first request performs the API call and populates the cache
-- Concurrent requests for the same cache key wait for the first request to finish (then read the cached result)
+- Concurrent requests for the same cache key wait for it to finish, then read the cached result
 
-Implementation details:
-- Coalescing is **scoped per `IDeliveryCacheManager` instance** (so different named clients / cache managers do not block each other)
-- Coalescing uses an in-flight task registry per cache key (owner/waiter model), not per-key semaphores
-- In-flight entries are removed immediately when the owner fetch completes (success or failure), so cleanup is completion-based
+Coalescing is scoped to the `IDeliveryCacheManager`'s underlying cache instance, so different named
+clients do not block each other. It is per-node: on a multi-instance deployment each node makes at most
+one call per key.
 
 ## Monitoring and Diagnostics
 

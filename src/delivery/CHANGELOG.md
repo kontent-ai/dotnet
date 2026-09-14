@@ -1914,7 +1914,7 @@ https://www.nuget.org/packages/Kentico.Kontent.Delivery/13.0.1
 - [support for registering multiple clients](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Registering-the-DeliveryClient-to-the-IServiceCollection-in-ASP.NET-Core#registering-multiple-clients)
 - [support for hot-reloading of configuration via `IOptionsSnapshot` and `IOptionsMonitor`](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1#reload-configuration-data-with-ioptionssnapshot)
 - [new best practices for working with the SDK](https://github.com/Kentico/kontent-delivery-sdk-net/wiki)
-- [better support for structured rich-text rendering of assets](https://github.com/Kentico/kontent-delivery-sdk-net/issues/204)
+- [better support for structured rich-text rendering of assets](https://github.com/kontent-ai/delivery-sdk-net/issues/204)
 
 **Breaking changes:**
 - `WithHttpClient(new HttpClient())` became `WithDeliveryHttpClient(new DeliveryHttpClient(new HttpClient()))` (see the [docs](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Faking-responses))
@@ -2049,7 +2049,7 @@ https://www.nuget.org/packages/KenticoCloud.Delivery/9.0.1
 - Added an extension method on `IServiceCollection` that registers `IDeliveryClient` implementation
 - Custom implementation of resolvers, processors, mappers can no longer be set to public properties - now they can be set through `DeliveryClientBuilder` class or by registering them to the `ServiceCollection`
 - `ConfigurationManagerProvider` class has been removed so the `GetDeliveryOptions` method for retrieving `DeliveryOptions` from web.config is no longer available.
-- Exception is [not thrown](https://github.com/Kentico/delivery-sdk-net/issues/126) when strong type doesn't exist during deserialization. Instead, null is returned for that object.
+- Exception is [not thrown](https://github.com/kontent-ai/delivery-sdk-net/issues/126) when strong type doesn't exist during deserialization. Instead, null is returned for that object.
 
 **NuGet:**
 - [8.0.0](https://www.nuget.org/packages/KenticoCloud.Delivery/8.0.0)
@@ -2134,7 +2134,7 @@ https://www.nuget.org/packages/KenticoCloud.Delivery/4.7.0
 - added more unit tests!
 
 ## Fixed bugs
-- [Asset description was not always initialized](https://github.com/Kentico/delivery-sdk-net/issues/68)
+- [Asset description was not always initialized](https://github.com/kontent-ai/delivery-sdk-net/issues/68)
 
 ## Closed pull reuqests
 See all closed pull reuqests in the latest [milestone](https://github.com/Kentico/delivery-sdk-net/milestone/3?closed=1).

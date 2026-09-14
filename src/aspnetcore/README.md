@@ -35,8 +35,10 @@ Useful for rendering responsive images. Accepts any `IAsset` returned by the Del
 `appsettings.json`:
 
 ```json
-"ImageTransformationOptions": {
-  "ResponsiveWidths": [ 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 2000 ]
+{
+  "ImageTransformationOptions": {
+    "ResponsiveWidths": [ 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 2000 ]
+  }
 }
 ```
 
@@ -191,8 +193,10 @@ Verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-S
 `appsettings.json`:
 
 ```json
-"WebhookOptions": {
-  "Secret": "<your_secret>"
+{
+  "WebhookOptions": {
+    "Secret": "<your_secret>"
+  }
 }
 ```
 
