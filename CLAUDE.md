@@ -43,6 +43,15 @@ Products with their own `CLAUDE.md` (e.g. `src/management/CLAUDE.md`) carry prod
 - No dead code, no drifting `// TODO`s, no commented-out blocks, no references to dev-only notes or planning files from committed code.
 - Do not add defensive code for impossible scenarios. Validate at external boundaries only (public API entry points, deserialized network payloads).
 
+## Writing documentation
+
+The commenting bar above applies to prose. **Short, to the point, only where needed.** Nobody reads a
+README for the prose.
+
+- **State the fact, not the case for it.** Rationale earns its place only when it stops a reader doing the wrong thing — that `DisableFor` diverges from the SDK's retry rule, that a preview client's cache bypass does not cover a CDN. Rationale that defends a decision we already made is padding; cut it.
+- **Every example compiles** against the current source. Extract the snippet and build it — do not hand-maintain approximations, and do not describe behaviour you have not run.
+- **One authoritative place per answer.** A README section that restates a guide will contradict it. Link instead.
+
 ## Build system
 
 - **Root `Directory.Build.props`** — repo-wide build settings, packaging metadata, `$(KontentCommonPath)`/`$(KontentTestingPath)`.
