@@ -6,6 +6,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **A missing default client no longer reports the internal `'Default'` name.**
+
+  `IManagementClientFactory.Get()` resolves the client registered without a name, which the SDK files under an internal key. When none was registered the error named that key and advised `AddManagementClient("Default", ...)` - a call that registers an ordinary named client and then collides with the unnamed registration. It now says to call `AddManagementClient(...)` without a name. Registering the default twice reports it as a default rather than as a name clash. Errors for explicitly named clients are unchanged.
+
 ## 9.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
 ### Breaking changes

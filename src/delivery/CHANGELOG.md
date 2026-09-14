@@ -14,6 +14,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   Built-in cache managers propagate failed distributed clear-marker writes and configured backplane publications. An open circuit breaker that skips either operation now causes `InvalidOperationException` instead of normal completion. Both `allowFailSafe` modes are affected; the `Task` signature is unchanged. Local entries may already be invalidated when the call throws. Callers that require best-effort purging must handle the exception explicitly. Ordinary cache reads remain fail-open.
 
+### Fixed
+
+- **A missing default client no longer reports the internal `'Default'` name.**
+
+  `IDeliveryClientFactory.Get()` resolves the client registered without a name, which the SDK files under an internal key. When none was registered the error named that key and advised `AddDeliveryClient("Default", ...)` - a call that registers an ordinary named client and then collides with the unnamed registration. It now says to call `AddDeliveryClient(...)` without a name. Registering the default twice reports it as a default rather than as a name clash. Errors for explicitly named clients are unchanged.
+
 ## 20.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
 ### Breaking changes
