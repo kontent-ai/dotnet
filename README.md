@@ -1,5 +1,4 @@
 [![.NET][dotnet-shield]][dotnet-url]
-[![Build & Test][build-shield]][build-url]
 [![codecov][codecov-shield]][codecov-url]
 [![Contributors][contributors-shield]][contributors-url]
 [![Issues][issues-shield]][issues-url]
@@ -195,8 +194,6 @@ Distributed under the MIT License. See [`LICENSE.md`](./LICENSE.md) for more inf
 
 [dotnet-shield]: https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
 [dotnet-url]: https://dotnet.microsoft.com/download/dotnet/10.0
-[build-shield]: https://img.shields.io/github/actions/workflow/status/kontent-ai/dotnet/ci.yml?style=for-the-badge&label=Build%20%26%20Test
-[build-url]: https://github.com/kontent-ai/dotnet/actions/workflows/ci.yml
 [codecov-shield]: https://img.shields.io/codecov/c/github/kontent-ai/dotnet?style=for-the-badge
 [codecov-url]: https://codecov.io/gh/kontent-ai/dotnet
 [contributors-shield]: https://img.shields.io/github/contributors/kontent-ai/dotnet.svg?style=for-the-badge
