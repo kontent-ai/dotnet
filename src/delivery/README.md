@@ -15,25 +15,27 @@ This README documents **20.x**, which targets `net10.0`. Coming from 19.x or ear
 - [Installation](#installation)
 - [Upgrade Guide](#upgrade-guide)
 - [Quick Start](#quick-start)
-- [Basic Usage](#basic-usage)
-  - [Setting Up the Delivery Client](#setting-up-the-delivery-client)
-  - [Retrieving Content](#retrieving-content)
-  - [Content Types and Elements](#content-types-and-elements)
-  - [Taxonomies](#taxonomies)
-  - [Reference Lookups (Used In)](#reference-lookups-used-in)
-  - [Filtering and Querying](#filtering-and-querying)
-  - [Working with Strongly-Typed Models](#working-with-strongly-typed-models)
-  - [Dynamic Content Access](#dynamic-content-access)
-  - [Working with Linked Items](#working-with-linked-items)
-  - [Rich Text Resolution](#rich-text-resolution)
-  - [Multi-Language Support](#multi-language-support)
-  - [Caching](#caching)
-  - [Preview API](#preview-api)
-  - [Asset Renditions](#asset-renditions)
-  - [Custom Asset Domain](#custom-asset-domain)
-  - [Image Transformation](#image-transformation)
+- [Setting Up the Delivery Client](#setting-up-the-delivery-client)
+- [Retrieving Content](#retrieving-content)
+- [Content Types and Elements](#content-types-and-elements)
+- [Taxonomies](#taxonomies)
+- [Reference Lookups (Used In)](#reference-lookups-used-in)
+- [Filtering and Querying](#filtering-and-querying)
+- [Working with Strongly-Typed Models](#working-with-strongly-typed-models)
+- [Dynamic Content Access](#dynamic-content-access)
+- [Working with Linked Items](#working-with-linked-items)
+- [Rich Text Resolution](#rich-text-resolution)
+- [Multi-Language Support](#multi-language-support)
+- [Caching](#caching)
+- [Preview API](#preview-api)
+- [Asset Renditions](#asset-renditions)
+- [Custom Asset Domain](#custom-asset-domain)
+- [Image Transformation](#image-transformation)
 - [Configuration Options](#configuration-options)
 - [Important Considerations](#important-considerations)
+- [Error Handling](#error-handling)
+- [Response Metadata](#response-metadata)
+- [Source Tracking (for Tool Authors)](#source-tracking-for-tool-authors)
 - [Advanced Documentation](#advanced-documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -100,13 +102,11 @@ if (result.IsSuccess)
 }
 ```
 
-## Basic Usage
-
-### Setting Up the Delivery Client
+## Setting Up the Delivery Client
 
 The SDK is designed to work with .NET's dependency injection container. Register the `IDeliveryClient` in your `Program.cs` or `Startup.cs`:
 
-#### Basic Registration
+### Basic Registration
 
 ```csharp
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
@@ -115,7 +115,7 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 }));
 ```
 
-#### Registration from Configuration
+### Registration from Configuration
 
 ```csharp
 // appsettings.json
@@ -148,7 +148,7 @@ services.AddDeliveryClient(delivery =>
 });
 ```
 
-#### Registration from Other DI Services
+### Registration from Other DI Services
 
 Use `Options.Configure<IServiceProvider>` when Delivery options need values from other registered services:
 
@@ -165,7 +165,7 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure<IServiceProvid
 The callback must not resolve `IDeliveryClient`, `IOptions<DeliveryOptions>` or anything that depends on
 them: doing so re-enters the options factory, and the container recurses without bound.
 
-#### API Mode Helpers
+### API Mode Helpers
 
 The members that set more than one property come as extension methods on `DeliveryOptions`, usable inside
 `Configure` and on any instance:
@@ -178,7 +178,7 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 }));
 ```
 
-#### Source-Generated Type Provider (Recommended)
+### Source-Generated Type Provider (Recommended)
 
 When you use the `[ContentTypeCodename]` attribute on your model classes (see [Generate Models](#generate-models)), the SDK's source generator automatically creates a `GeneratedTypeProvider`. The SDK auto-discovers this provider at runtime - no manual registration needed.
 
@@ -201,7 +201,7 @@ The auto-discovery searches the entry assembly and its references for the genera
 For predictable auto-discovery, keep your attributed models in a single models project that references `Kontent.Ai.Delivery.SourceGeneration`.
 If your models are intentionally split across multiple projects/compilations, register an explicit `ITypeProvider` yourself (for example one produced by the Kontent.ai model generator tool).
 
-#### Registering a Custom Type Provider
+### Registering a Custom Type Provider
 
 If you need to override the auto-discovered provider or use a custom implementation, register your type provider on the collection - before the client, or on the builder's `Services`:
 
@@ -215,7 +215,7 @@ services.AddDeliveryClient(delivery =>
 
 The SDK registers its default type provider with `TryAddSingleton`, so your registration takes precedence whether it comes before the client or through the builder.
 
-#### Without Dependency Injection
+### Without Dependency Injection
 
 For console applications, scripts, or scenarios where DI is not available, build the client with
 `DeliveryClient.Create`. It takes the same builder as `AddDeliveryClient` and runs the same registration
@@ -266,9 +266,9 @@ Invalid options surface as `OptionsValidationException` from `Create`.
 
 `UseCustomEndpoint(...)` applies the same endpoint to both Production and Preview URLs. In most real deployments these endpoints differ, so if you need both modes with custom domains, register separate clients (for example named clients) and configure each with its corresponding endpoint.
 
-### Retrieving Content
+## Retrieving Content
 
-#### Get a Single Item
+### Get a Single Item
 
 ```csharp
 // By codename
@@ -282,7 +282,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Get Multiple Items
+### Get Multiple Items
 
 ```csharp
 var result = await client.GetItems()
@@ -298,43 +298,21 @@ if (result.IsSuccess)
 }
 ```
 
-#### Get Items with Pagination
+### Get Items with Pagination
 
-For large datasets, use the items feed for paginated enumeration with continuation tokens (e.g. for search index building, data synchronization, or bulk exports):
+Two paging models, for two different jobs.
+
+**The items feed** walks the whole set with continuation tokens — search index building, data
+synchronization, bulk export:
 
 ```csharp
-// Option 1: Enumerate all items one-by-one using IAsyncEnumerable
+// Every item, one by one.
 await foreach (var item in client.GetItemsFeed().EnumerateAsync())
 {
     Console.WriteLine($"Item: {item.System.Name}");
 }
 
-// Option 2: Manual page-by-page control using FetchNextPageAsync
-var firstPage = await client.GetItemsFeed().ExecuteAsync();
-if (firstPage.IsSuccess)
-{
-    foreach (var item in firstPage.Value.Items)
-    {
-        Console.WriteLine($"Item: {item.System.Name}");
-    }
-
-    // Fetch next page if available
-    while (firstPage.Value.HasNextPage)
-    {
-        var nextPage = await firstPage.Value.FetchNextPageAsync();
-        if (nextPage?.IsSuccess == true)
-        {
-            foreach (var item in nextPage.Value.Items)
-            {
-                Console.WriteLine($"Item: {item.System.Name}");
-            }
-            firstPage = nextPage;
-        }
-        else break;
-    }
-}
-
-// Option 3: Page enumeration, with the continuation token for checkpointing
+// Page by page, when you want the continuation token for checkpointing.
 await foreach (var page in client.GetItemsFeed().EnumerateAsync().AsPages())
 {
     foreach (var item in page.Items)
@@ -346,15 +324,14 @@ await foreach (var page in client.GetItemsFeed().EnumerateAsync().AsPages())
 }
 ```
 
-`EnumerateAsync()` is a walk, not a request: a failed page throws `DeliveryRequestException` rather than ending the
-sequence, so a partial result can never be mistaken for a complete one. Both views &mdash; items and `AsPages()` &mdash;
-behave the same way. Where you want a failure as a value instead, use `ExecuteAsync()`, which returns an
-`IDeliveryResult` like every other single request:
+`EnumerateAsync()` is a walk, not a request: a failed page throws `DeliveryRequestException` rather than
+ending the sequence, so a partial result can never be mistaken for a complete one. Both views — items and
+`AsPages()` — behave the same way. Where you want a failure as a value instead, `ExecuteAsync()` returns an
+`IDeliveryResult` like every other single request, and takes a saved token to resume from:
 
 **one request returns a result; a walk returns an enumerable that throws.**
 
 ```csharp
-// Resume a walk from a persisted token
 var result = await client.GetItemsFeed<Article>().ExecuteAsync(savedToken);
 if (result.IsSuccess)
 {
@@ -363,7 +340,7 @@ if (result.IsSuccess)
 }
 ```
 
-For standard skip/limit pagination with `GetItems()`, use `FetchNextPageAsync()` to iterate through pages:
+**Skip/limit paging** suits a page of results you are about to render:
 
 ```csharp
 var firstPage = await client.GetItems<Article>()
@@ -371,28 +348,19 @@ var firstPage = await client.GetItems<Article>()
     .WithTotalCount()
     .ExecuteAsync();
 
-if (firstPage.IsSuccess)
+if (firstPage.IsSuccess && firstPage.Value.HasNextPage)
 {
-    // Process first page
-    foreach (var item in firstPage.Value.Items)
-    {
-        Console.WriteLine($"Item: {item.System.Name}");
-    }
-
-    // Fetch next page if available
-    if (firstPage.Value.HasNextPage)
-    {
-        var nextPage = await firstPage.Value.FetchNextPageAsync();
-        // Continue processing...
-    }
+    var nextPage = await firstPage.Value.FetchNextPageAsync();
 }
 ```
 
-### Content Types and Elements
+`FetchNextPageAsync()` is available on every listing response — items, types and taxonomies alike.
+
+## Content Types and Elements
 
 Content types define the structure of your content. The SDK provides methods to retrieve content type definitions and their elements.
 
-#### Get a Single Content Type
+### Get a Single Content Type
 
 ```csharp
 var result = await client.GetType("article").ExecuteAsync();
@@ -411,7 +379,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Get Multiple Content Types
+### Get Multiple Content Types
 
 ```csharp
 var result = await client.GetTypes()
@@ -433,7 +401,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Get a Specific Content Element
+### Get a Specific Content Element
 
 Retrieve a single element definition from a content type:
 
@@ -448,11 +416,11 @@ if (result.IsSuccess)
 }
 ```
 
-### Taxonomies
+## Taxonomies
 
 Taxonomies provide hierarchical classification for your content.
 
-#### Get a Single Taxonomy Group
+### Get a Single Taxonomy Group
 
 ```csharp
 var result = await client.GetTaxonomy("product_categories").ExecuteAsync();
@@ -482,7 +450,7 @@ void PrintTerm(ITaxonomyTermDetails term, int indent)
 }
 ```
 
-#### Get Multiple Taxonomy Groups
+### Get Multiple Taxonomy Groups
 
 ```csharp
 var result = await client.GetTaxonomies()
@@ -498,7 +466,7 @@ if (result.IsSuccess)
 }
 ```
 
-### Reference Lookups (Used In)
+## Reference Lookups (Used In)
 
 Find which content items reference a specific item or asset. This is useful for impact analysis before making changes.
 
@@ -531,7 +499,7 @@ foreach (var usage in result.Value.Items)
 // result.Value.ContinuationToken feeds the next call, or is null when finished.
 ```
 
-#### Find Items Using a Content Item
+### Find Items Using a Content Item
 
 ```csharp
 // Find all items that reference the "john_doe" author
@@ -541,7 +509,7 @@ await foreach (var usage in client.GetItemUsedIn("john_doe").EnumerateAsync())
 }
 ```
 
-#### Find Items Using an Asset
+### Find Items Using an Asset
 
 ```csharp
 // Find all items that use a specific asset
@@ -559,11 +527,11 @@ if (usages.Count == 0)
 }
 ```
 
-### Filtering and Querying
+## Filtering and Querying
 
 The SDK provides a type-safe filtering API with support for various operators:
 
-#### Basic Filtering
+### Basic Filtering
 
 ```csharp
 var result = await client.GetItems()
@@ -579,7 +547,7 @@ var result = await client.GetItems()
 > [!TIP]
 > When using strongly-typed queries with source generation (e.g., `GetItems<Article>()`), the `system.type` filter is added automatically based on the `[ContentTypeCodename]` attribute. You only need manual type filtering for dynamic queries.
 
-#### Incremental query composition (deferred execution)
+### Incremental query composition (deferred execution)
 
 The query is not sent until you call `ExecuteAsync()`, so you can build it up conditionally:
 
@@ -605,7 +573,7 @@ if (onlyCoffee)
 var result = await query.ExecuteAsync();
 ```
 
-#### Common Filter Operators
+### Common Filter Operators
 
 ```csharp
 var query = client.GetItems()
@@ -627,7 +595,7 @@ var query = client.GetItems()
         .Element("description").IsNotEmpty());
 ```
 
-#### Ordering and Pagination
+### Ordering and Pagination
 
 ```csharp
 var result = await client.GetItems()
@@ -644,7 +612,7 @@ var articles = await client.GetItems<Article>()
 
 `OrderByElement` and `OrderBySystem` add the `elements.` / `system.` prefix for you, the same way `Element()` and `System()` do in `Where`. `OrderBy("elements.publish_date")` still accepts a full path.
 
-#### Getting Total Count
+### Getting Total Count
 
 ```csharp
 var result = await client.GetItems()
@@ -660,7 +628,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Element Projection
+### Element Projection
 
 Reduce response size and improve performance by selecting only the elements you need:
 
@@ -683,11 +651,11 @@ var result = await client.GetItems<Article>()
 
 For more advanced filtering scenarios, see the [Advanced Filtering Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/advanced-filtering.md).
 
-### Working with Strongly-Typed Models
+## Working with Strongly-Typed Models
 
 The SDK supports strongly-typed models for compile-time safety and IntelliSense support. Using the SDK with strongly typed models is recommended.
 
-#### Generate Models
+### Generate Models
 
 Use the [Kontent.ai Model Generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) to generate C# classes from your content types:
 
@@ -696,7 +664,7 @@ dotnet tool install -g Kontent.Ai.ModelGenerator
 KontentModelGenerator --environmentid <your-environment-id> --outputdir Models
 ```
 
-#### Source Generation for Type Resolution
+### Source Generation for Type Resolution
 
 The [Kontent.ai Model Generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) automatically includes the `[ContentTypeCodename]` attribute on generated model classes. When combined with the source generation package, this provides:
 
@@ -748,7 +716,7 @@ The source generator emits `ContentTypeCodenameAttribute` and produces a `Genera
 - `KDSG002`: Invalid codename - null, empty, or whitespace (error)
 - `KDSG003`: Unsupported target type - interfaces, abstract classes and structs (error)
 
-#### Use Strongly-Typed Models
+### Use Strongly-Typed Models
 
 ```csharp
 public record Article
@@ -777,14 +745,14 @@ if (result.IsSuccess)
 > [!NOTE]
 > When using source generation with `[ContentTypeCodename("article")]`, the SDK automatically adds `system.type=article` filter to generic queries like `GetItems<Article>()`. You don't need to manually filter by type.
 
-### Dynamic Content Access
+## Dynamic Content Access
 
 When you don't have strongly-typed models or need to access content dynamically, use the typeless query methods (`GetItem()`, `GetItems()`, `GetItemsFeed()`). You may also use them for runtime type resolution, if your project uses generated models.
 
 > [!NOTE]
 > Dynamic item/list queries (`GetItem()` and `GetItems()`) are intentionally non-cacheable because their final result type is resolved at runtime. Even with SDK caching configured, these queries always fetch from the API and return `IsCacheHit == false`.
 
-#### Retrieve Content Without Type Parameters
+### Retrieve Content Without Type Parameters
 
 ```csharp
 // Get a single item dynamically
@@ -821,7 +789,7 @@ if (itemsResult.IsSuccess)
 }
 ```
 
-#### Runtime Type Resolution with Type Provider
+### Runtime Type Resolution with Type Provider
 
 When using source generation with `[ContentTypeCodename]` attributes, the SDK auto-discovers the generated `ITypeProvider`. Typeless queries automatically resolve items to their strongly-typed models at runtime:
 
@@ -860,7 +828,7 @@ This is particularly useful for:
 
 Linked items and rich text embedded content within runtime-typed items are also automatically resolved to their strongly-typed models.
 
-#### When to Use Dynamic Access
+### When to Use Dynamic Access
 
 Dynamic access is intended for edge cases where strongly-typed models are impractical:
 
@@ -871,7 +839,7 @@ Dynamic access is intended for edge cases where strongly-typed models are imprac
 > [!TIP]
 > For production applications, always use [strongly-typed models](#working-with-strongly-typed-models). They provide compile-time safety, IntelliSense support, and better maintainability.
 
-### Working with Linked Items
+## Working with Linked Items
 
 Linked items (modular content) hydrate into strongly-typed embedded content. Because one element can
 hold several content types, the property type is `IEnumerable<IEmbeddedContent>` and the concrete type
@@ -888,7 +856,7 @@ public record Article
 }
 ```
 
-#### Accessing Linked Items with Type Safety
+### Accessing Linked Items with Type Safety
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
@@ -914,7 +882,7 @@ foreach (var linkedItem in article.RelatedArticles!)
 }
 ```
 
-#### Filtering Linked Items by Type
+### Filtering Linked Items by Type
 
 Where you want one type rather than a branch per type, LINQ does it — `OfType<T>` for the wrapper,
 plus a `Select` for the element model alone:
@@ -928,11 +896,11 @@ var articleElements = article.RelatedArticles!
     .ToList();
 ```
 
-### Rich Text Resolution
+## Rich Text Resolution
 
 Rich text elements may contain structured content that needs to be resolved prior to being rendered.
 
-#### Basic HTML Rendering
+### Basic HTML Rendering
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
@@ -946,7 +914,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Custom Link Resolution
+### Custom Link Resolution
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
@@ -967,67 +935,30 @@ var resolver = new HtmlResolverBuilder()
 var html = await article.BodyCopy.ToHtmlAsync(resolver);
 ```
 
-#### Embedded Content Resolution
+### Embedded Content Resolution
 
-**Type-Safe Resolvers with Strongly-Typed Models:**
+`WithContentResolver<T>` names the model type once and hands the resolver an `IEmbeddedContent<T>`, so
+there is nothing to cast. Chain one per type; the callback may be sync or async:
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
-    // Type-safe resolver with compile-time checking
-    .WithContentResolver<Tweet>(tweet =>
-        $"<blockquote class=\"twitter-tweet\">{tweet.Elements.TweetText}<cite>@{tweet.Elements.AuthorHandle}</cite></blockquote>")
-    // Async type-safe resolver
-    .WithContentResolver<Video>(async video =>
+    .WithContentResolver<Tweet>(t =>
+        $"<blockquote class=\"twitter-tweet\">{t.Elements.TweetText}<cite>@{t.Elements.AuthorHandle}</cite></blockquote>")
+    .WithContentResolver<Quote>(q =>
+        $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>")
+    .WithContentResolver<Video>(async v =>
     {
-        var metadata = await _videoService.GetMetadataAsync(video.Elements.VideoId);
-        return $"<div class=\"video-wrapper\"><iframe src=\"https://youtube.com/embed/{video.Elements.VideoId}\" title=\"{metadata.Title}\"></iframe></div>";
+        var metadata = await _videoService.GetMetadataAsync(v.Elements.VideoId);
+        return $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\" title=\"{metadata.Title}\"></iframe>";
     })
+    .ThrowOnMissingResolver()   // otherwise an unresolved type renders as a diagnostic HTML comment
     .Build();
 
 var html = await article.BodyCopy.ToHtmlAsync(resolver);
 ```
 
-**Codename-Based Resolvers:**
-
-```csharp
-var resolver = new HtmlResolverBuilder()
-    .WithContentResolver("tweet", content =>
-    {
-        // Requires manual casting
-        if (content is IEmbeddedContent<Tweet> tweet)
-        {
-            return $"<blockquote>{tweet.Elements.TweetText}</blockquote>";
-        }
-        return string.Empty;
-    })
-    .Build();
-```
-
-Enable strict behavior when missing resolvers should fail fast:
-
-```csharp
-var resolver = new HtmlResolverBuilder()
-    .ThrowOnMissingResolver()
-    .WithContentResolver<Tweet>(tweet =>
-        $"<blockquote>{tweet.Elements.TweetText}</blockquote>")
-    .Build();
-```
-
-**Registering several resolvers:**
-
-Chain one `WithContentResolver<T>` per model type. Each names its type once, and the resolver receives
-`IEmbeddedContent<T>`, so there is nothing to cast.
-
-```csharp
-var resolver = new HtmlResolverBuilder()
-    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
-    .WithContentResolver<Video>(v => $"<iframe src=\"https://youtube.com/embed/{v.Elements.VideoId}\"></iframe>")
-    .WithContentResolver<Quote>(q => $"<blockquote><p>{q.Elements.Text}</p><cite>{q.Elements.Author}</cite></blockquote>")
-    .Build();
-```
-
-Codenames work the same way, and `WithContentResolvers` takes a dictionary or tuples when you already
-have them in a collection:
+Where you have no model type — or the resolvers already sit in a collection — key them by codename
+instead. `WithContentResolvers` takes a dictionary or a params array of tuples:
 
 ```csharp
 var resolver = new HtmlResolverBuilder()
@@ -1037,12 +968,12 @@ var resolver = new HtmlResolverBuilder()
     .Build();
 ```
 
-> There are also `WithContentResolvers` overloads keyed by `Type`. They exist for model types you only
-> have at runtime — found by scanning an assembly, say — and hand the resolver the non-generic
-> `IEmbeddedContent`, because there is no type argument to give it. If you can name the type in source,
-> use `WithContentResolver<T>` above.
+> A codename-keyed resolver receives the non-generic `IEmbeddedContent`, so reaching a model's elements
+> means casting (`content is IEmbeddedContent<Tweet> tweet`). There are `Type`-keyed overloads too, for
+> model types you only have at runtime — from scanning an assembly, say. If you can name the type in
+> source, `WithContentResolver<T>` is the one to use.
 
-#### Registering Resolver with Dependency Injection
+### Registering Resolver with Dependency Injection
 
 To avoid creating the resolver at every call site, register `IHtmlResolver` in your DI container:
 
@@ -1087,10 +1018,12 @@ public class ArticleService
 }
 ```
 
-**Pattern Matching for Multiple Types:**
+### Inspecting Rich Text Blocks
+
+Rich text is also enumerable, for when you want the content rather than HTML — building a table of
+contents, extracting images, indexing for search:
 
 ```csharp
-// Access strongly-typed embedded content via pattern matching
 foreach (var block in article.BodyCopy)
 {
     switch (block)
@@ -1114,11 +1047,11 @@ var tweetElements = article.BodyCopy.GetEmbeddedElements<Tweet>();
 
 For advanced rich text scenarios including custom HTML nodes and complex resolution strategies, see the [Rich Text Customization Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md).
 
-### Multi-Language Support
+## Multi-Language Support
 
 Retrieve content in specific language variants:
 
-#### Basic Language Variant Retrieval
+### Basic Language Variant Retrieval
 
 ```csharp
 // Get Spanish version
@@ -1133,7 +1066,7 @@ var articlesResult = await client.GetItems<Article>()
     .ExecuteAsync();
 ```
 
-#### Language Fallbacks
+### Language Fallbacks
 
 Language fallbacks are configured in your Kontent.ai project. The SDK respects these settings automatically. If content is not available in the requested language, the SDK returns content according to your fallback configuration.
 
@@ -1153,7 +1086,7 @@ When `LanguageFallbackMode.Disabled` is used, the SDK automatically adds the equ
 
 For list/feed queries, you can still achieve the same behavior manually by combining `.WithLanguage` and filtering on `system.language`, setting both to the desired language codename. See [Ignoring language fallbacks](https://kontent.ai/learn/develop/hello-world/get-localized-content/typescript#a-ignoring-language-fallbacks) in Kontent.ai documentation for more details.
 
-#### Get Available Languages
+### Get Available Languages
 
 ```csharp
 var result = await client.GetLanguages().ExecuteAsync();
@@ -1167,7 +1100,7 @@ if (result.IsSuccess)
 }
 ```
 
-### Caching
+## Caching
 
 The SDK supports both in-memory and hybrid (L1+L2) caching for improved performance. Caching is provided by the standalone `Kontent.Ai.Delivery.Caching` package:
 
@@ -1175,7 +1108,7 @@ The SDK supports both in-memory and hybrid (L1+L2) caching for improved performa
 dotnet add package Kontent.Ai.Delivery.Caching
 ```
 
-#### Memory Cache
+### Memory Cache
 
 ```csharp
 // Single client scenario
@@ -1193,7 +1126,7 @@ services.AddDeliveryClient("production", delivery =>
 });
 ```
 
-#### Hybrid Cache (Redis, SQL Server, etc.)
+### Hybrid Cache (Redis, SQL Server, etc.)
 
 ```csharp
 // First, register your distributed cache implementation
@@ -1229,7 +1162,7 @@ services.AddDeliveryClient(delivery =>
 >
 > A single-instance application needs no backplane.
 
-#### Cache Options from Other DI Services
+### Cache Options from Other DI Services
 
 Use the `IServiceProvider` cache overloads when cache settings need to come from other registered services:
 
@@ -1255,7 +1188,7 @@ services.AddDeliveryClient("production", delivery =>
 
 For callback timing and lifetime guidance, see [Configuring Cache Options from DI Services](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#configuring-cache-options-from-di-services).
 
-#### What Gets Cached
+### What Gets Cached
 
 Caching is transparent: once a client has a cache attached, every cacheable query is cached, keyed by
 its parameters. Three things are deliberately left out:
@@ -1285,7 +1218,7 @@ and attaching it with `UseCacheManager`, [cache key
 shape](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#cache-keys),
 and [expiration strategies](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#expiration-strategies).
 
-#### Detecting Cache Hits
+### Detecting Cache Hits
 
 Every result reports where it came from, on `ResponseSource`:
 
@@ -1319,7 +1252,7 @@ if (result.IsSuccess)
 reach for when all you need is "did this cost a request". The SDK reads the CDN's `X-Cache` header for you,
 so there is no need to inspect `ResponseHeaders` yourself to tell `Cdn` from `Origin`.
 
-#### Dependency Keys for Output Caching
+### Dependency Keys for Output Caching
 
 Every delivery result exposes `DependencyKeys` — the canonical dependency keys describing which content entities the response depends on. These keys enable downstream cache invalidation scenarios such as ASP.NET output-cache tagging:
 
@@ -1335,7 +1268,7 @@ if (result.IsSuccess && result.DependencyKeys is { } keys)
 
 Dependency keys are collected regardless of whether SDK caching is configured. The key formats match the SDK's internal cache invalidation keys (see [Webhook Invalidation Pattern](#webhook-invalidation-pattern-for-lists)).
 
-#### Webhook Invalidation Pattern for Lists
+### Webhook Invalidation Pattern for Lists
 
 Typed listing queries carry a synthetic scope dependency alongside their entity keys:
 
@@ -1382,7 +1315,7 @@ covers what invalidation does not reach.
 With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an
 answer from the origin — a `404` for an unpublished item, say — drops it.
 
-#### Purging the SDK Cache
+### Purging the SDK Cache
 
 Built-in cache managers can invalidate **all** entries at once through the optional `IDeliveryCachePurger`
 capability. Language webhook events need this, because a language change has no key of its own.
@@ -1411,11 +1344,11 @@ does not implement `IDeliveryCachePurger` needs provider-specific tooling or key
 For invalidation strategy, multi-tenant scenarios and the full behaviour matrix, see the [Caching
 Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md).
 
-### Preview API
+## Preview API
 
 The Preview API allows you to retrieve unpublished content for preview purposes.
 
-#### Enable Preview API
+### Enable Preview API
 
 ```csharp
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
@@ -1428,7 +1361,7 @@ services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
 
 When `UsePreviewApi` is enabled, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered. This keeps preview responses fresh by default.
 
-#### Dynamic Switching (Production vs Preview)
+### Dynamic Switching (Production vs Preview)
 
 You can configure named clients for different environments:
 
@@ -1453,11 +1386,11 @@ var client = isPreviewMode ? factory.Get("preview") : factory.Get("production");
 
 For more on named clients and multi-environment scenarios, see the [Multi-Client Scenarios Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md).
 
-### Asset Renditions
+## Asset Renditions
 
 Assets can have pre-configured renditions (image presets) defined in Kontent.ai. Access these directly without applying additional transformations.
 
-#### Accessing Asset Renditions
+### Accessing Asset Renditions
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
@@ -1487,7 +1420,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### Default Rendition Preset
+### Default Rendition Preset
 
 Configure a default rendition preset to use across all asset URLs:
 
@@ -1505,11 +1438,11 @@ For named clients, `DefaultRenditionPreset` is resolved per client configuration
 
 When query caching is enabled, changing `DefaultRenditionPreset` on an existing client does not invalidate already-cached entries. Purge cache (or recreate the client) if you need the new default rendition to apply immediately.
 
-### Custom Asset Domain
+## Custom Asset Domain
 
 If you serve assets through a custom CDN or domain (e.g. for branding, geo-routing, or security), the SDK can rewrite all asset URLs — including inline images in rich text — to use your domain while preserving the original path and query string.
 
-#### Configuration
+### Configuration
 
 ```csharp
 services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
@@ -1530,7 +1463,7 @@ The domain must be a root URL without a path, query string, or fragment. The SDK
 > [!NOTE]
 > `CustomAssetDomain` and `DefaultRenditionPreset` work together — rendition query strings are appended after the domain rewrite.
 
-### Image Transformation
+## Image Transformation
 
 `ImageUrlBuilder` rewrites an image URL served from Kontent.ai so the CDN resizes, crops and re-encodes
 on the fly — no second copy of the asset to store. It ships in `Kontent.Ai.Urls`, which
@@ -1551,7 +1484,7 @@ var optimizedHero = new ImageUrlBuilder(article.HeroImage.Url)
 
 Every method returns the builder, so transformations chain in any order; `Url` renders the result.
 
-#### Available Transformations
+### Available Transformations
 
 | Method | Effect |
 |---|---|
@@ -1565,7 +1498,7 @@ Every method returns the builder, so transformations chain in any order; `Url` r
 | `WithQuality(1-100)` | Compression quality for lossy formats |
 | `WithCompression(mode)` | `ImageCompression.Lossless` / `.Lossy`, for WebP |
 
-#### Available Formats
+### Available Formats
 
 | Format | Enum Value | Description |
 |--------|------------|-------------|
@@ -1703,11 +1636,11 @@ When using generated models:
 - Consider versioning strategies if you have long-running deployments
 - **Source generation benefits**: When using `[ContentTypeCodename]` attributes, the compiler catches duplicate codenames and invalid configurations at build time (diagnostics KDSG001-003)
 
-### Error Handling
+## Error Handling
 
 The SDK uses a result pattern instead of throwing exceptions for API errors. This makes error handling explicit and predictable.
 
-#### Checking for Errors
+### Checking for Errors
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
@@ -1733,7 +1666,7 @@ else
 }
 ```
 
-#### IError Properties
+### IError Properties
 
 | Property | Description |
 |----------|-------------|
@@ -1743,11 +1676,11 @@ else
 | `SpecificCode` | More specific error code |
 | `Exception` | Underlying exception (for network errors, etc.) |
 
-### Response Metadata
+## Response Metadata
 
 Every API response includes metadata for debugging, cache control, and monitoring.
 
-#### Accessing Response Metadata
+### Accessing Response Metadata
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
@@ -1771,7 +1704,7 @@ if (result.IsSuccess)
 }
 ```
 
-#### IDeliveryResult Properties
+### IDeliveryResult Properties
 
 | Property | Description |
 |----------|-------------|
