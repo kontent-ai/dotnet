@@ -47,7 +47,7 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
   - [Content Not Rendering](#content-not-rendering)
   - [Links Not Working](#links-not-working)
   - [Deeply Nested HTML (Max Parsing Depth)](#deeply-nested-html-max-parsing-depth)
-  - [Async Deadlocks](#async-deadlocks)
+  - [Blocking on Resolution](#blocking-on-resolution)
   - [Performance Issues](#performance-issues)
 
 ## Overview
@@ -1176,19 +1176,22 @@ var resolver = new HtmlResolverBuilder()
 - Prefer resolving/rendering strategies that avoid creating extremely deep node trees
 - Enable Debug logging for `Kontent.Ai.Delivery` to see diagnostic messages when the max depth is exceeded
 
-### Async Deadlocks
+### Blocking on Resolution
 
-**Problem**: Application hangs when resolving rich text.
-
-**Solution**: Always use `await` properly:
+**Problem**: `.Result` or `.GetAwaiter().GetResult()` on `ToHtmlAsync` or `ParseRichTextAsync`.
 
 ```csharp
-// Wrong: Blocking async call
-var html = article.Elements.BodyCopy.ToHtmlAsync(resolver).Result;  // ❌ Can deadlock
-
-// Correct: Await properly
-var html = await article.Elements.BodyCopy.ToHtmlAsync(resolver);  // ✅
+var html = article.Elements.BodyCopy.ToHtmlAsync(resolver).Result;   // ❌
+var html = await article.Elements.BodyCopy.ToHtmlAsync(resolver);    // ✅
 ```
+
+Both return `ValueTask<T>`, and a `ValueTask` may be consumed once. Reading `.Result` before it has
+completed is **undefined** by the BCL contract — not a slow-but-correct call. It may throw, or appear to
+work for as long as the operation happens to finish synchronously, and break when it stops.
+
+Blocking on a `Task` is separately bad: it holds a thread-pool thread, and because the pool injects new
+threads slowly, enough blocked requests turn into a latency collapse. Every resolver registration has an
+async overload, so there is never a reason to block inside one.
 
 ### Performance Issues
 
