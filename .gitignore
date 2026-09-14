@@ -261,5 +261,8 @@ coverage-local/
 # BenchmarkDotNet writes a timestamped run folder beside the benchmark project
 BenchmarkDotNet.Artifacts/
 
+# macOS Finder metadata
+.DS_Store
+
 # Local plans, analyses and probes; never committed (see CLAUDE.md)
 scratch/
