@@ -621,22 +621,61 @@ Single type queries use direct keys in the format `type_{codename}` (for example
 
 ### Using Dependency Keys for Output Caching
 
-The SDK exposes dependency keys on every delivery result via the `DependencyKeys` property on `IDeliveryResult<T>`. This enables downstream cache invalidation scenarios such as ASP.NET output-cache tagging — you can tag your controller-level or page-level cache entries with the same keys the SDK uses internally.
+`IDeliveryResult<T>.DependencyKeys` carries the canonical key for everything a response touched — items,
+assets, taxonomies, types. They are collected whether or not SDK caching is configured, and use the same
+formats as SDK invalidation (see [Invalidation Matrix](#invalidation-matrix)), so one webhook can evict
+both caches.
+
+Tag an output-cache entry through `IOutputCacheFeature`. A `Cache-Tag` response header does not tag
+anything — ASP.NET Core never reads it back:
 
 ```csharp
-var result = await client.GetItem<Article>("my-article").ExecuteAsync();
-
-if (result.IsSuccess && result.DependencyKeys is { } keys)
+app.MapGet("/articles/{codename}", async (
+    string codename,
+    IDeliveryClient client,
+    HttpContext http,
+    CancellationToken cancellationToken) =>
 {
-    // Tag your output cache entry with the SDK's dependency keys
-    foreach (var key in keys)
+    var result = await client.GetItem<Article>(codename).ExecuteAsync(cancellationToken);
+    if (!result.IsSuccess)
     {
-        HttpContext.Response.Headers.Append("Cache-Tag", key);
+        return Results.NotFound();
     }
-}
+
+    if (http.Features.Get<IOutputCacheFeature>() is { } outputCache && result.DependencyKeys is { } keys)
+    {
+        foreach (var key in keys)
+        {
+            outputCache.Context.Tags.Add(key);
+        }
+    }
+
+    return Results.Ok(result.Value.Elements);
+}).CacheOutput();
 ```
 
-Dependency keys are always available — they are collected regardless of whether SDK caching is configured. The key formats are the same canonical formats used for SDK cache invalidation (see [Invalidation Matrix](#invalidation-matrix)).
+Evict with the same keys when a webhook arrives:
+
+```csharp
+app.MapPost("/webhooks/kontent", async (
+    WebhookNotification notification,
+    IOutputCacheStore outputCache,
+    CancellationToken cancellationToken) =>
+{
+    foreach (var key in notification.GetCacheDependencyKeys())
+    {
+        await outputCache.EvictByTagAsync(key, cancellationToken);
+    }
+
+    return Results.NoContent();
+});
+```
+
+> [!IMPORTANT]
+> A dependency key names a codename, not an environment: `item_on_roasts` is the same string in preview and production. Prefix the tag where one output-cache store serves more than one environment or tenant.
+
+A CDN that tags by response header instead (`Cache-Tag`, `Surrogate-Key`) takes the same keys; only the
+eviction call changes.
 
 ### Expiration Strategies
 
