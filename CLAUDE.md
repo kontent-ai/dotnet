@@ -73,7 +73,8 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 ## Commits and PRs
 
-- Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history. Branch names: `TICKET-ID_Short_description`.
+- Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history.
+- Branch names are `<type>/<short-description>`, lower case and hyphenated (e.g. `docs/fix-delivery-upgrade-guides`). The type is a Conventional Commits type — `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `chore`, `ci` — or, when the work tracks a ticket, the ticket ID in that slot instead: `EN-713/add-component-types-filter`. `release/` and `maintenance/` are not free to use: the prepare-release workflow creates `release/batch-<date>-<run>` itself, and `maintenance/**` is the hotfix line CI and the publish workflow both key on.
 - Keep each PR scoped: infra separate from per-product work; version bumps come only from the prepare-release workflow; floor raises in their own PR.
 - Public API surface is gated per product by approval snapshots (Verify, printer shared from `src/testing`). Review a `.received.txt` diff line by line before accepting it — only for intended changes. Every shipped package has a gate except `Kontent.Ai.ModelGenerator`, which is `PackAsTool`: its contract is the command line, not a managed surface nobody references. Its arguments are covered by `ArgHelpers`/`Program` tests instead.
 
