@@ -873,11 +873,9 @@ Dynamic access is intended for edge cases where strongly-typed models are imprac
 
 ### Working with Linked Items
 
-Linked items elements (modular content) are automatically hydrated to strongly-typed embedded content, providing compile-time type safety and runtime type resolution.
-
-#### Defining Linked Items in Models
-
-Linked items properties use `IEnumerable<IEmbeddedContent>` to support runtime typing where each item can be a different content type:
+Linked items (modular content) hydrate into strongly-typed embedded content. Because one element can
+hold several content types, the property type is `IEnumerable<IEmbeddedContent>` and the concrete type
+is recovered by pattern matching:
 
 ```csharp
 public record Article
@@ -885,141 +883,49 @@ public record Article
     [JsonPropertyName("title")]
     public string Title { get; init; }
 
-    [JsonPropertyName("summary")]
-    public string Summary { get; init; }
-
     [JsonPropertyName("related_articles")]
     public IEnumerable<IEmbeddedContent>? RelatedArticles { get; init; }
-
-    [JsonPropertyName("recommended_products")]
-    public IEnumerable<IEmbeddedContent>? RecommendedProducts { get; init; }
 }
 ```
 
 #### Accessing Linked Items with Type Safety
 
-Use pattern matching to access strongly-typed content:
-
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
+var article = result.Value.Elements;
 
-if (result.IsSuccess)
+foreach (var linkedItem in article.RelatedArticles!)
 {
-    var article = result.Value.Elements;
+    // System metadata is on every item, whatever its type.
+    Console.WriteLine($"{linkedItem.System.Codename} ({linkedItem.System.Type})");
 
-    // Pattern matching for type-safe access
-    foreach (var linkedItem in article.RelatedArticles!)
+    switch (linkedItem)
     {
-        switch (linkedItem)
-        {
-            case IEmbeddedContent<Article> relatedArticle:
-                Console.WriteLine($"Related: {relatedArticle.Elements.Title}");
-                Console.WriteLine($"  Summary: {relatedArticle.Elements.Summary}");
-                break;
-
-            case IEmbeddedContent<Product> product:
-                Console.WriteLine($"Product: {product.Elements.Name}");
-                Console.WriteLine($"  Price: ${product.Elements.Price}");
-                break;
-        }
+        case IEmbeddedContent<Article> related:
+            Console.WriteLine($"  Related article: {related.Elements.Title}");
+            break;
+        case IEmbeddedContent<Product> product:
+            Console.WriteLine($"  Product: {product.Elements.Name} — ${product.Elements.Price}");
+            break;
+        default:
+            // A type your models do not cover still arrives, with its System metadata.
+            break;
     }
 }
 ```
 
 #### Filtering Linked Items by Type
 
-Use LINQ to filter linked items by specific types:
+Where you want one type rather than a branch per type, LINQ does it — `OfType<T>` for the wrapper,
+plus a `Select` for the element model alone:
 
 ```csharp
-// Get only articles from mixed linked items
-var articles = article.RelatedArticles!
-    .OfType<IEmbeddedContent<Article>>()
-    .ToList();
+var articles = article.RelatedArticles!.OfType<IEmbeddedContent<Article>>().ToList();
 
-foreach (var relatedArticle in articles)
-{
-    // Direct access to strongly-typed elements
-    Console.WriteLine($"Article: {relatedArticle.Elements.Title}");
-}
-
-// Get only products
-var products = article.RecommendedProducts!
-    .OfType<IEmbeddedContent<Product>>()
-    .ToList();
-```
-
-#### Accessing Metadata
-
-All linked items include metadata regardless of their type via the `System` property:
-
-```csharp
-foreach (var linkedItem in article.RelatedArticles!)
-{
-    // Access system metadata for all types
-    Console.WriteLine($"Type: {linkedItem.System.Type}");
-    Console.WriteLine($"Codename: {linkedItem.System.Codename}");
-    Console.WriteLine($"Name: {linkedItem.System.Name}");
-    Console.WriteLine($"ID: {linkedItem.System.Id}");
-
-    // Then access type-specific elements
-    if (linkedItem is IEmbeddedContent<Article> typedArticle)
-    {
-        Console.WriteLine($"Title: {typedArticle.Elements.Title}");
-    }
-}
-```
-
-#### Extracting Element Models
-
-You can extract just the element models without the `IEmbeddedContent` wrapper:
-
-```csharp
-// Get just the element models using LINQ
 var articleElements = article.RelatedArticles!
     .OfType<IEmbeddedContent<Article>>()
     .Select(a => a.Elements)
     .ToList();
-
-foreach (var articleElement in articleElements)
-{
-    // Direct access to model without IEmbeddedContent wrapper
-    Console.WriteLine(articleElement.Title);
-}
-```
-
-#### Mixed Content Types
-
-Linked items elements can contain multiple content types, and all are preserved:
-
-```csharp
-public record HomePage
-{
-    [JsonPropertyName("featured_content")]
-    public IEnumerable<IEmbeddedContent> FeaturedContent { get; init; }
-}
-
-var home = await client.GetItem<HomePage>("homepage").ExecuteAsync();
-
-// Featured content might contain articles, products, videos, etc.
-foreach (var item in home.Value.Elements.FeaturedContent)
-{
-    switch (item)
-    {
-        case IEmbeddedContent<Article> article:
-            RenderArticleCard(article.Elements);
-            break;
-        case IEmbeddedContent<Product> product:
-            RenderProductCard(product.Elements);
-            break;
-        case IEmbeddedContent<Video> video:
-            RenderVideoEmbed(video.Elements);
-            break;
-        default:
-            // Handle unknown types gracefully
-            Console.WriteLine($"Unknown type: {item.System.Type}");
-            break;
-    }
-}
 ```
 
 ### Rich Text Resolution
@@ -1349,16 +1255,19 @@ services.AddDeliveryClient("production", delivery =>
 
 For callback timing and lifetime guidance, see [Configuring Cache Options from DI Services](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#configuring-cache-options-from-di-services).
 
-Caching is transparent for cacheable query builders - once configured, cached query types are cached automatically and cache keys are built from query parameters for proper cache hits.
+#### What Gets Cached
 
-`GetItem()` and `GetItems()` dynamic queries are intentionally excluded from SDK caching (runtime-typed results), so they always return `IsCacheHit == false`.
+Caching is transparent: once a client has a cache attached, every cacheable query is cached, keyed by
+its parameters. Three things are deliberately left out:
 
-`SecureAccessApiKey` and `PreviewApiKey` are intentionally not part of query cache key identity. Secure access only gates access to published content, and preview clients (`UsePreviewApi = true`) bypass SDK cache reads/writes entirely.
+- **Dynamic queries.** `GetItem()` and `GetItems()` resolve their result type at runtime, so they are never cached and always report `IsCacheHit == false`.
+- **Preview clients.** A client with `UsePreviewApi = true` bypasses cache reads and writes entirely, so preview stays fresh.
+- **`WaitForLoadingNewContent(true)` queries.** That request path skips both the read and the write.
 
-> [!IMPORTANT]
-> When `WaitForLoadingNewContent(true)` is enabled on a query, the SDK bypasses its local cache for that request path (no cache read and no cache write).
+`SecureAccessApiKey` and `PreviewApiKey` are not part of cache key identity — secure access only gates
+*which* published content you may read, and preview never reaches the cache at all.
 
-Override cache TTL per query when needed:
+Override the TTL for one query when it needs a different one:
 
 ```csharp
 var result = await client.GetItem<Article>("my-article")
@@ -1366,47 +1275,15 @@ var result = await client.GetItem<Article>("my-article")
     .ExecuteAsync();
 ```
 
-**Cache payloads:** The in-memory cache stores hydrated objects for maximum performance. Hybrid caches store raw JSON payloads (rehydrated on read) to avoid serialization issues with circular references.
+`InvalidateAsync` returns `Task<bool>` — `false` means the invalidation did not take, which is worth
+acting on in a webhook endpoint (see below).
 
-The built-in caches (`UseMemoryCache` / `UseHybridCache`) in the `Kontent.Ai.Delivery.Caching` package use [FusionCache](https://github.com/ZiggyCreatures/FusionCache) internally. `InvalidateAsync` now returns `Task<bool>` (`true` on success, `false` on failure) so callers can detect silent invalidation failures — existing fire-and-forget call sites continue to work without changes.
-
-> [!NOTE]
-> **Hybrid caching and the in-memory tier:** FusionCache always has an in-memory tier in front of the distributed one. `UseHybridCache` uses it, and a backplane is what keeps it in step across instances - without one, an invalidation reaches only the instance that performed it (see the note above). Either way, hybrid entries are stored as raw JSON — FusionCache [uses the same serialized format in both tiers](https://github.com/ZiggyCreatures/FusionCache/issues/321) — so a hit goes through rehydration. For most workloads that cost is negligible; if you need maximum read throughput and a single instance is enough, `UseMemoryCache` keeps hydrated objects and skips rehydration entirely.
-
-To tune the underlying FusionCache instance, use `ConfigureFusionCache`:
-
-```csharp
-services.AddDeliveryClient("production", delivery =>
-{
-    delivery.Options.Configure(options => { ... });
-    delivery.UseMemoryCache(opts =>
-    {
-        opts.DefaultExpiration = TimeSpan.FromMinutes(30);
-        opts.ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = 0.8f);
-    });
-});
-```
-
-`ConfigureFusionCache` comes from `Kontent.Ai.Delivery.Caching`, which already references FusionCache, so
-the options arrive typed. The `ConfigureFusionCacheOptions` property it sets is typed as `object` because it
-is declared in `Kontent.Ai.Delivery.Abstractions`, a package that deliberately references nothing — assign it
-directly only if you are configuring the cache from somewhere that cannot see this package, and cast to
-`FusionCacheOptions` yourself.
-
-If you implement a custom cache manager that stores raw payloads (typical for distributed caches), override the `StorageMode` property to return `CacheStorageMode.RawJson` so the SDK uses the raw JSON caching path.
-
-Attach a custom cache manager to a client with `UseCacheManager`:
-
-```csharp
-services.AddDeliveryClient("production", delivery =>
-{
-    delivery.Options.Configure(options => { ... });
-    delivery.UseCacheManager(sp => new CustomHybridCacheManager(
-        sp.GetRequiredService<IDistributedCache>()));
-});
-```
-
-If you attach more than one cache to the same client, the last one wins.
+The caching guide covers what this section leaves out: [tuning the underlying FusionCache
+instance](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#reaching-into-fusioncache),
+[writing a custom cache manager](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#custom-cache-manager)
+and attaching it with `UseCacheManager`, [cache key
+shape](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#cache-keys),
+and [expiration strategies](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#expiration-strategies).
 
 #### Detecting Cache Hits
 
@@ -1460,65 +1337,55 @@ Dependency keys are collected regardless of whether SDK caching is configured. T
 
 #### Webhook Invalidation Pattern for Lists
 
-Typed listing queries include synthetic scope dependencies:
+Typed listing queries carry a synthetic scope dependency alongside their entity keys:
+
 - `GetItems<T>()` → `DeliveryCacheDependencies.ItemsListScope`
 - `GetTypes()` → `DeliveryCacheDependencies.TypesListScope`
 - `GetTaxonomies()` → `DeliveryCacheDependencies.TaxonomiesListScope`
 
-When processing webhooks, invalidate both entity-specific keys and the relevant list scope key. `DeliveryCacheDependencies` composes the entity keys exactly as the SDK tags them, and the manager resolves unkeyed for the default client, keyed by name for a named one, and as `CacheManager` on a client from `DeliveryClient.Create`.
-
-The [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore) package does the mapping from the payload Kontent.ai actually sends, routes asset events through the used-in lookup in the same call, and validates the request's signature in front of it:
-
-```csharp
-using Kontent.Ai.AspNetCore.Webhooks;
-using Kontent.Ai.AspNetCore.Webhooks.Models;
-using Kontent.Ai.Delivery.Abstractions;
-
-app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegments("/webhooks"));
-
-app.MapPost("/webhooks/kontent", async (WebhookNotification notification, IDeliveryCacheManager cacheManager, IDeliveryClient client, CancellationToken ct) =>
-{
-    // A non-2xx makes Kontent.ai resend the notification, so a failed invalidation is retried rather than lost.
-    var invalidated = await cacheManager.InvalidateAsync(notification, client, ct);
-    return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-});
-```
-
-Composing the keys by hand works too:
+A webhook invalidates both the entity key and the relevant scope. Type and taxonomy events also
+invalidate the items-list scope, because a membership change can affect an empty or projected listing
+that carries no matching detail key. `DeliveryCacheDependencies` composes the keys exactly as the SDK
+tags them:
 
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
 
 var cacheManager = serviceProvider.GetRequiredService<IDeliveryCacheManager>();
 
-// Item events
 await cacheManager.InvalidateAsync(
     [DeliveryCacheDependencies.ForItem(itemCodename), DeliveryCacheDependencies.ItemsListScope]);
 
-// Type events
 await cacheManager.InvalidateAsync(
     [DeliveryCacheDependencies.ForType(typeCodename), DeliveryCacheDependencies.TypesListScope, DeliveryCacheDependencies.ItemsListScope]);
 
-// Taxonomy events: for a term event the payload's codename is the term's, and the key is the group's
+// For a term event the payload names the term; the key is the group's.
 await cacheManager.InvalidateAsync(
     [DeliveryCacheDependencies.ForTaxonomy(taxonomyGroupCodename), DeliveryCacheDependencies.TaxonomiesListScope, DeliveryCacheDependencies.ItemsListScope]);
 
-// Asset events: ForAsset covers rich-text usages; an asset held in an asset element carries no asset id,
-// so those items are found through the used-in lookup. See the caching guide's "Asset events".
+// ForAsset reaches rich-text usages. An asset held in an asset element carries no asset id, so those
+// items are found through the used-in lookup - which is why this overload takes the client.
 await cacheManager.InvalidateAssetAsync(client, assetCodename, assetId);
 ```
 
-Type and taxonomy events also invalidate the items-list scope because a membership change can affect empty or projected listings without matching detail keys. The [caching guide](docs/caching-guide.md#webhook-based-invalidation) has the complete endpoint: environment and delivery-slot filtering, the language-event purge, and what invalidation does not cover.
+The manager resolves unkeyed for the default client, keyed by name for a named one, and as
+`CacheManager` on a client built by `DeliveryClient.Create`.
 
-With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an answer from the origin - a `404` for an unpublished item, say - drops it.
+You rarely need to compose keys by hand. [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore)
+maps the payload Kontent.ai actually sends, routes asset events through the used-in lookup in the same
+call, and validates the request signature in front of it — its
+[Cache invalidation](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/README.md#cache-invalidation)
+section has the complete endpoint, and the [caching
+guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#webhook-based-invalidation)
+covers what invalidation does not reach.
+
+With fail-safe on, an invalidated entry may still be served stale while the origin is unreachable; an
+answer from the origin — a `404` for an unpublished item, say — drops it.
 
 #### Purging the SDK Cache
 
-Built-in cache managers support invalidating **all** cached entries at once via the optional `IDeliveryCachePurger` capability:
-
-Both purge modes throw if a distributed clear-marker write or configured backplane publication fails or
-is skipped by an open circuit breaker. Local entries may already be invalidated. Normal completion is
-not an acknowledgment from every other node; ordinary cache reads remain fail-open.
+Built-in cache managers can invalidate **all** entries at once through the optional `IDeliveryCachePurger`
+capability. Language webhook events need this, because a language change has no key of its own.
 
 ```csharp
 using Kontent.Ai.Delivery.Abstractions;
@@ -1528,31 +1395,21 @@ using Microsoft.Extensions.DependencyInjection;
 var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 if (cacheManager is IDeliveryCachePurger purger)
 {
-    await purger.PurgeAsync(); // permanently removes all entries
-
-    // Or: expire entries but keep fail-safe fallback data
-    await purger.PurgeAsync(allowFailSafe: true);
+    await purger.PurgeAsync();                    // permanently removes all entries
+    await purger.PurgeAsync(allowFailSafe: true); // expires them, keeping fail-safe fallback data
 }
 ```
 
-> [!NOTE]
-> If you're using a custom cache manager that does not implement `IDeliveryCachePurger`, use provider-specific tooling or key-prefix rotation.
+Both modes throw if a distributed clear-marker write or a configured backplane publication fails, or is
+skipped by an open circuit breaker — local entries may already be gone by then. Normal completion is not
+an acknowledgment from every other node; ordinary cache reads stay fail-open. A custom cache manager that
+does not implement `IDeliveryCachePurger` needs provider-specific tooling or key-prefix rotation instead.
 
 > [!IMPORTANT]
-> Runtime option changes on an already-cached client do not invalidate existing cache entries. If you change `EnvironmentId` or `DefaultRenditionPreset`, purge the client cache (or recreate the client) before relying on the new setting.
+> Runtime option changes on an already-cached client do not invalidate existing entries. After changing `EnvironmentId` or `DefaultRenditionPreset`, purge the cache (or recreate the client) before relying on the new setting.
 
-For advanced caching strategies including cache invalidation, webhook integration, and multi-tenant scenarios, see the [Caching Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md), especially:
-- [Invalidation Matrix (RC-ready)](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#invalidation-matrix-rc-ready)
-- [Optional Redis Validation Suite](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md#optional-redis-validation-suite)
-
-Optional Redis validation run:
-
-```bash
-KONTENT_SDK_RUN_REDIS_TESTS=true \
-KONTENT_SDK_REDIS_CONNECTION=localhost:6379 \
-dotnet test Kontent.Ai.Delivery.Tests/Kontent.Ai.Delivery.Tests.csproj \
-  --filter "FullyQualifiedName~RedisCacheIntegrationTests"
-```
+For invalidation strategy, multi-tenant scenarios and the full behaviour matrix, see the [Caching
+Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/caching-guide.md).
 
 ### Preview API
 
@@ -1675,116 +1532,14 @@ The domain must be a root URL without a path, query string, or fragment. The SDK
 
 ### Image Transformation
 
-The SDK includes `ImageUrlBuilder` for dynamically transforming images served from Kontent.ai. This allows you to resize, crop, and optimize images on-the-fly without storing multiple versions.
-
-#### Basic Usage
+`ImageUrlBuilder` rewrites an image URL served from Kontent.ai so the CDN resizes, crops and re-encodes
+on the fly — no second copy of the asset to store. It ships in `Kontent.Ai.Urls`, which
+`Kontent.Ai.Delivery` already brings in.
 
 ```csharp
 using Kontent.Ai.Urls.ImageTransformation;
 
-// Get an image URL from your content
-var imageUrl = article.HeroImage.Url;
-
-// Apply transformations
-var transformedUrl = new ImageUrlBuilder(imageUrl)
-    .WithWidth(800)
-    .WithHeight(600)
-    .WithFitMode(ImageFitMode.Crop)
-    .Url;
-```
-
-#### Resizing
-
-```csharp
-// Resize to specific dimensions
-var resized = new ImageUrlBuilder(imageUrl)
-    .WithWidth(1200)
-    .WithHeight(630)
-    .Url;
-
-// Resize with device pixel ratio for high-DPI displays
-var retinaReady = new ImageUrlBuilder(imageUrl)
-    .WithWidth(400)
-    .WithDpr(2.0)  // Serves 800px image for 2x displays
-    .Url;
-```
-
-#### Fit Modes
-
-Control how the image fits within the target dimensions:
-
-```csharp
-// Clip: Fit within boundaries without cropping (default)
-var clipped = new ImageUrlBuilder(imageUrl)
-    .WithWidth(800)
-    .WithHeight(600)
-    .WithFitMode(ImageFitMode.Clip)
-    .Url;
-
-// Scale: Stretch to exact dimensions (may distort)
-var scaled = new ImageUrlBuilder(imageUrl)
-    .WithWidth(800)
-    .WithHeight(600)
-    .WithFitMode(ImageFitMode.Scale)
-    .Url;
-
-// Crop: Fill dimensions and crop excess
-var cropped = new ImageUrlBuilder(imageUrl)
-    .WithWidth(800)
-    .WithHeight(600)
-    .WithFitMode(ImageFitMode.Crop)
-    .Url;
-```
-
-#### Cropping
-
-```csharp
-// Rectangle crop: extract a specific region (x, y, width, height)
-var rectangleCrop = new ImageUrlBuilder(imageUrl)
-    .WithRectangleCrop(100, 50, 400, 300)
-    .Url;
-
-// Focal point crop: crop centered on a point with zoom
-var focalPointCrop = new ImageUrlBuilder(imageUrl)
-    .WithWidth(800)
-    .WithHeight(600)
-    .WithFocalPointCrop(0.5, 0.3, 1.5)  // x, y (0-1 normalized), zoom
-    .Url;
-```
-
-#### Format Conversion and Optimization
-
-```csharp
-// Convert to WebP for smaller file sizes
-var webp = new ImageUrlBuilder(imageUrl)
-    .WithFormat(ImageFormat.Webp)
-    .WithQuality(80)
-    .Url;
-
-// Automatic WebP with fallback for unsupported browsers
-var autoFormat = new ImageUrlBuilder(imageUrl)
-    .WithAutomaticFormat(ImageFormat.Jpg)
-    .Url;
-
-// Control WebP compression mode
-var lossless = new ImageUrlBuilder(imageUrl)
-    .WithFormat(ImageFormat.Webp)
-    .WithCompression(ImageCompression.Lossless)
-    .Url;
-
-// Progressive JPEG for better perceived loading
-var progressive = new ImageUrlBuilder(imageUrl)
-    .WithFormat(ImageFormat.Pjpg)
-    .WithQuality(85)
-    .Url;
-```
-
-#### Combining Transformations
-
-All transformations can be chained together:
-
-```csharp
-var optimizedHero = new ImageUrlBuilder(imageUrl)
+var optimizedHero = new ImageUrlBuilder(article.HeroImage.Url)
     .WithWidth(1920)
     .WithHeight(1080)
     .WithFitMode(ImageFitMode.Crop)
@@ -1793,6 +1548,22 @@ var optimizedHero = new ImageUrlBuilder(imageUrl)
     .WithQuality(80)
     .Url;
 ```
+
+Every method returns the builder, so transformations chain in any order; `Url` renders the result.
+
+#### Available Transformations
+
+| Method | Effect |
+|---|---|
+| `WithWidth(w)` / `WithHeight(h)` | Target dimensions in pixels |
+| `WithDpr(ratio)` | Device pixel ratio — `WithWidth(400).WithDpr(2.0)` serves an 800px image |
+| `WithFitMode(mode)` | How the image meets those dimensions: `Clip` (fit inside, the default), `Scale` (stretch exactly, may distort), `Crop` (fill and trim the excess) |
+| `WithRectangleCrop(x, y, w, h)` | Extract one region |
+| `WithFocalPointCrop(x, y, zoom)` | Crop around a point, `x`/`y` normalized to `0`–`1` |
+| `WithFormat(format)` | Re-encode — see the format table below |
+| `WithAutomaticFormat(fallback)` | WebP where the browser advertises support, `fallback` elsewhere |
+| `WithQuality(1-100)` | Compression quality for lossy formats |
+| `WithCompression(mode)` | `ImageCompression.Lossless` / `.Lossy`, for WebP |
 
 #### Available Formats
 
@@ -1804,6 +1575,9 @@ var optimizedHero = new ImageUrlBuilder(imageUrl)
 | JPEG | `ImageFormat.Jpg` | Lossy compression |
 | Progressive JPEG | `ImageFormat.Pjpg` | JPEG with progressive loading |
 | WebP | `ImageFormat.Webp` | Modern format, best compression |
+
+> [!TIP]
+> Rendering in Razor? [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore)'s `<img-asset>` tag helper applies these transformations and builds a responsive `srcset` for you.
 
 ## Configuration Options
 

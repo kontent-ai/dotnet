@@ -20,7 +20,7 @@ Caching is essential for production applications using the Kontent.ai Delivery A
   - [Expiration Strategies](#expiration-strategies)
     - [Per-query Expiration Override](#per-query-expiration-override)
 - [Cache Invalidation](#cache-invalidation)
-  - [Invalidation Matrix (RC-ready)](#invalidation-matrix-rc-ready)
+  - [Invalidation Matrix](#invalidation-matrix)
   - [Manual Invalidation](#manual-invalidation)
   - [Webhook-Based Invalidation](#webhook-based-invalidation)
   - [Timed Invalidation](#timed-invalidation)
@@ -604,7 +604,7 @@ if (result.IsSuccess && result.DependencyKeys is { } keys)
 }
 ```
 
-Dependency keys are always available — they are collected regardless of whether SDK caching is configured. The key formats are the same canonical formats used for SDK cache invalidation (see [Invalidation Matrix](#invalidation-matrix-rc-ready)).
+Dependency keys are always available — they are collected regardless of whether SDK caching is configured. The key formats are the same canonical formats used for SDK cache invalidation (see [Invalidation Matrix](#invalidation-matrix)).
 
 ### Expiration Strategies
 
@@ -663,7 +663,7 @@ An invalidation and fail-safe compose the same way. `InvalidateAsync` expires th
 
 ## Cache Invalidation
 
-### Invalidation Matrix (RC-ready)
+### Invalidation Matrix
 
 This matrix lists response dependency tags, not the complete set of keys to invalidate for an event. The recommended webhook pattern below also covers item-list membership changes. Compose detail keys with `DeliveryCacheDependencies`: they are the exact strings the SDK tags with, trimmed and lower-cased, and `InvalidateAsync` matches case-insensitively.
 
