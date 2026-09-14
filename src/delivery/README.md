@@ -254,6 +254,9 @@ surface as `OptionsValidationException` from `Create`.
 
 ## Retrieving Content
 
+> [!TIP]
+> Every query here has a strongly-typed counterpart — `GetItem<Article>(…)`, `GetItems<Article>()` — which hydrates your generated models and adds the `system.type` filter for you. That is the recommended path: see [Working with Strongly-Typed Models](#working-with-strongly-typed-models). The typeless calls shown below are [dynamic access](#dynamic-content-access), for when the type is not known until runtime.
+
 ### Get a Single Item
 
 ```csharp
