@@ -6,25 +6,23 @@ This guide provides comprehensive strategies for optimizing the performance of a
 
 - [Overview](#overview)
 - [Query Optimization](#query-optimization)
-  - [Projection Limiting](#projection-limiting)
-  - [Depth Control](#depth-control)
-  - [Efficient Filtering](#efficient-filtering)
-  - [Pagination Strategies](#pagination-strategies)
 - [Caching Strategies](#caching-strategies)
-  - [Cache-First Approach](#cache-first-approach)
-  - [Cache Warming](#cache-warming)
-  - [Stale-While-Revalidate](#stale-while-revalidate)
 - [Network Optimization](#network-optimization)
   - [HTTP Client Configuration](#http-client-configuration)
   - [Connection Pooling](#connection-pooling)
   - [Retry Policies](#retry-policies)
 - [Parallel Operations](#parallel-operations)
 - [Rate Limit Management](#rate-limit-management)
-- [Memory Optimization](#memory-optimization)
 - [Monitoring and Diagnostics](#monitoring-and-diagnostics)
 - [Production Best Practices](#production-best-practices)
 - [Performance Benchmarks](#performance-benchmarks)
+  - [Typical Response Times](#typical-response-times)
+  - [Cache Hit Rate Targets](#cache-hit-rate-targets)
 - [Troubleshooting](#troubleshooting)
+  - [Slow Queries](#slow-queries)
+  - [High Memory Usage](#high-memory-usage)
+  - [Rate Limit Errors](#rate-limit-errors)
+  - [Cache Misses](#cache-misses)
 
 ## Overview
 
@@ -38,258 +36,27 @@ Performance optimization for Kontent.ai applications involves:
 
 ## Query Optimization
 
-### Projection Limiting
+The shape of a query decides the size of the response, and payload dominates latency far more often
+than anything else here.
 
-Only retrieve the elements you need using `WithElements()`:
+- **Project.** `WithElements("title", "summary")` on a listing that renders titles cuts the payload
+  by most of its weight - rich text and asset elements are the bulk of an item.
+- **Keep depth low.** Each level of `Depth(n)` pulls in every linked item at that level, transitively.
+  The default of 1 is right for most views; raise it only where a view genuinely renders the deeper level.
+- **Use the feed for bulk.** `GetItemsFeed<T>()` streams with continuation tokens instead of holding a
+  whole set in memory, which is what you want for indexing or export.
+- **Filter server-side.** A `.Where(...)` clause is free; fetching everything and filtering in C# is not.
 
-```csharp
-// ❌ Bad: Retrieves all elements
-var result = await client.GetItems<Article>()
-    .Limit(10)
-    .ExecuteAsync();
-
-// ✅ Good: Only retrieves needed elements
-var result = await client.GetItems<Article>()
-    .WithElements("title", "summary", "publish_date", "url_slug")
-    .Limit(10)
-    .ExecuteAsync();
-```
-
-**Impact**: Reducing elements can decrease response size by 50-80% for content-heavy items.
-
-### Depth Control
-
-Limit linked content depth to avoid deep object graphs:
-
-```csharp
-// ❌ Bad: Deep nesting (default or high depth)
-var result = await client.GetItem<Article>("my-article")
-    .Depth(5)  // Too deep
-    .ExecuteAsync();
-
-// ✅ Good: Minimal necessary depth
-var result = await client.GetItem<Article>("my-article")
-    .Depth(1)  // Only first level of linked items
-    .ExecuteAsync();
-
-// ✅ Better: No linked items if not needed
-var result = await client.GetItem<Article>("my-article")
-    .Depth(0)  // No linked content
-    .ExecuteAsync();
-```
-
-**Impact**: Each depth level can multiply response size. Depth 0 vs Depth 2 can be 10x size difference.
-
-### Combining Projection and Depth
-
-```csharp
-// Optimal query: minimal depth + only needed elements
-var result = await client.GetItems<Article>()
-    .Where(f => f.System("type").IsEqualTo("article"))
-    .WithElements("title", "summary", "featured_image")
-    .Depth(0)  // No linked content
-    .Limit(20)
-    .ExecuteAsync();
-```
-
-### Efficient Filtering
-
-Use indexed system properties when possible:
-
-```csharp
-.Where(f => f.System("type").IsEqualTo("article"))
-.Where(f => f.System("collection").IsEqualTo("blog"))
-.Where(f => f.System("last_modified").IsGreaterThan(cutoffDate))
-.Where(f => f.Element("category").IsEqualTo("tech"))
-```
-
-### Pagination Strategies
-
-#### Standard Pagination
-
-For user-facing pagination:
-
-```csharp
-public async Task<PagedResult<Article>> GetArticlesAsync(int page, int pageSize)
-{
-    var result = await client.GetItems<Article>()
-        .Where(f => f.System("type").IsEqualTo("article"))
-        .OrderBySystem("last_modified", OrderingMode.Descending)
-        .Skip(page * pageSize)
-        .Limit(pageSize)
-        .WithTotalCount()
-        .ExecuteAsync();
-
-    return new PagedResult<Article>
-    {
-        Items = result.Value.ToList(),
-        TotalCount = result.Value.TotalCount ?? 0,
-        Page = page,
-        PageSize = pageSize
-    };
-}
-```
-
-#### Items Feed for Bulk Operations
-
-For processing all items efficiently:
-
-```csharp
-// ✅ Best for bulk: Automatic pagination with continuation tokens
-var query = client.GetItemsFeed<Article>()
-    .Where(f => f.System("type").IsEqualTo("article"))
-    .WithElements("title", "url_slug")  // Only needed elements
-    .OrderBySystem("codename", OrderingMode.Ascending);
-
-// Process items one-by-one via IAsyncEnumerable (memory efficient)
-await foreach (var article in query.EnumerateAsync())
-{
-    await ProcessArticleAsync(article);
-}
-```
-
-**Impact**: Items feed is 2-3x faster than manual pagination for bulk operations.
+The syntax for all four is in the [querying guide](queries.md).
 
 ## Caching Strategies
 
-> [!NOTE]
-> Caching requires the `Kontent.Ai.Delivery.Caching` package. See the [Caching Guide](caching-guide.md) for full details.
-
-### Cache-First Approach
-
-Always configure caching in production:
-
-```csharp
-// Development: Short cache
-services.AddDeliveryClient("dev", delivery =>
-{
-    delivery.Options.Configure(options => { ... });
-    delivery.UseMemoryCache(o => o.DefaultExpiration = TimeSpan.FromMinutes(5));
-});
-
-// Production: Longer cache with distributed storage
-services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = "redis:6379";
-});
-
-services.AddDeliveryClient("prod", delivery =>
-{
-    delivery.Options.Configure(options => { ... });
-    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
-});
-```
-
-### Cache Warming
-
-Pre-populate cache on application startup:
-
-```csharp
-public class CacheWarmupService : IHostedService
-{
-    private readonly IDeliveryClient _client;
-    private readonly ILogger<CacheWarmupService> _logger;
-
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        var stopwatch = Stopwatch.StartNew();
-
-        try
-        {
-            // Warm critical pages
-            await WarmCriticalContentAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Cache warmed in {ElapsedMs}ms",
-                stopwatch.ElapsedMilliseconds);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Cache warmup failed");
-        }
-    }
-
-    private async Task WarmCriticalContentAsync(CancellationToken cancellationToken)
-    {
-        var criticalPages = new[] { "homepage", "navigation", "footer", "sitemap" };
-
-        var tasks = criticalPages.Select(codename =>
-            client.GetItem(codename).ExecuteAsync(cancellationToken));
-
-        await Task.WhenAll(tasks);
-
-        // Warm recent articles
-        await client.GetItems<Article>()
-            .Where(f => f.System("type").IsEqualTo("article"))
-            .OrderBySystem("last_modified", OrderingMode.Descending)
-            .Limit(20)
-            .ExecuteAsync(cancellationToken);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-}
-
-// Register
-services.AddHostedService<CacheWarmupService>();
-```
-
-### Stale-While-Revalidate
-
-Serve stale content while refreshing in background:
-
-```csharp
-public class StaleWhileRevalidateService
-{
-    private readonly IDeliveryClient _client;
-    private readonly IMemoryCache _cache;
-
-    public async Task<T?> GetWithStaleAsync<T>(
-        string cacheKey,
-        Func<Task<T>> fetchFunc,
-        TimeSpan freshDuration,
-        TimeSpan staleDuration)
-    {
-        if (_cache.TryGetValue(cacheKey, out CachedItem<T> cached))
-        {
-            // If fresh, return immediately
-            if (DateTime.UtcNow - cached.Timestamp < freshDuration)
-                return cached.Value;
-
-            // If stale but within stale duration, return and refresh in background
-            if (DateTime.UtcNow - cached.Timestamp < staleDuration)
-            {
-                _ = Task.Run(async () =>
-                {
-                    var fresh = await fetchFunc();
-                    _cache.Set(cacheKey, new CachedItem<T>
-                    {
-                        Value = fresh,
-                        Timestamp = DateTime.UtcNow
-                    });
-                });
-
-                return cached.Value;  // Return stale
-            }
-        }
-
-        // No cache or too stale, fetch fresh
-        var value = await fetchFunc();
-        _cache.Set(cacheKey, new CachedItem<T>
-        {
-            Value = value,
-            Timestamp = DateTime.UtcNow
-        });
-
-        return value;
-    }
-}
-
-public class CachedItem<T>
-{
-    public T Value { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-```
+Caching is the single largest performance lever, and it has its own guide:
+[Caching](caching-guide.md). The parts that matter most for latency are
+[expiration strategies](caching-guide.md#expiration-strategies),
+[eager refresh](caching-guide.md#6-use-eager-refresh-stale-while-revalidate) for stale-while-revalidate
+behaviour, and [request coalescing](caching-guide.md#7-prevent-cache-stampede-request-coalescing), which
+keeps a cold key from sending one origin request per concurrent caller.
 
 ## Network Optimization
 
@@ -354,404 +121,107 @@ services.AddDeliveryClient(delivery =>
 
 ## Parallel Operations
 
-### Parallel Queries
-
-Execute independent queries in parallel:
-
-```csharp
-public async Task<DashboardData> GetDashboardDataAsync()
-{
-    // Execute queries in parallel
-    var homepageTask = client.GetItem<HomePage>("homepage").ExecuteAsync();
-    var articlesTask = client.GetItems<Article>()
-        .OrderBySystem("last_modified", OrderingMode.Descending)
-        .Limit(5)
-        .ExecuteAsync();
-    var productsTask = client.GetItems<Product>()
-        .Where(f => f.Element("tags").ContainsAny("featured"))
-        .Limit(10)
-        .ExecuteAsync();
-
-    // Wait for all
-    await Task.WhenAll(homepageTask, articlesTask, productsTask);
-
-    return new DashboardData
-    {
-        Homepage = homepageTask.Result.Value,
-        RecentArticles = articlesTask.Result.Value.ToList(),
-        FeaturedProducts = productsTask.Result.Value.ToList()
-    };
-}
-```
-
-**Impact**: 3 parallel queries complete in ~1 second vs. 3 seconds sequentially.
-
-### Batching Content Retrieval
-
-Retrieve multiple items efficiently:
+`IDeliveryClient` is thread-safe and intended to be a singleton, so independent queries can run
+concurrently:
 
 ```csharp
-// ✅ Good: Single query with filter
-var codenamesList = new[] { "article1", "article2", "article3" };
-var result = await client.GetItems<Article>()
-    .Where(f => f.System("codename").IsIn(codenamesList))
-    .ExecuteAsync();
+var articlesTask = client.GetItems<Article>().Limit(10).ExecuteAsync(cancellationToken);
+var productsTask = client.GetItems<Product>().Limit(10).ExecuteAsync(cancellationToken);
 
-// ❌ Bad: Multiple queries
-foreach (var codename in codenamesList)
-{
-    await client.GetItem<Article>(codename).ExecuteAsync();
-}
+await Task.WhenAll(articlesTask, productsTask);
+
+var articles = (await articlesTask).Value.Items;
+var products = (await productsTask).Value.Items;
 ```
+
+Concurrency counts against the rate limit, so fan-out is bounded by the section below rather than by
+the SDK.
 
 ## Rate Limit Management
 
-### Understanding Rate Limits
+The Delivery API rate-limits by requests per second, burst capacity and monthly quota; the current
+figures are in the [Kontent.ai documentation](https://kontent.ai/learn/docs/apis/delivery-api).
 
-Kontent.ai enforces rate limits:
-- Requests per second
-- Burst capacity
-- Monthly quota
+**The SDK already handles a `429`.** The default resilience pipeline retries it with exponential
+backoff and honours a server-sent `Retry-After`, so a brief overshoot is absorbed without any code of
+yours. What that cannot absorb is sustained over-limit traffic, which surfaces as a failed result.
 
-### Monitoring Rate Limits
-
-Track API usage:
-
-```csharp
-public class RateLimitMonitor
-{
-    private long _requestCount;
-    private readonly ILogger _logger;
-
-    public void RecordRequest()
-    {
-        var count = Interlocked.Increment(ref _requestCount);
-
-        if (count % 100 == 0)
-        {
-            _logger.LogInformation("Total API requests: {Count}", count);
-        }
-    }
-
-    public long GetRequestCount() => Interlocked.Read(ref _requestCount);
-}
-```
-
-### Rate Limit Response Handling
-
-The SDK's retry policy handles 429 responses automatically:
+To change how hard it tries, replace the pipeline:
 
 ```csharp
 services.AddDeliveryClient(delivery =>
 {
-    delivery.Options.Configure(options => { ... });
-
-    delivery.ConfigureResilience(builder =>
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions
     {
-        builder.AddRetry(new HttpRetryStrategyOptions
-        {
-            MaxRetryAttempts = 5,
-            Delay = TimeSpan.FromSeconds(1),
-            BackoffType = DelayBackoffType.Exponential
-        });
-    });
+        MaxRetryAttempts = 5,
+        Delay = TimeSpan.FromSeconds(1),
+        BackoffType = DelayBackoffType.Exponential,
+    }));
 });
 ```
 
-### Rate Limit Mitigation
+> [!NOTE]
+> Replacing the pipeline also replaces its per-attempt timeout, and `DeliveryOptions.Timeout` then becomes the only bound on the call. Read [Timeouts](../README.md#timeouts) before changing this - a longer retry sequence inside an unchanged ceiling just fails later.
 
-1. **Cache aggressively**: Primary defense against rate limits
-2. **Use items feed**: More efficient for bulk operations
-3. **Batch requests**: Retrieve multiple items in single queries
-4. **Monitor usage**: Track request patterns and optimize
+Retrying is the last defence, not the first. In order of effect:
 
-## Memory Optimization
-
-### Limit Cache Size
-
-Configure memory cache limits:
-
-```csharp
-services.AddMemoryCache(options =>
-{
-    options.SizeLimit = 1024;  // Maximum number of entries
-    options.CompactionPercentage = 0.25;  // Remove 25% when limit hit
-    options.ExpirationScanFrequency = TimeSpan.FromMinutes(5);
-});
-```
-
-### Use Projection
-
-Reduce memory footprint by limiting elements:
-
-```csharp
-// ❌ Large memory footprint: Full content with all elements
-var items = await client.GetItems<Article>()
-    .Limit(100)
-    .ExecuteAsync();
-
-// ✅ Smaller footprint: Only needed elements
-var items = await client.GetItems<Article>()
-    .WithElements("title", "url_slug", "publish_date")
-    .Limit(100)
-    .ExecuteAsync();
-```
-
-### Dispose Resources
-
-Ensure proper cleanup (SDK handles this automatically via DI):
-
-```csharp
-// ✅ Good: Using DI (automatic disposal)
-public class MyService
-{
-    private readonly IDeliveryClient _client;
-
-    public MyService(IDeliveryClient client)
-    {
-        _client = client;  // Managed by DI container
-    }
-}
-
-// ❌ Bad: A standalone client per request - each Create builds and holds a private container
-var client = DeliveryClient.Create(delivery => { ... });  // Don't do this per request; build one and keep it
-```
+1. **Cache.** A cache hit is a request that never happened.
+2. **Use `GetItemsFeed<T>()` for bulk**, rather than many small queries.
+3. **Project and filter**, so one query answers what would otherwise take several.
+4. **Watch `429` rates** - the `TimingHandler` below sees every request, retries included.
 
 ## Monitoring and Diagnostics
 
-### Application Insights Integration
+Timing belongs on the transport, not on the client: `IDeliveryClient` has fourteen query members, and
+decorating it to time one of them is both laborious and easy to get wrong. The SDK exposes the named
+`IHttpClientBuilder`, so a `DelegatingHandler` sees every request the client makes, retries included:
 
 ```csharp
-public class TelemetryClientWrapper
+public sealed class TimingHandler(ILogger<TimingHandler> logger) : DelegatingHandler
 {
-    private readonly IDeliveryClient _client;
-    private readonly TelemetryClient _telemetry;
-
-    public async Task<IDeliveryResult<T>> GetItemWithTelemetryAsync<T>(string codename)
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
     {
-        var stopwatch = Stopwatch.StartNew();
+        var start = Stopwatch.GetTimestamp();
+        var response = await base.SendAsync(request, cancellationToken);
+        var elapsed = Stopwatch.GetElapsedTime(start);
 
-        try
-        {
-            var result = await _client.GetItem<T>(codename).ExecuteAsync();
+        logger.Log(elapsed > TimeSpan.FromSeconds(1) ? LogLevel.Warning : LogLevel.Information,
+            "{Method} {Uri} -> {Status} in {ElapsedMs}ms",
+            request.Method, request.RequestUri, (int)response.StatusCode, elapsed.TotalMilliseconds);
 
-            stopwatch.Stop();
-
-            _telemetry.TrackDependency(
-                "Kontent.ai",
-                "GetItem",
-                codename,
-                DateTimeOffset.UtcNow,
-                stopwatch.Elapsed,
-                result.IsSuccess);
-
-            _telemetry.TrackMetric(
-                "KontentApi.Duration",
-                stopwatch.ElapsedMilliseconds,
-                new Dictionary<string, string>
-                {
-                    ["Operation"] = "GetItem",
-                    ["Codename"] = codename,
-                    ["Success"] = result.IsSuccess.ToString()
-                });
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _telemetry.TrackException(ex);
-            throw;
-        }
+        return response;
     }
 }
 ```
 
-### Performance Logging
-
 ```csharp
-public class PerformanceLoggingClient : IDeliveryClient
+services.AddTransient<TimingHandler>();
+
+services.AddDeliveryClient(delivery =>
 {
-    private readonly IDeliveryClient _inner;
-    private readonly ILogger _logger;
-
-    public async Task<IDeliveryResult<IContentItem>> GetItemAsync(string codename)
-    {
-        var sw = Stopwatch.StartNew();
-
-        var result = await _inner.GetItem(codename).ExecuteAsync();
-
-        sw.Stop();
-
-        _logger.LogInformation(
-            "GetItem({Codename}) completed in {ElapsedMs}ms - Success: {Success}",
-            codename,
-            sw.ElapsedMilliseconds,
-            result.IsSuccess);
-
-        if (sw.ElapsedMilliseconds > 1000)
-        {
-            _logger.LogWarning(
-                "Slow query detected: GetItem({Codename}) took {ElapsedMs}ms",
-                codename,
-                sw.ElapsedMilliseconds);
-        }
-
-        return result;
-    }
-}
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.HttpClient.AddHttpMessageHandler<TimingHandler>();
+});
 ```
 
-### Cache Metrics
+A handler added this way sits inside the SDK's own handlers, so a retried request runs it again - which
+is what you want when measuring what the API actually cost.
 
-```csharp
-public class CacheMetricsCollector
-{
-    private long _hits;
-    private long _misses;
-    private long _totalDuration;
-
-    public void RecordHit(long durationMs)
-    {
-        Interlocked.Increment(ref _hits);
-        Interlocked.Add(ref _totalDuration, durationMs);
-    }
-
-    public void RecordMiss(long durationMs)
-    {
-        Interlocked.Increment(ref _misses);
-        Interlocked.Add(ref _totalDuration, durationMs);
-    }
-
-    public CacheStatistics GetStatistics()
-    {
-        var hits = Interlocked.Read(ref _hits);
-        var misses = Interlocked.Read(ref _misses);
-        var total = hits + misses;
-
-        return new CacheStatistics
-        {
-            Hits = hits,
-            Misses = misses,
-            HitRate = total > 0 ? (double)hits / total : 0,
-            AverageDuration = total > 0
-                ? Interlocked.Read(ref _totalDuration) / (double)total
-                : 0
-        };
-    }
-}
-
-public class CacheStatistics
-{
-    public long Hits { get; set; }
-    public long Misses { get; set; }
-    public double HitRate { get; set; }
-    public double AverageDuration { get; set; }
-}
-```
+To tell a cached response from a fetched one without timing anything, read
+[`ResponseSource`](caching-guide.md#detecting-cache-hits) off the result.
 
 ## Production Best Practices
 
-### 1. Always Use Caching
-
-```csharp
-// ✅ Production configuration
-services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = configuration.GetConnectionString("Redis");
-    options.InstanceName = "Production_";
-});
-
-services.AddDeliveryClient("production", delivery =>
-{
-    delivery.Options.Configure(options =>
-    {
-        options.EnvironmentId = configuration["Kontent:EnvironmentId"];
-        options.EnableResilience = true;
-    });
-    delivery.UseHybridCache(o => o.DefaultExpiration = TimeSpan.FromHours(4));
-});
-```
-
-### 2. Configure Retry Policies
-
-```csharp
-delivery.ConfigureResilience(builder =>
-{
-    builder.AddRetry(new HttpRetryStrategyOptions
-    {
-        MaxRetryAttempts = 3,
-        Delay = TimeSpan.FromSeconds(2),
-        BackoffType = DelayBackoffType.Exponential,
-        UseJitter = true
-    });
-});
-```
-
-### 3. Implement Health Checks
-
-```csharp
-public class KontentHealthCheck : IHealthCheck
-{
-    private readonly IDeliveryClient _client;
-
-    public async Task<HealthCheckResult> CheckHealthAsync(
-        HealthCheckContext context,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var stopwatch = Stopwatch.StartNew();
-
-            var result = await _client.GetItem("health-check-item")
-                .ExecuteAsync(cancellationToken);
-
-            stopwatch.Stop();
-
-            if (result.IsSuccess)
-            {
-                return HealthCheckResult.Healthy(
-                    $"Kontent.ai API responsive ({stopwatch.ElapsedMilliseconds}ms)");
-            }
-
-            return HealthCheckResult.Degraded("Failed to retrieve content");
-        }
-        catch (Exception ex)
-        {
-            return HealthCheckResult.Unhealthy("Kontent.ai API unavailable", ex);
-        }
-    }
-}
-
-// Register
-services.AddHealthChecks()
-    .AddCheck<KontentHealthCheck>("kontent");
-```
-
-### 4. Monitor and Alert
-
-Set up monitoring for:
-- API response times
-- Cache hit rates
-- Error rates
-- Rate limit proximity
-- Memory usage
-
-### 5. Use CDN for Assets
-
-Serve images and assets through CDN:
-
-```csharp
-public class AssetUrlService
-{
-    private readonly string _cdnUrl;
-
-    public string GetAssetUrl(string assetUrl)
-    {
-        // Use CDN for assets
-        return assetUrl.Replace("assets-us-01.kc-usercontent.com", "cdn.yoursite.com");
-    }
-}
-```
+- **Cache.** It is the first defence against both latency and the rate limit.
+- **Keep the client a singleton.** Registering it per request defeats connection pooling; the DI
+  registration already makes it one.
+- **Set `DeliveryOptions.Timeout`** if something upstream budgets on how long a call may take. Without
+  it the default pipeline bounds each attempt but not the call as a whole - see the
+  [README](../README.md#timeouts).
+- **Watch `429` rates**, not just latency. Rate limiting shows up as retries and tail latency long
+  before it shows up as errors.
 
 ## Performance Benchmarks
 

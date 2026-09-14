@@ -894,14 +894,14 @@ the published-data triggers for the content the cache serves, and copy its secre
 For content that changes on a schedule:
 
 ```csharp
-public class CacheInvalidationService : BackgroundService
+public sealed class CacheInvalidationService(
+    IServiceProvider serviceProvider,
+    ILogger<CacheInvalidationService> logger) : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<CacheInvalidationService> _logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var cacheManager = _serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
+        var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -919,7 +919,7 @@ public class CacheInvalidationService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Cache invalidation failed");
+                logger.LogError(ex, "Cache invalidation failed");
             }
         }
     }
@@ -1042,14 +1042,13 @@ var tenantBClient = factory.Get("tenant-b");
 ### Per-Tenant Cache Invalidation
 
 ```csharp
-public class TenantCacheService
+public sealed class TenantCacheService(IServiceProvider serviceProvider)
 {
-    private readonly IServiceProvider _serviceProvider;
 
     public async Task InvalidateTenantCacheAsync(string tenantId, params string[] dependencies)
     {
         // Get the keyed cache manager for the specific tenant
-        var cacheManager = _serviceProvider.GetKeyedService<IDeliveryCacheManager>(tenantId);
+        var cacheManager = serviceProvider.GetKeyedService<IDeliveryCacheManager>(tenantId);
 
         if (cacheManager != null)
         {
@@ -1122,11 +1121,13 @@ Always use webhooks in production to keep cache fresh:
 ### 3. Monitor Cache Performance
 
 ```csharp
-public class MonitoredCacheManager : IDeliveryCacheManager
+public sealed class MonitoredCacheManager(
+    IDeliveryCacheManager inner,
+    ILogger<MonitoredCacheManager> logger,
+    IMetrics metrics) : IDeliveryCacheManager
 {
-    private readonly IDeliveryCacheManager _inner;
-    private readonly ILogger _logger;
-    private readonly IMetrics _metrics;
+    // A decorator forwards what it does not change - see Decorating an existing manager.
+    public CacheStorageMode StorageMode => inner.StorageMode;
 
     public async Task<CacheResult<T>?> GetOrSetAsync<T>(
         string cacheKey,
@@ -1135,7 +1136,7 @@ public class MonitoredCacheManager : IDeliveryCacheManager
         CancellationToken cancellationToken = default) where T : class
     {
         var stopwatch = Stopwatch.StartNew();
-        var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
+        var result = await inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
         stopwatch.Stop();
 
         // FromFactory and IsStale are the only reliable classification: under eager refresh the factory
@@ -1147,8 +1148,8 @@ public class MonitoredCacheManager : IDeliveryCacheManager
             { IsStale: true } => "STALE",
             _ => "HIT",
         };
-        _metrics.RecordCacheAccess(result is { FromFactory: false }, stopwatch.ElapsedMilliseconds);
-        _logger.LogDebug("Cache {Outcome} for key: {Key} in {Ms}ms", outcome, cacheKey, stopwatch.ElapsedMilliseconds);
+        metrics.RecordCacheAccess(result is { FromFactory: false }, stopwatch.ElapsedMilliseconds);
+        logger.LogDebug("Cache {Outcome} for key: {Key} in {Ms}ms", outcome, cacheKey, stopwatch.ElapsedMilliseconds);
 
         return result;
     }
@@ -1168,20 +1169,19 @@ A custom manager owns that decision itself. If it wraps an `IDistributedCache`, 
 For critical content, pre-warm the cache on startup:
 
 ```csharp
-public class CacheWarmupService : IHostedService
+public sealed class CacheWarmupService(IDeliveryClient client) : IHostedService
 {
-    private readonly IDeliveryClient _client;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         // Pre-load homepage
-        await _client.GetItem("homepage").ExecuteAsync(cancellationToken);
+        await client.GetItem("homepage").ExecuteAsync(cancellationToken);
 
         // Pre-load navigation
-        await _client.GetItem("main_navigation").ExecuteAsync(cancellationToken);
+        await client.GetItem("main_navigation").ExecuteAsync(cancellationToken);
 
         // Pre-load recent articles
-        await _client.GetItems<Article>()
+        await client.GetItems<Article>()
             .Where(f => f.System("type").IsEqualTo("article"))
             .OrderBySystem("last_modified", OrderingMode.Descending)
             .Limit(10)

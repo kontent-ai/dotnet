@@ -11,16 +11,21 @@ This guide covers advanced scenarios where you need to work with multiple Konten
   - [Accessing Named Clients](#accessing-named-clients)
   - [Keyed Services (.NET 8+)](#keyed-services-net-8)
 - [Client Factory](#client-factory)
+  - [Basic Factory Usage](#basic-factory-usage)
 - [Multi-Tenant Architectures](#multi-tenant-architectures)
   - [Fixed Tenants](#fixed-tenants)
   - [Dynamic Tenant Resolution](#dynamic-tenant-resolution)
-  - [Tenant-Specific Configuration](#tenant-specific-configuration)
-- [Multi-Brand Scenarios](#multi-brand-scenarios)
 - [Preview vs Production](#preview-vs-production)
+  - [Enabling Preview](#enabling-preview)
+  - [Separate Clients for Preview and Production](#separate-clients-for-preview-and-production)
+  - [Selecting the Preview Client](#selecting-the-preview-client)
 - [Environment-Specific Configuration](#environment-specific-configuration)
+  - [Environment-Based Registration](#environment-based-registration)
 - [Best Practices](#best-practices)
-- [Real-World Examples](#real-world-examples)
 - [Troubleshooting](#troubleshooting)
+  - [Client Not Found](#client-not-found)
+  - [Wrong Environment ID](#wrong-environment-id)
+  - [Cache Collisions](#cache-collisions)
 
 ## Overview
 
@@ -33,50 +38,12 @@ The SDK supports multiple simultaneous client instances, each with its own confi
 
 ## Use Cases
 
-### Multi-Tenant SaaS
+- **Multi-tenant SaaS** - one environment per customer.
+- **Multi-brand** - one environment per brand, shared application.
+- **Preview** - a preview client alongside the production one, chosen per request.
+- **Aggregation** - reading from several environments in one response.
 
-Each customer has their own Kontent.ai environment:
-
-```csharp
-// Customer A's content
-var clientA = factory.Get("customer-a");
-var contentA = await clientA.GetItem("homepage").ExecuteAsync();
-
-// Customer B's content
-var clientB = factory.Get("customer-b");
-var contentB = await clientB.GetItem("homepage").ExecuteAsync();
-```
-
-### Multi-Brand Platform
-
-One application serving multiple brands:
-
-```csharp
-// Nike content
-var nikeClient = factory.Get("nike");
-
-// Adidas content
-var adidasClient = factory.Get("adidas");
-```
-
-### Content Preview
-
-Switch between production and preview:
-
-```csharp
-var client = isPreview
-    ? factory.Get("preview")
-    : factory.Get("production");
-```
-
-### Aggregated Content
-
-Combine content from multiple sources:
-
-```csharp
-var globalContent = await globalClient.GetItem("global-settings").ExecuteAsync();
-var regionalContent = await regionalClient.GetItem("regional-offers").ExecuteAsync();
-```
+They are all the same mechanism: register clients by name, resolve the one you need.
 
 ## Named Clients
 
@@ -120,27 +87,14 @@ var serviceProvider = services.BuildServiceProvider();
 #### Using IDeliveryClientFactory
 
 ```csharp
-public class ContentService
+public sealed class ContentService(IDeliveryClientFactory factory)
 {
-    private readonly IDeliveryClientFactory _factory;
-
-    public ContentService(IDeliveryClientFactory factory)
+    public async Task<Homepage?> GetHomepageAsync(string brand, CancellationToken cancellationToken = default)
     {
-        _factory = factory;
-    }
+        var result = await factory.Get(brand).GetItem<Homepage>("homepage").ExecuteAsync(cancellationToken);
 
-    public async Task<IContentItem> GetBrandAHomepageAsync()
-    {
-        var client = _factory.Get("brand-a");
-        var result = await client.GetItem("homepage").ExecuteAsync();
-        return result.Value;
-    }
-
-    public async Task<IContentItem> GetBrandBHomepageAsync()
-    {
-        var client = _factory.Get("brand-b");
-        var result = await client.GetItem("homepage").ExecuteAsync();
-        return result.Value;
+        // Value is only meaningful on success - see the README's Error Handling section.
+        return result.IsSuccess ? result.Value.Elements : null;
     }
 }
 ```
@@ -191,78 +145,8 @@ var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
 var client = factory.Get("brand-a");
 ```
 
-### Factory with Fallback
-
-Use `TryGet` to avoid exception-driven control flow:
-
-```csharp
-public class SafeClientFactory
-{
-    private readonly IDeliveryClientFactory _factory;
-    private readonly ILogger<SafeClientFactory> _logger;
-
-    public IDeliveryClient GetClient(string name, string fallbackName = "default")
-    {
-        var client = _factory.TryGet(name);
-        if (client is null)
-        {
-            _logger.LogWarning("Client {Name} not found, using fallback {Fallback}", name, fallbackName);
-            client = _factory.Get(fallbackName);
-        }
-        return client;
-    }
-}
-```
-
-### Typed Factory
-
-Create a strongly-typed factory for specific clients:
-
-```csharp
-public interface IBrandClientFactory
-{
-    IDeliveryClient Nike { get; }
-    IDeliveryClient Adidas { get; }
-    IDeliveryClient Puma { get; }
-}
-
-public class BrandClientFactory : IBrandClientFactory
-{
-    private readonly IDeliveryClientFactory _factory;
-
-    public BrandClientFactory(IDeliveryClientFactory factory)
-    {
-        _factory = factory;
-    }
-
-    public IDeliveryClient Nike => _factory.Get("nike");
-    public IDeliveryClient Adidas => _factory.Get("adidas");
-    public IDeliveryClient Puma => _factory.Get("puma");
-}
-
-// Registration
-services.AddSingleton<IBrandClientFactory, BrandClientFactory>();
-
-// Usage
-public class ProductController
-{
-    private readonly IBrandClientFactory _brands;
-
-    public ProductController(IBrandClientFactory brands)
-    {
-        _brands = brands;
-    }
-
-    public async Task<IActionResult> GetNikeProducts()
-    {
-        var result = await _brands.Nike
-            .GetItems<Product>()
-            .ExecuteAsync();
-
-        return Ok(result.Value);
-    }
-}
-```
+> [!NOTE]
+> `Get(name)` throws when the name was never registered. Catch it at the boundary where the name comes from user input or a tenant lookup, rather than wrapping the factory.
 
 ## Multi-Tenant Architectures
 
@@ -365,176 +249,6 @@ public class ContentController : ControllerBase
         var result = await client.GetItem(codename).ExecuteAsync();
 
         return result.IsSuccess ? Ok(result.Value) : NotFound();
-    }
-}
-```
-
-### Tenant-Specific Configuration
-
-Different configurations per tenant:
-
-```csharp
-public class TenantConfig
-{
-    public string Name { get; set; }
-    public string EnvironmentId { get; set; }
-    public bool UsePreview { get; set; }
-    public string? PreviewApiKey { get; set; }
-    public TimeSpan CacheExpiration { get; set; }
-    public bool EnableResilience { get; set; }
-}
-
-public static class TenantRegistration
-{
-    public static void RegisterTenants(
-        IServiceCollection services,
-        IConfiguration configuration)
-    {
-        var tenants = configuration
-            .GetSection("Tenants")
-            .Get<List<TenantConfig>>();
-
-        foreach (var tenant in tenants)
-        {
-            services.AddDeliveryClient(tenant.Name, delivery =>
-            {
-                delivery.Options.Configure(options =>
-                {
-                    options.EnvironmentId = tenant.EnvironmentId;
-                    options.UsePreviewApi = tenant.UsePreview;
-                    options.PreviewApiKey = tenant.PreviewApiKey;
-                    options.EnableResilience = tenant.EnableResilience;
-                });
-
-                if (tenant.CacheExpiration > TimeSpan.Zero)
-                {
-                    delivery.UseMemoryCache(o => o.DefaultExpiration = tenant.CacheExpiration);
-                }
-            });
-        }
-    }
-}
-```
-
-If a tenant's settings map onto `DeliveryOptions` directly, you can skip the intermediate POCO and bind
-each section to a named client:
-
-```csharp
-foreach (var tenant in configuration.GetSection("Tenants").GetChildren())
-{
-    services.AddDeliveryClient(tenant.Key, delivery => delivery.Options.Bind(tenant));
-}
-```
-
-Binding this way keeps the change-token wiring, so `IOptionsMonitor<DeliveryOptions>` reflects edits to
-the source per tenant. Use the delegate form above when a tenant carries settings the SDK does not own
-— `CacheExpiration` in this example — since those need reading separately anyway.
-
-## Multi-Brand Scenarios
-
-### Brand-Specific Services
-
-```csharp
-public interface IBrandContentService
-{
-    Task<HomePage> GetHomePageAsync();
-    Task<IEnumerable<Product>> GetFeaturedProductsAsync();
-}
-
-public class NikeBrandService : IBrandContentService
-{
-    private readonly IDeliveryClient _client;
-
-    public NikeBrandService([FromKeyedServices("nike")] IDeliveryClient client)
-    {
-        _client = client;
-    }
-
-    public async Task<HomePage> GetHomePageAsync()
-    {
-        var result = await _client.GetItem<HomePage>("homepage").ExecuteAsync();
-        return result.Value;
-    }
-
-    public async Task<IEnumerable<Product>> GetFeaturedProductsAsync()
-    {
-        var result = await _client.GetItems<Product>()
-            .Where(f => f.Element("tags").ContainsAny("featured"))
-            .Limit(10)
-            .ExecuteAsync();
-        return result.Value;
-    }
-}
-
-// Register brand services
-services.AddScoped<NikeBrandService>();
-services.AddScoped<AdidasBrandService>();
-```
-
-### Brand Router
-
-Route to appropriate brand based on URL:
-
-```csharp
-public class BrandRouter
-{
-    private readonly IDeliveryClientFactory _factory;
-    private readonly Dictionary<string, string> _hostToBrand;
-
-    public BrandRouter(IDeliveryClientFactory factory, IConfiguration config)
-    {
-        _factory = factory;
-        _hostToBrand = config
-            .GetSection("BrandHosts")
-            .Get<Dictionary<string, string>>();
-    }
-
-    public IDeliveryClient GetClientForHost(string host)
-    {
-        if (_hostToBrand.TryGetValue(host, out var brandName))
-        {
-            return _factory.Get(brandName);
-        }
-
-        throw new InvalidOperationException($"No brand configured for host: {host}");
-    }
-}
-
-// appsettings.json
-{
-  "BrandHosts": {
-    "nike.com": "nike",
-    "adidas.com": "adidas",
-    "puma.com": "puma"
-  }
-}
-```
-
-### Aggregated Brand Content
-
-Combine content from multiple brands:
-
-```csharp
-public class AggregatedContentService
-{
-    private readonly IDeliveryClientFactory _factory;
-    private readonly string[] _brandNames = { "nike", "adidas", "puma" };
-
-    public async Task<IEnumerable<Product>> GetAllFeaturedProductsAsync()
-    {
-        var tasks = _brandNames.Select(async brandName =>
-        {
-            var client = _factory.Get(brandName);
-            var result = await client.GetItems<Product>()
-                .Where(f => f.Element("tags").ContainsAny("featured"))
-                .Limit(5)
-                .ExecuteAsync();
-
-            return result.IsSuccess ? result.Value : Enumerable.Empty<Product>();
-        });
-
-        var results = await Task.WhenAll(tasks);
-        return results.SelectMany(x => x);
     }
 }
 ```
@@ -678,148 +392,10 @@ public static class DeliveryClientRegistration
 
 ## Best Practices
 
-### 1. Use Descriptive Client Names
-
-```csharp
-// Good: Clear, descriptive names
-services.AddDeliveryClient("corporate-website", ...);
-services.AddDeliveryClient("e-commerce-platform", ...);
-services.AddDeliveryClient("customer-portal-preview", ...);
-
-// Bad: Cryptic names
-services.AddDeliveryClient("c1", ...);
-services.AddDeliveryClient("env2", ...);
-```
-
-### 2. Centralize Client Configuration
-
-```csharp
-public static class DeliveryClientsConfiguration
-{
-    public static void ConfigureClients(IServiceCollection services, IConfiguration config)
-    {
-        var clients = config.GetSection("DeliveryClients").Get<DeliveryClientConfig[]>();
-
-        foreach (var client in clients)
-        {
-            services.AddDeliveryClient(client.Name, delivery => delivery.Options.Configure(options =>
-            {
-                options.EnvironmentId = client.EnvironmentId;
-                // ... other configuration
-            }));
-        }
-    }
-}
-```
-
-### 3. Document Client Purpose
-
-```csharp
-/// <summary>
-/// Delivery clients configuration:
-/// - "production": Main production content
-/// - "preview": Preview API for editors
-/// - "fallback": Fallback environment for testing
-/// </summary>
-public static void RegisterDeliveryClients(IServiceCollection services)
-{
-    // ...
-}
-```
-
-### 4. Handle Missing Clients Gracefully
-
-Use `TryGet` instead of catching `InvalidOperationException`:
-
-```csharp
-public IDeliveryClient GetClientSafely(string name)
-{
-    var client = _factory.TryGet(name);
-    if (client is null)
-    {
-        _logger.LogError("Client {Name} not found, falling back to default", name);
-        return _factory.Get("default");
-    }
-    return client;
-}
-```
-
-### 5. Monitor Per-Client Metrics
-
-```csharp
-public class MonitoredClientFactory : IDeliveryClientFactory
-{
-    private readonly IDeliveryClientFactory _inner;
-    private readonly IMetrics _metrics;
-
-    public IDeliveryClient Get(string name)
-    {
-        _metrics.IncrementClientAccess(name);
-        return _inner.Get(name);
-    }
-}
-```
-
-## Real-World Examples
-
-### Multi-Region E-Commerce
-
-```csharp
-public class RegionalContentService
-{
-    private readonly IDeliveryClientFactory _factory;
-    private readonly Dictionary<string, string> _regionToClient = new()
-    {
-        ["us"] = "us-commerce",
-        ["eu"] = "eu-commerce",
-        ["apac"] = "apac-commerce"
-    };
-
-    public async Task<IEnumerable<Product>> GetRegionalProductsAsync(string region)
-    {
-        var clientName = _regionToClient.GetValueOrDefault(region, "us-commerce");
-        var client = _factory.Get(clientName);
-
-        var result = await client.GetItems<Product>()
-            .Where(f => f.System("type").IsEqualTo("product"))
-            .Where(f => f.Element("stock").IsGreaterThan(0.0))
-            .ExecuteAsync();
-
-        return result.Value;
-    }
-}
-```
-
-### White-Label SaaS Platform
-
-```csharp
-public class WhiteLabelContentService
-{
-    private readonly IDeliveryClientFactory _factory;
-
-    public async Task<SiteConfiguration> GetClientConfigurationAsync(Guid clientId)
-    {
-        var clientName = $"client-{clientId}";
-        var client = _factory.Get(clientName);
-
-        var result = await client.GetItem<SiteConfiguration>("site_config")
-            .ExecuteAsync();
-
-        return result.Value;
-    }
-
-    public async Task<IEnumerable<Page>> GetClientPagesAsync(Guid clientId)
-    {
-        var clientName = $"client-{clientId}";
-        var client = _factory.Get(clientName);
-
-        var result = await client.GetItems<Page>()
-            .ExecuteAsync();
-
-        return result.Value;
-    }
-}
-```
+- **Name clients for what they are** - `production`, `preview`, a tenant id. The name is the lookup key and appears in the cache key prefix.
+- **Register every client in one place**, so the set is readable at a glance and configuration binding stays uniform.
+- **Give each client its own cache**, or none. A cache attaches per client; clients registered without one stay uncached.
+- **Isolate cache identity per environment.** Two clients reading different environments must not share a cache namespace - see [Cache Key Prefixing](caching-guide.md#cache-key-prefixing).
 
 ## Troubleshooting
 
