@@ -78,7 +78,15 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 - A bullet opens with a **bold lead of at most a dozen words** that names the change, and nothing else on that line. Rationale, consumer impact and migration go in a paragraph of their own inside the bullet, after a blank line; code blocks stay where they are. Read the bold lines alone and the release should still make sense.
 - Headings come from one set, in this order when present: `Breaking changes`, `Security`, `Added`, `Changed`, `Fixed`, `Dependencies`, `Internal`. Nothing else — a stray heading reaches the release page as is.
-- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. Promoting a prerelease to a stable major also needs an overview above the `###` sections — see [`README.md`](./README.md#releasing).
+- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. `release-notes.cs` rewrites `blob/main/` to `blob/<tag>/` when it renders, so a published page keeps pointing at the docs that shipped with it.
+- **A new stable major opens with an overview** — free-form prose between the `## <version>` heading and the first `###`, with no heading of its own. Everything below it describes the delta since the last prerelease, which is not what someone upgrading from the previous stable major needs. Four parts, in this order:
+
+  1. What this is — the line, and the target framework.
+  2. *Coming from `<previous stable major>`* — the changes a consumer has to act on, as prose rather than an inventory, with behavioural changes separated from compile-time ones.
+  3. *Full migration* — a link to the upgrade guide, plus the chained one if a major can be skipped.
+  4. Where the detail lives — that the sections below cover the delta since the last prerelease, and the prerelease entries below them keep the rest.
+
+  Do not roll the prerelease entries up into it. They stay where they are, and the upgrade guide is already the curated version of that history.
 - A breaking entry's paragraph keeps one order: what changed, what a consumer sees, what to do about it.
 
 ## Commits and PRs

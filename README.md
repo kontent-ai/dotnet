@@ -80,15 +80,36 @@ single PR covering the batch. The same bump can be done locally if you prefer:
 dotnet run eng/scripts/update-version.cs -- <product> <prerelease|release|patch|minor|major>
 ```
 
-> [!IMPORTANT]
-> **Before promoting a prerelease to a stable major, write the overview first.** A release page renders
-> only its own changelog section, so a GA promoted straight from `## Unreleased` describes what changed
-> since the last release candidate — which is often nothing, and is never what someone upgrading from
-> the previous stable major needs. Put a short overview at the top of `## Unreleased`, above the
-> `###` sections: the target framework, the main consumer-facing changes since the previous stable
-> line, and a link to the upgrade guide. The `rc` entries below it keep the detailed history.
->
-> An empty `## Unreleased` is only a warning at this step, but *Publish* refuses to render notes for it.
+### Releasing a new stable major
+
+A release page renders only its own changelog section, so a major promoted straight from
+`## Unreleased` describes the delta since the last release candidate — often nothing, and never what
+someone upgrading from the previous stable major needs. Such a release needs an **overview**, and the
+*Prepare release* PR is where to write it, because by then the version heading exists.
+
+In that PR, open the product's `CHANGELOG.md` and add prose between the new version heading and the
+first `###`:
+
+```diff
+ ## 20.0.0 (2026-09-17)
++
++The first stable release of the **20.x** line. Targets `net10.0`.
++
++Coming from **19.x**, the compile-time work is registration and caching: …
++
++Full migration: [19 → 20](…/src/delivery/docs/upgrade/19-to-20.md).
+
+ ### Breaking changes
+```
+
+Check how it will read by rendering the page from the release branch:
+
+```sh
+dotnet run eng/scripts/release-notes.cs -- delivery-v20.0.0
+```
+
+`CLAUDE.md` has the four parts an overview covers. *Publish* refuses a new stable major that has none,
+and refuses an empty entry outright — both on the dry run, before anything is pushed.
 
 After merging that PR, **Actions → Publish** packs and pushes every product whose declared
 version is not yet on NuGet, and records each one as a

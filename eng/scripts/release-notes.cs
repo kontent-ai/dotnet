@@ -46,6 +46,16 @@ var body = section.Groups["body"].Value.Trim();
 if (body.Length == 0)
     return Fail($"the '## {version}' entry in {changelogRel} is empty");
 
+// A new stable major is the one release whose page is read by people who never saw a prerelease,
+// and the sections below the heading only describe the delta since the last one - often nothing.
+// The overview is the prose above the first "###"; requiring it here is the only check that the
+// entry was written for that audience. Patches, minors and prereleases are exempt.
+if (Regex.IsMatch(version, @"^\d+\.0\.0$") && body.StartsWith("###", StringComparison.Ordinal))
+    return Fail(
+        $"the '## {version}' entry in {changelogRel} is a new stable major with no overview. " +
+        "Add prose above the first '###' saying what the release is, what a consumer upgrading from " +
+        "the previous stable major has to do, and where the upgrade guide is. See CLAUDE.md.");
+
 // Promote the entry's own headings one level: "### Fixes" reads better as "## Fixes" on a
 // release page. Fenced code blocks are skipped so shell comments are not rewritten.
 var output = new StringBuilder();
