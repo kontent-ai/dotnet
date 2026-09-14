@@ -396,38 +396,23 @@ work.
 
 ## Source Tracking (for Tool Authors)
 
-Every request the SDK sends carries two tracking headers:
+Every request the SDK sends carries two analytics headers:
 
-- **`X-KC-SDKID`** — identifies this SDK. Always set to `nuget.org;Kontent.Ai.Sync;<version>`. You can't configure it.
-- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Only set when a caller assembly opts in via `SyncSourceTrackingHeaderAttribute`. Omitted otherwise.
+- **`X-KC-SDKID`** — identifies this SDK. Always `nuget.org;Kontent.Ai.Sync;<version>`. Not configurable.
+- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Set only when a caller assembly opts in. Omitted otherwise.
 
-**End-user applications don't need to do anything.** This section only matters if you're publishing a library that wraps the Sync SDK.
-
-If you are, add one of the following at assembly level (typically in `AssemblyInfo.cs` or a top-level `using` file). At request time the SDK walks the call stack, locates your assembly, reads the attribute, and composes the header value.
-
-**1. Read name and version from the assembly (most common):**
+**End-user applications need do nothing here.** This matters only if you publish a library that wraps the Sync SDK. If you do, add one of these at assembly level (`AssemblyInfo.cs`, or a top-level file); at request time the SDK walks the call stack, finds your assembly and reads the attribute:
 
 ```csharp
-[assembly: SyncSourceTrackingHeaderAttribute]
+// Name and version from the assembly — the usual case.
+[assembly: SyncSourceTrackingHeader]
+
+// Override the name (your package id differs from your assembly name), version still from the assembly.
+[assembly: SyncSourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool")]
+
+// Pin both, independent of assembly metadata.
+[assembly: SyncSourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
 ```
-
-Header becomes `<AssemblyName>;<AssemblyInformationalVersion>`.
-
-**2. Override the name, keep version from the assembly:**
-
-```csharp
-[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool")]
-```
-
-Useful when your NuGet package ID differs from your assembly name.
-
-**3. Hard-code everything:**
-
-```csharp
-[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
-```
-
-Useful when you want to pin the reported version independent of assembly metadata.
 
 ## Upgrade Guide
 

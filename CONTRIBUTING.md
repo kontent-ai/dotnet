@@ -91,7 +91,7 @@ You might also read these two blogs posts on contributing code: [Open Source Con
 ### Example - process of contribution
 If not stated otherwise, we use [feature branch workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow). 
 
-To start with coding, fork the repository you want to contribute to, create a new branch, and start coding. Once the functionality is [done](#Definition-of-Done), you can submit a [pull request](https://help.github.com/articles/about-pull-requests/). 
+To start with coding, fork the repository you want to contribute to, create a new branch, and start coding. Once the functionality is [done](#definition-of-done), you can submit a [pull request](https://help.github.com/articles/about-pull-requests/). 
 
 ### Definition of Done
 <img align="right" width="100" height="100" src="https://i.imgur.com/g82Ohdv.png">

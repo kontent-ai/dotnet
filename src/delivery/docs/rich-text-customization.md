@@ -13,7 +13,7 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
   - [URL Pattern Resolver](#url-pattern-resolver)
   - [Tuple-Based Link Resolvers](#tuple-based-link-resolvers)
 - [Embedded Content Resolvers](#embedded-content-resolvers)
-  - [Type-Specific Content Resolvers](#type-specific-content-resolvers)
+  - [Type-Safe Content Resolvers](#type-safe-content-resolvers-recommended)
   - [Async Content Resolvers](#async-content-resolvers)
   - [Nested Content Resolution](#nested-content-resolution)
   - [Tuple-Based Content Resolvers](#tuple-based-content-resolvers)

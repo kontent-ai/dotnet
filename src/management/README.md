@@ -939,6 +939,28 @@ await client.CreateLanguageAsync(new LanguageCreateModel
 > var projects = await client.ListSubscriptionProjectsAsync();
 > ```
 
+## Source Tracking (for Tool Authors)
+
+Every request the SDK sends carries two analytics headers:
+
+- **`X-KC-SDKID`** — identifies this SDK. Always `nuget.org;Kontent.Ai.Management;<version>`. Not configurable.
+- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Set only when a caller assembly opts in. Omitted otherwise.
+
+**End-user applications need do nothing here.** This matters only if you publish a library that wraps the Management SDK. If you do, add one of these at assembly level (`AssemblyInfo.cs`, or a top-level file); at request time the SDK walks the call stack, finds your assembly and reads the attribute:
+
+```csharp
+using Kontent.Ai.Management.Attributes;
+
+// Name and version from the assembly — the usual case.
+[assembly: SourceTrackingHeader]
+
+// Override the name (your package id differs from your assembly name), version still from the assembly.
+[assembly: SourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool")]
+
+// Pin both, independent of assembly metadata.
+[assembly: SourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
+```
+
 ## Further Information
 
 For migration details, see the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md). For more developer resources, see the [Management API reference](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) and the [.NET development overview](https://kontent.ai/learn/develop/develop-with-kontent-ai/net) on Kontent.ai Learn.

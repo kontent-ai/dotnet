@@ -6,10 +6,10 @@
 This utility generates strongly-typed **record-based models** for:
 
 - the [Kontent.ai Delivery SDK for .NET (v19+)](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) — default mode, for reading content
-- the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows. Beta — targets `Kontent.Ai.Management 9.0.0-beta-1`.
+- the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows.
 
 > [!IMPORTANT]
-> Management mode emits code that references the `IElementsModel` marker, the `[KontentType]` / `[KontentElement]` / `[KontentEnumValue]` attributes, and the value types (`RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue`, `CustomValue`) shipped by `Kontent.Ai.Management 9.0.0-beta-1`. Generated management models require **`Kontent.Ai.Management 9.0.0-beta-1` or newer** — they won't compile against v8.2.0 or earlier. The mode is a beta: the generated shapes may still change before the SDK stabilizes.
+> Generated models are compiled against the SDK that ships alongside this generator: **`Kontent.Ai.Delivery` 19.0 or newer** for Delivery mode, **`Kontent.Ai.Management` 9.0 or newer** for Management mode. Older SDKs do not carry the types the emitted code references.
 >
 > If you need models for the legacy Delivery SDK (v18.x and earlier) or for Extended Delivery, use the [previous stable release](https://github.com/kontent-ai/model-generator-net/tree/9.0.0).
 
@@ -48,7 +48,7 @@ KontentModelGenerator --environmentId "<environmentId>" \
     [--nullability strict|semantic]
 ```
 
-Management (beta — see [Management Models](#management-models)):
+Management (see [Management Models](#management-models)):
 
 ```bash
 KontentModelGenerator --management \
@@ -75,19 +75,17 @@ dotnet tool run KontentModelGenerator --environmentId "<environmentId>" \
 
 ### Standalone apps for Windows, Linux, macOS
 
-[Self-contained apps](https://docs.microsoft.com/en-us/dotnet/core/deploying/#publish-self-contained) are an ideal choice for machines without any version of .NET installed.
+Releases ship as NuGet packages only. For a machine without .NET installed, build a
+[self-contained app](https://docs.microsoft.com/en-us/dotnet/core/deploying/#publish-self-contained)
+yourself:
 
-Latest release: [Download](https://github.com/kontent-ai/dotnet/releases)
+```bash
+git clone https://github.com/kontent-ai/dotnet.git
+cd dotnet/src/model-generator/Kontent.Ai.ModelGenerator
+dotnet publish -c release -r <RID>
+```
 
-<details>
-<summary>Building a self-contained binary for a specific platform</summary>
-
-* Clone the repository
-* Navigate to `Kontent.Ai.ModelGenerator`
-* `dotnet build -r <RID>` to build (see the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog))
-* `dotnet publish -c release -r <RID>` to publish
-
-</details>
+See the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog) for `<RID>`.
 
 ### Parameters
 
@@ -221,7 +219,7 @@ public string? CustomTrackingCode { get; init; }
 > When combined with [projection](https://kontent.ai/learn/docs/apis/openapi/delivery-api/#tag/Items-and-content-types/operation/list-content-items) (`WithElements` / `WithoutElements`), an omitted element surfaces as the type's default (`""`, `[]`, `RichTextContent.Empty`) rather than `null` — so "not fetched" and "fetched and empty" look the same. That's fine if your code doesn't branch on that distinction; if it does, prefer `strict`.
 
 > [!IMPORTANT]
-> `--nullability semantic` requires Delivery SDK **19.2.0+** (for `RichTextContent.Empty`). It will become the **default in the next major version** of the model generator.
+> `--nullability semantic` requires Delivery SDK **19.2.0+** (for `RichTextContent.Empty`). It is planned to become the **default in a future major version** of the model generator.
 
 ## Customizing Generated Models
 
@@ -266,14 +264,13 @@ The generator creates the base model, and you maintain customizations in separat
 ## Management Models
 
 > [!IMPORTANT]
-> Beta. The emitted code references types and attributes shipped by `Kontent.Ai.Management
-> 9.0.0-beta-1` — `IElementsModel`, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`,
-> `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue`, and
-> `CustomValue`. Generated models require **`Kontent.Ai.Management 9.0.0-beta-1` or newer** and
-> won't compile against v8.2.0 or earlier. A single-option multiple-choice element generates a
-> `{ContentType}{Element}?` property, which the SDK reads and writes from the release that ships
-> alongside this generator version; earlier releases reject the property type when the record is
-> first used. The generated shapes may still change before the SDK stabilizes.
+> The emitted code references types and attributes shipped by `Kontent.Ai.Management` — the
+> `IElementsModel` marker, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`, and the value
+> types `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue` and
+> `CustomValue`. Generated models therefore require **`Kontent.Ai.Management` 9.0 or newer**; they
+> will not compile against 8.x. Keep the generator and the SDK on releases that shipped together —
+> a single-option multiple-choice element generates a `{ContentType}{Element}?` property, and an
+> SDK older than this generator rejects that property type when the record is first used.
 
 When you need to **write** content to Kontent.ai (create / update / delete / publish via the Management API), pass `-m` / `--management` to switch the generator from Delivery mode into Management mode. The emitter produces strongly-typed records you can construct with object-initializer syntax and pass to `IManagementClient`.
 
@@ -392,5 +389,3 @@ We would like to express our thanks to the following people who contributed and 
 ## License
 
 [MIT](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
-
-<!-- Badge references -->

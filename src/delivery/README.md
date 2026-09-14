@@ -1033,7 +1033,7 @@ var result = await client.GetItem<Article>("my-article").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    var article = result.Value;
+    var article = result.Value.Elements;
 
     // Use default resolver
     var html = await article.BodyCopy.ToHtmlAsync();
@@ -1410,35 +1410,37 @@ If you attach more than one cache to the same client, the last one wins.
 
 #### Detecting Cache Hits
 
-The SDK provides the `IsCacheHit` property on all delivery results to indicate when a response was served from the SDK's local cache:
+Every result reports where it came from, on `ResponseSource`:
+
+| `ResponseSource` | Meaning | `IsCacheHit` |
+|---|---|---|
+| `Origin` | The Delivery API answered | `false` |
+| `Cdn` | The Delivery CDN answered from its own cache (Fastly `X-Cache: HIT`) | `false` |
+| `Cache` | The SDK's local cache answered | `true` |
+| `FailSafe` | The SDK served a stale entry because the origin was unreachable | `true` |
 
 ```csharp
 var result = await client.GetItem<Article>("my-article").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    if (result.IsCacheHit)
+    switch (result.ResponseSource)
     {
-        // Response served from SDK cache (Memory or Distributed)
-        // Note: ResponseHeaders, RequestUrl, and other metadata are not available for cache hits
-        Console.WriteLine("Served from SDK cache");
-    }
-    else
-    {
-        // Response from API - headers are available
-        Console.WriteLine($"Request URL: {result.RequestUrl}");
-
-        // Check for CDN cache hit (Fastly)
-        if (result.ResponseHeaders?.TryGetValues("X-Cache", out var cacheValues) == true)
-        {
-            Console.WriteLine($"CDN Cache: {string.Join(", ", cacheValues)}");
-        }
+        case ResponseSource.Cache:
+        case ResponseSource.FailSafe:
+            // Metadata describing a request is null here, because no request was made.
+            Console.WriteLine($"Served from SDK cache (stale: {result.ResponseSource is ResponseSource.FailSafe})");
+            break;
+        default:
+            Console.WriteLine($"{result.ResponseSource} answered {result.RequestUrl}");
+            break;
     }
 }
 ```
 
-> [!NOTE]
-> `IsCacheHit` indicates SDK-level caching only. For CDN-level cache information (Fastly), inspect the `ResponseHeaders` property for headers like `X-Cache`.
+`IsCacheHit` is the coarse view of the same fact — `true` for `Cache` and `FailSafe`, and the property to
+reach for when all you need is "did this cost a request". The SDK reads the CDN's `X-Cache` header for you,
+so there is no need to inspect `ResponseHeaders` yourself to tell `Cdn` from `Origin`.
 
 #### Dependency Keys for Output Caching
 
@@ -1984,23 +1986,8 @@ if (result.IsSuccess)
     // HTTP status code
     Console.WriteLine($"Status: {result.StatusCode}");
 
-    // Check if served from SDK cache
-    if (result.IsCacheHit)
-    {
-        Console.WriteLine("Served from SDK cache");
-    }
-    else
-    {
-        // Response headers available for fresh responses
-        if (result.ResponseHeaders != null)
-        {
-            // Check CDN cache status (Fastly)
-            if (result.ResponseHeaders.TryGetValues("X-Cache", out var cacheValues))
-            {
-                Console.WriteLine($"CDN Cache: {string.Join(", ", cacheValues)}");
-            }
-        }
-    }
+    // Where the response came from - see Detecting Cache Hits
+    Console.WriteLine($"Source: {result.ResponseSource}");
 
     // Check if newer content might be available
     if (result.HasStaleContent)
@@ -2018,11 +2005,32 @@ if (result.IsSuccess)
 | `Value` | The response content (when successful) |
 | `Error` | Error details (when failed) |
 | `StatusCode` | HTTP status code |
-| `RequestUrl` | Full request URL for debugging |
+| `RequestUrl` | Full request URL for debugging (null for cache hits) |
 | `ResponseHeaders` | HTTP response headers (null for cache hits) |
-| `IsCacheHit` | Whether response was served from SDK cache |
+| `ResponseSource` | Which tier answered: `Origin`, `Cdn`, `Cache` or `FailSafe` — see [Detecting Cache Hits](#detecting-cache-hits) |
+| `IsCacheHit` | Whether response was served from SDK cache (`Cache` or `FailSafe`) |
 | `HasStaleContent` | Whether newer content may be available |
 | `DependencyKeys` | Canonical dependency keys for output-cache tagging (null when not collected) |
+
+## Source Tracking (for Tool Authors)
+
+Every request the SDK sends carries two analytics headers:
+
+- **`X-KC-SDKID`** — identifies this SDK. Always `nuget.org;Kontent.Ai.Delivery;<version>`. Not configurable.
+- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Set only when a caller assembly opts in. Omitted otherwise.
+
+**End-user applications need do nothing here.** This matters only if you publish a library that wraps the Delivery SDK. If you do, add one of these at assembly level (`AssemblyInfo.cs`, or a top-level file); at request time the SDK walks the call stack, finds your assembly and reads the attribute:
+
+```csharp
+// Name and version from the assembly — the usual case.
+[assembly: DeliverySourceTrackingHeader]
+
+// Override the name (your package id differs from your assembly name), version still from the assembly.
+[assembly: DeliverySourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool")]
+
+// Pin both, independent of assembly metadata.
+[assembly: DeliverySourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
+```
 
 ## Advanced Documentation
 
