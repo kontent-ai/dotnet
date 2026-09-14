@@ -6,26 +6,49 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
 
 - [Overview](#overview)
 - [Basic Rich Text Resolution](#basic-rich-text-resolution)
+  - [Default Resolution](#default-resolution)
+  - [Custom Resolution](#custom-resolution)
 - [HTML Resolver Builder](#html-resolver-builder)
 - [Content Item Link Resolvers](#content-item-link-resolvers)
   - [Global Link Resolver](#global-link-resolver)
   - [Type-Specific Link Resolvers](#type-specific-link-resolvers)
   - [URL Pattern Resolver](#url-pattern-resolver)
   - [Tuple-Based Link Resolvers](#tuple-based-link-resolvers)
+  - [Advanced Link Resolution](#advanced-link-resolution)
 - [Embedded Content Resolvers](#embedded-content-resolvers)
-  - [Type-Safe Content Resolvers](#type-safe-content-resolvers-recommended)
+  - [Type-Safe Content Resolvers (Recommended)](#type-safe-content-resolvers-recommended)
+  - [Pattern Matching with Embedded Content](#pattern-matching-with-embedded-content)
+  - [Codename-Based Content Resolvers](#codename-based-content-resolvers)
   - [Async Content Resolvers](#async-content-resolvers)
   - [Nested Content Resolution](#nested-content-resolution)
   - [Tuple-Based Content Resolvers](#tuple-based-content-resolvers)
+  - [Complex Component Example](#complex-component-example)
+  - [Dynamic Mode Resolution](#dynamic-mode-resolution)
 - [Failing Fast on a Missing Resolver](#failing-fast-on-a-missing-resolver)
 - [Registering the Resolver with Dependency Injection](#registering-the-resolver-with-dependency-injection)
 - [Rich Text Extension Methods](#rich-text-extension-methods)
+  - [Available Extension Methods](#available-extension-methods)
+  - [Examples](#examples)
 - [Inline Image Resolvers](#inline-image-resolvers)
+  - [Basic Image Resolution](#basic-image-resolution)
+  - [Responsive Images](#responsive-images)
+  - [Images with Captions](#images-with-captions)
 - [Custom HTML Node Resolvers](#custom-html-node-resolvers)
+  - [Element-Based Resolution](#element-based-resolution)
+  - [Attribute-Based Resolution](#attribute-based-resolution)
 - [Resolution Context](#resolution-context)
-- [Real-World Examples](#real-world-examples)
 - [Best Practices](#best-practices)
+  - [1. Use Type-Safe Resolvers](#1-use-type-safe-resolvers)
+  - [2. Performance Optimization](#2-performance-optimization)
+  - [2. Security](#2-security)
+  - [3. Maintainability](#3-maintainability)
+  - [4. Testability](#4-testability)
 - [Troubleshooting](#troubleshooting)
+  - [Content Not Rendering](#content-not-rendering)
+  - [Links Not Working](#links-not-working)
+  - [Deeply Nested HTML (Max Parsing Depth)](#deeply-nested-html-max-parsing-depth)
+  - [Async Deadlocks](#async-deadlocks)
+  - [Performance Issues](#performance-issues)
 
 ## Overview
 
@@ -54,11 +77,27 @@ if (result.IsSuccess)
 }
 ```
 
-The default resolver renders:
-- Content item links as plain text
-- Embedded content as empty strings
-- Inline images as standard `<img>` tags
-- HTML elements as-is
+With no resolver registered, the defaults are:
+
+| Block | Default |
+|---|---|
+| Text | HTML-encoded |
+| HTML elements | passed through as authored |
+| Inline images | an `<img>` with the asset URL, encoded |
+| Content item links | a diagnostic HTML comment naming the content type and item id |
+| Embedded content | a diagnostic HTML comment naming the type and codename |
+
+A link and an embedded component have no sensible default — only your application knows the URL or the
+markup — so they report themselves rather than disappearing. `ThrowOnMissingResolver()` turns those
+comments into exceptions.
+
+> [!IMPORTANT]
+> **A resolver's return value is inserted as HTML, unescaped.** Three different rules apply to what you interpolate into it:
+> - **Element values are text** — encode them (`HtmlEncoder.Default.Encode`), in element content and in attributes alike. An ampersand or a quote in ordinary copy breaks the markup even when nothing malicious is involved.
+> - **URLs are attribute values** — encode them too.
+> - **`resolveChildren(...)` output is already-rendered HTML** — do *not* encode it, or the children come out double-escaped.
+>
+> The SDK encodes what it renders itself (text nodes, default image URLs). Anything your resolver builds is yours to encode.
 
 ### Custom Resolution
 
@@ -339,7 +378,7 @@ var allQuoteTexts = article.Elements.BodyCopy
     .ToList();
 ```
 
-### Codename-Based Content Resolvers (Legacy)
+### Codename-Based Content Resolvers
 
 For scenarios where you don't have strongly-typed models, you can still use codename-based resolvers:
 
@@ -493,7 +532,7 @@ foreach (var modelType in modelTypesFoundAtRuntime)
 var resolver = builder.Build();
 ```
 
-**Codename-Based Tuple Resolvers (Legacy):**
+**Codename-keyed tuples:**
 
 ```csharp
 // Value(...) is the helper from Codename-Based Content Resolvers above.
@@ -555,94 +594,41 @@ var resolver = new HtmlResolverBuilder()
 
 ### Dynamic Mode Resolution
 
-When working with dynamic content (without strongly-typed models), you can still use rich text resolution. Use the `ParseRichTextAsync` extension method to convert a `JsonElement` to `IRichTextContent`:
+A fully dynamic item gives you elements as raw `JsonElement`, so a rich text element is not parsed for
+you. `ParseRichTextAsync` does it, and its second parameter is what resolves embedded content — pass the
+response's `ModularContent` or the blocks come back with the text but none of the components.
 
 ```csharp
 using System.Text.Json;
 using Kontent.Ai.Delivery;
 using Kontent.Ai.Delivery.Abstractions;
 
-// Fetch dynamic content
-var result = await client.GetItem("my-article").ExecuteAsync();
+var result = await client.GetItems().ExecuteAsync(cancellationToken);
+if (!result.IsSuccess) return;
 
-if (result.IsSuccess && result.Value is IContentItem<IDynamicElements> dynamicItem)
+foreach (var item in result.Value.Items.Cast<IContentItem<IDynamicElements>>())
 {
-    var elements = dynamicItem.Elements;
+    if (!item.Elements.TryGetValue("body_copy", out var bodyCopy)) continue;
 
-    if (elements.TryGetValue("body_copy", out var richTextElement))
-    {
-        // Parse the rich text element, passing modular_content for embedded items
-        var richText = await richTextElement.ParseRichTextAsync(result.ModularContent);
-
-        if (richText != null)
-        {
-            // Create resolvers using codename-based registration
-            var resolver = new HtmlResolverBuilder()
-                .WithContentResolver("tweet", content =>
-                {
-                    // Cast to generic interface to access dynamic elements
-                    var dynamicContent = (IEmbeddedContent<IDynamicElements>)content;
-                    var elements = dynamicContent.Elements;
-
-                    // Extract element values from JsonElement dictionary
-                    var tweetUrl = elements.TryGetValue("tweet_link", out var linkEl)
-                        ? linkEl.GetProperty("value").GetString()
-                        : "#";
-
-                    var theme = "light";
-                    if (elements.TryGetValue("theme", out var themeEl) &&
-                        themeEl.TryGetProperty("value", out var themeValues) &&
-                        themeValues.GetArrayLength() > 0)
-                    {
-                        theme = themeValues[0].GetProperty("codename").GetString() ?? "light";
-                    }
-
-                    return $@"<blockquote class=""twitter-tweet"" data-theme=""{theme}"">
-                        <a href=""{tweetUrl}"">View Tweet</a>
-                    </blockquote>";
-                })
-                .WithContentResolver("hosted_video", content =>
-                {
-                    var dynamicContent = (IEmbeddedContent<IDynamicElements>)content;
-                    var elements = dynamicContent.Elements;
-
-                    var videoId = elements.TryGetValue("video_id", out var idEl)
-                        ? idEl.GetProperty("value").GetString()
-                        : "";
-
-                    return $@"<iframe src=""https://www.youtube.com/embed/{videoId}"" allowfullscreen></iframe>";
-                })
-                .Build();
-
-            var html = await richText.ToHtmlAsync(resolver);
-        }
-    }
+    var richText = await bodyCopy.ParseRichTextAsync(result.Value.ModularContent, cancellationToken);
+    var html = await richText!.ToHtmlAsync(resolver);
 }
 ```
 
-**Key Points for Dynamic Mode:**
+> [!WARNING]
+> **`ModularContent` is exposed on listing and feed responses only.** A single-item `GetItem(...)` result does not carry it, so a rich text element read that way can be parsed but its embedded components cannot be resolved — `ParseRichTextAsync(element, null)` returns the text blocks and drops every component. Read through `GetItems()` when you need dynamic rich text with components, or generate a model for the type and let the SDK do it.
 
-1. **Use `ParseRichTextAsync`**: This extension method on `JsonElement` parses the rich text structure and resolves embedded content from the `modular_content` dictionary.
-
-2. **Pass `ModularContent`**: The second parameter accepts the `ModularContent` dictionary from the delivery response, enabling embedded item resolution.
-
-3. **Use codename-based resolvers**: Type-safe resolvers (`WithContentResolver<T>`) won't work because embedded items are deserialized as `ContentItem<IDynamicElements>`. Use codename-based resolvers instead.
-
-4. **Cast to `IEmbeddedContent<IDynamicElements>`**: Inside resolvers, cast to access the `Elements` dictionary as `IDictionary<string, JsonElement>`.
-
-5. **Access `System` metadata**: All embedded content has `System` metadata available (codename, type, id, name, collection, etc.):
+Embedded items in a dynamic response are `IEmbeddedContent<IDynamicElements>`, so register resolvers by
+**codename** — `WithContentResolver<T>` never matches — and read values as shown in
+[Codename-Based Content Resolvers](#codename-based-content-resolvers). `System` metadata is available on
+every embedded item whatever its type:
 
 ```csharp
-.WithContentResolver("any_type", content =>
-{
-    // System metadata is always available
-    var itemId = content.System.Id;
-    var codename = content.System.Codename;
-    var contentType = content.System.Type;
-    var collection = content.System.Collection;
-
-    return $@"<div data-id=""{itemId}"" data-type=""{contentType}"">{content.System.Name}</div>";
-})
+.WithContentResolver("any_type", content => $"""
+    <div data-id="{content.System.Id}" data-type="{HtmlEncoder.Default.Encode(content.System.Type)}">
+        {HtmlEncoder.Default.Encode(content.System.Name)}
+    </div>
+    """)
 ```
 
 ## Failing Fast on a Missing Resolver
@@ -861,30 +847,36 @@ public interface IInlineImage
 
 ### Responsive Images
 
-Generate responsive image markup:
+`ImageUrlBuilder` composes the query correctly — appending `?w=` by hand corrupts a URL that already
+carries a rendition or transformation:
 
 ```csharp
+using System.Text.Encodings.Web;
+using Kontent.Ai.Urls.ImageTransformation;
+
 var resolver = new HtmlResolverBuilder()
     .WithInlineImageResolver((image, _) =>
     {
-        var baseUrl = image.Url;
-        var alt = image.Description ?? "";
+        string At(int width) => HtmlEncoder.Default.Encode(new ImageUrlBuilder(image.Url).WithWidth(width).Url.ToString());
 
-        // Generate srcset for different sizes
-        var srcset = $@"
-            {baseUrl}?w=320 320w,
-            {baseUrl}?w=640 640w,
-            {baseUrl}?w=1024 1024w";
+        // Never advertise a width the source cannot supply - the CDN does not upscale, and a srcset
+        // descriptor has to be the candidate's real width.
+        var widths = new[] { 320, 640, 1024 }.Where(w => w <= image.Width);
+        var srcset = string.Join(", ", widths.Select(w => $"{At(w)} {w}w"));
 
-        return ValueTask.FromResult($@"
-            <img src=""{baseUrl}?w=640""
-                 srcset=""{srcset}""
-                 sizes=""(max-width: 640px) 100vw, 640px""
-                 alt=""{alt}""
-                 loading=""lazy"" />");
+        return ValueTask.FromResult($"""
+            <img src="{At(640)}"
+                 srcset="{srcset}"
+                 sizes="(max-width: 640px) 100vw, 640px"
+                 alt="{HtmlEncoder.Default.Encode(image.Description ?? "")}"
+                 loading="lazy" />
+            """);
     })
     .Build();
 ```
+
+> [!TIP]
+> In Razor, [`Kontent.Ai.AspNetCore`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore)'s `<img-asset>` tag helper does all of this — width capping, rendition awareness and `srcset` generation — from configuration.
 
 ### Images with Captions
 
@@ -983,200 +975,6 @@ var resolver = new HtmlResolverBuilder()
 > [!NOTE]
 > `IHtmlNode` exposes only `TagName`, `Attributes`, and `Children` — there is no `PreviousSibling` / `NextSibling` / parent navigation. If you need positional context (e.g., "first paragraph in section"), apply CSS selectors like `:first-child` instead.
 
-## Real-World Examples
-
-### Blog Platform
-
-```csharp
-public IHtmlResolver CreateBlogResolver(string baseUrl)
-{
-    return new HtmlResolverBuilder()
-        // Article links
-        .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
-        {
-            var slug = link.Metadata?.UrlSlug ?? link.ItemId.ToString();
-            var inner = await resolveChildren(link.Children);
-            return $"<a href=\"{baseUrl}/articles/{slug}\">{inner}</a>";
-        })
-        // Author links
-        .WithContentItemLinkResolver("author", async (link, resolveChildren) =>
-        {
-            var slug = link.Metadata?.UrlSlug ?? link.ItemId.ToString();
-            var inner = await resolveChildren(link.Children);
-            return $"<a href=\"{baseUrl}/authors/{slug}\">{inner}</a>";
-        })
-        // Type-safe tweet embeds
-        .WithContentResolver<Tweet>(tweet =>
-        {
-            var tweetUrl = tweet.Elements.Url;
-            return $@"
-                <div class=""twitter-embed"">
-                    <blockquote class=""twitter-tweet"">
-                        <a href=""{tweetUrl}"">View Tweet</a>
-                    </blockquote>
-                    <script async src=""https://platform.twitter.com/widgets.js""></script>
-                </div>";
-        })
-        // Type-safe code snippets
-        .WithContentResolver<CodeSnippet>(snippet =>
-        {
-            var code = snippet.Elements.Code;
-            var language = snippet.Elements.Language ?? "plaintext";
-            var caption = snippet.Elements.Caption;
-
-            return $@"
-                <figure class=""code-sample"">
-                    <pre><code class=""language-{language}"">{System.Web.HttpUtility.HtmlEncode(code)}</code></pre>
-                    {(caption != null ? $"<figcaption>{caption}</figcaption>" : "")}
-                </figure>";
-        })
-        // Responsive images
-        .WithInlineImageResolver((image, _) =>
-        {
-            var srcset = $"{image.Url}?w=320 320w, {image.Url}?w=640 640w, {image.Url}?w=1024 1024w";
-            return ValueTask.FromResult($@"
-                <img src=""{image.Url}?w=640""
-                     srcset=""{srcset}""
-                     sizes=""(max-width: 640px) 100vw, 640px""
-                     alt=""{image.Description ?? ""}""
-                     loading=""lazy"" />");
-        })
-        .Build();
-}
-```
-
-### E-Commerce Platform
-
-```csharp
-public class ProductContentResolver
-{
-    private readonly IProductService _productService;
-
-    public ProductContentResolver(IProductService productService)
-    {
-        _productService = productService;
-    }
-
-    public IHtmlResolver CreateResolver()
-    {
-        return new HtmlResolverBuilder()
-            // Product links with real-time pricing
-            .WithContentItemLinkResolver("product", async (link, resolveChildren) =>
-            {
-                var productId = link.ItemId;
-                var product = await _productService.GetProductAsync(productId);
-                var inner = await resolveChildren(link.Children);
-
-                return $@"
-                    <a href=""/products/{product.Slug}"" class=""product-link"">
-                        {inner}
-                        <span class=""price"">${product.CurrentPrice:F2}</span>
-                    </a>";
-            })
-            // Type-safe product showcase component
-            .WithContentResolver<ProductShowcase>(async showcase =>
-            {
-                var productRef = showcase.Elements.Product;
-                if (productRef == null) return "";
-
-                var productId = Guid.Parse(productRef.System.Id);
-                var product = await _productService.GetProductAsync(productId);
-
-                return $@"
-                    <div class=""product-showcase"">
-                        <img src=""{product.MainImage}?w=400"" alt=""{product.Name}"" />
-                        <div class=""product-info"">
-                            <h3>{product.Name}</h3>
-                            <p class=""price"">${product.CurrentPrice:F2}</p>
-                            {(product.OnSale ? $"<span class=\"sale-badge\">Sale!</span>" : "")}
-                            <p class=""stock"">
-                                {(product.InStock ? "In Stock" : "Out of Stock")}
-                            </p>
-                            <a href=""/products/{product.Slug}"" class=""btn btn-primary"">
-                                View Product
-                            </a>
-                        </div>
-                    </div>";
-            })
-            .Build();
-    }
-}
-```
-
-### Documentation Site
-
-```csharp
-public IHtmlResolver CreateDocumentationResolver()
-{
-    return new HtmlResolverBuilder()
-        // Cross-reference links
-        .WithContentItemLinkResolver("documentation_page", async (link, resolveChildren) =>
-        {
-            var slug = link.Metadata?.UrlSlug ?? link.ItemId.ToString();
-            var inner = await resolveChildren(link.Children);
-            return $"<a href=\"/docs/{slug}\" class=\"doc-link\">{inner}</a>";
-        })
-        // API reference links — derive the URL from the link's UrlSlug or codename.
-        // (IContentLink does not expose linked-item element values; if you need element
-        // data, look the item up via the response's ModularContent dictionary.)
-        .WithContentItemLinkResolver("api_reference", async (link, resolveChildren) =>
-        {
-            var slug = link.Metadata?.UrlSlug ?? link.Metadata?.Codename ?? link.ItemId.ToString();
-            var inner = await resolveChildren(link.Children);
-            return $"<a href=\"/api/{slug}\" class=\"api-link\"><code>{inner}</code></a>";
-        })
-        // Type-safe code examples
-        .WithContentResolver<CodeExample>(example =>
-        {
-            var code = example.Elements.Code;
-            var language = example.Elements.Language ?? "csharp";
-            var title = example.Elements.Title;
-
-            return $@"
-                <div class=""code-example"">
-                    {(title != null ? $"<div class=\"code-title\">{title}</div>" : "")}
-                    <pre><code class=""language-{language}"">{System.Web.HttpUtility.HtmlEncode(code)}</code></pre>
-                    <button class=""copy-button"" data-clipboard-text=""{System.Web.HttpUtility.HtmlEncode(code)}"">
-                        Copy
-                    </button>
-                </div>";
-        })
-        // Type-safe callout boxes
-        .WithContentResolver<Callout>(callout =>
-        {
-            var type = callout.Elements.Type ?? "info";
-            var title = callout.Elements.Title;
-            var bodyElement = callout.Elements.Body;
-
-            var body = bodyElement?.ToHtmlAsync().Result ?? "";
-
-            return $@"
-                <div class=""callout callout-{type}"">
-                    {(title != null ? $"<div class=\"callout-title\">{title}</div>" : "")}
-                    <div class=""callout-body"">{body}</div>
-                </div>";
-        })
-        // Heading anchors for table of contents
-        .WithHtmlNodeResolver("h2", async (node, resolveChildren) =>
-        {
-            var content = await resolveChildren(node.Children);
-            var id = GenerateId(content);
-
-            return $@"
-                <h2 id=""{id}"">
-                    <a href=""#{id}"" class=""heading-anchor"">#</a>
-                    {content}
-                </h2>";
-        })
-        .Build();
-}
-
-private string GenerateId(string text)
-{
-    return Regex.Replace(text.ToLower(), @"[^a-z0-9]+", "-").Trim('-');
-}
-```
-
 ## Best Practices
 
 ### 1. Use Type-Safe Resolvers
@@ -1184,14 +982,14 @@ private string GenerateId(string text)
 **Prefer type-safe resolvers over codename-based resolvers:**
 
 ```csharp
-// ✅ Good: Type-safe with compile-time checking
+// Preferred where a model exists: compile-time checked, no cast
 .WithContentResolver<Quote>(quote =>
 {
     return $"<blockquote>{quote.Elements.Text}</blockquote>";
 })
 
-// ❌ Avoid: codename-based, when a model exists - no compile-time check, and the cast
-//    below silently fails the moment the type gains a generated model.
+// Codename-keyed: no compile-time check, and the cast below stops matching the moment the
+// type gains a generated model. Correct for types you have no model for; second choice otherwise.
 .WithContentResolver("quote", content => content is IContentItem<IDynamicElements> q
     ? $"<blockquote>{Value(q, "text")}</blockquote>"
     : string.Empty)
