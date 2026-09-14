@@ -138,9 +138,9 @@ using Kontent.Ai.AspNetCore.RichText;
 
 builder.Services.AddKontentRichText(resolverBuilder => resolverBuilder
     .WithContentResolver<Article>(a =>
-        $"<div class='article'><h2>{HtmlEncoder.Default.Encode(a.Elements.Title)}</h2></div>")
+        $"<div class='article'><h2>{HtmlEncoder.Default.Encode(a.Elements.Title ?? "")}</h2></div>")
     .WithContentItemLinkResolver("article", (link, _) =>
-        ValueTask.FromResult($"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.ItemId.ToString())}\">link</a>")));
+        ValueTask.FromResult($"<a href=\"/articles/{link.ItemId.ToString()}\">link</a>")));
 ```
 
 When the resolver configuration itself needs DI-resolved services (URL helpers, options, custom route resolvers, etc.), use the overload that exposes `IServiceProvider`:

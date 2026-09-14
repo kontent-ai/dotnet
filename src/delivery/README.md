@@ -94,8 +94,10 @@ A call returns a result rather than throwing, so `IsSuccess` is the check every 
 This is the standalone form, which suits a console app, a script or a test. In an application, register
 the client in your container instead: [Setting Up the Delivery Client](#setting-up-the-delivery-client).
 
-Reading `result.Value.System.Name` works without a model, but everything past metadata wants one.
-Generate records with the [model generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator),
+The quick start reads only system metadata. Element values are reachable without a model through
+`IDynamicElements`, but generated records are the recommended path: they give compile-time names,
+typed element values and automatic type filtering. Generate them with the
+[model generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator),
 then query them with `GetItem<Article>(...)` - see [Content Models](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md)
 and [Querying](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/queries.md). Typed queries are the
 baseline throughout the guides below.
@@ -113,7 +115,7 @@ This README covers installation, registration and configuration. Everything else
 | **[Assets and Images](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/assets-and-images.md)** | Renditions, a custom asset domain, and `ImageUrlBuilder` transformations |
 | **[Multiple Clients](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** | Named clients, preview vs production, multi-tenant and multi-brand setups |
 | **[Performance](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** | Query shaping, rate limits, parallelism, monitoring |
-| **[Extensibility](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** | Custom type providers and property mappers |
+| **[Extensibility](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** | Custom type providers, and the conventions that map elements to properties |
 | **[Architecture](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/for-developers.md)** | How the SDK is put together, one invariant per boundary - start here to contribute |
 | **[Upgrade Guides](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade)** | One per major: [18 &rarr; 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md), [19 &rarr; 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md) |
 
@@ -314,7 +316,7 @@ be encoded:
 var resolver = new HtmlResolverBuilder()
     .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
         $"<a href=\"/articles/{HtmlEncoder.Default.Encode(link.Metadata?.UrlSlug ?? "")}\">{await resolveChildren(link.Children)}</a>")
-    .WithContentResolver<Tweet>(t => $"<blockquote>{HtmlEncoder.Default.Encode(t.Elements.TweetText)}</blockquote>")
+    .WithContentResolver<Tweet>(t => $"<blockquote>{HtmlEncoder.Default.Encode(t.Elements.TweetText ?? "")}</blockquote>")
     .Build();
 
 var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
