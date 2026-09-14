@@ -62,32 +62,33 @@ Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com
 
 ## Quick Start
 
-Here's a minimal example to get you started:
+You need the package installed, .NET 10, and your environment ID — in [Kontent.ai](https://app.kontent.ai),
+under *Environment settings → Environment ID*. Swap `homepage` for a codename that exists in that
+environment.
 
 ```csharp
 using Kontent.Ai.Delivery;
-using Microsoft.Extensions.DependencyInjection;
 
-// Set up dependency injection
-var services = new ServiceCollection();
+await using var client = DeliveryClient.Create(delivery =>
+    delivery.Options.Configure(options => options.EnvironmentId = "<your-environment-id>"));
 
-services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
-{
-    options.EnvironmentId = "your-environment-id";
-}));
-
-var serviceProvider = services.BuildServiceProvider();
-var client = serviceProvider.GetRequiredService<IDeliveryClient>();
-
-// Retrieve content
 var result = await client.GetItem("homepage").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    var item = result.Value;
-    Console.WriteLine($"Title: {item.System.Name}");
+    Console.WriteLine(result.Value.System.Name);
+}
+else
+{
+    Console.WriteLine($"{(int)result.StatusCode}: {result.Error?.Message}");
 }
 ```
+
+A call returns a result rather than throwing, so `IsSuccess` is the check every time — see
+[Error Handling](#error-handling).
+
+This is the standalone form, which suits a console app, a script or a test. In an application, register
+the client in your container instead: [Setting Up the Delivery Client](#setting-up-the-delivery-client).
 
 ## Setting Up the Delivery Client
 
