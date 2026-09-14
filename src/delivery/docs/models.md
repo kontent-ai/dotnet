@@ -147,11 +147,15 @@ foreach (var linkedItem in article.RelatedArticles!)
             Console.WriteLine($"  Product: {product.Elements.Name} — ${product.Elements.Price}");
             break;
         default:
-            // A type your models do not cover still arrives, with its System metadata.
+            // Reachable, and worth handling: see Unmapped Content Types below.
+            Console.WriteLine($"  No model for '{linkedItem.System.Type}'");
             break;
     }
 }
 ```
+
+> [!IMPORTANT]
+> The `default` branch is not decorative. A linked item whose content type has no generated model still arrives — it just arrives untyped. Leaving the branch empty is how a stale set of models turns into content that silently disappears from a page.
 
 ### Filtering Linked Items by Type
 
@@ -235,3 +239,31 @@ in Kontent.ai:
 
 Source generation catches the errors it can at build time — duplicate codenames, invalid codenames
 and unsupported target types are `KDSG001`-`KDSG003`, reported by the compiler rather than at runtime.
+
+### Unmapped Content Types
+
+A content type the API returns but your models do not cover is **not** an error, and nothing throws. The
+SDK falls back to `IDynamicElements` for that item: `System` metadata is intact, elements are raw
+`JsonElement`, and a typed `switch` over it lands in `default`.
+
+That fallback is deliberate — a decoupled content model changes without a deploy, so an editor adding a
+new component type must not be able to break a running application. But it is also the signature of
+models that need regenerating, so the SDK says so in its log:
+
+| | |
+|---|---|
+| Category | `Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy` |
+| Event ID | `1408` |
+| Message | `Content type '{codename}' has no mapped model, using DynamicElements` |
+
+It is emitted **once per content type**, not once per item, so enabling it costs nothing in a busy
+application:
+
+```csharp
+builder.Logging.AddFilter("Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy", LogLevel.Debug);
+```
+
+Seeing it means one of three things: a content type was added to the environment since you last
+generated, your models were generated from a different environment, or the models are split across
+projects and auto-discovery found only one provider — see
+[Source Generation for Type Resolution](#source-generation-for-type-resolution).
