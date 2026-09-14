@@ -1698,6 +1698,7 @@ For more advanced scenarios and in-depth guides, explore the following documenta
 - **[Multi-Client Scenarios](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md)** - Named clients, multi-tenant architectures
 - **[Performance Optimization](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/performance-optimization.md)** - Query optimization, monitoring, best practices
 - **[Extensibility Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/extensibility-guide.md)** - Custom type providers, property mappers, SDK extension points
+- **[How the SDK is put together](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/for-developers.md)** - Architecture by boundary: registration, transport, queries, results, hydration, caching
 - **[Upgrade Guides](https://github.com/kontent-ai/dotnet/tree/main/src/delivery/docs/upgrade)** - One per major: [18 → 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md), [19 → 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md)
 
 ## Contributing
