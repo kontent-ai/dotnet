@@ -1,6 +1,7 @@
 # Kontent.ai Delivery SDK for .NET
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Delivery?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Delivery)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.Delivery?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.Delivery)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.Delivery?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.Delivery/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Delivery?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Delivery)
 
 The official .NET SDK for the [Kontent.ai Delivery API](https://kontent.ai/learn/docs/apis/openapi/delivery-api/), enabling you to retrieve content from your Kontent.ai projects with a modern, type-safe, and highly extensible client library.

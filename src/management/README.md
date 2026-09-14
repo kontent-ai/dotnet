@@ -1,6 +1,7 @@
 # Kontent.ai Management SDK for .NET
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.Management?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.Management)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.Management?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.Management/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Management?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Management)
 
 The official .NET SDK for the [Kontent.ai Management API](https://kontent.ai/learn/docs/apis/openapi/management-api-v2/) — programmatic read/write access to your Kontent.ai projects and environments: content items, language variants, content models, assets, taxonomies, workflows, environments, and more.

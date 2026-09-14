@@ -1,6 +1,7 @@
 # Kontent.ai model generator utility for .NET
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.ModelGenerator?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
 
 This utility generates strongly-typed **record-based models** for:

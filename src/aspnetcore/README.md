@@ -1,6 +1,7 @@
 # ASP.NET Core extensions for Kontent.ai apps
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.AspNetCore?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.AspNetCore?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
 
 Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) that provides ASP.NET Core–specific helpers: responsive image tag helpers, a rich-text tag helper that renders structured content via `IHtmlResolver`, and webhook signature validation middleware.
