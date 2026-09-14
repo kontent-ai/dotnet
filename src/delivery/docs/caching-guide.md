@@ -1165,26 +1165,32 @@ A custom manager owns that decision itself. If it wraps an `IDistributedCache`, 
 
 ### 5. Pre-Warm Cache
 
-For critical content, pre-warm the cache on startup:
+A warm-up only lands if it issues the *same query* the application will issue: the cache key carries the
+model type, language, depth and element projection. A typeless `GetItem("homepage")` warms nothing at
+all — dynamic queries are never cached.
 
 ```csharp
-public sealed class CacheWarmupService(IDeliveryClient client) : IHostedService
+public sealed class CacheWarmupService(
+    IDeliveryClient client,
+    ILogger<CacheWarmupService> logger) : IHostedService
 {
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // Pre-load homepage
-        await client.GetItem("homepage").ExecuteAsync(cancellationToken);
+        await Warm("homepage", () => client.GetItem<Homepage>("homepage").ExecuteAsync(cancellationToken));
 
-        // Pre-load navigation
-        await client.GetItem("main_navigation").ExecuteAsync(cancellationToken);
-
-        // Pre-load recent articles
-        await client.GetItems<Article>()
-            .Where(f => f.System("type").IsEqualTo("article"))
+        await Warm("recent articles", () => client.GetItems<Article>()
             .OrderBySystem("last_modified", OrderingMode.Descending)
             .Limit(10)
-            .ExecuteAsync(cancellationToken);
+            .ExecuteAsync(cancellationToken));
+
+        async Task Warm<T>(string what, Func<Task<IDeliveryResult<T>>> query)
+        {
+            var result = await query();
+            if (!result.IsSuccess)
+            {
+                logger.LogWarning("Cache warm-up failed for {What}: {Error}", what, result.Error?.Message);
+            }
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
