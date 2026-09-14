@@ -343,24 +343,39 @@ var allQuoteTexts = article.Elements.BodyCopy
 
 For scenarios where you don't have strongly-typed models, you can still use codename-based resolvers:
 
+A codename-keyed resolver receives the non-generic `IEmbeddedContent`, whose `Elements` is typed
+`object` — so it cannot be indexed directly. When no model is registered for that content type the
+item is an `IContentItem<IDynamicElements>`, a read-only dictionary of `JsonElement` keyed by element
+codename. Pattern-match to it, then read the element's `value`:
+
 ```csharp
 var resolver = new HtmlResolverBuilder()
     .WithContentResolver("tweet", content =>
     {
-        // Requires manual element access and casting
-        var tweetText = content.Elements["tweet_text"]?.ToString();
-        var author = content.Elements["author_handle"]?.ToString();
-        var tweetUrl = content.Elements["tweet_url"]?.ToString();
+        if (content is not IContentItem<IDynamicElements> dynamic)
+        {
+            return string.Empty;
+        }
 
-        return $@"
-            <blockquote class=""twitter-tweet"">
-                <p>{tweetText}</p>
-                <cite>@{author}</cite>
-                <a href=""{tweetUrl}"">View on Twitter</a>
-            </blockquote>";
+        return $"""
+            <blockquote class="twitter-tweet">
+                <p>{Value(dynamic, "tweet_text")}</p>
+                <cite>@{Value(dynamic, "author_handle")}</cite>
+                <a href="{Value(dynamic, "tweet_url")}">View on Twitter</a>
+            </blockquote>
+            """;
     })
     .Build();
+
+// Worth extracting once - every codename-keyed resolver needs it.
+static string? Value(IContentItem<IDynamicElements> item, string codename)
+    => item.Elements.TryGetValue(codename, out var element)
+        ? element.GetProperty("value").GetString()
+        : null;
 ```
+
+> [!NOTE]
+> Each `JsonElement` is the element's whole envelope — `{"type": …, "name": …, "value": …}` — which is why the value is read with `GetProperty("value")`. And the cast only succeeds when the type has **no** registered model: once one exists, the SDK hands the resolver `IEmbeddedContent<YourModel>` instead, and a typed resolver is the better tool.
 
 **Resolver Priority:**
 1. Type-based resolvers (highest priority)
@@ -412,26 +427,33 @@ var resolver = new HtmlResolverBuilder()
 
 Handle embedded content that itself contains rich text:
 
+A rich-text property on a generated model is an `IRichTextContent`, so resolving it is the same
+`ToHtmlAsync` call — the only wrinkle is handing the resolver to itself. Declare it first, assign it
+second; the lambda captures the variable, not its value, so it sees the built resolver by the time it
+runs:
+
 ```csharp
-var resolver = new HtmlResolverBuilder()
-    .WithContentResolver("callout_box", async content =>
+IHtmlResolver? resolver = null;
+
+resolver = new HtmlResolverBuilder()
+    .WithContentResolver<CalloutBox>(async callout =>
     {
-        var title = content.Elements["title"]?.ToString();
-        var bodyElement = content.Elements["body"] as RichTextElement;
+        var bodyHtml = callout.Elements.Body is { } body
+            ? await body.ToHtmlAsync(resolver)   // same resolver, so nesting continues to any depth
+            : string.Empty;
 
-        // Recursively resolve nested rich text
-        var bodyHtml = bodyElement != null
-            ? await bodyElement.ToHtmlAsync(resolver)  // Use the same resolver
-            : "";
-
-        return $@"
-            <div class=""callout-box"">
-                <h4>{title}</h4>
-                <div class=""callout-body"">{bodyHtml}</div>
-            </div>";
+        return $"""
+            <div class="callout-box">
+                <h4>{callout.Elements.Title}</h4>
+                <div class="callout-body">{bodyHtml}</div>
+            </div>
+            """;
     })
     .Build();
 ```
+
+> [!WARNING]
+> Nesting is unbounded: a component that transitively contains itself will recurse until the stack runs out. If your content model allows that, track depth in a field the resolver closes over and stop at a limit.
 
 ### Tuple-Based Content Resolvers
 
@@ -474,26 +496,28 @@ var resolver = builder.Build();
 **Codename-Based Tuple Resolvers (Legacy):**
 
 ```csharp
+// Value(...) is the helper from Codename-Based Content Resolvers above.
 var resolver = new HtmlResolverBuilder()
     .WithContentResolvers(
-        ("tweet", content =>
-        {
-            var url = content.Elements["url"]?.ToString();
-            return $"<div class=\"twitter-embed\"><a href=\"{url}\">View Tweet</a></div>";
-        }),
+        ("tweet", content => content is IContentItem<IDynamicElements> t
+            ? $"<div class=\"twitter-embed\"><a href=\"{Value(t, "url")}\">View Tweet</a></div>"
+            : string.Empty),
         ("quote", content =>
         {
-            var text = content.Elements["quote_text"]?.ToString();
-            var by = content.Elements["attribution"]?.ToString();
-            return by != null
-                ? $"<blockquote><p>{text}</p><cite>{by}</cite></blockquote>"
-                : $"<blockquote><p>{text}</p></blockquote>";
+            if (content is not IContentItem<IDynamicElements> q) return string.Empty;
+
+            var text = Value(q, "quote_text");
+            var by = Value(q, "attribution");
+            return by is null
+                ? $"<blockquote><p>{text}</p></blockquote>"
+                : $"<blockquote><p>{text}</p><cite>{by}</cite></blockquote>";
         }),
         ("code_snippet", content =>
         {
-            var code = content.Elements["code"]?.ToString();
-            var lang = content.Elements["language"]?.ToString() ?? "plaintext";
-            return $"<pre><code class=\"language-{lang}\">{System.Web.HttpUtility.HtmlEncode(code)}</code></pre>";
+            if (content is not IContentItem<IDynamicElements> c) return string.Empty;
+
+            var lang = Value(c, "language") ?? "plaintext";
+            return $"<pre><code class=\"language-{lang}\">{HttpUtility.HtmlEncode(Value(c, "code"))}</code></pre>";
         })
     )
     .Build();
@@ -501,25 +525,30 @@ var resolver = new HtmlResolverBuilder()
 
 ### Complex Component Example
 
+A component whose own elements include linked items is the case where a typed resolver stops being a
+preference and becomes the only reasonable option: in the dynamic form a linked-items element is a list
+of *codenames*, and resolving them means a second lookup the resolver does not have. With a model, the
+SDK has already hydrated them.
+
 ```csharp
 var resolver = new HtmlResolverBuilder()
-    .WithContentResolver("image_gallery", content =>
+    .WithContentResolver<ImageGallery>(gallery =>
     {
-        var imagesElement = content.Elements["images"] as IEnumerable<IContentItem>;
-        if (imagesElement == null) return "";
+        var figures = gallery.Elements.Images?
+            .OfType<IEmbeddedContent<GalleryImage>>()
+            .Select(image =>
+            {
+                var caption = image.Elements.Caption;
+                var url = image.Elements.Image?.FirstOrDefault()?.Url;
+                return $"""
+                    <figure class="gallery-item">
+                        <img src="{url}" alt="{caption}" />
+                        {(caption is null ? "" : $"<figcaption>{caption}</figcaption>")}
+                    </figure>
+                    """;
+            }) ?? [];
 
-        var imageHtml = string.Join("", imagesElement.Select(img =>
-        {
-            var url = img.Elements["image"]?.ToString();
-            var caption = img.Elements["caption"]?.ToString();
-            return $@"
-                <figure class=""gallery-item"">
-                    <img src=""{url}"" alt=""{caption}"" />
-                    {(caption != null ? $"<figcaption>{caption}</figcaption>" : "")}
-                </figure>";
-        }));
-
-        return $@"<div class=""image-gallery"">{imageHtml}</div>";
+        return $"""<div class="image-gallery">{string.Concat(figures)}</div>""";
     })
     .Build();
 ```
@@ -1161,11 +1190,11 @@ private string GenerateId(string text)
     return $"<blockquote>{quote.Elements.Text}</blockquote>";
 })
 
-// ❌ Avoid: Codename-based with runtime errors
-.WithContentResolver("quote", content =>
-{
-    return $"<blockquote>{content.Elements["text"]}</blockquote>";
-})
+// ❌ Avoid: codename-based, when a model exists - no compile-time check, and the cast
+//    below silently fails the moment the type gains a generated model.
+.WithContentResolver("quote", content => content is IContentItem<IDynamicElements> q
+    ? $"<blockquote>{Value(q, "text")}</blockquote>"
+    : string.Empty)
 ```
 
 **Benefits:**
@@ -1219,8 +1248,9 @@ using System.Web;
 
 .WithContentResolver("user_comment", content =>
 {
-    var rawText = content.Elements["comment"]?.ToString();
-    var safeText = HttpUtility.HtmlEncode(rawText);
+    if (content is not IContentItem<IDynamicElements> comment) return string.Empty;
+
+    var safeText = HttpUtility.HtmlEncode(Value(comment, "comment"));
 
     return $"<div class=\"comment\">{safeText}</div>";
 })
