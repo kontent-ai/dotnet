@@ -830,5 +830,5 @@ services.AddMemoryCache(options =>
 **Related Documentation**:
 - [Main README](../README.md)
 - [Caching Guide](caching-guide.md)
-- [Advanced Filtering](advanced-filtering.md)
+- [Querying](queries.md)
 - [Multi-Client Scenarios](multi-client-scenarios.md)

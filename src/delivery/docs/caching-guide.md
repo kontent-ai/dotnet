@@ -14,6 +14,7 @@ Caching is essential for production applications using the Kontent.ai Delivery A
   - [Configuring Cache Options from DI Services](#configuring-cache-options-from-di-services)
   - [Custom Cache Manager](#custom-cache-manager)
 - [How Caching Works](#how-caching-works)
+  - [Detecting Cache Hits](#detecting-cache-hits)
   - [Cache Keys](#cache-keys)
   - [Dependency Tracking](#dependency-tracking)
   - [Using Dependency Keys for Output Caching](#using-dependency-keys-for-output-caching)
@@ -439,6 +440,40 @@ When a client is configured with `UsePreviewApi = true`, the SDK always bypasses
 
 Dependency keys are read from the response itself, not from the model that reads it, so a query whose model is `IDynamicElements` or `DynamicElements` carries the same keys a fully mapped model would.
 
+### Detecting Cache Hits
+
+Every result reports where it came from, on `ResponseSource`:
+
+| `ResponseSource` | Meaning | `IsCacheHit` |
+|---|---|---|
+| `Origin` | The Delivery API answered | `false` |
+| `Cdn` | The Delivery CDN answered from its own cache (Fastly `X-Cache: HIT`) | `false` |
+| `Cache` | The SDK's local cache answered | `true` |
+| `FailSafe` | The SDK served a stale entry because the origin was unreachable | `true` |
+
+```csharp
+var result = await client.GetItem<Article>("my-article").ExecuteAsync();
+
+if (result.IsSuccess)
+{
+    switch (result.ResponseSource)
+    {
+        case ResponseSource.Cache:
+        case ResponseSource.FailSafe:
+            // Metadata describing a request is null here, because no request was made.
+            Console.WriteLine($"Served from SDK cache (stale: {result.ResponseSource is ResponseSource.FailSafe})");
+            break;
+        default:
+            Console.WriteLine($"{result.ResponseSource} answered {result.RequestUrl}");
+            break;
+    }
+}
+```
+
+`IsCacheHit` is the coarse view of the same fact — `true` for `Cache` and `FailSafe`, and the property to
+reach for when all you need is "did this cost a request". The SDK reads the CDN's `X-Cache` header for you,
+so there is no need to inspect `ResponseHeaders` yourself to tell `Cdn` from `Origin`.
+
 ### Cache Keys
 
 Cache keys are automatically generated from query parameters using a deterministic, human-readable format.
@@ -462,6 +497,7 @@ The general format is: `{queryType}:{identifier}:{params}:{filters}`
 - **Order-independent**: Arrays and filter dictionaries in different orders produce the same key
 - **Human-readable**: Common parameters are visible for debugging (e.g., `lang=en-US:depth=2`)
 - **Efficient**: Filters are hashed to keep keys compact when queries are complex
+- **Credential-independent**: `SecureAccessApiKey` and `PreviewApiKey` are deliberately not part of key identity. Secure access only gates *which* published content a key may read, not what that content is, and a preview client bypasses the cache entirely - so neither can make two otherwise-identical queries return different content from the same cache
 
 #### Examples
 

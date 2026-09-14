@@ -17,6 +17,7 @@ This guide covers advanced scenarios where you need to work with multiple Konten
   - [Tenant-Specific Configuration](#tenant-specific-configuration)
 - [Multi-Brand Scenarios](#multi-brand-scenarios)
 - [Preview vs Production](#preview-vs-production)
+- [Preview API](#preview-api)
 - [Environment-Specific Configuration](#environment-specific-configuration)
 - [Best Practices](#best-practices)
 - [Real-World Examples](#real-world-examples)
@@ -647,6 +648,54 @@ public class PreviewModeMiddleware
 // Register middleware
 app.UseMiddleware<PreviewModeMiddleware>();
 ```
+
+## Preview API
+
+The Preview API allows you to retrieve unpublished content for preview purposes.
+
+### Enable Preview API
+
+```csharp
+services.AddDeliveryClient(delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.UsePreviewApi = true;
+    options.PreviewApiKey = "your-preview-api-key";
+}));
+```
+
+When `UsePreviewApi` is enabled, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered. This keeps preview responses fresh by default.
+
+### Dynamic Switching (Production vs Preview)
+
+You can configure named clients for different environments:
+
+```csharp
+services.AddDeliveryClient("production", delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.UsePreviewApi = false;
+}));
+
+services.AddDeliveryClient("preview", delivery => delivery.Options.Configure(options =>
+{
+    options.EnvironmentId = "your-environment-id";
+    options.UsePreviewApi = true;
+    options.PreviewApiKey = "your-preview-api-key";
+}));
+
+// Inject factory and get appropriate client
+var factory = serviceProvider.GetRequiredService<IDeliveryClientFactory>();
+var client = isPreviewMode ? factory.Get("preview") : factory.Get("production");
+```
+
+For more on named clients and multi-environment scenarios, see the [Multi-Client Scenarios Guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/multi-client-scenarios.md).
+
+### Preview API Security
+
+**Never expose Preview API keys in client-side code.** A preview key reads unpublished content, so it
+belongs on the server only. For a web application, put the preview client behind your own endpoint and
+authenticate the caller there.
 
 ## Environment-Specific Configuration
 

@@ -17,6 +17,8 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
   - [Async Content Resolvers](#async-content-resolvers)
   - [Nested Content Resolution](#nested-content-resolution)
   - [Tuple-Based Content Resolvers](#tuple-based-content-resolvers)
+- [Failing Fast on a Missing Resolver](#failing-fast-on-a-missing-resolver)
+- [Registering the Resolver with Dependency Injection](#registering-the-resolver-with-dependency-injection)
 - [Rich Text Extension Methods](#rich-text-extension-methods)
 - [Inline Image Resolvers](#inline-image-resolvers)
 - [Custom HTML Node Resolvers](#custom-html-node-resolvers)
@@ -612,6 +614,64 @@ if (result.IsSuccess && result.Value is IContentItem<IDynamicElements> dynamicIt
 
     return $@"<div data-id=""{itemId}"" data-type=""{contentType}"">{content.System.Name}</div>";
 })
+```
+
+## Failing Fast on a Missing Resolver
+
+By default an embedded type with no resolver renders as a diagnostic HTML comment, which keeps a page
+rendering while telling you what was skipped. `ThrowOnMissingResolver()` turns that into an exception
+instead — worth it where an unhandled type is a bug rather than a gap:
+
+```csharp
+var resolver = new HtmlResolverBuilder()
+    .ThrowOnMissingResolver()
+    .WithContentResolver<Tweet>(t => $"<blockquote>{t.Elements.TweetText}</blockquote>")
+    .Build();
+```
+
+## Registering the Resolver with Dependency Injection
+
+To avoid creating the resolver at every call site, register `IHtmlResolver` in your DI container:
+
+```csharp
+// Program.cs - Register the resolver once
+services.AddSingleton<IHtmlResolver>(sp => new HtmlResolverBuilder()
+    .WithContentItemLinkResolver("article", async (link, resolveChildren) =>
+    {
+        var innerHtml = await resolveChildren(link.Children);
+        return $"<a href=\"/articles/{link.Metadata?.UrlSlug}\">{innerHtml}</a>";
+    })
+    .WithContentResolver<Tweet>(tweet =>
+        $"<blockquote>{tweet.Elements.TweetText}</blockquote>")
+    .WithContentResolver<Video>(video =>
+        $"<iframe src=\"https://youtube.com/embed/{video.Elements.VideoId}\"></iframe>")
+    .Build());
+```
+
+Then inject and use it in your services:
+
+```csharp
+public class ArticleService
+{
+    private readonly IDeliveryClient _client;
+    private readonly IHtmlResolver _resolver;
+
+    public ArticleService(IDeliveryClient client, IHtmlResolver resolver)
+    {
+        _client = client;
+        _resolver = resolver;
+    }
+
+    public async Task<string?> GetArticleHtmlAsync(string codename)
+    {
+        var result = await _client.GetItem<Article>(codename).ExecuteAsync();
+
+        if (!result.IsSuccess)
+            return null;
+
+        return await result.Value.Elements.BodyCopy.ToHtmlAsync(_resolver);
+    }
+}
 ```
 
 ## Rich Text Extension Methods
