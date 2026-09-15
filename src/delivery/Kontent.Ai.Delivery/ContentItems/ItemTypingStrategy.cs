@@ -14,6 +14,12 @@ internal sealed class ItemTypingStrategy(ITypeProvider typeProvider, ILogger<Ite
 {
     private readonly ConcurrentDictionary<string, Type> _cache = new();
 
+    // A missing mapping means stale models only in an application that has models. One reading content
+    // without any - no generated provider, no custom one - falls back for every type by design.
+    private LogLevel FallbackLevel => typeProvider is TypeProvider { HasGeneratedProvider: false }
+        ? LogLevel.Debug
+        : LogLevel.Warning;
+
     /// <summary>
     /// Resolves the model type for the given content type codename.
     /// Uses cached results for repeated lookups.
@@ -25,7 +31,7 @@ internal sealed class ItemTypingStrategy(ITypeProvider typeProvider, ILogger<Ite
         if (string.IsNullOrEmpty(contentTypeCodename))
         {
             if (logger is not null)
-                LoggerMessages.ContentTypeFallbackToDynamic(logger, contentTypeCodename ?? "(null)");
+                LoggerMessages.ContentTypeFallbackToDynamic(logger, FallbackLevel, contentTypeCodename ?? "(null)");
             return typeof(DynamicElements);
         }
 
@@ -34,7 +40,7 @@ internal sealed class ItemTypingStrategy(ITypeProvider typeProvider, ILogger<Ite
             var modelType = typeProvider.GetType(codename);
             if (modelType is null && logger is not null)
             {
-                LoggerMessages.ContentTypeFallbackToDynamic(logger, codename);
+                LoggerMessages.ContentTypeFallbackToDynamic(logger, FallbackLevel, codename);
             }
             return modelType ?? typeof(DynamicElements);
         });

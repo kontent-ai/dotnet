@@ -250,7 +250,7 @@ lands in `default`. It is logged once per content type, not per item:
 |---|---|
 | Category | `Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy` |
 | Event ID | `1408` |
-| Level | `Warning` |
+| Level | `Warning`; `Debug` in an application with no generated models, where every type falls back |
 | Message | `Content type '{codename}' has no mapped model, using DynamicElements` |
 
 Seeing it means a type was added since you last generated, the models came from a different

@@ -189,9 +189,8 @@ internal static partial class LoggerMessages
 
     [LoggerMessage(
         EventId = LogEventIds.ContentTypeFallbackToDynamic,
-        Level = LogLevel.Warning,
         Message = "Content type '{ContentTypeCodename}' has no mapped model, using DynamicElements")]
-    public static partial void ContentTypeFallbackToDynamic(ILogger logger, string contentTypeCodename);
+    public static partial void ContentTypeFallbackToDynamic(ILogger logger, LogLevel level, string contentTypeCodename);
 
     [LoggerMessage(
         EventId = LogEventIds.GenericQueryTypeFilterConflict,
