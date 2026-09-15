@@ -59,34 +59,37 @@ internal sealed class DynamicItemQuery(
         return this;
     }
 
-    public async Task<IDeliveryResult<IContentItem>> ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task<IDeliveryResult<DeliveryItemResponse>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var deliveryResult = await _inner.ExecuteAsync(cancellationToken).ConfigureAwait(false);
+        var (deliveryResult, modularContent) = await _inner.ExecuteUncachedAsync(cancellationToken).ConfigureAwait(false);
 
         if (!deliveryResult.IsSuccess)
         {
-            return (IDeliveryResult<IContentItem>)deliveryResult;
+            return DeliveryResult.FailureFrom<DeliveryItemResponse, IContentItem<IDynamicElements>>(deliveryResult);
         }
 
         var dynamicItem = deliveryResult.Value;
+        IContentItem item = dynamicItem;
 
         if (dynamicItem is IRawContentItem rawContentItem && rawContentItem.RawItemJson.HasValue)
         {
-            var runtimeItem = await contentItemMapper.TryRuntimeTypeItemAsync(
+            item = await contentItemMapper.TryRuntimeTypeItemAsync(
                 rawContentItem.RawItemJson.Value,
-                _inner.LatestModularContent,
+                modularContent,
                 defaultRenditionPreset,
                 customAssetDomain,
-                cancellationToken).ConfigureAwait(false);
-
-            if (runtimeItem is not null)
-            {
-                // Carried across explicitly: SuccessFrom projects the source's metadata but defaults the
-                // dependency keys to null, and these are what output-cache tagging is documented to use.
-                return DeliveryResult.SuccessFrom(runtimeItem, deliveryResult, deliveryResult.DependencyKeys);
-            }
+                cancellationToken).ConfigureAwait(false) ?? dynamicItem;
         }
 
-        return deliveryResult;
+        var response = new DeliveryItemResponse
+        {
+            Item = item,
+            ModularContent = modularContent!
+        };
+
+        // Carried across explicitly: SuccessFrom projects the source's metadata but defaults the
+        // dependency keys to null, and these are what output-cache tagging is documented to use.
+        return DeliveryResult.SuccessFrom<DeliveryItemResponse, IContentItem<IDynamicElements>>(
+            response, deliveryResult, deliveryResult.DependencyKeys);
     }
 }

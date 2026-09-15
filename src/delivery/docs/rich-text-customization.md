@@ -591,7 +591,8 @@ var resolver = new HtmlResolverBuilder()
 
 A fully dynamic item gives you elements as raw `JsonElement`, so a rich text element is not parsed for
 you. `ParseRichTextAsync` does it, and its second parameter is what resolves embedded content — pass the
-response's `ModularContent` or the blocks come back with the text but none of the components.
+response's `ModularContent` or the blocks come back with the text but none of the components. Listing,
+feed and single-item responses all carry it.
 
 ```csharp
 using System.Text.Json;
@@ -609,9 +610,6 @@ foreach (var item in result.Value.Items.Cast<IContentItem<IDynamicElements>>())
     var html = await richText!.ToHtmlAsync(resolver);
 }
 ```
-
-> [!WARNING]
-> **`ModularContent` is exposed on listing and feed responses only.** A single-item `GetItem(...)` result does not carry it, so a rich text element read that way can be parsed but its embedded components cannot be resolved — `ParseRichTextAsync(element, null)` returns the text blocks and drops every component. Read through `GetItems()` when you need dynamic rich text with components, or generate a model for the type and let the SDK do it.
 
 Embedded items in a dynamic response are `IEmbeddedContent<IDynamicElements>`, so register resolvers by
 **codename** — `WithContentResolver<T>` never matches — and read values as shown in
