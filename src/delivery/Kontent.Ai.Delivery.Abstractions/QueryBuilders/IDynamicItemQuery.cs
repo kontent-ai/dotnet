@@ -8,7 +8,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// resolved to its strongly-typed model at runtime. Use pattern matching to access the typed item:
 /// <code>
 /// var result = await client.GetItem("codename").ExecuteAsync();
-/// if (result.Value.Item is IContentItem&lt;Article&gt; article)
+/// if (result.IsSuccess &amp;&amp; result.Value.Item is IContentItem&lt;Article&gt; article)
 /// {
 ///     var title = article.Elements.Title;
 /// }
