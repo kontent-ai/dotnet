@@ -26,7 +26,6 @@ internal sealed class ItemQuery<TModel>(
     private bool _waitForLoadingNewContent;
     public TimeSpan? CacheExpiration { get; set; }
     private static bool IsDynamicModel => ModelTypeHelper.IsDynamic<TModel>();
-    internal IReadOnlyDictionary<string, JsonElement>? LatestModularContent { get; private set; }
 
     public IItemQuery<TModel> WithLanguage(string languageCodename)
     {
@@ -60,7 +59,6 @@ internal sealed class ItemQuery<TModel>(
 
     public async Task<IDeliveryResult<IContentItem<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        LatestModularContent = null;
         _log.LogQueryStarting();
         var stopwatch = _log.StartTimingIfEnabled();
         bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
@@ -72,7 +70,21 @@ internal sealed class ItemQuery<TModel>(
                 stopwatch,
                 waitForLoadingNewContent,
                 cancellationToken).ConfigureAwait(false)
-            : await ExecuteWithoutCacheAsync(stopwatch, waitForLoadingNewContent, cancellationToken).ConfigureAwait(false);
+            : (await ExecuteWithoutCacheAsync(stopwatch, waitForLoadingNewContent, cancellationToken).ConfigureAwait(false)).Result;
+    }
+
+    /// <summary>
+    /// Uncached execution that also returns the response's modular content, which the typed result does not
+    /// carry. Used by the dynamic single-item query, which has no cache.
+    /// </summary>
+    internal async Task<(IDeliveryResult<IContentItem<TModel>> Result, IReadOnlyDictionary<string, JsonElement>? ModularContent)> ExecuteUncachedAsync(
+        CancellationToken cancellationToken = default)
+    {
+        _log.LogQueryStarting();
+        var stopwatch = _log.StartTimingIfEnabled();
+        bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
+
+        return await ExecuteWithoutCacheAsync(stopwatch, waitForLoadingNewContent, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IDeliveryResult<IContentItem<TModel>>> ExecuteWithCacheAsync(
@@ -127,7 +139,7 @@ internal sealed class ItemQuery<TModel>(
         return WrapSuccess(cached?.Value ?? apiResult.Value.Item, apiResult, cached?.DependencyKeys);
     }
 
-    private async Task<IDeliveryResult<IContentItem<TModel>>> ExecuteWithoutCacheAsync(
+    private async Task<(IDeliveryResult<IContentItem<TModel>> Result, IReadOnlyDictionary<string, JsonElement>? ModularContent)> ExecuteWithoutCacheAsync(
         Stopwatch? stopwatch,
         bool? waitForLoadingNewContent,
         CancellationToken cancellationToken)
@@ -137,12 +149,12 @@ internal sealed class ItemQuery<TModel>(
         {
             _log.LogQueryFailed(deliveryResult.StatusCode, deliveryResult.Error?.Message);
             _log.LogQueryCompleted(stopwatch, deliveryResult.StatusCode, cacheHit: false, deliveryResult.HasStaleContent);
-            return CreateFailureResult(deliveryResult);
+            return (CreateFailureResult(deliveryResult), null);
         }
 
         var (item, dependencyKeys) = await ProcessItemAsync(deliveryResult.Value, cancellationToken).ConfigureAwait(false);
         _log.LogQueryCompleted(stopwatch, deliveryResult.StatusCode, cacheHit: false, deliveryResult.HasStaleContent);
-        return WrapSuccess(item, deliveryResult, dependencyKeys);
+        return (WrapSuccess(item, deliveryResult, dependencyKeys), deliveryResult.Value.ModularContent);
     }
 
     private static IDeliveryResult<IContentItem<TModel>> WrapSuccess(
@@ -169,7 +181,6 @@ internal sealed class ItemQuery<TModel>(
     private async Task<(IContentItem<TModel> Item, string[] Dependencies)> ProcessItemAsync(
         DeliveryItemResponse<TModel> resp, CancellationToken cancellationToken)
     {
-        LatestModularContent = resp.ModularContent;
         var item = resp.Item;
 
         if (!IsDynamicModel)

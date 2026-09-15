@@ -57,10 +57,10 @@ public class RuntimeTypeResolutionTests
         Assert.True(result.IsSuccess);
 
         // Should be runtime-typed to Article
-        Assert.IsType<Kontent.Ai.Delivery.ContentItems.ContentItem<Article>>(result.Value);
+        Assert.IsType<Kontent.Ai.Delivery.ContentItems.ContentItem<Article>>(result.Value.Item);
 
         // Pattern matching should work
-        if (result.Value is IContentItem<Article> article)
+        if (result.Value.Item is IContentItem<Article> article)
         {
             Assert.Equal("Coffee Beverages Explained", article.Elements.Title);
             Assert.Equal("coffee_beverages_explained", article.System.Codename);
@@ -90,7 +90,7 @@ public class RuntimeTypeResolutionTests
         Assert.True(result.IsSuccess);
 
         // Should remain as dynamic (no type provider registered)
-        if (result.Value is IContentItem<IDynamicElements> dynamicItem)
+        if (result.Value.Item is IContentItem<IDynamicElements> dynamicItem)
         {
             Assert.Equal("coffee_beverages_explained", dynamicItem.System.Codename);
 
@@ -102,6 +102,26 @@ public class RuntimeTypeResolutionTests
         {
             Assert.Fail("Expected IContentItem<IDynamicElements> but got different type");
         }
+    }
+
+    [Fact]
+    public async Task GetItem_WithoutAModel_ReturnsModularContentThatResolvesRichTextComponents()
+    {
+        var mockHttp = new MockHttpMessageHandler();
+        mockHttp.When($"{BaseUrl}/items/coffee_beverages_explained")
+            .Respond("application/json", await LoadFixtureAsync("coffee_beverages_explained.json"));
+
+        var client = CreateClientWithoutTypeProvider(mockHttp);
+
+        var result = await client.GetItem("coffee_beverages_explained").ExecuteAsync();
+
+        Assert.True(result.IsSuccess);
+        var item = Assert.IsAssignableFrom<IContentItem<IDynamicElements>>(result.Value.Item);
+        Assert.Equal(["americano", "how_to_make_a_cappuccino"], result.Value.ModularContent.Keys.Order());
+
+        var richText = await item.Elements["body_copy"].ParseRichTextAsync(result.Value.ModularContent);
+
+        Assert.Equal(2, richText!.GetEmbeddedContent().Count());
     }
 
     [Fact]
@@ -450,10 +470,10 @@ public class RuntimeTypeResolutionTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.True(result.Value is IContentItem<Article>,
-            $"Expected IContentItem<Article> but got {result.Value.GetType().Name}");
+        Assert.True(result.Value.Item is IContentItem<Article>,
+            $"Expected IContentItem<Article> but got {result.Value.Item.GetType().Name}");
 
-        var article = (IContentItem<Article>)result.Value;
+        var article = (IContentItem<Article>)result.Value.Item;
         Assert.NotNull(article.Elements.RelatedArticles);
 
         var relatedArticles = article.Elements.RelatedArticles.ToList();
@@ -530,7 +550,7 @@ public class RuntimeTypeResolutionTests
         // Assert
         Assert.True(result.IsSuccess);
 
-        if (result.Value is IContentItem<Article> article)
+        if (result.Value.Item is IContentItem<Article> article)
         {
             // Rich text should be hydrated
             Assert.NotNull(article.Elements.BodyCopy);
@@ -576,7 +596,7 @@ public class RuntimeTypeResolutionTests
         Assert.True(result.IsSuccess);
 
         // Act - Use switch expression pattern matching
-        var title = result.Value switch
+        var title = result.Value.Item switch
         {
             IContentItem<Article> article => article.Elements.Title,
             IContentItem<Coffee> coffee => coffee.Elements.ProductName,
@@ -600,9 +620,9 @@ public class RuntimeTypeResolutionTests
         var result = await client.GetItem("coffee_beverages_explained").ExecuteAsync();
 
         // Assert using 'is' pattern
-        Assert.True(result.Value is IContentItem<Article>);
-        Assert.False(result.Value is IContentItem<Coffee>);
-        Assert.False(result.Value is IContentItem<IDynamicElements>);
+        Assert.True(result.Value.Item is IContentItem<Article>);
+        Assert.False(result.Value.Item is IContentItem<Coffee>);
+        Assert.False(result.Value.Item is IContentItem<IDynamicElements>);
     }
 
     #endregion

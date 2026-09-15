@@ -47,12 +47,16 @@ if (result.IsSuccess)
 }
 ```
 
-Without the type argument the same call returns an `IContentItem`, resolved to its model at runtime
-where one exists:
+Without the type argument the same call returns a `DeliveryItemResponse`: the `Item`, resolved to its model
+at runtime where one exists, and the response's `ModularContent`:
 
 ```csharp
 var result = await client.GetItem("coffee_beverages_explained").ExecuteAsync();
-Console.WriteLine(result.Value?.System.Name);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Value.Item.System.Name);
+}
 ```
 
 ### Get Multiple Items

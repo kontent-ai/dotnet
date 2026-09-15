@@ -121,7 +121,7 @@ public class BrandAController : ControllerBase
         var result = await _client.GetItem("homepage").ExecuteAsync();
 
         if (result.IsSuccess)
-            return Ok(result.Value);
+            return Ok(result.Value.Item);
 
         return NotFound();
     }
@@ -248,7 +248,7 @@ public class ContentController : ControllerBase
         var client = _tenantResolver.GetCurrentTenantClient();
         var result = await client.GetItem(codename).ExecuteAsync();
 
-        return result.IsSuccess ? Ok(result.Value) : NotFound();
+        return result.IsSuccess ? Ok(result.Value.Item) : NotFound();
     }
 }
 ```

@@ -13,7 +13,10 @@ introduced. Targets `net10.0`.
 
 Coming from **19.x**, the compile-time work is registration and caching: `AddDeliveryClient` and
 `DeliveryClient.Create` both take a builder, and a cache attaches to that builder with `UseMemoryCache`
-/ `UseHybridCache` instead of its own `Add…` call. Three changes compile unchanged and behave
+/ `UseHybridCache` instead of its own `Add…` call. A typeless `GetItem(codename)` returns the item
+inside a `DeliveryItemResponse`; most code using it stops compiling, but code handing `result.Value` to
+something that takes any object - `Ok(result.Value)`, a serializer - compiles and now gets the whole
+response. Three changes compile unchanged and behave
 differently — a failed page in `EnumerateAsync()` throws instead of ending the walk, transport failures
 arrive as results rather than exceptions, and the 100-second call ceiling is gone under the default
 resilience pipeline. Distributed cache keys change shape, so existing Redis entries expire unread.
@@ -29,6 +32,10 @@ of the line.
 - **`PurgeAsync` throws when a distributed purge cannot complete.**
 
   Built-in cache managers propagate failed distributed clear-marker writes and configured backplane publications. An open circuit breaker that skips either operation now causes `InvalidOperationException` instead of normal completion. Both `allowFailSafe` modes are affected; the `Task` signature is unchanged. Local entries may already be invalidated when the call throws. Callers that require best-effort purging must handle the exception explicitly. Ordinary cache reads remain fail-open.
+
+- **`GetItem(codename)` returns the item with its modular content.**
+
+  `IDynamicItemQuery.ExecuteAsync` returns `IDeliveryResult<DeliveryItemResponse>` instead of `IDeliveryResult<IContentItem>`. The response carries the `Item` - runtime-typed where a model exists, as before - and the `ModularContent` the single-item read used to discard, so the linked items and rich text components of an item with no generated model can now be resolved, the way listing and feed responses already allowed. A pattern match or `switch` on `result.Value` fails to compile with `CS8121`; read `result.Value.Item` instead, after checking `IsSuccess` - a failed result's `Value` is `null`, which the old pattern match tolerated. Code that passes `result.Value` where any object is accepted - `Ok(result.Value)`, a serializer, a log message - still compiles and now receives the whole response; pass `result.Value.Item`.
 
 ### Fixed
 
