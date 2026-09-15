@@ -1,8 +1,12 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-
+labels: enhancement, needs triage
 ---
+
+### Affected product
+
+Which package? (e.g. `Kontent.Ai.Management`)
 
 ### Motivation
 

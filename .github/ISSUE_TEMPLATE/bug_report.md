@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-
+labels: bug, needs triage
 ---
 
 ### Affected product
@@ -24,10 +24,11 @@ What is the correct behavior?
 
 ### Environment
 
- - Package version:
  - .NET version:
  - OS:
 
 ### Additional context
 
 Anything else that helps — a request ID from `IError.RequestId`, a stack trace, a minimal project.
+
+Remove API keys from anything you paste. Security issues go to security@kontent.ai, not here.

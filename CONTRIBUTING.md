@@ -14,7 +14,7 @@ Sorry to hear that. Just log a new [GitHub issue](https://github.com/kontent-ai/
 ### I need help with using the projects and/or coding
 <img align="right" width="100" height="100" src="https://cdn.sstatic.net/Sites/stackoverflow/company/img/logos/so/so-icon.svg">
 
-To get help with coding and structuring your projects, use [StackOverflow](https://stackoverflow.com/) and tag your questions with [`kontent-ai`](https://stackoverflow.com/questions/tagged/kontent-ai) tag.
+To get help with coding and structuring your projects, use [StackOverflow](https://stackoverflow.com/) and tag your questions with [`kontent-ai`](https://stackoverflow.com/questions/tagged/kontent-ai) tag. You can also email [devrel@kontent.ai](mailto:devrel@kontent.ai).
 
 Our team members and the community monitor these channels on a regular basis.
 

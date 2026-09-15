@@ -34,7 +34,7 @@
 "build & release":
   - changed-files:
       - any-glob-to-any-file:
-          - ".github/workflows/**"
+          - ".github/**"
           - "eng/**"
           - "Directory.Build.props"
           - "Directory.Build.targets"
