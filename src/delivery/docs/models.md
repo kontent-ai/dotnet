@@ -188,7 +188,7 @@ Elements arrive as `IDynamicElements`, a read-only dictionary of `JsonElement` k
 ```csharp
 var result = await client.GetItem("homepage").ExecuteAsync();
 
-if (result.IsSuccess && result.Value is IContentItem<IDynamicElements> item)
+if (result.IsSuccess && result.Value.Item is IContentItem<IDynamicElements> item)
 {
     Console.WriteLine($"{item.System.Name} ({item.System.Type})");
 
@@ -210,7 +210,7 @@ var result = await client.GetItem("on_roasts").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    switch (result.Value)
+    switch (result.Value.Item)
     {
         case IContentItem<Article> article:
             Console.WriteLine($"Article: {article.Elements.Title}");
@@ -219,7 +219,7 @@ if (result.IsSuccess)
             Console.WriteLine($"Product: {product.Elements.Name} — ${product.Elements.Price}");
             break;
         default:
-            Console.WriteLine($"Unmodelled type: {result.Value.System.Type}");
+            Console.WriteLine($"Unmodelled type: {result.Value.Item.System.Type}");
             break;
     }
 }

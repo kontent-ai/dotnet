@@ -13,7 +13,8 @@ introduced. Targets `net10.0`.
 
 Coming from **19.x**, the compile-time work is registration and caching: `AddDeliveryClient` and
 `DeliveryClient.Create` both take a builder, and a cache attaches to that builder with `UseMemoryCache`
-/ `UseHybridCache` instead of its own `Add…` call. Three changes compile unchanged and behave
+/ `UseHybridCache` instead of its own `Add…` call. A typeless `GetItem(codename)` returns the item
+inside a `DeliveryItemResponse`. Three changes compile unchanged and behave
 differently — a failed page in `EnumerateAsync()` throws instead of ending the walk, transport failures
 arrive as results rather than exceptions, and the 100-second call ceiling is gone under the default
 resilience pipeline. Distributed cache keys change shape, so existing Redis entries expire unread.
@@ -35,6 +36,10 @@ of the line.
 - **Unmapped content types log a warning instead of a debug message.**
 
   When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning` once a type provider is in place - `Kontent.Ai.Delivery.SourceGeneration` or a custom `ITypeProvider` - so stale models show up without enabling debug logging. An application with neither reads every type dynamically by design and still logs it at `Debug`. A client logs a type the first time it falls back, not per item.
+
+- **`GetItem(codename)` returns the item with its modular content.**
+
+  `IDynamicItemQuery.ExecuteAsync` returns `IDeliveryResult<DeliveryItemResponse>` instead of `IDeliveryResult<IContentItem>`. The response carries the `Item` - runtime-typed where a model exists, as before - and the `ModularContent` the single-item read used to discard, so the linked items and rich text components of an item with no generated model can now be resolved, the way listing and feed responses already allowed. A pattern match or `switch` on `result.Value` fails to compile with `CS8121`; read `result.Value.Item` instead.
 
 ### Fixed
 
