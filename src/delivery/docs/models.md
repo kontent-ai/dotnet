@@ -244,17 +244,14 @@ and unsupported target types are `KDSG001`-`KDSG003`, reported by the compiler r
 
 A content type the API returns but your models do not cover does not throw. The SDK falls back to
 `IDynamicElements`: `System` metadata is intact, elements are raw `JsonElement`, and a typed `switch`
-lands in `default`. It is logged once per content type, not per item:
+lands in `default`. A client logs a type the first time it falls back, not per item:
 
 | | |
 |---|---|
 | Category | `Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy` |
 | Event ID | `1408` |
+| Level | `Warning` with a type provider — `Kontent.Ai.Delivery.SourceGeneration` or a custom `ITypeProvider`; `Debug` without one |
 | Message | `Content type '{codename}' has no mapped model, using DynamicElements` |
-
-```csharp
-builder.Logging.AddFilter("Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy", LogLevel.Debug);
-```
 
 Seeing it means a type was added since you last generated, the models came from a different
 environment, or they are split across projects and auto-discovery found only one — see

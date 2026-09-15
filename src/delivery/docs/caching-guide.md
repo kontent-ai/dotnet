@@ -402,7 +402,7 @@ public sealed class LoggingCacheManager(IDeliveryCacheManager inner, ILogger<Log
     public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
         => inner.InvalidateAsync(dependencyKeys, cancellationToken);
 
-    public Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
+    public Task<bool> PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
         => ((IDeliveryCachePurger)inner).PurgeAsync(allowFailSafe, cancellationToken);
 }
 ```
@@ -815,11 +815,9 @@ Sometimes you need to invalidate **everything at once** (e.g., after a deploymen
 
 The SDK exposes an **optional** capability interface `IDeliveryCachePurger` that is implemented by built-in cache managers.
 
-In both `allowFailSafe` modes, built-in managers throw if a distributed clear-marker write or configured
-backplane publication fails. A circuit breaker that skips an operation causes `InvalidOperationException`.
-Local invalidation may already have happened; the operation is not atomic across tiers. Normal completion
-does not acknowledge processing by every other node. Handle failures explicitly if purging is best-effort
-in your application. Ordinary cache reads remain fail-open.
+`PurgeAsync` returns `false` when a distributed clear-marker write or backplane publication fails or is
+skipped by an open circuit breaker, and logs the reason. The purge is not atomic across tiers: local entries
+may already be invalidated, so retry on `false`. `true` does not acknowledge processing by every other node.
 
 > [!NOTE]
 > If you're using a custom cache manager that does not implement `IDeliveryCachePurger`, use provider-specific purge tooling or key-prefix rotation.
@@ -832,11 +830,11 @@ var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager
 
 if (cacheManager is IDeliveryCachePurger purger)
 {
-    // Permanently remove all entries (default behavior)
-    await purger.PurgeAsync();
-
-    // Or: mark entries as logically expired, preserving fail-safe fallback data
-    await purger.PurgeAsync(allowFailSafe: true);
+    // The default removes every entry; allowFailSafe: true expires them but keeps fail-safe fallbacks.
+    if (!await purger.PurgeAsync(allowFailSafe: true))
+    {
+        // A tier was not reached. Retry once the store is back.
+    }
 }
 ```
 
@@ -895,8 +893,8 @@ app.MapPost("/webhooks/kontent", async (
     // A language change can reach any cached response through fallbacks and has no key of its own.
     if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
     {
-        await purger.PurgeAsync(cancellationToken: cancellationToken);
-        return Results.NoContent();
+        var purged = await purger.PurgeAsync(cancellationToken: cancellationToken);
+        return purged ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
 
     // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.

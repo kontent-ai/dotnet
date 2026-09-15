@@ -49,6 +49,12 @@ internal static class LogEventIds
     /// <summary>Failed to parse modular content from cached JSON payload.</summary>
     public const int CacheModularContentParseFailed = 1144;
 
+    /// <summary>Cache purge operation failed.</summary>
+    public const int CachePurgeFailed = 1146;
+
+    /// <summary>Cache purge cleared the memory tier but did not reach the distributed tier or backplane.</summary>
+    public const int CachePurgeNotDistributed = 1147;
+
     /// <summary>Partial items cached due to type mismatch.</summary>
     public const int CachePartialItemsWarning = 1150;
 

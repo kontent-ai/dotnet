@@ -26,9 +26,15 @@ of the line.
 
 ### Breaking changes
 
-- **`PurgeAsync` throws when a distributed purge cannot complete.**
+- **`PurgeAsync` returns whether the purge completed.**
 
-  Built-in cache managers propagate failed distributed clear-marker writes and configured backplane publications. An open circuit breaker that skips either operation now causes `InvalidOperationException` instead of normal completion. Both `allowFailSafe` modes are affected; the `Task` signature is unchanged. Local entries may already be invalidated when the call throws. Callers that require best-effort purging must handle the exception explicitly. Ordinary cache reads remain fail-open.
+  `IDeliveryCachePurger.PurgeAsync` returns `Task<bool>` instead of `Task`, matching `InvalidateAsync`. The built-in managers return `false` when a distributed clear-marker write or backplane publication fails or is skipped by an open circuit breaker, in both `allowFailSafe` modes, and log the reason instead of throwing. Local entries may already be invalidated, and `true` does not acknowledge processing by every other node. Code that awaits the call compiles unchanged but should check the result and retry on `false`; a custom implementation changes its signature. Cancellation and disposal still throw.
+
+### Changed
+
+- **Unmapped content types log a warning instead of a debug message.**
+
+  When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning` once a type provider is in place - `Kontent.Ai.Delivery.SourceGeneration` or a custom `ITypeProvider` - so stale models show up without enabling debug logging. An application with neither reads every type dynamically by design and still logs it at `Debug`. A client logs a type the first time it falls back, not per item.
 
 ### Fixed
 

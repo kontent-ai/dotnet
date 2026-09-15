@@ -576,7 +576,7 @@ public partial class CachingIntegrationTests
         var result2 = await client.GetItem<Article>(itemCodename).ExecuteAsync();
 
         var purger = Assert.IsAssignableFrom<IDeliveryCachePurger>(cacheManager);
-        await purger.PurgeAsync();
+        Assert.True(await purger.PurgeAsync());
 
         var result3 = await client.GetItem<Article>(itemCodename).ExecuteAsync();
 
@@ -626,7 +626,7 @@ public partial class CachingIntegrationTests
         var secondUrl = Assert.Single(result2.Value.Elements.TeaserImage!).Url;
 
         var purger = Assert.IsAssignableFrom<IDeliveryCachePurger>(cacheManager);
-        await purger.PurgeAsync();
+        Assert.True(await purger.PurgeAsync());
 
         var result3 = await client.GetItem<Article>(itemCodename).ExecuteAsync();
         Assert.True(result3.IsSuccess);

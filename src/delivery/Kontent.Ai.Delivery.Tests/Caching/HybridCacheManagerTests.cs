@@ -138,7 +138,7 @@ public class HybridCacheManagerTests
         await PopulateCache("k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"], a);
         await PopulateCache("k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"], b);
 
-        await ((IDeliveryCachePurger)a).PurgeAsync();
+        Assert.True(await ((IDeliveryCachePurger)a).PurgeAsync());
 
         var freshNodeOfB = FusionCacheManager.CreateHybrid(shared, new DeliveryCacheOptions { KeyPrefix = "b" });
         Assert.False(await IsFactoryCalledAsync("k", freshNodeOfB));

@@ -76,6 +76,18 @@ internal static partial class LoggerMessages
     public static partial void CacheInvalidationNotDistributed(ILogger logger, int dependencyCount);
 
     [LoggerMessage(
+        EventId = LogEventIds.CachePurgeFailed,
+        Level = LogLevel.Warning,
+        Message = "Cache purge failed, stale entries may remain")]
+    public static partial void CachePurgeFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = LogEventIds.CachePurgeNotDistributed,
+        Level = LogLevel.Warning,
+        Message = "Cache purge cleared the memory tier, but a circuit breaker was open and the distributed cache or backplane was skipped. Retry once the store is back")]
+    public static partial void CachePurgeNotDistributed(ILogger logger);
+
+    [LoggerMessage(
         EventId = LogEventIds.CacheModularContentParseFailed,
         Level = LogLevel.Warning,
         Message = "Failed to parse modular content JSON for codename '{Codename}', skipping corrupted cache entry")]
@@ -177,9 +189,8 @@ internal static partial class LoggerMessages
 
     [LoggerMessage(
         EventId = LogEventIds.ContentTypeFallbackToDynamic,
-        Level = LogLevel.Debug,
         Message = "Content type '{ContentTypeCodename}' has no mapped model, using DynamicElements")]
-    public static partial void ContentTypeFallbackToDynamic(ILogger logger, string contentTypeCodename);
+    public static partial void ContentTypeFallbackToDynamic(ILogger logger, LogLevel level, string contentTypeCodename);
 
     [LoggerMessage(
         EventId = LogEventIds.GenericQueryTypeFilterConflict,
