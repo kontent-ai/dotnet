@@ -7,7 +7,7 @@ namespace Kontent.Ai.Management.Tests.Annotations;
 public class ContentTypeAndElementAttributesTests
 {
     [Fact]
-    public void KontentContentType_StoresCodenameAndOptionalId()
+    public void ContentType_StoresCodenameAndOptionalId()
     {
         var withId = new ContentTypeAttribute("article", "11111111-1111-1111-1111-111111111111");
         var withoutId = new ContentTypeAttribute("article");
@@ -20,14 +20,14 @@ public class ContentTypeAndElementAttributesTests
     }
 
     [Fact]
-    public void KontentContentType_NullCodename_Throws()
+    public void ContentType_NullCodename_Throws()
     {
         Action act = () => _ = new ContentTypeAttribute(null!);
         act.Should().Throw<ArgumentNullException>().And.ParamName.Should().Be("codename");
     }
 
     [Fact]
-    public void KontentContentType_UsageTargetsClassOnly()
+    public void ContentType_UsageTargetsClassOnly()
     {
         var usage = typeof(ContentTypeAttribute).GetCustomAttributes(typeof(AttributeUsageAttribute), false)
             .Cast<AttributeUsageAttribute>().Single();
@@ -117,8 +117,8 @@ public class ContentTypeAndElementAttributesTests
         prop.Codename.Should().Be("title");
         prop.Id.Should().Be("55555555-5555-5555-5555-555555555555");
 
-        var enumValue = typeof(StubCategory).GetField(nameof(StubCategory.News))!
+        var option = typeof(StubCategory).GetField(nameof(StubCategory.News))!
             .GetCustomAttribute<ContentOptionAttribute>()!;
-        enumValue.Codename.Should().Be("news");
+        option.Codename.Should().Be("news");
     }
 }
