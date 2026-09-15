@@ -1,0 +1,56 @@
+name: Label issues
+
+# Applies product labels from the Product answer of an issue form. Pull requests are labelled from
+# their paths by labeler.yml instead. Nothing here checks out code; the body is read as data.
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+
+jobs:
+  label:
+    name: Apply product labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            // Option text in .github/ISSUE_TEMPLATE/*.yml -> label. Keep in step with the forms and
+            // eng/products.json. "Not sure" maps to nothing and is left to triage.
+            const labels = {
+              'Delivery SDK': 'product: delivery',
+              'Management SDK': 'product: management',
+              'Sync SDK': 'product: sync',
+              'ASP.NET Core extensions': 'product: aspnetcore',
+              'Model generator': 'product: model-generator',
+            };
+
+            // A form renders each answer under a "### <label>" heading; a multi-select joins picks with ", ".
+            const products = body => {
+              const section = (body ?? '').split(/^### /m).find(s => /^Product\r?\n/.test(s));
+              const answer = section?.split(/\r?\n/).slice(1).join(' ') ?? '';
+              return new Set(answer.split(',').map(p => labels[p.trim()]).filter(Boolean));
+            };
+
+            const { action, issue, changes } = context.payload;
+            if (action === 'edited' && !changes?.body) return;
+
+            const wanted = products(issue.body);
+            // On an edit, retract only what the previous answer implied, so a label set during triage survives.
+            const previous = action === 'edited' ? products(changes.body.from) : new Set();
+            const current = new Set(issue.labels.map(l => l.name));
+
+            const add = [...wanted].filter(l => !current.has(l));
+            const remove = [...previous].filter(l => !wanted.has(l) && current.has(l));
+
+            if (add.length) {
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: issue.number, labels: add });
+            }
+            for (const name of remove) {
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number: issue.number, name });
+            }
