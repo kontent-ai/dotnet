@@ -14,13 +14,14 @@ Caching is essential for production applications using the Kontent.ai Delivery A
   - [Configuring Cache Options from DI Services](#configuring-cache-options-from-di-services)
   - [Custom Cache Manager](#custom-cache-manager)
 - [How Caching Works](#how-caching-works)
+  - [Detecting Cache Hits](#detecting-cache-hits)
   - [Cache Keys](#cache-keys)
   - [Dependency Tracking](#dependency-tracking)
   - [Using Dependency Keys for Output Caching](#using-dependency-keys-for-output-caching)
   - [Expiration Strategies](#expiration-strategies)
     - [Per-query Expiration Override](#per-query-expiration-override)
 - [Cache Invalidation](#cache-invalidation)
-  - [Invalidation Matrix (RC-ready)](#invalidation-matrix-rc-ready)
+  - [Invalidation Matrix](#invalidation-matrix)
   - [Manual Invalidation](#manual-invalidation)
   - [Webhook-Based Invalidation](#webhook-based-invalidation)
   - [Timed Invalidation](#timed-invalidation)
@@ -335,15 +336,45 @@ For advanced scenarios, implement a custom cache manager. The `IDeliveryCacheMan
 
 Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-object caching (memory), or override `StorageMode` to `CacheStorageMode.RawJson` for raw JSON payload caching (distributed). A manager that serves stale copies while the origin is unreachable sets `IsStale` on the results it serves that way; the SDK reports them as `ResponseSource.FailSafe`.
 
-#### Hydrated-object cache manager (memory style)
+> [!TIP]
+> **You probably do not need one.** The built-in managers are [FusionCache](https://github.com/ZiggyCreatures/FusionCache)-backed and `UseHybridCache` works over any `IDistributedCache`, which already covers Redis, SQL Server and Azure Cache. Write a manager only for a store FusionCache cannot reach, or a policy you must own outright.
+
+#### What an implementation has to do
+
+| Requirement | Why it matters |
+|---|---|
+| Invoke the factory **at most once** per key under concurrency | Stampede protection. Without it a cold key sends one origin request per concurrent caller. |
+| Return the factory's dependencies as `DependencyKeys` — on hits as well as misses | They drive webhook invalidation and output-cache tagging. Returning `[]` on a hit silently disables both. |
+| Set `FromFactory` when the factory produced the value | In `RawJson` mode the SDK reuses the value the factory already hydrated. Leave it `false` and the same payload is parsed and mapped a second time on every miss. |
+| Set `IsStale` on a copy served because the origin was unreachable | This is what surfaces as `ResponseSource.FailSafe`. Never setting it means fail-safe can never be reported. |
+| Honour `expiration`, falling back to your own default when it is `null` | It carries the per-query `WithCacheExpiration` override. |
+| Evict on `InvalidateAsync`: cascade over dependency keys, match case-insensitively, stay idempotent | Return `false` when invalidation did not complete. Returning `true` unconditionally tells a webhook endpoint its work succeeded when nothing was evicted. |
+| `null` from the factory: cache nothing, drop any stale copy, return `null` | This is how an unpublished item stops being served. |
+| Declare `StorageMode`, and implement `IDeliveryCachePurger` if your store can be cleared | Purge is what a language webhook needs; the ASP.NET Core sample pattern-matches for it. |
+
+There is no starter implementation here because a sketch that satisfies half of that list fails
+silently. Start from the worked reference:
+[`FusionCacheManager.cs`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/Kontent.Ai.Delivery.Caching/FusionCacheManager.cs).
+
+> [!WARNING]
+> In `RawJson` mode the `T` handed to your manager is an **SDK-internal payload record**, not your model. Serializing it into a durable store couples that store to a type outside the public contract, which can change between releases. Plan to clear the store when you upgrade the SDK.
+
+#### Decorating an existing manager
+
+Logging, metrics or a key prefix want a wrapper, not a new manager. Forward everything you do not
+change — including the two that are easy to miss:
 
 ```csharp
-using System.Collections.Concurrent;
 using Kontent.Ai.Delivery.Abstractions;
+using Microsoft.Extensions.Logging;
 
-public class CustomMemoryCacheManager : IDeliveryCacheManager
+// Drop IDeliveryCachePurger from the declaration if the manager you wrap does not implement it.
+public sealed class LoggingCacheManager(IDeliveryCacheManager inner, ILogger<LoggingCacheManager> logger)
+    : IDeliveryCacheManager, IDeliveryCachePurger
 {
-    private readonly ConcurrentDictionary<string, object> _cache = new();
+    // StorageMode is a default interface member: omit it and the decorator reports HydratedObject
+    // whatever it wraps, which changes both the storage path and the shape of the cache key.
+    public CacheStorageMode StorageMode => inner.StorageMode;
 
     public async Task<CacheResult<T>?> GetOrSetAsync<T>(
         string cacheKey,
@@ -351,79 +382,45 @@ public class CustomMemoryCacheManager : IDeliveryCacheManager
         TimeSpan? expiration = null,
         CancellationToken cancellationToken = default) where T : class
     {
-        if (_cache.TryGetValue(cacheKey, out var cached))
-            return new CacheResult<T>((T)cached, []);
+        var result = await inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
 
-        var entry = await factory(cancellationToken);
-        if (entry is null) return null;
+        // Read the provenance off the result. A flag set inside the factory would be wrong under eager
+        // refresh, where the factory runs in the background for a call that has already returned.
+        logger.LogInformation("Cache {Result} for key: {Key}",
+            result switch
+            {
+                null => "MISS",
+                { FromFactory: true } => "MISS+SET",
+                { IsStale: true } => "STALE",
+                _ => "HIT"
+            },
+            cacheKey);
 
-        _cache.TryAdd(cacheKey, entry.Value);
-        return new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
+        return result;
     }
 
     public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-    {
-        // Implement dependency tracking + invalidation for production use
-        return Task.FromResult(true);
-    }
+        => inner.InvalidateAsync(dependencyKeys, cancellationToken);
+
+    public Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
+        => ((IDeliveryCachePurger)inner).PurgeAsync(allowFailSafe, cancellationToken);
 }
 ```
 
-#### Raw JSON cache manager (hybrid style)
+#### Registering your manager
 
 ```csharp
-using System.Text.Json;
-using Kontent.Ai.Delivery.Abstractions;
-using Microsoft.Extensions.Caching.Distributed;
-
-public class CustomHybridCacheManager : IDeliveryCacheManager
-{
-    private readonly IDistributedCache _cache;
-
-    public CustomHybridCacheManager(IDistributedCache cache) => _cache = cache;
-
-    // Tell the SDK to cache raw JSON payloads instead of hydrated objects
-    public CacheStorageMode StorageMode => CacheStorageMode.RawJson;
-
-    public async Task<CacheResult<T>?> GetOrSetAsync<T>(
-        string cacheKey,
-        Func<CancellationToken, Task<CacheEntry<T>?>> factory,
-        TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        var json = await _cache.GetStringAsync(cacheKey, cancellationToken);
-        if (json is not null)
-            return new CacheResult<T>(JsonSerializer.Deserialize<T>(json)!, []);
-
-        var entry = await factory(cancellationToken);
-        if (entry is null) return null;
-
-        var options = new DistributedCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = expiration ?? TimeSpan.FromHours(1)
-        };
-
-        var serialized = JsonSerializer.Serialize(entry.Value);
-        await _cache.SetStringAsync(cacheKey, serialized, options, cancellationToken);
-
-        // Implement dependency index + invalidation for production use
-        return new CacheResult<T>(entry.Value, entry.Dependencies.ToArray());
-    }
-
-    public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-        => Task.FromResult(true);
-}
-
-// Registration
 services.AddDeliveryClient("production", delivery =>
 {
-    delivery.Options.Configure(options =>
-    {
-        options.EnvironmentId = "your-environment-id";
-    });
-    delivery.UseCacheManager(sp => new CustomHybridCacheManager(sp.GetRequiredService<IDistributedCache>()));
+    delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
+    delivery.UseCacheManager(sp => new LoggingCacheManager(
+        BuildInnerManager(sp),
+        sp.GetRequiredService<ILogger<LoggingCacheManager>>()));
 });
 ```
+
+`UseCacheManager` comes from `Kontent.Ai.Delivery.Caching`, so the package is needed even when the
+manager is your own. Attaching more than one cache to a client keeps the last.
 
 ## How Caching Works
 
@@ -438,6 +435,40 @@ When `WaitForLoadingNewContent(true)` is enabled for a query, the SDK bypasses l
 When a client is configured with `UsePreviewApi = true`, the SDK always bypasses local cache reads/writes for that client, even if a cache manager is registered.
 
 Dependency keys are read from the response itself, not from the model that reads it, so a query whose model is `IDynamicElements` or `DynamicElements` carries the same keys a fully mapped model would.
+
+### Detecting Cache Hits
+
+Every result reports where it came from, on `ResponseSource`:
+
+| `ResponseSource` | Meaning | `IsCacheHit` |
+|---|---|---|
+| `Origin` | The Delivery API answered | `false` |
+| `Cdn` | The Delivery CDN answered from its own cache (Fastly `X-Cache: HIT`) | `false` |
+| `Cache` | The SDK's local cache answered | `true` |
+| `FailSafe` | The SDK served a stale entry because the origin was unreachable | `true` |
+
+```csharp
+var result = await client.GetItem<Article>("my-article").ExecuteAsync();
+
+if (result.IsSuccess)
+{
+    switch (result.ResponseSource)
+    {
+        case ResponseSource.Cache:
+        case ResponseSource.FailSafe:
+            // Metadata describing a request is null here, because no request was made.
+            Console.WriteLine($"Served from SDK cache (stale: {result.ResponseSource is ResponseSource.FailSafe})");
+            break;
+        default:
+            Console.WriteLine($"{result.ResponseSource} answered {result.RequestUrl}");
+            break;
+    }
+}
+```
+
+`IsCacheHit` is the coarse view of the same fact — `true` for `Cache` and `FailSafe`, and the property to
+reach for when all you need is "did this cost a request". The SDK reads the CDN's `X-Cache` header for you,
+so there is no need to inspect `ResponseHeaders` yourself to tell `Cdn` from `Origin`.
 
 ### Cache Keys
 
@@ -462,6 +493,7 @@ The general format is: `{queryType}:{identifier}:{params}:{filters}`
 - **Order-independent**: Arrays and filter dictionaries in different orders produce the same key
 - **Human-readable**: Common parameters are visible for debugging (e.g., `lang=en-US:depth=2`)
 - **Efficient**: Filters are hashed to keep keys compact when queries are complex
+- **Credential-independent**: `SecureAccessApiKey` and `PreviewApiKey` are deliberately not part of key identity. Secure access only gates *which* published content a key may read, not what that content is, and a preview client bypasses the cache entirely - so neither can make two otherwise-identical queries return different content from the same cache
 
 #### Examples
 
@@ -589,22 +621,61 @@ Single type queries use direct keys in the format `type_{codename}` (for example
 
 ### Using Dependency Keys for Output Caching
 
-The SDK exposes dependency keys on every delivery result via the `DependencyKeys` property on `IDeliveryResult<T>`. This enables downstream cache invalidation scenarios such as ASP.NET output-cache tagging — you can tag your controller-level or page-level cache entries with the same keys the SDK uses internally.
+`IDeliveryResult<T>.DependencyKeys` carries the canonical key for everything a response touched — items,
+assets, taxonomies, types. They are collected whether or not SDK caching is configured, and use the same
+formats as SDK invalidation (see [Invalidation Matrix](#invalidation-matrix)), so one webhook can evict
+both caches.
+
+Tag an output-cache entry through `IOutputCacheFeature`. A `Cache-Tag` response header does not tag
+anything — ASP.NET Core never reads it back:
 
 ```csharp
-var result = await client.GetItem<Article>("my-article").ExecuteAsync();
-
-if (result.IsSuccess && result.DependencyKeys is { } keys)
+app.MapGet("/articles/{codename}", async (
+    string codename,
+    IDeliveryClient client,
+    HttpContext http,
+    CancellationToken cancellationToken) =>
 {
-    // Tag your output cache entry with the SDK's dependency keys
-    foreach (var key in keys)
+    var result = await client.GetItem<Article>(codename).ExecuteAsync(cancellationToken);
+    if (!result.IsSuccess)
     {
-        HttpContext.Response.Headers.Append("Cache-Tag", key);
+        return Results.NotFound();
     }
-}
+
+    if (http.Features.Get<IOutputCacheFeature>() is { } outputCache && result.DependencyKeys is { } keys)
+    {
+        foreach (var key in keys)
+        {
+            outputCache.Context.Tags.Add(key);
+        }
+    }
+
+    return Results.Ok(result.Value.Elements);
+}).CacheOutput();
 ```
 
-Dependency keys are always available — they are collected regardless of whether SDK caching is configured. The key formats are the same canonical formats used for SDK cache invalidation (see [Invalidation Matrix](#invalidation-matrix-rc-ready)).
+Evict with the same keys when a webhook arrives:
+
+```csharp
+app.MapPost("/webhooks/kontent", async (
+    WebhookNotification notification,
+    IOutputCacheStore outputCache,
+    CancellationToken cancellationToken) =>
+{
+    foreach (var key in notification.GetCacheDependencyKeys())
+    {
+        await outputCache.EvictByTagAsync(key, cancellationToken);
+    }
+
+    return Results.NoContent();
+});
+```
+
+> [!IMPORTANT]
+> A dependency key names a codename, not an environment: `item_on_roasts` is the same string in preview and production. Prefix the tag where one output-cache store serves more than one environment or tenant.
+
+A CDN that tags by response header instead (`Cache-Tag`, `Surrogate-Key`) takes the same keys; only the
+eviction call changes.
 
 ### Expiration Strategies
 
@@ -663,7 +734,7 @@ An invalidation and fail-safe compose the same way. `InvalidateAsync` expires th
 
 ## Cache Invalidation
 
-### Invalidation Matrix (RC-ready)
+### Invalidation Matrix
 
 This matrix lists response dependency tags, not the complete set of keys to invalidate for an event. The recommended webhook pattern below also covers item-list membership changes. Compose detail keys with `DeliveryCacheDependencies`: they are the exact strings the SDK tags with, trimmed and lower-cased, and `InvalidateAsync` matches case-insensitively.
 
@@ -861,14 +932,14 @@ the published-data triggers for the content the cache serves, and copy its secre
 For content that changes on a schedule:
 
 ```csharp
-public class CacheInvalidationService : BackgroundService
+public sealed class CacheInvalidationService(
+    IServiceProvider serviceProvider,
+    ILogger<CacheInvalidationService> logger) : BackgroundService
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<CacheInvalidationService> _logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var cacheManager = _serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
+        var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("production");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -886,7 +957,7 @@ public class CacheInvalidationService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Cache invalidation failed");
+                logger.LogError(ex, "Cache invalidation failed");
             }
         }
     }
@@ -1009,14 +1080,13 @@ var tenantBClient = factory.Get("tenant-b");
 ### Per-Tenant Cache Invalidation
 
 ```csharp
-public class TenantCacheService
+public sealed class TenantCacheService(IServiceProvider serviceProvider)
 {
-    private readonly IServiceProvider _serviceProvider;
 
     public async Task InvalidateTenantCacheAsync(string tenantId, params string[] dependencies)
     {
         // Get the keyed cache manager for the specific tenant
-        var cacheManager = _serviceProvider.GetKeyedService<IDeliveryCacheManager>(tenantId);
+        var cacheManager = serviceProvider.GetKeyedService<IDeliveryCacheManager>(tenantId);
 
         if (cacheManager != null)
         {
@@ -1089,11 +1159,13 @@ Always use webhooks in production to keep cache fresh:
 ### 3. Monitor Cache Performance
 
 ```csharp
-public class MonitoredCacheManager : IDeliveryCacheManager
+public sealed class MonitoredCacheManager(
+    IDeliveryCacheManager inner,
+    ILogger<MonitoredCacheManager> logger,
+    IMetrics metrics) : IDeliveryCacheManager
 {
-    private readonly IDeliveryCacheManager _inner;
-    private readonly ILogger _logger;
-    private readonly IMetrics _metrics;
+    // A decorator forwards what it does not change - see Decorating an existing manager.
+    public CacheStorageMode StorageMode => inner.StorageMode;
 
     public async Task<CacheResult<T>?> GetOrSetAsync<T>(
         string cacheKey,
@@ -1102,7 +1174,7 @@ public class MonitoredCacheManager : IDeliveryCacheManager
         CancellationToken cancellationToken = default) where T : class
     {
         var stopwatch = Stopwatch.StartNew();
-        var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
+        var result = await inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
         stopwatch.Stop();
 
         // FromFactory and IsStale are the only reliable classification: under eager refresh the factory
@@ -1114,8 +1186,8 @@ public class MonitoredCacheManager : IDeliveryCacheManager
             { IsStale: true } => "STALE",
             _ => "HIT",
         };
-        _metrics.RecordCacheAccess(result is { FromFactory: false }, stopwatch.ElapsedMilliseconds);
-        _logger.LogDebug("Cache {Outcome} for key: {Key} in {Ms}ms", outcome, cacheKey, stopwatch.ElapsedMilliseconds);
+        metrics.RecordCacheAccess(result is { FromFactory: false }, stopwatch.ElapsedMilliseconds);
+        logger.LogDebug("Cache {Outcome} for key: {Key} in {Ms}ms", outcome, cacheKey, stopwatch.ElapsedMilliseconds);
 
         return result;
     }
@@ -1132,27 +1204,32 @@ A custom manager owns that decision itself. If it wraps an `IDistributedCache`, 
 
 ### 5. Pre-Warm Cache
 
-For critical content, pre-warm the cache on startup:
+A warm-up only lands if it issues the *same query* the application will issue: the cache key carries the
+model type, language, depth and element projection. A typeless `GetItem("homepage")` warms nothing at
+all — dynamic queries are never cached.
 
 ```csharp
-public class CacheWarmupService : IHostedService
+public sealed class CacheWarmupService(
+    IDeliveryClient client,
+    ILogger<CacheWarmupService> logger) : IHostedService
 {
-    private readonly IDeliveryClient _client;
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        // Pre-load homepage
-        await _client.GetItem("homepage").ExecuteAsync(cancellationToken);
+        await Warm("homepage", () => client.GetItem<Homepage>("homepage").ExecuteAsync(cancellationToken));
 
-        // Pre-load navigation
-        await _client.GetItem("main_navigation").ExecuteAsync(cancellationToken);
-
-        // Pre-load recent articles
-        await _client.GetItems<Article>()
-            .Where(f => f.System("type").IsEqualTo("article"))
+        await Warm("recent articles", () => client.GetItems<Article>()
             .OrderBySystem("last_modified", OrderingMode.Descending)
             .Limit(10)
-            .ExecuteAsync(cancellationToken);
+            .ExecuteAsync(cancellationToken));
+
+        async Task Warm<T>(string what, Func<Task<IDeliveryResult<T>>> query)
+        {
+            var result = await query();
+            if (!result.IsSuccess)
+            {
+                logger.LogWarning("Cache warm-up failed for {What}: {Error}", what, result.Error?.Message);
+            }
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
@@ -1183,14 +1260,14 @@ This returns the cached value immediately while refreshing in the background —
 
 In high-traffic scenarios, a popular cache key can expire (or be invalidated) and cause many concurrent requests to miss the cache at the same time. If every request then calls the Delivery API, you get a spike of redundant calls (the "thundering herd" problem).
 
-The SDK mitigates this for cached query execution by **coalescing concurrent cache misses**:
+Cached query execution goes through FusionCache's `GetOrSetAsync`, which **coalesces concurrent cache
+misses**:
 - The first request performs the API call and populates the cache
-- Concurrent requests for the same cache key wait for the first request to finish (then read the cached result)
+- Concurrent requests for the same cache key wait for it to finish, then read the cached result
 
-Implementation details:
-- Coalescing is **scoped per `IDeliveryCacheManager` instance** (so different named clients / cache managers do not block each other)
-- Coalescing uses an in-flight task registry per cache key (owner/waiter model), not per-key semaphores
-- In-flight entries are removed immediately when the owner fetch completes (success or failure), so cleanup is completion-based
+Coalescing is scoped to the `IDeliveryCacheManager`'s underlying cache instance, so different named
+clients do not block each other. It is per-node: on a multi-instance deployment each node makes at most
+one call per key.
 
 ## Monitoring and Diagnostics
 
@@ -1252,33 +1329,9 @@ Console.WriteLine($"Current entry count: {stats.CurrentEntryCount}");
 
 ### Logging
 
-```csharp
-public class LoggingCacheManager : IDeliveryCacheManager
-{
-    private readonly IDeliveryCacheManager _inner;
-    private readonly ILogger _logger;
-
-    public async Task<CacheResult<T>?> GetOrSetAsync<T>(
-        string cacheKey,
-        Func<CancellationToken, Task<CacheEntry<T>?>> factory,
-        TimeSpan? expiration = null,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        var result = await _inner.GetOrSetAsync(cacheKey, factory, expiration, cancellationToken);
-
-        // Read the classification off the result. A flag set inside the factory would be wrong under
-        // eager refresh, where the factory runs in the background for a call that already returned.
-        _logger.LogInformation("Cache {Result} for key: {Key}",
-            result switch { null => "MISS", { FromFactory: true } => "MISS+SET", { IsStale: true } => "STALE", _ => "HIT" },
-            cacheKey);
-
-        return result;
-    }
-
-    public Task<bool> InvalidateAsync(string[] dependencyKeys, CancellationToken cancellationToken = default)
-        => _inner.InvalidateAsync(dependencyKeys, cancellationToken);
-}
-```
+Wrap the cache manager to log every lookup — see
+[Decorating an existing manager](#decorating-an-existing-manager) for a decorator that forwards the
+whole contract, `StorageMode` and purging included.
 
 ## Troubleshooting
 

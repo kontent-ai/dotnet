@@ -67,11 +67,13 @@ public sealed class ManagementClassCodeGenerator(
     [
         SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System")),
         SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("System.Collections.Generic")),
-        // SDK layout: IElementsModel at the root namespace, attributes in Annotations,
-        // content-value types (Reference, AssetReference, RichTextValue) in Models.Content.
+        // SDK layout: IElementsModel at the root namespace, attributes in Annotations, content-value
+        // types in Models.Content - except Reference, which lives in Models.Shared and is what linked
+        // items, subpages and taxonomy elements emit.
         SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("Kontent.Ai.Management")),
         SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("Kontent.Ai.Management.Annotations")),
         SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("Kontent.Ai.Management.Models.Content")),
+        SyntaxFactory.UsingDirective(SyntaxFactory.ParseName("Kontent.Ai.Management.Models.Shared")),
     ];
 
     protected override MemberDeclarationSyntax[] GetAdditionalNamespaceMembers() =>

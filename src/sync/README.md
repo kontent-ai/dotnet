@@ -1,6 +1,7 @@
 # Kontent.ai Sync SDK for .NET
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.Sync?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.Sync)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.Sync?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.Sync/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.Sync?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.Sync)
 
 Official .NET SDK for the [Kontent.ai Sync API v2](https://kontent.ai/learn/docs/apis/openapi/sync-api-v2/).
@@ -10,11 +11,36 @@ Use this SDK to initialize sync and process delta updates for content items, con
 > [!IMPORTANT]
 > This SDK targets **Sync API v2** exclusively. Sync API v1 is deprecated and not supported.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Upgrade Guide](#upgrade-guide)
+- [Quick Start](#quick-start)
+- [What a delta page contains](#what-a-delta-page-contains)
+- [Configuration](#configuration)
+- [Standalone client (without DI)](#standalone-client-without-di)
+- [Named Clients](#named-clients)
+- [Error Handling](#error-handling)
+- [Token Persistence](#token-persistence)
+- [Source Tracking (for Tool Authors)](#source-tracking-for-tool-authors)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Installation
 
 ```bash
 dotnet add package Kontent.Ai.Sync
 ```
+
+The SDK targets `net10.0`. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/sync/CHANGELOG.md) for what each release changed.
+
+## Upgrade Guide
+
+- Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
+  The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
+- Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
+  Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
+  client, and calls return an `ISyncResult` rather than throwing.
 
 ## Quick Start
 
@@ -40,7 +66,7 @@ shows the pieces as they come up.
 ```csharp
 public sealed class SyncService(ISyncClient syncClient)
 {
-    public async Task<string?> InitializeAsync(CancellationToken cancellationToken = default)
+    public async Task<string> InitializeAsync(CancellationToken cancellationToken = default)
     {
         var result = await syncClient.InitializeSyncAsync(cancellationToken);
 
@@ -351,10 +377,18 @@ services.AddSyncClient("preview", sync => sync.Options.Bind(configuration.GetSec
 
 ## Error Handling
 
-Every call returns a result rather than throwing. `ISyncResult` carries the outcome — success, error,
+A failed request is a result, not an exception. `ISyncResult` carries the outcome — success, error,
 status, the continuation token — and `ISyncResult<T>` adds `Value` for the calls that return content.
 `InitializeSyncAsync` returns the non-generic form, because initialization produces a token rather than
 content; `GetDeltaAsync` and `EnumerateDeltaAsync` return the generic one.
+
+> [!IMPORTANT]
+> Four things still throw:
+>
+> - **Cancellation** — a cancelled call throws `OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers behave normally.
+> - **Programmer errors** — a `null` argument throws `ArgumentNullException`.
+> - **Invalid configuration** — validated when the client is built or registered, as `OptionsValidationException`.
+> - **A successful response with no `X-Continuation` header** — `InvalidOperationException`. There is no result worth handing back: you could read that page and then be unable to advance.
 
 ```csharp
 var result = await syncClient.GetDeltaAsync(syncToken);
@@ -384,8 +418,8 @@ Important fields:
 
 The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into
 the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. Every successful response carries one, so it is
-never null on a successful result; a response without it fails rather than returning a result you could
-not continue from.
+never null on a successful result. A successful response that omits it throws rather than handing back a
+result you could not continue from.
 
 Where you store it during a walk is a choice. Saving once after the loop means a crash part-way through
 reprocesses from the previous token — some changes arrive twice, none are missed. Saving after each page
@@ -394,46 +428,23 @@ work.
 
 ## Source Tracking (for Tool Authors)
 
-Every request the SDK sends carries two tracking headers:
+Every request the SDK sends carries two analytics headers:
 
-- **`X-KC-SDKID`** — identifies this SDK. Always set to `nuget.org;Kontent.Ai.Sync;<version>`. You can't configure it.
-- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Only set when a caller assembly opts in via `SyncSourceTrackingHeaderAttribute`. Omitted otherwise.
+- **`X-KC-SDKID`** — identifies this SDK. Always `nuget.org;Kontent.Ai.Sync;<version>`. Not configurable.
+- **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Set only when a caller assembly opts in. Omitted otherwise.
 
-**End-user applications don't need to do anything.** This section only matters if you're publishing a library that wraps the Sync SDK.
-
-If you are, add one of the following at assembly level (typically in `AssemblyInfo.cs` or a top-level `using` file). At request time the SDK walks the call stack, locates your assembly, reads the attribute, and composes the header value.
-
-**1. Read name and version from the assembly (most common):**
+**End-user applications need do nothing here.** This matters only if you publish a library that wraps the Sync SDK. If you do, add one of these at assembly level (`AssemblyInfo.cs`, or a top-level file); at request time the SDK walks the call stack, finds your assembly and reads the attribute:
 
 ```csharp
-[assembly: SyncSourceTrackingHeaderAttribute]
+// Name and version from the assembly — the usual case.
+[assembly: SyncSourceTrackingHeader]
+
+// Override the name (your package id differs from your assembly name), version still from the assembly.
+[assembly: SyncSourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool")]
+
+// Pin both, independent of assembly metadata.
+[assembly: SyncSourceTrackingHeader("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
 ```
-
-Header becomes `<AssemblyName>;<AssemblyInformationalVersion>`.
-
-**2. Override the name, keep version from the assembly:**
-
-```csharp
-[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool")]
-```
-
-Useful when your NuGet package ID differs from your assembly name.
-
-**3. Hard-code everything:**
-
-```csharp
-[assembly: SyncSourceTrackingHeaderAttribute("Acme.Kontent.Ai.AwesomeTool", 1, 2, 3, "beta")]
-```
-
-Useful when you want to pin the reported version independent of assembly metadata.
-
-## Upgrade Guide
-
-- Coming from **1.0** — see the [1 → 2 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/sync/docs/upgrade/1-to-2.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/sync/docs/upgrade).
-  The two changes that need real work are the .NET 10 move and paging, which is now a stream you enumerate.
-- Coming from the **sync methods that used to live in `Kontent.Ai.Delivery`** — those were removed in
-  Delivery 19.0. Move to `Kontent.Ai.Sync` by following its [Quick Start](#quick-start): sync has its own
-  client, and every call returns `ISyncResult<T>` rather than throwing.
 
 ## Contributing
 
@@ -441,4 +452,4 @@ Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/dot
 
 ## License
 
-Licensed under the MIT License. See `LICENSE.md` for details.
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.

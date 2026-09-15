@@ -9,6 +9,29 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release of the **11.x** line. The tool needs the **.NET 10** runtime, and
+`Kontent.Ai.ModelGenerator.Core` targets `net10.0`.
+
+Coming from **10.x**, the emitted code is unchanged apart from one added `using` in Management mode,
+so regenerating Delivery models produces no diff. The work is the runtime move and the removal of
+`--withtypeprovider` / `-t`, which the Delivery SDK's own compile-time provider replaced. Arguments are
+now validated against the SDKs' own rules before any request, so a malformed `--environmentId` or a
+flag that belongs to the other mode fails immediately instead of part-way through a run.
+
+Generated Delivery models need `Kontent.Ai.Delivery` 19.0 or newer (19.2.0 for `--nullability
+semantic`); generated Management models need `Kontent.Ai.Management` 9.0 or newer.
+
+Full migration: [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md).
+
+### Fixed
+
+- **Generated Management models compile when a content type has linked items, subpages or taxonomy.**
+
+  All three elements emit `IEnumerable<Reference>?`, but `Reference` lives in
+  `Kontent.Ai.Management.Models.Shared` and the emitter only wrote a `using` for `Models.Content`, so
+  the generated file failed with `CS0246`. Management mode now emits both namespaces. Regenerate, or
+  add `using Kontent.Ai.Management.Models.Shared;` to the affected files by hand.
+
 ## 11.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
 ### Breaking changes
@@ -842,7 +865,7 @@ https://www.nuget.org/packages/Kentico.Kontent.ModelGenerator/6.0.0
 https://www.nuget.org/packages/Kentico.Kontent.ModelGenerator/5.0.1
 
 Bug fixes:
-- [JsonProperty attributes in CM API models were generated incorrectly](https://github.com/Kentico/kontent-generators-net/issues/102)
+- [JsonProperty attributes in CM API models were generated incorrectly](https://github.com/kontent-ai/model-generator-net/issues/102)
 
 ## 5.0.0 (2020-03-31)
 

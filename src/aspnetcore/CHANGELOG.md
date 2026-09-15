@@ -6,6 +6,18 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release. Targets `net10.0` and requires `Kontent.Ai.Delivery` **20** or later.
+
+Coming from **0.16.x / 0.17.x**, the public surface was tightened while the package was still pre-1.0.
+Two changes are behavioural and worth reading even where the compiler is quiet: a missing webhook
+secret now stops the host from starting instead of admitting unsigned requests, and a webhook payload
+missing a documented member fails to bind rather than arriving half-populated.
+
+Full migration: [0 → 1](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md).
+
+The sections below list what changed since `1.0.0-rc.2`; the `rc` entries further down record the rest
+of the line.
+
 ### Fixed
 
 - **`<img-asset>` keeps the percent-encoding of the asset's filename.**
@@ -18,7 +30,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **The always-present webhook members are `required` and non-nullable.**
 
-  The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the models marked every reference-type member nullable, so a handler checked or `!`-ed every field it read. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. A payload that lacks a required member fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls; an explicit JSON `null` is still accepted unless the host's serializer respects nullable annotations, so event-specific fields still need checking. Code that constructs a payload by hand must set every required member. See the [upgrade guide](docs/upgrade/0-to-1.md), §5.
+  The API sends `notifications`, `data`, `message`, `system`, `id`, `name`, `codename`, `last_modified`, `environment_id`, `object_type`, `action` and `delivery_slot` on every event, and the models marked every reference-type member nullable, so a handler checked or `!`-ed every field it read. `WebhookItem.Id` is `Guid` rather than `Guid?`. The members that depend on the kind of object — `Collection`, `Workflow`, `WorkflowStep`, `Language`, `Type`, `TaxonomyGroup`, `ActionContext` — stay nullable. A payload that lacks a required member fails to bind (`JsonException`, a 400 from model binding) instead of arriving with nulls; an explicit JSON `null` is still accepted unless the host's serializer respects nullable annotations, so event-specific fields still need checking. Code that constructs a payload by hand must set every required member. See the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md), §5.
 
 - **`SignatureMiddleware` is `internal`.**
 

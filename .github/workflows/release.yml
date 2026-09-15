@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 30
     # The environment carries the protection rules, in repository settings rather than here:
     # which branches may publish, and who approves. Named for where the packages go, so the
-    # Deployments tab reads as a publishing log. See README.md#releasing.
+    # Deployments tab reads as a publishing log. See RELEASING.md.
     environment:
       name: nuget.org
       url: https://www.nuget.org/profiles/kontent-ai

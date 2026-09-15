@@ -1,30 +1,36 @@
 # Kontent.ai model generator utility for .NET
 
-[![NuGet](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.ModelGenerator?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.ModelGenerator?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.ModelGenerator?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.ModelGenerator)
 
 This utility generates strongly-typed **record-based models** for:
 
 - the [Kontent.ai Delivery SDK for .NET (v19+)](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) — default mode, for reading content
-- the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows. Beta — targets `Kontent.Ai.Management 9.0.0-beta-1`.
+- the [Kontent.ai Management SDK for .NET](https://github.com/kontent-ai/dotnet/tree/main/src/management) — opt-in mode (`-m` / `--management`), for CRUD workflows.
 
 > [!IMPORTANT]
-> Management mode emits code that references the `IElementsModel` marker, the `[KontentType]` / `[KontentElement]` / `[KontentEnumValue]` attributes, and the value types (`RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue`, `CustomValue`) shipped by `Kontent.Ai.Management 9.0.0-beta-1`. Generated management models require **`Kontent.Ai.Management 9.0.0-beta-1` or newer** — they won't compile against v8.2.0 or earlier. The mode is a beta: the generated shapes may still change before the SDK stabilizes.
+> Three version requirements, and they are independent:
+> - **The tool** needs the **.NET 10** runtime.
+> - **Generated Delivery models** need `Kontent.Ai.Delivery` **19.0** or newer, and `--nullability semantic` needs **19.2.0** for `RichTextContent.Empty`.
+> - **Generated Management models** need `Kontent.Ai.Management` **9.0** or newer.
+>
+> Your own project's target framework is not constrained by the tool — only by the SDK the models reference.
 >
 > If you need models for the legacy Delivery SDK (v18.x and earlier) or for Extended Delivery, use the [previous stable release](https://github.com/kontent-ai/model-generator-net/tree/9.0.0).
 
-## What's New in Updated Delivery Models
+## Table of Contents
 
-The generated models use modern C# features and patterns:
-
-- **Records** - Immutable `record` types with `{ get; init; }` accessors
-- **Modern types** - `RichTextContent`, `Asset`, `TaxonomyTerm`, `IEmbeddedContent`
-- **Partial records** - Easily extendable without modifying generated code
-- **`ContentTypeCodename` attribute** - For source-generated TypeProvider discovery
-- **`ContentTypeCodename` constant** - Access the content type codename at compile time (usable in `switch`/`case` labels, attribute arguments, and other contexts that require a compile-time constant) without reflection
-
-> [!NOTE]
-> If an element codename would produce a property or constant that collides with the built-in `ContentTypeCodename` constant (e.g., an element named `content_type_codename` or `content_type`), the element's member is automatically prefixed with an underscore (`_ContentTypeCodename`) to avoid conflicts. The `[JsonPropertyName]` attribute ensures deserialization still works correctly.
+- [Installation & Usage](#installation--usage)
+- [Upgrade Guide](#upgrade-guide)
+- [Delivery Model Features](#delivery-model-features)
+- [Generated Model Example (Delivery)](#generated-model-example-delivery)
+- [Nullability mode](#nullability-mode)
+- [Customizing Generated Models](#customizing-generated-models)
+- [Management Models](#management-models)
+- [Need Legacy Delivery SDK or Extended Delivery Support?](#need-legacy-delivery-sdk-or-extended-delivery-support)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation & Usage
 
@@ -38,25 +44,22 @@ The recommended way of obtaining this tool is installing it as a [.NET Tool](htt
 dotnet tool install -g Kontent.Ai.ModelGenerator
 ```
 
-Delivery (default):
+See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/CHANGELOG.md) for what each release changed.
+
+Delivery models (default mode):
 
 ```bash
-KontentModelGenerator --environmentId "<environmentId>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"] \
-    [--baseRecord "<base-record-name>"] \
-    [--nullability strict|semantic]
+KontentModelGenerator --environmentId "<environmentId>" --namespace "MyProject.Models" --outputdir "./Models"
 ```
 
-Management (beta — see [Management Models](#management-models)):
+Management models (see [Management Models](#management-models)):
 
 ```bash
-KontentModelGenerator --management \
-    --environmentId "<environmentId>" \
-    --apiKey "<management-api-key>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"]
+KontentModelGenerator --management --environmentId "<environmentId>" --apiKey "<management-api-key>" --outputdir "./Models"
 ```
+
+Only `--environmentId` is required (plus `--apiKey` in Management mode); everything else has a default.
+See [Parameters](#parameters) for the full set.
 
 #### Local Tool
 
@@ -66,28 +69,25 @@ dotnet tool install Kontent.Ai.ModelGenerator
 ```
 
 ```bash
-dotnet tool run KontentModelGenerator --environmentId "<environmentId>" \
-    [--namespace "<custom-namespace>"] \
-    [--outputdir "<output-directory>"] \
-    [--baseRecord "<base-record-name>"] \
-    [--nullability strict|semantic]
+dotnet tool run KontentModelGenerator --environmentId "<environmentId>" --outputdir "./Models"
 ```
 
 ### Standalone apps for Windows, Linux, macOS
 
-[Self-contained apps](https://docs.microsoft.com/en-us/dotnet/core/deploying/#publish-self-contained) are an ideal choice for machines without any version of .NET installed.
+Releases ship as NuGet packages only. For a machine without .NET installed, build a
+[self-contained app](https://docs.microsoft.com/en-us/dotnet/core/deploying/#publish-self-contained)
+yourself:
 
-Latest release: [Download](https://github.com/kontent-ai/dotnet/releases)
+```bash
+git clone https://github.com/kontent-ai/dotnet.git
+cd dotnet/src/model-generator/Kontent.Ai.ModelGenerator
+dotnet publish -c release -r <RID> --self-contained true
+```
 
-<details>
-<summary>Building a self-contained binary for a specific platform</summary>
+`--self-contained true` is not optional: since .NET 8 a runtime identifier alone produces a
+framework-dependent build, which still needs .NET 10 installed.
 
-* Clone the repository
-* Navigate to `Kontent.Ai.ModelGenerator`
-* `dotnet build -r <RID>` to build (see the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog))
-* `dotnet publish -c release -r <RID>` to publish
-
-</details>
+See the [list of all RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog) for `<RID>`.
 
 ### Parameters
 
@@ -110,7 +110,7 @@ belonging to the mode you run is read.
 
 ### CLI Syntax
 
-Short keys such as `-n "MyModels"` are interchangeable with the long keys `--namespace "MyModels"`. Other possible syntax is `-n=MyModels` or `--namespace=MyModels`. Parameter values are case-insensitive. To see all aspects of the syntax, see the [MS docs](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.commandlineconfigurationextensions.addcommandline).
+Short keys such as `-n "MyModels"` are interchangeable with the long keys `--namespace "MyModels"`, and `-n=MyModels` / `--namespace=MyModels` work too. Parameter **names** are case-insensitive, as are the values of `--nullability`; every other value — namespaces, paths, keys — is used exactly as written. To see all aspects of the syntax, see the [MS docs](https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.configuration.commandlineconfigurationextensions.addcommandline).
 
 ### Config file
 
@@ -129,6 +129,25 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
    ```
 
 2. An `appSettings.json` in the directory you run the tool from — see [Config file](#config-file)
+
+## Upgrade Guide
+
+Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator/docs/upgrade); skipping a major means reading them in sequence.
+
+- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move and the removal of `--withtypeprovider` are the work; the generated code itself is unchanged.
+
+## Delivery Model Features
+
+The generated models use modern C# features and patterns:
+
+- **Records** - Immutable `record` types with `{ get; init; }` accessors
+- **Modern types** - `RichTextContent`, `Asset`, `TaxonomyTerm`, `IEmbeddedContent`
+- **Partial records** - Easily extendable without modifying generated code
+- **`ContentTypeCodename` attribute** - For source-generated TypeProvider discovery
+- **`ContentTypeCodename` constant** - Access the content type codename at compile time (usable in `switch`/`case` labels, attribute arguments, and other contexts that require a compile-time constant) without reflection
+
+> [!NOTE]
+> If an element codename would produce a property or constant that collides with the built-in `ContentTypeCodename` constant (e.g., an element named `content_type_codename` or `content_type`), the element's member is automatically prefixed with an underscore (`_ContentTypeCodename`) to avoid conflicts. The `[JsonPropertyName]` attribute ensures deserialization still works correctly.
 
 ## Generated Model Example (Delivery)
 
@@ -221,7 +240,7 @@ public string? CustomTrackingCode { get; init; }
 > When combined with [projection](https://kontent.ai/learn/docs/apis/openapi/delivery-api/#tag/Items-and-content-types/operation/list-content-items) (`WithElements` / `WithoutElements`), an omitted element surfaces as the type's default (`""`, `[]`, `RichTextContent.Empty`) rather than `null` — so "not fetched" and "fetched and empty" look the same. That's fine if your code doesn't branch on that distinction; if it does, prefer `strict`.
 
 > [!IMPORTANT]
-> `--nullability semantic` requires Delivery SDK **19.2.0+** (for `RichTextContent.Empty`). It will become the **default in the next major version** of the model generator.
+> `--nullability semantic` requires Delivery SDK **19.2.0+** (for `RichTextContent.Empty`). It is planned to become the **default in a future major version** of the model generator.
 
 ## Customizing Generated Models
 
@@ -254,7 +273,9 @@ public partial record Article
     public string Slug => Title?.ToLowerInvariant().Replace(" ", "-") ?? string.Empty;
 
     // Add custom methods
-    public bool IsPublished() => PostDate is { DateTime: var dt } && dt <= DateTime.Now;
+    public DateTime? PostedLocal() => PostDate is { Value: { } utc, DisplayTimezone: { } zone }
+        ? TimeZoneInfo.ConvertTimeFromUtc(utc, TimeZoneInfo.FindSystemTimeZoneById(zone))
+        : PostDate?.Value;
 
     // Add validation
     public bool IsValid() => !string.IsNullOrEmpty(Title) && BodyCopy != null;
@@ -266,14 +287,13 @@ The generator creates the base model, and you maintain customizations in separat
 ## Management Models
 
 > [!IMPORTANT]
-> Beta. The emitted code references types and attributes shipped by `Kontent.Ai.Management
-> 9.0.0-beta-1` — `IElementsModel`, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`,
-> `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue`, and
-> `CustomValue`. Generated models require **`Kontent.Ai.Management 9.0.0-beta-1` or newer** and
-> won't compile against v8.2.0 or earlier. A single-option multiple-choice element generates a
-> `{ContentType}{Element}?` property, which the SDK reads and writes from the release that ships
-> alongside this generator version; earlier releases reject the property type when the record is
-> first used. The generated shapes may still change before the SDK stabilizes.
+> The emitted code references types and attributes shipped by `Kontent.Ai.Management` — the
+> `IElementsModel` marker, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`, and the value
+> types `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue` and
+> `CustomValue`. Generated models therefore require **`Kontent.Ai.Management` 9.0 or newer**; they
+> will not compile against 8.x. Keep the generator and the SDK on releases that shipped together —
+> a single-option multiple-choice element generates a `{ContentType}{Element}?` property, and an
+> SDK older than this generator rejects that property type when the record is first used.
 
 When you need to **write** content to Kontent.ai (create / update / delete / publish via the Management API), pass `-m` / `--management` to switch the generator from Delivery mode into Management mode. The emitter produces strongly-typed records you can construct with object-initializer syntax and pass to `IManagementClient`.
 
@@ -315,6 +335,7 @@ using System.Collections.Generic;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Annotations;
 using Kontent.Ai.Management.Models.Content;
+using Kontent.Ai.Management.Models.Shared;
 
 namespace MyProject.Models;
 
@@ -377,7 +398,7 @@ public enum ArticleCategory
 > - **Legacy Delivery SDK (v18.x and earlier)** models
 > - **Extended Delivery** models
 
-## Feedback & Contributing
+## Contributing
 
 Found a bug or have a feature request? [Open an issue](https://github.com/kontent-ai/dotnet/issues). Pull requests are welcome!
 
@@ -385,12 +406,10 @@ Found a bug or have a feature request? [Open an issue](https://github.com/konten
 
 We would like to express our thanks to the following people who contributed and made the project possible:
 
-- [Drazen Janjicek](https://github.com/djanjicek) - [EXLRT](http://www.exlrt.com/)
+- Drazen Janjicek - [EXLRT](http://www.exlrt.com/)
 - [Kashif Jamal Soofi](https://github.com/kashifsoofi)
 - [Casey Brown](https://github.com/MajorGrits)
 
 ## License
 
-[MIT](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md)
-
-<!-- Badge references -->
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.

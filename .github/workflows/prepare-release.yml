@@ -120,11 +120,33 @@ jobs:
           git commit -a -F /tmp/commit.txt
           git push -u origin "$BRANCH"
 
+          # A new stable major is the one release whose page is read by people who never saw a
+          # prerelease, and the promoted entry only covers the delta since the last one. Shown only
+          # when the batch has one - a banner on every release stops being read.
+          MAJORS=$(grep -E -- '-v[0-9]+\.0\.0$' /tmp/tags.txt || true)
+
           {
             echo "Prepared by the *Prepare release* workflow."
             echo
             cat /tmp/summary.txt
             echo
+
+            if [ -n "$MAJORS" ]; then
+              echo "> [!IMPORTANT]"
+              echo "> **This batch contains a new stable major.** Its release page is read by people"
+              echo "> upgrading from the previous stable line, but the promoted entry only covers the"
+              echo "> delta since the last prerelease. Add an overview to each one's \`CHANGELOG.md\`,"
+              echo "> between the version heading and the first \`###\`, then render it to check:"
+              echo ">"
+              echo "> \`\`\`sh"
+              while read -r t; do
+                [ -n "$t" ] && echo "> dotnet run eng/scripts/release-notes.cs -- $t"
+              done <<< "$MAJORS"
+              echo "> \`\`\`"
+              echo ">"
+              echo "> *Publish* refuses a new stable major that has none. See [RELEASING.md](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/RELEASING.md) for the overview requirements."
+              echo
+            fi
             echo "Review each version property and its promoted changelog entry, then merge."
             echo
             echo "Once this is merged, run **Actions -> Publish** from this PR's base branch. It packs"

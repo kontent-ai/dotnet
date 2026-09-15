@@ -46,6 +46,16 @@ var body = section.Groups["body"].Value.Trim();
 if (body.Length == 0)
     return Fail($"the '## {version}' entry in {changelogRel} is empty");
 
+// A new stable major is the one release whose page is read by people who never saw a prerelease,
+// and the sections below the heading only describe the delta since the last one - often nothing.
+// The overview is the prose above the first "###"; requiring it here is the only check that the
+// entry was written for that audience. Patches, minors and prereleases are exempt.
+if (Regex.IsMatch(version, @"^\d+\.0\.0$") && body.StartsWith("###", StringComparison.Ordinal))
+    return Fail(
+        $"the '## {version}' entry in {changelogRel} is a new stable major with no overview. " +
+        "Add prose above the first '###' saying what the release is, what a consumer upgrading from " +
+        "the previous stable major has to do, and where the upgrade guide is. See RELEASING.md.");
+
 // Promote the entry's own headings one level: "### Fixes" reads better as "## Fixes" on a
 // release page. Fenced code blocks are skipped so shell comments are not rewritten.
 var output = new StringBuilder();
@@ -55,6 +65,17 @@ foreach (var line in body.Replace("\r\n", "\n").Split('\n'))
     if (line.TrimStart().StartsWith("```", StringComparison.Ordinal)) inFence = !inFence;
     output.AppendLine(!inFence && line.StartsWith("###", StringComparison.Ordinal) ? line[1..] : line);
 }
+
+// Repository links in a changelog entry point at main, which is right in the repository and wrong
+// on a release page: main moves on, so a published page would come to describe a later major. The
+// tag is immutable and exists before the first package is pushed, so the page keeps pointing at the
+// docs that shipped with it.
+var rendered = output.ToString().Replace(
+    "https://github.com/kontent-ai/dotnet/blob/main/",
+    $"https://github.com/kontent-ai/dotnet/blob/{tag}/",
+    StringComparison.Ordinal);
+output.Clear();
+output.Append(rendered);
 
 // Pinned to this version: an older release page must not install a newer major, and a
 // prerelease page must name its own prerelease. A tool package installs as a tool.

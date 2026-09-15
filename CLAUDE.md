@@ -43,6 +43,15 @@ Products with their own `CLAUDE.md` (e.g. `src/management/CLAUDE.md`) carry prod
 - No dead code, no drifting `// TODO`s, no commented-out blocks, no references to dev-only notes or planning files from committed code.
 - Do not add defensive code for impossible scenarios. Validate at external boundaries only (public API entry points, deserialized network payloads).
 
+## Writing documentation
+
+The commenting bar above applies to prose. **Short, to the point, only where needed.** Nobody reads a
+README for the prose.
+
+- **State the fact, not the case for it.** Rationale earns its place only when it stops a reader doing the wrong thing — that `DisableFor` diverges from the SDK's retry rule, that a preview client's cache bypass does not cover a CDN. Rationale that defends a decision we already made is padding; cut it.
+- **Every example compiles** against the current source. Extract the snippet and build it — do not hand-maintain approximations, and do not describe behaviour you have not run.
+- **One authoritative place per answer.** A README section that restates a guide will contradict it. Link instead.
+
 ## Build system
 
 - **Root `Directory.Build.props`** — repo-wide build settings, packaging metadata, `$(KontentCommonPath)`/`$(KontentTestingPath)`.
@@ -51,6 +60,8 @@ Products with their own `CLAUDE.md` (e.g. `src/management/CLAUDE.md`) carry prod
 - Build and test from anywhere with plain `dotnet build` / `dotnet test` — prefer commands without explicit paths.
 
 ## Versioning and releases — GitHub Actions are the source of truth
+
+[RELEASING.md](RELEASING.md) describes the same machinery for maintainers; what follows is the agent's brief. The overlap is deliberate — nobody should have to open an agent instruction file to run a release — so a change to the workflows updates both, and user-facing instructions go only in RELEASING.md.
 
 **`eng/Versions.props`** holds one version property per product (e.g. `<ManagementVersion>`); each `src/<product>/Directory.Build.props` applies its own. This file — not tags, not changelogs — is what the machinery trusts. The workflows under `.github/workflows/` define the process; when in doubt about how releasing works, read them rather than guessing:
 
@@ -69,11 +80,21 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 - A bullet opens with a **bold lead of at most a dozen words** that names the change, and nothing else on that line. Rationale, consumer impact and migration go in a paragraph of their own inside the bullet, after a blank line; code blocks stay where they are. Read the bold lines alone and the release should still make sense.
 - Headings come from one set, in this order when present: `Breaking changes`, `Security`, `Added`, `Changed`, `Fixed`, `Dependencies`, `Internal`. Nothing else — a stray heading reaches the release page as is.
+- **Links are absolute.** A relative link resolves in the repository and breaks on the release page, which has no base path. `release-notes.cs` rewrites `blob/main/` to `blob/<tag>/` when it renders, so the release page's own links land on the docs that shipped with it. That pins the first hop only — links *inside* the tagged guide still point at `main`, so a reader can step off the version by following one. Version-consistent navigation across the whole journey is unfinished.
+- **A new stable major opens with an overview** — free-form prose between the `## <version>` heading and the first `###`, with no heading of its own. Everything below it describes the delta since the last prerelease, which is not what someone upgrading from the previous stable major needs. Four parts, in this order:
+
+  1. What this is — the line, and the target framework.
+  2. *Coming from `<previous stable major>`* — the changes a consumer has to act on, as prose rather than an inventory, with behavioural changes separated from compile-time ones.
+  3. *Full migration* — a link to the upgrade guide, plus the chained one if a major can be skipped.
+  4. Where the detail lives — that the sections below cover the delta since the last prerelease, and the prerelease entries below them keep the rest.
+
+  Do not roll the prerelease entries up into it. They stay where they are, and the upgrade guide is already the curated version of that history.
 - A breaking entry's paragraph keeps one order: what changed, what a consumer sees, what to do about it.
 
 ## Commits and PRs
 
-- Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history. Branch names: `TICKET-ID_Short_description`.
+- Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history.
+- Branch names are `<type>/<short-description>`, lower case and hyphenated (e.g. `docs/fix-delivery-upgrade-guides`). The type is a Conventional Commits type — `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `chore`, `ci` — or, when the work tracks a ticket, the ticket ID in that slot instead: `EN-713/add-component-types-filter`. `release/` and `maintenance/` are not free to use: the prepare-release workflow creates `release/batch-<date>-<run>` itself, and `maintenance/**` is the hotfix line CI and the publish workflow both key on.
 - Keep each PR scoped: infra separate from per-product work; version bumps come only from the prepare-release workflow; floor raises in their own PR.
 - Public API surface is gated per product by approval snapshots (Verify, printer shared from `src/testing`). Review a `.received.txt` diff line by line before accepting it — only for intended changes. Every shipped package has a gate except `Kontent.Ai.ModelGenerator`, which is `PackAsTool`: its contract is the command line, not a managed surface nobody references. Its arguments are covered by `ArgHelpers`/`Program` tests instead.
 

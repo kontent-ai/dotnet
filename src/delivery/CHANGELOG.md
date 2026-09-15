@@ -8,11 +8,33 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+The first stable release of the **20.x** line, and the GA of everything the `20.0.0-rc` series
+introduced. Targets `net10.0`.
+
+Coming from **19.x**, the compile-time work is registration and caching: `AddDeliveryClient` and
+`DeliveryClient.Create` both take a builder, and a cache attaches to that builder with `UseMemoryCache`
+/ `UseHybridCache` instead of its own `Add…` call. Three changes compile unchanged and behave
+differently — a failed page in `EnumerateAsync()` throws instead of ending the walk, transport failures
+arrive as results rather than exceptions, and the 100-second call ceiling is gone under the default
+resilience pipeline. Distributed cache keys change shape, so existing Redis entries expire unread.
+
+Full migration: [19 → 20](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/19-to-20.md). Coming from 18.x, read
+[18 → 19](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) first.
+
+The sections below list what changed since `20.0.0-rc.3`; the `rc` entries further down record the rest
+of the line.
+
 ### Breaking changes
 
 - **`PurgeAsync` throws when a distributed purge cannot complete.**
 
   Built-in cache managers propagate failed distributed clear-marker writes and configured backplane publications. An open circuit breaker that skips either operation now causes `InvalidOperationException` instead of normal completion. Both `allowFailSafe` modes are affected; the `Task` signature is unchanged. Local entries may already be invalidated when the call throws. Callers that require best-effort purging must handle the exception explicitly. Ordinary cache reads remain fail-open.
+
+### Fixed
+
+- **A missing default client no longer reports the internal `'Default'` name.**
+
+  `IDeliveryClientFactory.Get()` resolves the client registered without a name, which the SDK files under an internal key. When none was registered the error named that key and advised `AddDeliveryClient("Default", ...)` - a call that registers an ordinary named client and then collides with the unnamed registration. It now says to call `AddDeliveryClient(...)` without a name. Registering the default twice reports it as a default rather than as a name clash. Errors for explicitly named clients are unchanged.
 
 ## 20.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
@@ -475,7 +497,7 @@ These are implementation-only changes with no public API or behavior impact:
 Minor release adding a canonical empty value for rich text and sealing `RichTextContent` against post-construction mutation. Pre-requisite for upcoming improvements to model generator (default values instead of strict nullability everywhere).
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade/18-to-19.md) before you start.
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) before you start.
 
 #### What's new
 
@@ -500,7 +522,7 @@ The public parameterless `RichTextContent()` constructor has been removed. It pr
 Minor release adding `IServiceProvider`-aware DI registration overloads so SDK options can be composed from sibling services already registered in the container.
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](docs/upgrade/18-to-19.md) before you start.
+> **Upgrading from 18.x?** v19 is a ground-up redesign of the SDK. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) before you start.
 
 #### What's new
 
@@ -532,7 +554,7 @@ No code changes required. Use the new `(IServiceProvider, options)` overloads wh
 Production release of the revamped 19.0 SDK, consolidating pre-release iterations into a stable GA. Changes vs RC5: SDK tracking headers no longer leak SourceLink build metadata, and per-content-type cache invalidation tags now flow through to cached item entries.
 
 > [!IMPORTANT]
-> **Upgrading from 18.x?** 19.0 is a ground-up design overhaul of the SDK — every public surface area has changed. Read the [upgrade guide](docs/upgrade/18-to-19.md) and the [quick migration checklist](docs/upgrade/18-to-19.md#quick-migration-checklist) before you start.
+> **Upgrading from 18.x?** 19.0 is a ground-up design overhaul of the SDK — every public surface area has changed. Read the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md) and the [quick migration checklist](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md#quick-migration-checklist) before you start.
 
 #### Public API surface changes
 
@@ -548,7 +570,7 @@ Production release of the revamped 19.0 SDK, consolidating pre-release iteration
 - **DI registration** — New overloads, keyed services, named clients, and `ConfigureServices(...)` hook; `AddDeliveryClientCache` split into `AddDeliveryMemoryCache` / `AddDeliveryHybridCache`.
 - **Sync API** — Removed from this package; moved to the standalone [`Kontent.Ai.Sync`](https://github.com/kontent-ai/sync-sdk-net) package.
 
-The full type-by-type surface diff, including renamed / removed / added members across every RC, is enumerated in the [upgrade guide](docs/upgrade/18-to-19.md). The public-API approval snapshot (`Kontent.Ai.Delivery.Abstractions.Tests/ApiApproval/PublicApiApprovalTests.PublicApi_ShouldNotChangeUnexpectedly.verified.txt`) is the authoritative reference for the 19.0.0 surface.
+The full type-by-type surface diff, including renamed / removed / added members across every RC, is enumerated in the [upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md). The public-API approval snapshot (`Kontent.Ai.Delivery.Abstractions.Tests/ApiApproval/PublicApiApprovalTests.PublicApi_ShouldNotChangeUnexpectedly.verified.txt`) is the authoritative reference for the 19.0.0 surface.
 
 #### Bug fixes from rc5
 
@@ -580,7 +602,7 @@ The full type-by-type surface diff, including renamed / removed / added members 
 
 #### Migration from 18.x
 
-See [`docs/upgrade-guide.md`](docs/upgrade/18-to-19.md). Every call site that uses the SDK will need code changes — the guide is structured as an eleven-section walkthrough with before/after snippets for each area, plus a quick checklist.
+See [`docs/upgrade-guide.md`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/upgrade/18-to-19.md). Every call site that uses the SDK will need code changes — the guide is structured as an eleven-section walkthrough with before/after snippets for each area, plus a quick checklist.
 
 #### Migration from RC5
 
@@ -927,7 +949,7 @@ Attribute-based type resolution with source generation, plus performance and rel
 
 - **Rich text hardening** - Adds a max parsing depth guard to prevent stack overflow on deeply nested HTML and improves null-safety for inline images.
 
-- **Dynamic mode rich text parsing** - New `ParseRichTextAsync` extension method on `JsonElement` enables rich text resolution when using dynamic content access. See [Dynamic Mode Resolution](docs/rich-text-customization.md#dynamic-mode-resolution) in the Rich Text Customization Guide.
+- **Dynamic mode rich text parsing** - New `ParseRichTextAsync` extension method on `JsonElement` enables rich text resolution when using dynamic content access. See [Dynamic Mode Resolution](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md#dynamic-mode-resolution) in the Rich Text Customization Guide.
 
 - **Generic rich text resolver interface** — New `IRichTextResolver<TOutput>` base interface enables custom rich text resolution to any output format (Markdown, portable text, view models, etc.). `IHtmlResolver` extends `IRichTextResolver<string>` for HTML output.
 
@@ -1892,7 +1914,7 @@ https://www.nuget.org/packages/Kentico.Kontent.Delivery/13.0.1
 - [support for registering multiple clients](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Registering-the-DeliveryClient-to-the-IServiceCollection-in-ASP.NET-Core#registering-multiple-clients)
 - [support for hot-reloading of configuration via `IOptionsSnapshot` and `IOptionsMonitor`](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-3.1#reload-configuration-data-with-ioptionssnapshot)
 - [new best practices for working with the SDK](https://github.com/Kentico/kontent-delivery-sdk-net/wiki)
-- [better support for structured rich-text rendering of assets](https://github.com/Kentico/kontent-delivery-sdk-net/issues/204)
+- [better support for structured rich-text rendering of assets](https://github.com/kontent-ai/delivery-sdk-net/issues/204)
 
 **Breaking changes:**
 - `WithHttpClient(new HttpClient())` became `WithDeliveryHttpClient(new DeliveryHttpClient(new HttpClient()))` (see the [docs](https://github.com/Kentico/kontent-delivery-sdk-net/wiki/Faking-responses))
@@ -2027,7 +2049,7 @@ https://www.nuget.org/packages/KenticoCloud.Delivery/9.0.1
 - Added an extension method on `IServiceCollection` that registers `IDeliveryClient` implementation
 - Custom implementation of resolvers, processors, mappers can no longer be set to public properties - now they can be set through `DeliveryClientBuilder` class or by registering them to the `ServiceCollection`
 - `ConfigurationManagerProvider` class has been removed so the `GetDeliveryOptions` method for retrieving `DeliveryOptions` from web.config is no longer available.
-- Exception is [not thrown](https://github.com/Kentico/delivery-sdk-net/issues/126) when strong type doesn't exist during deserialization. Instead, null is returned for that object.
+- Exception is [not thrown](https://github.com/kontent-ai/delivery-sdk-net/issues/126) when strong type doesn't exist during deserialization. Instead, null is returned for that object.
 
 **NuGet:**
 - [8.0.0](https://www.nuget.org/packages/KenticoCloud.Delivery/8.0.0)
@@ -2112,7 +2134,7 @@ https://www.nuget.org/packages/KenticoCloud.Delivery/4.7.0
 - added more unit tests!
 
 ## Fixed bugs
-- [Asset description was not always initialized](https://github.com/Kentico/delivery-sdk-net/issues/68)
+- [Asset description was not always initialized](https://github.com/kontent-ai/delivery-sdk-net/issues/68)
 
 ## Closed pull reuqests
 See all closed pull reuqests in the latest [milestone](https://github.com/Kentico/delivery-sdk-net/milestone/3?closed=1).

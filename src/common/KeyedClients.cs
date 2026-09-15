@@ -31,10 +31,21 @@ internal static class KeyedClients
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return serviceProvider.GetKeyedService<TClient>(name)
-            ?? throw new InvalidOperationException(
-                $"No {clientDescription} registered with name '{name}'. " +
-                $"Ensure you've registered the client using {registrationMethod}(\"{name}\", ...).");
+        var client = serviceProvider.GetKeyedService<TClient>(name);
+        if (client is not null)
+        {
+            return client;
+        }
+
+        // The default client is filed under NamedClients.Default, a name the caller never typed. Naming
+        // it back at them reads as a client they forgot to register, and the fix it implies - registering
+        // one under that name - collides with the unnamed registration if they later add it.
+        throw new InvalidOperationException(
+            name == NamedClients.Default
+                ? $"No default {clientDescription} registered. Call {registrationMethod}(...) without a name, " +
+                  $"or register a named one and resolve it with Get(\"<name>\")."
+                : $"No {clientDescription} registered with name '{name}'. " +
+                  $"Ensure you've registered the client using {registrationMethod}(\"{name}\", ...).");
     }
 
     /// <summary>
@@ -63,7 +74,10 @@ internal static class KeyedClients
         var httpClientDetail = httpClientName is null ? string.Empty : $"HTTP client name: '{httpClientName}'. ";
 
         throw new InvalidOperationException(
-            $"A {clientDescription} with the name '{name}' has already been registered. " +
-            $"{httpClientDetail}Each client must have a unique name.");
+            name == NamedClients.Default
+                ? $"A default {clientDescription} has already been registered. " +
+                  $"{httpClientDetail}Give additional clients a name."
+                : $"A {clientDescription} with the name '{name}' has already been registered. " +
+                  $"{httpClientDetail}Each client must have a unique name.");
     }
 }

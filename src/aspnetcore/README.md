@@ -1,9 +1,19 @@
 # ASP.NET Core extensions for Kontent.ai apps
 
-[![NuGet](https://img.shields.io/nuget/vpre/Kontent.Ai.AspNetCore?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
+[![Stable](https://img.shields.io/nuget/v/Kontent.Ai.AspNetCore?style=for-the-badge&label=stable)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
+[![Latest](https://img.shields.io/nuget/vpre/Kontent.Ai.AspNetCore?style=for-the-badge&label=latest)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore/absoluteLatest)
 [![Downloads](https://img.shields.io/nuget/dt/Kontent.Ai.AspNetCore?style=for-the-badge)](https://www.nuget.org/packages/Kontent.Ai.AspNetCore)
 
 Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai/dotnet/tree/main/src/delivery) that provides ASP.NET Core–specific helpers: responsive image tag helpers, a rich-text tag helper that renders structured content via `IHtmlResolver`, and webhook signature validation middleware.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Upgrade Guide](#upgrade-guide)
+- [Tag Helpers](#tag-helpers)
+- [Webhooks](#webhooks)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
 
@@ -11,7 +21,11 @@ Companion package to the [Kontent.ai Delivery SDK](https://github.com/kontent-ai
 dotnet add package Kontent.Ai.AspNetCore
 ```
 
-The package targets `net10.0` and depends on `Kontent.Ai.Delivery` **20** or later. Its version is its own; see the [changelog](CHANGELOG.md) for what each release changed.
+The package targets `net10.0` and depends on `Kontent.Ai.Delivery` **20** or later. Its version is its own — see the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/CHANGELOG.md) for what each release changed.
+
+## Upgrade Guide
+
+- Coming from **0.x** — see the [0 → 1 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore/docs/upgrade).
 
 ## Tag Helpers
 
@@ -22,8 +36,10 @@ Useful for rendering responsive images. Accepts any `IAsset` returned by the Del
 `appsettings.json`:
 
 ```json
-"ImageTransformationOptions": {
-  "ResponsiveWidths": [ 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 2000 ]
+{
+  "ImageTransformationOptions": {
+    "ResponsiveWidths": [ 200, 300, 400, 600, 800, 1000, 1200, 1400, 1600, 2000 ]
+  }
 }
 ```
 
@@ -117,13 +133,14 @@ Renders Kontent.ai structured rich-text content as HTML in Razor views. Integrat
 `Program.cs` (optional DI registration):
 
 ```csharp
+using System.Text.Encodings.Web;
 using Kontent.Ai.AspNetCore.RichText;
 
 builder.Services.AddKontentRichText(resolverBuilder => resolverBuilder
     .WithContentResolver<Article>(a =>
-        $"<div class='article'><h2>{a.Elements.Title}</h2></div>")
+        $"<div class='article'><h2>{HtmlEncoder.Default.Encode(a.Elements.Title ?? "")}</h2></div>")
     .WithContentItemLinkResolver("article", (link, _) =>
-        ValueTask.FromResult($"<a href=\"/articles/{link.ItemId}\">link</a>")));
+        ValueTask.FromResult($"<a href=\"/articles/{link.ItemId.ToString()}\">link</a>")));
 ```
 
 When the resolver configuration itself needs DI-resolved services (URL helpers, options, custom route resolvers, etc.), use the overload that exposes `IServiceProvider`:
@@ -133,7 +150,7 @@ builder.Services.AddKontentRichText((sp, resolverBuilder) =>
 {
     var routes = sp.GetRequiredService<IRouteResolver>();
     resolverBuilder.WithContentItemLinkResolver("article", (link, _) =>
-        ValueTask.FromResult($"<a href=\"{routes.For(link.ItemId)}\">link</a>"));
+        ValueTask.FromResult($"<a href=\"{HtmlEncoder.Default.Encode(routes.For(link.ItemId))}\">link</a>"));
 });
 ```
 
@@ -178,8 +195,10 @@ Verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-S
 `appsettings.json`:
 
 ```json
-"WebhookOptions": {
-  "Secret": "<your_secret>"
+{
+  "WebhookOptions": {
+    "Secret": "<your_secret>"
+  }
 }
 ```
 
@@ -285,6 +304,10 @@ What invalidation does not cover:
 - **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()` asks the API for the latest content; in this SDK that call bypasses the SDK cache, so it returns fresh content but does not warm the cache.
 - **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
 
-## Upgrade Guide
+## Contributing
 
-- Coming from **0.x** — see the [0 → 1 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md). Guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/aspnetcore/docs/upgrade).
+Contributions are welcome. Use [GitHub Issues](https://github.com/kontent-ai/dotnet/issues) for bug reports and feature requests, and open pull requests in this repository for code contributions.
+
+## License
+
+Distributed under the MIT License — see [`LICENSE.md`](https://github.com/kontent-ai/dotnet/blob/main/LICENSE.md) for details.
