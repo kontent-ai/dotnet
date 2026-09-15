@@ -9,7 +9,7 @@ public class ItemTypingStrategyTests
     private const int ContentTypeFallbackToDynamic = 1408;
 
     [Fact]
-    public void UnmappedType_WithGeneratedModels_LogsAWarningOncePerType()
+    public void UnmappedType_WithAGeneratedProvider_LogsAWarningOncePerType()
     {
         var logger = new CollectingLogger();
         var sut = new ItemTypingStrategy(new TypeProvider(new EmptyTypeProvider()), logger);
@@ -33,7 +33,7 @@ public class ItemTypingStrategyTests
     }
 
     [Fact]
-    public void UnmappedType_WithoutAnyModels_LogsAtDebug()
+    public void UnmappedType_WithoutATypeProvider_LogsAtDebug()
     {
         var logger = new CollectingLogger();
         var sut = new ItemTypingStrategy(new TypeProvider(generatedProvider: null), logger);

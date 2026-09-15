@@ -38,7 +38,7 @@ internal sealed class TypeProvider : ITypeProvider
     internal TypeProvider(ITypeProvider? generatedProvider) => _discoveredProvider = new(generatedProvider);
 
     /// <summary>
-    /// Whether a source-generated provider was found - that is, whether the application has generated models.
+    /// Whether a source-generated provider was found, i.e. the application references the source generator.
     /// </summary>
     internal bool HasGeneratedProvider => _discoveredProvider.Value is not null;
 

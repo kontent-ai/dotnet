@@ -34,7 +34,7 @@ of the line.
 
 - **Unmapped content types log a warning instead of a debug message.**
 
-  When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning` in an application with generated models or a custom `ITypeProvider`, so stale models show up without enabling debug logging. An application reading content with no models at all, where every type falls back by design, still logs it at `Debug`. It is logged once per content type per process.
+  When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning` once a type provider is in place - `Kontent.Ai.Delivery.SourceGeneration` or a custom `ITypeProvider` - so stale models show up without enabling debug logging. An application with neither reads every type dynamically by design and still logs it at `Debug`. A client logs a type the first time it falls back, not per item.
 
 ### Fixed
 

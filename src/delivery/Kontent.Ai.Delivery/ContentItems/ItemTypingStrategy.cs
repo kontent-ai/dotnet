@@ -14,8 +14,9 @@ internal sealed class ItemTypingStrategy(ITypeProvider typeProvider, ILogger<Ite
 {
     private readonly ConcurrentDictionary<string, Type> _cache = new();
 
-    // A missing mapping means stale models only in an application that has models. One reading content
-    // without any - no generated provider, no custom one - falls back for every type by design.
+    // Warning once a type provider is in place - the generated one, or a custom one - since that is how an
+    // application declares it has models. With neither, every type falls back by design. The generator emits
+    // a provider even with no models; referencing it without any is a misconfiguration the warning surfaces.
     private LogLevel FallbackLevel => typeProvider is TypeProvider { HasGeneratedProvider: false }
         ? LogLevel.Debug
         : LogLevel.Warning;
