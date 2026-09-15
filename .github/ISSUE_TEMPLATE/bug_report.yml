@@ -40,18 +40,14 @@ body:
     id: repro
     attributes:
       label: Repro steps
-      value: |
+      placeholder: |
         1.
         2.
         3.
-    validations:
-      required: true
   - type: textarea
     id: expected
     attributes:
       label: Expected behavior
-    validations:
-      required: true
   - type: input
     id: dotnet
     attributes:
