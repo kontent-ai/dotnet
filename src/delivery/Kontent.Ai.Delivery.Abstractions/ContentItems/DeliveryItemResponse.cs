@@ -10,6 +10,9 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// Returned by dynamic single-item queries, where the item may be resolved to a different concrete type
 /// at runtime based on the registered <see cref="ITypeProvider"/>.
 /// </remarks>
+// A sealed record rather than an interface like the listing and feed responses: this replaced a bare
+// IContentItem, and against an interface a consumer's `result.Value is IContentItem<Article>` still compiles
+// and never matches. A sealed type turns every such line into CS8121 at upgrade.
 public sealed record DeliveryItemResponse
 {
     /// <summary>
