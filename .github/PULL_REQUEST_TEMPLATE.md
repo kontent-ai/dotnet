@@ -1,14 +1,33 @@
-## Summary
+## Description
 
-<!-- What changed and why? Link the issue if there is one. -->
+<!-- Provide a clear summary of what this PR does and why. -->
 
-## Compatibility
+## Type of Change
 
-<!-- Remove this section if it doesn't apply.
-Describe any changes consumers need to account for.
-For breaking changes, link the migration instructions. -->
+- [ ] New feature
+- [ ] Bug fix
+- [ ] Breaking change
+- [ ] Refactoring (no functional changes)
+- [ ] Documentation update
+- [ ] Infrastructure / CI/CD
+- [ ] Performance improvement
 
-## Validation
+## Changes Made
 
-<!-- What checks support this change?
-Include relevant tests, manual verification, or API-contract evidence. -->
+<!-- List the specific changes. Be precise. -->
+
+-
+-
+-
+
+## How to Test
+
+<!-- Step-by-step instructions for reviewers to verify this works. -->
+
+1.
+2.
+3.
+
+## Related Issues
+
+<!-- Link related tickets or issues. Use "Closes #123" to auto-close. -->
