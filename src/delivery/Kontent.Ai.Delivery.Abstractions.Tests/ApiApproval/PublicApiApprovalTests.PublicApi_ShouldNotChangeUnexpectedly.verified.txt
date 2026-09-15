@@ -212,7 +212,7 @@ public interface IDeliveryCacheManager
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryCachePurger
-    Task PurgeAsync(Boolean allowFailSafe, CancellationToken cancellationToken)
+    Task<Boolean> PurgeAsync(Boolean allowFailSafe, CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDeliveryClient

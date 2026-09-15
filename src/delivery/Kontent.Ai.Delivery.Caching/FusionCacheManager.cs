@@ -484,22 +484,39 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         return !failed && !skipped;
     }
 
-    public async Task PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
+    public async Task<bool> PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
         cancellationToken.ThrowIfCancellationRequested();
 
-        await _cache.ClearAsync(
-                allowFailSafe,
-                _invalidationOptions,
-                cancellationToken)
-            .ConfigureAwait(false);
+        try
+        {
+            await _cache.ClearAsync(
+                    allowFailSafe,
+                    _invalidationOptions,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            if (_logger is not null)
+                LoggerMessages.CachePurgeFailed(_logger, ex);
+            return false;
+        }
 
         // An open breaker skips the write without throwing, even with strict entry options.
         if (_distributedCircuitOpen || _backplaneCircuitOpen)
         {
-            throw new InvalidOperationException("The cache purge did not reach the distributed cache or backplane because a circuit breaker is open.");
+            if (_logger is not null)
+                LoggerMessages.CachePurgeNotDistributed(_logger);
+            return false;
         }
+
+        return true;
     }
 
     public void Dispose()

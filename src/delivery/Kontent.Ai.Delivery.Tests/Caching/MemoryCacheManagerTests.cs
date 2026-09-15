@@ -214,7 +214,7 @@ public class MemoryCacheManagerTests : IDisposable
         await PopulateCache("k1", new TestCacheValue { Id = 1, Name = "One" }, ["dep1"]);
         await PopulateCache("k2", new TestCacheValue { Id = 2, Name = "Two" }, ["dep2"]);
 
-        await ((IDeliveryCachePurger)_cacheManager).PurgeAsync();
+        Assert.True(await ((IDeliveryCachePurger)_cacheManager).PurgeAsync());
 
         Assert.True(await IsFactoryCalledAsync("k1"));
         Assert.True(await IsFactoryCalledAsync("k2"));
@@ -226,7 +226,7 @@ public class MemoryCacheManagerTests : IDisposable
         await PopulateCache("k1", new TestCacheValue { Id = 1, Name = "One" }, ["dep1"]);
         await PopulateCache("k2", new TestCacheValue { Id = 2, Name = "Two" }, ["dep2"]);
 
-        await ((IDeliveryCachePurger)_cacheManager).PurgeAsync(allowFailSafe: true);
+        Assert.True(await ((IDeliveryCachePurger)_cacheManager).PurgeAsync(allowFailSafe: true));
 
         Assert.True(await IsFactoryCalledAsync("k1"));
         Assert.True(await IsFactoryCalledAsync("k2"));
@@ -247,7 +247,7 @@ public class MemoryCacheManagerTests : IDisposable
         await PopulateCache(a, "k", new TestCacheValue { Id = 1, Name = "A" }, ["dep"]);
         await PopulateCache(b, "k", new TestCacheValue { Id = 2, Name = "B" }, ["dep"]);
 
-        await ((IDeliveryCachePurger)a).PurgeAsync();
+        Assert.True(await ((IDeliveryCachePurger)a).PurgeAsync());
 
         Assert.True(await IsFactoryCalledAsync(a, "k"));
         Assert.False(await IsFactoryCalledAsync(b, "k"));
@@ -258,7 +258,7 @@ public class MemoryCacheManagerTests : IDisposable
     {
         await PopulateCache("old", new TestCacheValue { Id = 1, Name = "Old" }, ["dep"]);
 
-        await ((IDeliveryCachePurger)_cacheManager).PurgeAsync();
+        Assert.True(await ((IDeliveryCachePurger)_cacheManager).PurgeAsync());
         await PopulateCache("new", new TestCacheValue { Id = 2, Name = "New" }, ["dep"]);
 
         Assert.True(await IsFactoryCalledAsync("old"));
@@ -1110,7 +1110,7 @@ public class MemoryCacheManagerTests : IDisposable
         await manager.InvalidateAsync(["dep1"]);
         Assert.True(await IsFactoryCalledAsync(manager, "sized_key"));
 
-        await ((IDeliveryCachePurger)manager).PurgeAsync();
+        Assert.True(await ((IDeliveryCachePurger)manager).PurgeAsync());
         Assert.True(await IsFactoryCalledAsync(manager, "sized_key"));
     }
 

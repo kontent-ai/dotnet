@@ -132,23 +132,22 @@ public sealed class HybridCacheInvalidationOutcomeTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PurgeAsync_Throws_WhenTheDistributedWriteFails(bool allowFailSafe)
+    public async Task PurgeAsync_ReturnsFalse_WhenTheDistributedWriteFails(bool allowFailSafe)
     {
         var store = new SwitchableDistributedCache();
         using var manager = FusionCacheManager.CreateHybrid(store, PurgeOptions);
         await PrimeAsync(manager, "article", "item_article");
         store.Down = true;
 
-        var exception = await Assert.ThrowsAsync<FusionCacheDistributedCacheException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
 
-        Assert.IsType<IOException>(exception.InnerException);
         await PrimeAsync(manager, "article", "item_article");
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PurgeAsync_Throws_WhileTheDistributedCircuitBreakerIsOpen(bool allowFailSafe)
+    public async Task PurgeAsync_ReturnsFalse_WhileTheDistributedCircuitBreakerIsOpen(bool allowFailSafe)
     {
         var store = new SwitchableDistributedCache { Down = true };
         using var manager = FusionCacheManager.CreateHybrid(store, PurgeOptions);
@@ -156,7 +155,7 @@ public sealed class HybridCacheInvalidationOutcomeTests
         store.Down = false;
         var attempts = store.SetAttempts;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
 
         Assert.Equal(attempts, store.SetAttempts);
     }
@@ -164,22 +163,22 @@ public sealed class HybridCacheInvalidationOutcomeTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PurgeAsync_Throws_WhenTheBackplaneCannotPublish(bool allowFailSafe)
+    public async Task PurgeAsync_ReturnsFalse_WhenTheBackplaneCannotPublish(bool allowFailSafe)
     {
         var backplane = new SwitchableBackplane();
         using var manager = FusionCacheManager.CreateHybrid(new SwitchableDistributedCache(), PurgeOptions, backplane: backplane);
         await PrimeAsync(manager, "article", "item_article");
         backplane.Down = true;
 
-        var exception = await Assert.ThrowsAsync<FusionCacheBackplaneException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
 
-        Assert.IsType<IOException>(exception.InnerException);
+        await PrimeAsync(manager, "article", "item_article");
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task PurgeAsync_Throws_WhileTheBackplaneCircuitBreakerIsOpen(bool allowFailSafe)
+    public async Task PurgeAsync_ReturnsFalse_WhileTheBackplaneCircuitBreakerIsOpen(bool allowFailSafe)
     {
         var backplane = new SwitchableBackplane { Down = true };
         using var manager = FusionCacheManager.CreateHybrid(new SwitchableDistributedCache(), PurgeOptions, backplane: backplane);
@@ -187,7 +186,7 @@ public sealed class HybridCacheInvalidationOutcomeTests
         backplane.Down = false;
         var attempts = backplane.PublishAttempts;
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
 
         Assert.Equal(attempts, backplane.PublishAttempts);
     }
@@ -209,11 +208,11 @@ public sealed class HybridCacheInvalidationOutcomeTests
         });
         await PrimeAsync(manager, "article", "item_article");
         store.Down = true;
-        await Assert.ThrowsAsync<FusionCacheDistributedCacheException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
         store.Down = false;
         await Task.Delay(100);
 
-        await manager.PurgeAsync(allowFailSafe);
+        Assert.True(await manager.PurgeAsync(allowFailSafe));
 
         using var other = FusionCacheManager.CreateHybrid(store, PurgeOptions);
         await PrimeAsync(other, "article", "item_article");
@@ -228,7 +227,7 @@ public sealed class HybridCacheInvalidationOutcomeTests
         using var manager = FusionCacheManager.CreateMemory(services.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(), Options);
         await PrimeAsync(manager, "article", "item_article");
 
-        await manager.PurgeAsync(allowFailSafe);
+        Assert.True(await manager.PurgeAsync(allowFailSafe));
 
         await PrimeAsync(manager, "article", "item_article");
     }
@@ -250,12 +249,12 @@ public sealed class HybridCacheInvalidationOutcomeTests
         }, backplane: backplane);
         await PrimeAsync(manager, "article", "item_article");
         backplane.Down = true;
-        await Assert.ThrowsAsync<FusionCacheBackplaneException>(() => manager.PurgeAsync(allowFailSafe));
+        Assert.False(await manager.PurgeAsync(allowFailSafe));
         backplane.Down = false;
         var attempts = backplane.PublishAttempts;
         await Task.Delay(100);
 
-        await manager.PurgeAsync(allowFailSafe);
+        Assert.True(await manager.PurgeAsync(allowFailSafe));
 
         Assert.Equal(attempts + 1, backplane.PublishAttempts);
     }
