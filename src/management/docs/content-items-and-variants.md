@@ -40,8 +40,10 @@ var created = await client.CreateContentItemAsync(new ContentItemCreateModel
 });
 ```
 
-`UpsertContentItemAsync` is the **idempotent** route — create if absent, update if present — and is what
-an import should use, so re-running it does not duplicate:
+`UpsertContentItemAsync` is the re-runnable route: running it twice leaves one item, not two, so it is
+what an import should use. **Identify the item by external ID.** If no item carries that external ID
+the API creates one; if it does, the request updates it. Addressed by codename or internal ID an
+upsert can only update — those identifiers cannot name an item that does not exist yet.
 
 ```csharp
 var upserted = await client.UpsertContentItemAsync(
@@ -129,9 +131,10 @@ var result = await client.CreateContentItemWithVariantAsync(
 > than assuming either outcome.
 >
 > To recover, do **not** re-run the composite: it attempts another create instead of resuming the
-> previous operation. Reconcile the item you already have and retry only the variant step — or drive
-> the two calls yourself with [`UpsertContentItemAsync`](#create-or-upsert-an-item) by external id,
-> which is idempotent.
+> previous operation, and a create that repeats an external ID is rejected rather than merged.
+> Reconcile the item you already have and retry only the variant step — or drive the two calls
+> yourself with [`UpsertContentItemAsync`](#create-or-upsert-an-item) by external ID, which creates
+> the item the first time and updates it on every retry.
 
 ## Publish, schedule, and change workflow state
 
