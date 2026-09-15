@@ -16,21 +16,21 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("page", "121d16aa-de4b-454f-9174-e26f25f1d860")]
+[ContentType("page", "121d16aa-de4b-454f-9174-e26f25f1d860")]
 public sealed partial record Page : IElementsModel
 {
-    [KontentElement("content", "57ff97d5-2a0b-43f7-9ade-1f2f970df3a0")]
+    [ContentElement("content", "57ff97d5-2a0b-43f7-9ade-1f2f970df3a0")]
     public IEnumerable<Reference>? Content { get; init; }
-    [KontentElement("metadata__description", "e57614c6-e299-51c3-83bc-961f053dfe17")]
+    [ContentElement("metadata__description", "e57614c6-e299-51c3-83bc-961f053dfe17")]
     public string? MetadataDescription { get; init; }
-    [KontentElement("metadata__keywords", "f46d7c9a-a08f-5987-83e7-a061dd036842")]
+    [ContentElement("metadata__keywords", "f46d7c9a-a08f-5987-83e7-a061dd036842")]
     public string? MetadataKeywords { get; init; }
-    [KontentElement("metadata__title", "49abab33-e5d1-55bb-9c1b-2f144430da28")]
+    [ContentElement("metadata__title", "49abab33-e5d1-55bb-9c1b-2f144430da28")]
     public string? MetadataTitle { get; init; }
-    [KontentElement("slug", "af55414d-174f-4901-b2a1-c6934f504a9c")]
+    [ContentElement("slug", "af55414d-174f-4901-b2a1-c6934f504a9c")]
     public UrlSlugValue? Slug { get; init; }
-    [KontentElement("subpages", "71383e14-246c-4203-a82a-b324b9efabb9")]
+    [ContentElement("subpages", "71383e14-246c-4203-a82a-b324b9efabb9")]
     public IEnumerable<Reference>? Subpages { get; init; }
-    [KontentElement("title", "27c29a82-2a65-4d97-8827-1ff3be27f22f")]
+    [ContentElement("title", "27c29a82-2a65-4d97-8827-1ff3be27f22f")]
     public string? Title { get; init; }
 }

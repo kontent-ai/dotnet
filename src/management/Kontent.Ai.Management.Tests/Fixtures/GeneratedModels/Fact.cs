@@ -16,25 +16,25 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("fact", "df18210c-bacd-5980-81a7-b35c2a66d81f")]
+[ContentType("fact", "df18210c-bacd-5980-81a7-b35c2a66d81f")]
 public sealed partial record Fact : IElementsModel
 {
-    [KontentElement("author", "0ce7a459-f957-5a52-b7c6-52d3476ee2fc")]
+    [ContentElement("author", "0ce7a459-f957-5a52-b7c6-52d3476ee2fc")]
     public IEnumerable<Reference>? Author { get; init; }
-    [KontentElement("fact_type", "b47c1ab1-118a-5b11-8709-ec0dba96cd3e")]
+    [ContentElement("fact_type", "b47c1ab1-118a-5b11-8709-ec0dba96cd3e")]
     public IEnumerable<Reference>? FactType { get; init; }
-    [KontentElement("image", "8c8946ce-e683-5df1-b029-967a3e43e056")]
+    [ContentElement("image", "8c8946ce-e683-5df1-b029-967a3e43e056")]
     public IEnumerable<AssetReference>? Image { get; init; }
-    [KontentElement("message", "db8a7f6b-afd5-5170-bd6f-e450a96c8053")]
+    [ContentElement("message", "db8a7f6b-afd5-5170-bd6f-e450a96c8053")]
     public string? Message { get; init; }
-    [KontentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
+    [ContentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
     public string? ReferenceCaption { get; init; }
-    [KontentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
+    [ContentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
     public IEnumerable<Reference>? ReferenceContentItemLink { get; init; }
-    [KontentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
+    [ContentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
     public string? ReferenceExternalUri { get; init; }
-    [KontentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
+    [ContentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
     public string? ReferenceLabel { get; init; }
-    [KontentElement("title", "75c5ed43-3eb7-5902-bf8b-4ddf8f830c8b")]
+    [ContentElement("title", "75c5ed43-3eb7-5902-bf8b-4ddf8f830c8b")]
     public string? Title { get; init; }
 }

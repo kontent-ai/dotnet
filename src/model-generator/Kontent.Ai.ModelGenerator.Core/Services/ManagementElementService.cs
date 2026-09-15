@@ -6,8 +6,8 @@ namespace Kontent.Ai.ModelGenerator.Core.Services;
 
 /// <summary>
 /// Maps Management API element inputs to <see cref="ManagementElementOutput"/> records ready for
-/// emission. Each element projects to a property carrying a single <c>[KontentElement]</c> identity
-/// attribute (multiple-choice options additionally carry <c>[KontentEnumValue]</c>); content-model
+/// emission. Each element projects to a property carrying a single <c>[ContentElement]</c> identity
+/// attribute (multiple-choice options additionally carry <c>[ContentOption]</c>); content-model
 /// constraints are enforced server-side by the Management API, not mirrored onto the generated type.
 /// The element subtype selects the C# value type.
 /// </summary>
@@ -37,7 +37,7 @@ public static class ManagementElementService
     }
 
     private static ManagementProperty BuildSimple(string codename, string id, string typeName) =>
-        new(codename, typeName, id, [KontentElement(codename, id)]);
+        new(codename, typeName, id, [ContentElement(codename, id)]);
 
     private static ManagementElementOutput BuildMultipleChoice(MultipleChoiceElementInput input)
     {
@@ -57,13 +57,13 @@ public static class ManagementElementService
             input.Codename,
             typeName,
             input.Id,
-            [KontentElement(input.Codename, input.Id)]);
+            [ContentElement(input.Codename, input.Id)]);
 
         var members = input.Options.Select(opt => new EnumMember(
             identifier: TextHelpers.GetValidPascalCaseIdentifierName(opt.Codename),
             attributes:
             [
-                new AttributeSpec("KontentEnumValue",
+                new AttributeSpec("ContentOption",
                 [
                     AttributeArg.Positional(opt.Codename),
                     AttributeArg.Positional(opt.Id),
@@ -75,8 +75,8 @@ public static class ManagementElementService
         return new ManagementElementOutput(property, [enumDef]);
     }
 
-    private static AttributeSpec KontentElement(string codename, string id) =>
-        new("KontentElement",
+    private static AttributeSpec ContentElement(string codename, string id) =>
+        new("ContentElement",
         [
             AttributeArg.Positional(codename),
             AttributeArg.Positional(id),

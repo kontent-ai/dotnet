@@ -16,19 +16,19 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("banner", "b7a6f1c2-3d4e-5f60-8a71-b2c3d4e5f608")]
+[ContentType("banner", "b7a6f1c2-3d4e-5f60-8a71-b2c3d4e5f608")]
 public sealed partial record Banner : IElementsModel
 {
-    [KontentElement("headline", "c1d2e3f4-a5b6-5c7d-8e9f-a0b1c2d3e4f5")]
+    [ContentElement("headline", "c1d2e3f4-a5b6-5c7d-8e9f-a0b1c2d3e4f5")]
     public string? Headline { get; init; }
-    [KontentElement("tone", "d2e3f4a5-b6c7-5d8e-9f0a-b1c2d3e4f5a6")]
+    [ContentElement("tone", "d2e3f4a5-b6c7-5d8e-9f0a-b1c2d3e4f5a6")]
     public BannerTone? Tone { get; init; }
 }
 
 public enum BannerTone
 {
-    [KontentEnumValue("light", "e3f4a5b6-c7d8-5e9f-0a1b-c2d3e4f5a6b7")]
+    [ContentOption("light", "e3f4a5b6-c7d8-5e9f-0a1b-c2d3e4f5a6b7")]
     Light,
-    [KontentEnumValue("dark", "f4a5b6c7-d8e9-5f0a-1b2c-d3e4f5a6b7c8")]
+    [ContentOption("dark", "f4a5b6c7-d8e9-5f0a-1b2c-d3e4f5a6b7c8")]
     Dark
 }

@@ -7,7 +7,7 @@ namespace Kontent.Ai.Management.Tests.Conversion;
 public class ContentItemTypeDescriptorTests
 {
     // Ids are GUID strings and the wire may carry them in any casing; a hand-written or tool-emitted model with an
-    // uppercase [KontentElement] id must still bind — a case-sensitive map would silently skip the element on reads.
+    // uppercase [ContentElement] id must still bind — a case-sensitive map would silently skip the element on reads.
     [Fact]
     public void ByElementId_MatchesCaseInsensitively()
     {

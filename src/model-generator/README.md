@@ -288,7 +288,7 @@ The generator creates the base model, and you maintain customizations in separat
 
 > [!IMPORTANT]
 > The emitted code references types and attributes shipped by `Kontent.Ai.Management` — the
-> `IElementsModel` marker, `[KontentType]`, `[KontentElement]`, `[KontentEnumValue]`, and the value
+> `IElementsModel` marker, `[ContentType]`, `[ContentElement]`, `[ContentOption]`, and the value
 > types `RichTextValue`, `AssetReference`, `Reference`, `UrlSlugValue`, `DateTimeValue` and
 > `CustomValue`. Generated models therefore require **`Kontent.Ai.Management` 9.0 or newer**; they
 > will not compile against 8.x. Keep the generator and the SDK on releases that shipped together —
@@ -313,11 +313,11 @@ KontentModelGenerator --management \
 | --- | --- | --- |
 | Use case | Read content, frontend rendering | CRUD via the Management API |
 | Marker interface | None | `IElementsModel` (empty marker) |
-| Element identity | `[JsonPropertyName("codename")]` | `[KontentElement(codename, id)]` — both required (codename for request serialization, ID for response deserialization) |
-| Type-level metadata | `[ContentTypeCodename]` | `[KontentType(codename)]` |
+| Element identity | `[JsonPropertyName("codename")]` | `[ContentElement(codename, id)]` — both required (codename for request serialization, ID for response deserialization) |
+| Type-level metadata | `[ContentTypeCodename]` — emitted into your compilation, internal | `[ContentType(codename, id)]` — shipped by the SDK; the id is what typed reads match on |
 | Collections | `IEnumerable<T>?` | `IEnumerable<T>?` |
 | Element constraints | Implicit at API layer | **Not mirrored on the model.** Content-model rules (length, regex, allowed types, count limits, asset rules, ...) are enforced server-side by the Management API — the generated models carry identity only. |
-| Multiple-choice | `IEnumerable<MultipleChoiceOption>?` | Per-element enum (`[KontentEnumValue]` members); the property is `{ContentType}{Element}?` when the element allows one option and `IEnumerable<{ContentType}{Element}>?` when it allows several |
+| Multiple-choice | `IEnumerable<MultipleChoiceOption>?` | Per-element enum (`[ContentOption]` members); the property is `{ContentType}{Element}?` when the element allows one option and `IEnumerable<{ContentType}{Element}>?` when it allows several |
 | Snippets | Implicit; values come back flattened | Flattened at generation time; properties carry `{snippet}__{element}` codenames |
 | Required elements | Not exposed | **Not enforced on the model.** `is_required` is a publish-workflow gate in MAPI, not an upsert-shape constraint — every property stays nullable so partial draft saves work. |
 
@@ -339,55 +339,55 @@ using Kontent.Ai.Management.Models.Shared;
 
 namespace MyProject.Models;
 
-[KontentType("article")]
+[ContentType("article", "0ca9b0f8-...")]
 public sealed partial record Article : IElementsModel
 {
-    [KontentElement("body", "7ed15846-...")]
+    [ContentElement("body", "7ed15846-...")]
     public RichTextValue? Body { get; init; }
 
-    [KontentElement("category", "f6d310a3-...")]
+    [ContentElement("category", "f6d310a3-...")]
     public IEnumerable<ArticleCategory>? Category { get; init; }
 
-    [KontentElement("featured_image", "8d2c...")]
+    [ContentElement("featured_image", "8d2c...")]
     public IEnumerable<AssetReference>? FeaturedImage { get; init; }
 
-    [KontentElement("priority", "88ae3d9b-...")]
+    [ContentElement("priority", "88ae3d9b-...")]
     public decimal? Priority { get; init; }
 
-    [KontentElement("publish_at", "b12f0a44-...")]
+    [ContentElement("publish_at", "b12f0a44-...")]
     public DateTimeValue? PublishAt { get; init; }
 
-    [KontentElement("rating_widget", "c93b71de-...")]
+    [ContentElement("rating_widget", "c93b71de-...")]
     public CustomValue? RatingWidget { get; init; }
 
-    [KontentElement("related_teasers", "a3155ec4-...")]
+    [ContentElement("related_teasers", "a3155ec4-...")]
     public IEnumerable<Reference>? RelatedTeasers { get; init; }
 
-    [KontentElement("seo__meta_title", "09398b24-...")]
+    [ContentElement("seo__meta_title", "09398b24-...")]
     public string? SeoMetaTitle { get; init; }
 
-    [KontentElement("tags", "1314993e-...")]
+    [ContentElement("tags", "1314993e-...")]
     public IEnumerable<Reference>? Tags { get; init; }
 
-    [KontentElement("title", "a47451eb-...")]
+    [ContentElement("title", "a47451eb-...")]
     public string? Title { get; init; }
 
-    [KontentElement("url", "e5a8c0f1-...")]
+    [ContentElement("url", "e5a8c0f1-...")]
     public UrlSlugValue? Url { get; init; }
 }
 
 public enum ArticleCategory
 {
-    [KontentEnumValue("news", "d65a2212-...")] News,
-    [KontentEnumValue("release", "709b1208-...")] Release,
-    [KontentEnumValue("blog", "ae79c5a6-...")] Blog,
+    [ContentOption("news", "d65a2212-...")] News,
+    [ContentOption("release", "709b1208-...")] Release,
+    [ContentOption("blog", "ae79c5a6-...")] Blog,
 }
 ```
 
 ### Notes
 
 - **Models are environment-specific** by virtue of their element IDs. Cloning an environment via data-ops produces logically identical content models with different element IDs — regenerate after cloning.
-- **Snippets are flattened**. If your content type uses an `seo` snippet that contributes `meta_title` and `meta_description`, the generated record has `SeoMetaTitle` and `SeoMetaDescription` properties; the `[KontentElement]` attributes carry the `seo__meta_title` / `seo__meta_description` codenames the API expects.
+- **Snippets are flattened**. If your content type uses an `seo` snippet that contributes `meta_title` and `meta_description`, the generated record has `SeoMetaTitle` and `SeoMetaDescription` properties; the `[ContentElement]` attributes carry the `seo__meta_title` / `seo__meta_description` codenames the API expects.
 - **Content-model constraints are not on the model.** Length, regex, allowed types, count limits, asset rules, and the like are enforced server-side by the Management API and surfaced via `IManagementResult` — the generated records carry element identity and value types only.
 
 ## Need Legacy Delivery SDK or Extended Delivery Support?

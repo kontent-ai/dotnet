@@ -16,17 +16,17 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("navigation_item", "fc4d093f-9e1a-5c1a-a47c-21acf156dadf")]
+[ContentType("navigation_item", "fc4d093f-9e1a-5c1a-a47c-21acf156dadf")]
 public sealed partial record NavigationItem : IElementsModel
 {
-    [KontentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
+    [ContentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
     public string? ReferenceCaption { get; init; }
-    [KontentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
+    [ContentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
     public IEnumerable<Reference>? ReferenceContentItemLink { get; init; }
-    [KontentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
+    [ContentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
     public string? ReferenceExternalUri { get; init; }
-    [KontentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
+    [ContentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
     public string? ReferenceLabel { get; init; }
-    [KontentElement("subitems", "673d7bea-bd01-5bc2-bbd2-e51abc5f24bb")]
+    [ContentElement("subitems", "673d7bea-bd01-5bc2-bbd2-e51abc5f24bb")]
     public IEnumerable<Reference>? Subitems { get; init; }
 }

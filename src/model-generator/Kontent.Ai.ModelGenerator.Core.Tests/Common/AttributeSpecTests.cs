@@ -22,7 +22,7 @@ public class AttributeSpecTests
             AttributeArg.Named("Id", "abc-123"),
         };
 
-        var spec = new AttributeSpec("KontentElement", args);
+        var spec = new AttributeSpec("ContentElement", args);
 
         spec.Arguments.Should().HaveCount(2);
         spec.Arguments[0].Name.Should().BeNull();

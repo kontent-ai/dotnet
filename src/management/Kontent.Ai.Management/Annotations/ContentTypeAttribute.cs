@@ -8,7 +8,7 @@ namespace Kontent.Ai.Management.Annotations;
 /// rich-text component when deserializing a response — typed read therefore requires it.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class KontentTypeAttribute(string codename, string? id = null) : Attribute
+public sealed class ContentTypeAttribute(string codename, string? id = null) : Attribute
 {
     /// <summary>Content type codename — the portable identity, stable across environments.</summary>
     public string Codename { get; } = codename ?? throw new ArgumentNullException(nameof(codename));

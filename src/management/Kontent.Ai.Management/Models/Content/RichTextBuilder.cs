@@ -43,7 +43,7 @@ public sealed class RichTextBuilder
     public string Component(IElementsModel item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        // Fail here, at the recording site, for a type the envelope write would reject anyway (no [KontentType]).
+        // Fail here, at the recording site, for a type the envelope write would reject anyway (no [ContentType]).
         _ = ContentItemTypeDescriptor.For(item.GetType());
 
         var id = Guid.NewGuid();

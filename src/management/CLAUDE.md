@@ -51,7 +51,7 @@ Infrastructure the SDKs would otherwise each copy lives in `src/common`, compile
 - Names mirror Kontent.ai API terminology; request and response shapes are separate records when the wire shapes differ (a response model with a fake-`required` field forced into a request body is a defect — see `UserRolesUpdateModel`).
 - Models must stay **generator-friendly** (record-based, immutable, STJ-serializable) — the shape is coordinated with `src/model-generator`, which consumes this package.
 - **Content-type CLR models come from the generator.** Extensions belong in separate partial record files. Document generated models as the supported typed path; schema changes use the content-model operations, while typed upserts write variant values.
-- Generated/typed content models map via `KontentTypeAttribute`/`KontentElementAttribute`/`KontentEnumValueAttribute`; the converters read them at runtime (typed *reads* match by id — environment-bound; *writes* key by codename — portable).
+- Generated/typed content models map via `ContentTypeAttribute`/`ContentElementAttribute`/`ContentOptionAttribute`; the converters read them at runtime (typed *reads* match by id — environment-bound; *writes* key by codename — portable).
 - **Asset uploads must carry a `Content-Length`** (verified against the live endpoint). A chunked request is refused with error `206`, *"the file is bigger than the maximal allowed limit (2 GB)"*, whatever the real size — so the message is no guide to the actual fault. A zero-length body, by contrast, is **accepted** and stores an empty asset. `FileContentSource` therefore only takes sources whose size is knowable, which is also what makes every upload safe to retry.
 
 ## Adding or changing an endpoint — the playbook

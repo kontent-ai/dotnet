@@ -6,7 +6,7 @@ namespace Kontent.Ai.Management.Annotations;
 /// between the two using this attribute.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
-public sealed class KontentElementAttribute(string codename, string id) : Attribute
+public sealed class ContentElementAttribute(string codename, string id) : Attribute
 {
     /// <summary>Element codename. The canonical key for outbound writes.</summary>
     public string Codename { get; } = codename ?? throw new ArgumentNullException(nameof(codename));

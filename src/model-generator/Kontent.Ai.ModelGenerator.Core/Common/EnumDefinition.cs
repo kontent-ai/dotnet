@@ -30,7 +30,7 @@ public sealed class EnumDefinition
 /// <summary>
 /// A single member of an <see cref="EnumDefinition"/>. Each member maps to one option of a
 /// multiple-choice element and carries its codename + id metadata via <see cref="Attributes"/>
-/// (typically a single <c>[KontentEnumValue(...)]</c>).
+/// (typically a single <c>[ContentOption(...)]</c>).
 /// </summary>
 public sealed class EnumMember
 {

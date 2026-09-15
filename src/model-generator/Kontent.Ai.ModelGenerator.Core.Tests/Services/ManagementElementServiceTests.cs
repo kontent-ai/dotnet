@@ -16,7 +16,7 @@ public class ManagementElementServiceTests
 
     [Theory]
     [MemberData(nameof(SimpleElements))]
-    public void Build_SimpleElement_EmitsTypedPropertyWithOnlyKontentElement(
+    public void Build_SimpleElement_EmitsTypedPropertyWithOnlyContentElement(
         ManagementElementInput input, string expectedTypeName, string expectedIdentifier)
     {
         var result = ManagementElementService.Build(input);
@@ -26,7 +26,7 @@ public class ManagementElementServiceTests
         result.Property.Identifier.Should().Be(expectedIdentifier);
         result.Property.TypeName.Should().Be(expectedTypeName);
         result.Property.Attributes.Should().ContainSingle();
-        AssertIsKontentElement(result.Property.Attributes[0], input.Codename, input.Id);
+        AssertIsContentElement(result.Property.Attributes[0], input.Codename, input.Id);
         result.Enums.Should().BeEmpty();
     }
 
@@ -47,7 +47,7 @@ public class ManagementElementServiceTests
     #region MultipleChoice
 
     [Fact]
-    public void MultipleChoice_EmitsListPropertyWithOnlyKontentElement()
+    public void MultipleChoice_EmitsListPropertyWithOnlyContentElement()
     {
         var input = new MultipleChoiceElementInput(
             Codename: "category",
@@ -63,7 +63,7 @@ public class ManagementElementServiceTests
 
         result.Property.TypeName.Should().Be("IEnumerable<ArticleCategory>?");
         result.Property.Attributes.Should().ContainSingle()
-            .Which.Name.Should().Be("KontentElement");
+            .Which.Name.Should().Be("ContentElement");
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class ManagementElementServiceTests
         enumDef.Members.Select(m => m.Identifier).Should().Equal("News", "ReleaseNote", "N3");
 
         var newsAttr = enumDef.Members[0].Attributes.Should().ContainSingle().Subject;
-        newsAttr.Name.Should().Be("KontentEnumValue");
+        newsAttr.Name.Should().Be("ContentOption");
         newsAttr.Arguments[0].Name.Should().BeNull();
         newsAttr.Arguments[0].Value.Should().Be("news");
         newsAttr.Arguments[1].Name.Should().BeNull();
@@ -127,9 +127,9 @@ public class ManagementElementServiceTests
 
     #endregion
 
-    private static void AssertIsKontentElement(AttributeSpec attr, string codename, string id)
+    private static void AssertIsContentElement(AttributeSpec attr, string codename, string id)
     {
-        attr.Name.Should().Be("KontentElement");
+        attr.Name.Should().Be("ContentElement");
         attr.Arguments.Should().HaveCount(2);
         attr.Arguments[0].Name.Should().BeNull();
         attr.Arguments[0].Value.Should().Be(codename);

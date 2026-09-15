@@ -49,7 +49,7 @@ public class ClassDefinition(string codeName, bool emitsCodenameConstants = true
 
     /// <summary>
     /// Optional content-type identifier (GUID, formatted as a string). Populated by the Management
-    /// emission path so the generated <c>[KontentType]</c> attribute carries both codename and id;
+    /// emission path so the generated <c>[ContentType]</c> attribute carries both codename and id;
     /// left <c>null</c> by the Delivery path.
     /// </summary>
     public string? Id { get; set; }

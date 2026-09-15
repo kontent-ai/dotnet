@@ -6,7 +6,7 @@ namespace Kontent.Ai.Management.Annotations;
 /// (id or codename references) and the strongly-typed enum.
 /// </summary>
 [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
-public sealed class KontentEnumValueAttribute(string codename, string id) : Attribute
+public sealed class ContentOptionAttribute(string codename, string id) : Attribute
 {
     /// <summary>Option codename. Used as the canonical key for outbound writes.</summary>
     public string Codename { get; } = codename ?? throw new ArgumentNullException(nameof(codename));

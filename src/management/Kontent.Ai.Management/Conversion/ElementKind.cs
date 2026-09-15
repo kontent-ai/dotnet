@@ -21,7 +21,7 @@ internal enum ElementKind
     /// <summary><see cref="Models.Content.CustomValue"/>; custom elements (value + searchable_value).</summary>
     Custom,
 
-    /// <summary><see cref="System.Collections.Generic.IReadOnlyList{T}"/> of an <c>[KontentEnumValue]</c>-annotated enum; multiple_choice elements.</summary>
+    /// <summary><see cref="System.Collections.Generic.IReadOnlyList{T}"/> of a <c>[ContentOption]</c>-annotated enum; multiple_choice elements.</summary>
     MultipleChoice,
 
     /// <summary><see cref="System.Collections.Generic.IReadOnlyList{T}"/> of <see cref="Models.Content.AssetReference"/>; asset elements.</summary>

@@ -16,25 +16,25 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("visual_container", "188a66a1-5959-50a3-9073-a756171aff14")]
+[ContentType("visual_container", "188a66a1-5959-50a3-9073-a756171aff14")]
 public sealed partial record VisualContainer : IElementsModel
 {
-    [KontentElement("items", "41ebb699-10b7-5493-b6d3-d6098ab5ebbc")]
+    [ContentElement("items", "41ebb699-10b7-5493-b6d3-d6098ab5ebbc")]
     public IEnumerable<Reference>? Items { get; init; }
-    [KontentElement("subtitle", "9a6832bb-d7b6-5954-aa80-92aee2b96441")]
+    [ContentElement("subtitle", "9a6832bb-d7b6-5954-aa80-92aee2b96441")]
     public string? Subtitle { get; init; }
-    [KontentElement("title", "fbdd1530-319d-5c94-8bc7-c2c82f744272")]
+    [ContentElement("title", "fbdd1530-319d-5c94-8bc7-c2c82f744272")]
     public string? Title { get; init; }
-    [KontentElement("visual_representation", "b81bc86b-7f9f-5d2f-909e-b973320531f4")]
+    [ContentElement("visual_representation", "b81bc86b-7f9f-5d2f-909e-b973320531f4")]
     public IEnumerable<VisualContainerVisualRepresentation>? VisualRepresentation { get; init; }
 }
 
 public enum VisualContainerVisualRepresentation
 {
-    [KontentEnumValue("hero_unit", "80e7ae9b-75b6-57a2-a939-5e4f44223e40")]
+    [ContentOption("hero_unit", "80e7ae9b-75b6-57a2-a939-5e4f44223e40")]
     HeroUnit,
-    [KontentEnumValue("grid", "8bfdf55a-d655-5954-804f-1540cf8754e5")]
+    [ContentOption("grid", "8bfdf55a-d655-5954-804f-1540cf8754e5")]
     Grid,
-    [KontentEnumValue("stack", "b7b2c152-aaf0-5bc9-972a-ee328e9003ed")]
+    [ContentOption("stack", "b7b2c152-aaf0-5bc9-972a-ee328e9003ed")]
     Stack
 }

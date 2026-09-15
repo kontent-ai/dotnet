@@ -12,10 +12,10 @@ public class ContentTypeRegistryTests
     private const string StubsArticleId = "11111111-1111-1111-1111-111111111111";
 
     // A second content-type record deliberately claiming ModelsArticle's id, to exercise id-collision detection.
-    [KontentType("clashing", ModelsArticleId)]
+    [ContentType("clashing", ModelsArticleId)]
     private sealed record IdClashingArticle : IElementsModel;
 
-    [KontentType("idless")]
+    [ContentType("idless")]
     private sealed record IdlessArticle : IElementsModel;
 
     [Fact]
@@ -42,7 +42,7 @@ public class ContentTypeRegistryTests
     [Fact]
     public void Register_SharedCodenameDistinctIds_ResolvesEachById()
     {
-        // Two types share `[KontentType("article")]` but carry distinct ids — resolution is by id, so both coexist.
+        // Two types share `[ContentType("article")]` but carry distinct ids — resolution is by id, so both coexist.
         var registry = new ContentTypeRegistry();
         registry.Register(typeof(ModelsArticle));
         registry.Register(typeof(StubsArticle));

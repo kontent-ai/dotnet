@@ -137,7 +137,7 @@ public class EnvelopeConverter_ReadTests
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*unknown-option*")
-            .WithMessage("*[KontentEnumValue]*", "skipping the option would silently deselect it on the next upsert");
+            .WithMessage("*[ContentOption]*", "skipping the option would silently deselect it on the next upsert");
     }
 
     [Fact]

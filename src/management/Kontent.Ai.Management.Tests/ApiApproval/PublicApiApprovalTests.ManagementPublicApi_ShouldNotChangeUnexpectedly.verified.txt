@@ -324,19 +324,19 @@ public sealed class ValidationError : IEquatable<ValidationError>
     ValidationError <Clone>$()
 
 // Kontent.Ai.Management.Annotations
-public sealed class KontentElementAttribute : Attribute
+public sealed class ContentElementAttribute : Attribute
     .ctor(String codename, String id)
     String Codename { get; }
     String Id { get; }
 
 // Kontent.Ai.Management.Annotations
-public sealed class KontentEnumValueAttribute : Attribute
+public sealed class ContentOptionAttribute : Attribute
     .ctor(String codename, String id)
     String Codename { get; }
     String Id { get; }
 
 // Kontent.Ai.Management.Annotations
-public sealed class KontentTypeAttribute : Attribute
+public sealed class ContentTypeAttribute : Attribute
     .ctor(String codename, String? id)
     String Codename { get; }
     String? Id { get; }
