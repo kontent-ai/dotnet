@@ -36,6 +36,14 @@
     <Compile Include="$(KontentTestingPath)PublicApiApproval.cs" Link="Testing\PublicApiApproval.cs" />
   </ItemGroup>
 
+  <!-- The Management SDK's approved public surface, read as text by ManagementEmittedTypesMatchSdkTests.
+       Embedded rather than referenced: in the default package-reference mode this project compiles
+       against the declared Management floor, which is by design older than the SDK in this repository. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\..\management\Kontent.Ai.Management.Tests\ApiApproval\PublicApiApprovalTests.ManagementPublicApi_ShouldNotChangeUnexpectedly.verified.txt"
+                      LogicalName="ManagementPublicApi.approved.txt" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Kontent.Ai.Delivery.SourceGeneration" />
     <PackageReference Include="Kontent.Ai.Management" />
