@@ -2,6 +2,9 @@
 
 Uploading binaries and managing the asset records that reference them.
 
+Examples assume a configured `IManagementClient client` — see
+[configuration](configuration.md#client-registration-and-lifetime).
+
 - [Upload and create an asset](#upload-and-create-an-asset)
 - [Supported sources and ownership](#supported-sources-and-ownership)
 - [Separate upload from asset creation](#separate-upload-from-asset-creation)

@@ -2,6 +2,9 @@
 
 Environment-level configuration, workflow definitions, and the subscription-scoped endpoints.
 
+Examples assume a configured `IManagementClient client` — see
+[configuration](configuration.md#client-registration-and-lifetime).
+
 - [Environment resources](#environment-resources)
 - [Languages and workflow definitions](#languages-and-workflow-definitions)
 - [Subscription-scoped operations](#subscription-scoped-operations)

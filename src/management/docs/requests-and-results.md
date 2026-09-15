@@ -2,6 +2,9 @@
 
 How a Management call reports success and failure, how you address an entity, and how listings page.
 
+Examples assume a configured `IManagementClient client` — see
+[configuration](configuration.md#client-registration-and-lifetime).
+
 - [Results and failures](#results-and-failures)
 - [Exceptions](#exceptions)
 - [Result helpers](#result-helpers)
@@ -85,7 +88,7 @@ A failed call is a result. These still throw:
 | A scope whose identifier is not configured | `InvalidOperationException`, naming the missing option |
 | Invalid options | `OptionsValidationException`, when the client is built or registered |
 | `EnsureSuccess()` on a failed result | `ManagementException`, carrying the `IError` |
-| A typed variant response that no longer matches the content type | mismatch between your model and the environment, not an outcome of the call |
+| A typed variant response in which no element matches the record | `InvalidOperationException` — a mismatch between your model and the environment, not an outcome of the call. See [environment binding](models.md#environment-binding-and-partial-updates) |
 
 An **expired timeout is not cancellation**: the request was sent and may have been applied, so it comes
 back as a failed result.

@@ -100,8 +100,9 @@ Binding from configuration, several named clients, and transport customization a
 - **`ListXAsync` fetches and buffers every page** before returning, and is all-or-nothing. Use the
   `ListXPageAsync` overload for large sets —
   [details](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/requests-and-results.md#pagination).
-- **Writes are not replayed automatically.** `POST` and `PATCH` are excluded from transient-failure
-  retries, because the write may already have landed —
+- **Retries depend on the HTTP method.** Every method retries on `429`; other transient failures retry
+  only `GET`, `HEAD`, `OPTIONS`, `PUT` and `DELETE`, so a `POST` or `PATCH` that fails mid-flight is
+  never replayed —
   [details](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/configuration.md#retries-and-timeouts).
 - **A multi-call helper is not a transaction.** `CreateContentItemWithVariantAsync` can leave an item
   with no variant —

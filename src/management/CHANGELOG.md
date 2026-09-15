@@ -25,8 +25,9 @@ record the rest of the line.
 - **The README is a routing page; its reference material moved into seven guides.**
 
   993 lines became 117, with configuration, requests and results, content items and variants, models
-  and rich text, assets, content model, and administration each owning one topic under `docs/`. Every
-  old README anchor has a destination, and links from the 8 to 9 upgrade guide were retargeted. Two
+  and rich text, assets, content model, and administration each owning one topic under `docs/`.
+  Inbound links inside the repository were updated, including the 8 to 9 upgrade guide's. An external
+  link to an old README anchor no longer resolves; every one of them maps to a new guide section. Two
   contract corrections came with the move: an upsert omits an element because its property value is
   null rather than because the SDK tracks what you assigned, and `CreateContentItemWithVariantAsync`
   has no retry recovery - on a partial failure the item is left without a variant and re-running the

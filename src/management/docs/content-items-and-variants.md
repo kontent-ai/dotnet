@@ -9,9 +9,11 @@ workflow.
 - [Create an item with its first variant](#create-an-item-with-its-first-variant)
 - [Publish, schedule, and change workflow state](#publish-schedule-and-change-workflow-state)
 
-Recipes below assume the sample content type `article` with a `title` (text), `body` (rich text) and
-`post_date` (date & time) element, and the languages `en-US` and `de-DE`. Each recipe stands alone — none
-depends on another having run.
+Recipes below assume a configured `IManagementClient client` (see
+[configuration](configuration.md#client-registration-and-lifetime)), a content type `article` with
+`title` (text), `body` (rich text) and `post_date` (date & time) elements, and the languages `en-US` and
+`de-DE`. No recipe depends on another having run; where one needs an identifier or a model, it declares
+it.
 
 ## Items versus language variants
 
@@ -122,11 +124,14 @@ var result = await client.CreateContentItemWithVariantAsync(
 > [!IMPORTANT]
 > **This is two calls, and it is not a transaction.** If the item is created but the variant upsert
 > fails, the item stays — there is no rollback — and the returned failure carries the variant call's
-> detail. You are left with an item that has no variant.
+> detail, so a partial failure **can leave** an item with no variant. A timeout or a lost response can
+> also follow a write that was applied, so after an ambiguous failure reconcile the server state rather
+> than assuming either outcome.
 >
-> To recover, do **not** re-run the composite: it always creates, so a second run makes a second item.
-> Reconcile the item you already have and retry only the variant step — or drive the two calls yourself
-> with [`UpsertContentItemAsync`](#create-or-upsert-an-item) by external id, which is idempotent.
+> To recover, do **not** re-run the composite: it attempts another create instead of resuming the
+> previous operation. Reconcile the item you already have and retry only the variant step — or drive
+> the two calls yourself with [`UpsertContentItemAsync`](#create-or-upsert-an-item) by external id,
+> which is idempotent.
 
 ## Publish, schedule, and change workflow state
 
@@ -177,12 +182,18 @@ A published variant cannot be edited in place. The API rejects the upsert with
 before retrying the edit:
 
 ```csharp
-var result = await client.UpsertLanguageVariantAsync(identifier, article);
+var identifier = LanguageVariantIdentifier.ByCodenames("on_roasts", "en-US");
+var edit = new LanguageVariantUpsertModel
+{
+    Elements = [new TextElement { Element = Reference.ByCodename("title"), Value = "On Roasts, revised" }]
+};
+
+var result = await client.UpsertLanguageVariantAsync(identifier, edit);
 
 if (!result.IsSuccess && result.Error?.ErrorCode == ManagementErrorCodes.PublishedOrScheduledVariantCannotBeUpdated)
 {
     (await client.CreateNewVersionOfLanguageVariantAsync(identifier)).EnsureSuccess();
-    result = await client.UpsertLanguageVariantAsync(identifier, article);
+    result = await client.UpsertLanguageVariantAsync(identifier, edit);
 }
 
 result.EnsureSuccess();

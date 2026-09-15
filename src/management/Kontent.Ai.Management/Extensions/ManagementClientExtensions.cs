@@ -154,8 +154,10 @@ public static class ManagementClientExtensions
     /// </summary>
     /// <remarks>
     /// On a partial failure — the item is created but the variant upsert fails — the created item is left in place
-    /// (no rollback) and the returned failure carries the variant call's detail. Set
-    /// <see cref="ContentItemCreateModel.ExternalId"/> so a retry reuses the same item instead of creating a duplicate.
+    /// (no rollback) and the returned failure carries the variant call's detail. This helper does not recover a
+    /// previous partial failure: it always attempts another create. Reconcile the existing item and retry the
+    /// variant step, or compose the two calls yourself with
+    /// <see cref="IManagementClient.UpsertContentItemAsync"/> by external id, which is idempotent.
     /// </remarks>
     /// <param name="client">Content management client instance.</param>
     /// <param name="item">The content item to create.</param>
@@ -186,8 +188,10 @@ public static class ManagementClientExtensions
     /// </summary>
     /// <remarks>
     /// On a partial failure — the item is created but the variant upsert fails — the created item is left in place
-    /// (no rollback) and the returned failure carries the variant call's detail. Set
-    /// <see cref="ContentItemCreateModel.ExternalId"/> so a retry reuses the same item instead of creating a duplicate.
+    /// (no rollback) and the returned failure carries the variant call's detail. This helper does not recover a
+    /// previous partial failure: it always attempts another create. Reconcile the existing item and retry the
+    /// variant step, or compose the two calls yourself with
+    /// <see cref="IManagementClient.UpsertContentItemAsync"/> by external id, which is idempotent.
     /// </remarks>
     /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
     /// <param name="client">Content management client instance.</param>

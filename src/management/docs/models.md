@@ -13,9 +13,8 @@ themselves — the CMS schema — is [content model](content-model.md).
 
 ## Generate Management models
 
-Generate the records rather than hand-writing them. The
-[model generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) emits them from
-your content model; run it with `-m` / `--management`:
+The [model generator](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator) emits records
+from your existing content types; run it with `-m` / `--management`:
 
 ```sh
 KontentModelGenerator --management --environmentId "<environmentId>" --apiKey "<management-api-key>" --outputdir "./Models"
@@ -25,7 +24,13 @@ The emitted records require `Kontent.Ai.Management` 9.0 or newer. Switches, outp
 emitted shape are the generator's own documentation — see
 [Management Models](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator#management-models).
 
-Examples below assume an `Article` record generated from the sample `article` type.
+Extend generated records in separate partial record files so your additions survive regeneration.
+
+Examples below assume a configured `IManagementClient client` (see
+[configuration](configuration.md#client-registration-and-lifetime)) and an `Article` record generated
+from an `article` content type with these elements: `title` (text), `body` (rich text), `post_date`
+(date & time), `slug` (URL slug) and `rating` (custom). The inline-component example additionally
+assumes a `callout` type with a multiple-choice `type` element, generated as `Callout`.
 
 ## Read and write typed variants
 
@@ -47,8 +52,8 @@ The generic get and upsert return `LanguageVariantModel<T>` — the typed `Eleme
 metadata the untyped model carries:
 
 ```csharp
-var result = await client.GetLanguageVariantAsync<Article>(identifier);
-LanguageVariantModel<Article> variant = result.Value;
+LanguageVariantModel<Article> variant =
+    (await client.GetLanguageVariantAsync<Article>(identifier)).EnsureSuccess();
 
 Article elements = variant.Elements;     // typed element values
 Reference item = variant.Item;           // everything else is metadata
@@ -61,9 +66,10 @@ Listings whose variants all share one content type take the same type parameter 
 two:
 
 ```csharp
-var articles = await client.ListLanguageVariantsByTypeAsync<Article>(Reference.ByCodename("article"));
+var articles =
+    (await client.ListLanguageVariantsByTypeAsync<Article>(Reference.ByCodename("article"))).EnsureSuccess();
 
-foreach (var variant in articles.Value)
+foreach (var variant in articles)
 {
     Console.WriteLine($"{variant.Language.Id}: {variant.Elements.Title}");
 }
@@ -86,27 +92,17 @@ LanguageVariantModel<Article> article = client.ToTyped<Article>(variant);
 >
 > **Writes key off codenames** and are portable across environments.
 
-An upsert sends every element whose property value is **not null**, and omits the rest. Since generated
-Management records have nullable properties and no initializers, setting three properties on a fresh
-record sends exactly those three:
+An upsert sends every element whose property value is **not null**, and omits the rest. Generated
+Management records have nullable properties and no initializers, so a fresh record sends only the
+elements you give non-null values:
 
 ```csharp
 var article = new Article { Title = "On Roasts" };     // sends title only
 await client.UpsertLanguageVariantAsync(identifier, article);
 ```
 
-> [!NOTE]
-> The rule is "the value is null", not "you did not assign it" — the SDK does not track assignment. A
-> **hand-written** `IElementsModel` record with a non-null initializer therefore sends that value even
-> though you never set it:
->
-> ```csharp
-> public string? Title { get; init; } = "";   // sends an empty title on every upsert
-> ```
->
-> Generated records never carry initializers, so this only affects records you write yourself.
-
-Omitting an element leaves it unchanged. That is not the same as clearing it.
+The SDK checks current values; it does not track assignment. Omitting an element leaves it unchanged.
+That is not the same as clearing it.
 
 ## Element records and model values
 
@@ -201,7 +197,7 @@ rich-text property. `Callout` here is another generated record, embedded as an i
 | `ItemLink(Reference, linkText)` | `<a data-item-…="…">…</a>` | A hyperlink to an item |
 | `Asset(AssetReference)` | `<figure data-asset-…="…">` | Embedding an asset |
 
-`Component` accepts any record carrying `[KontentType]`. Interpolation evaluates left to right, so call
+`Component` accepts generated content-type records. Interpolation evaluates left to right, so call
 order is record order. `Build` snapshots and resets the builder, so one instance can produce several
 elements in turn; a builder nested inside a component's own rich-text body is independent of the outer
 one.

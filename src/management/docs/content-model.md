@@ -2,6 +2,9 @@
 
 Changing the CMS schema: content types, snippets and taxonomy groups.
 
+Examples assume a configured `IManagementClient client` — see
+[configuration](configuration.md#client-registration-and-lifetime).
+
 - [Create content types and snippets](#create-content-types-and-snippets)
 - [Create taxonomies](#create-taxonomies)
 - [Patch definitions](#patch-definitions)
