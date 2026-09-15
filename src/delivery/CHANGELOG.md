@@ -30,6 +30,12 @@ of the line.
 
   `IDeliveryCachePurger.PurgeAsync` returns `Task<bool>` instead of `Task`, matching `InvalidateAsync`. The built-in managers return `false` when a distributed clear-marker write or backplane publication fails or is skipped by an open circuit breaker, in both `allowFailSafe` modes, and log the reason instead of throwing. Local entries may already be invalidated, and `true` does not acknowledge processing by every other node. Code that awaits the call compiles unchanged but should check the result and retry on `false`; a custom implementation changes its signature. Cancellation and disposal still throw.
 
+### Changed
+
+- **Unmapped content types log a warning instead of a debug message.**
+
+  When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning`, so stale generated models show up without enabling debug logging. It is logged once per content type per process.
+
 ### Fixed
 
 - **A missing default client no longer reports the internal `'Default'` name.**

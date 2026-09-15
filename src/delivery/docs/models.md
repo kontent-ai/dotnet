@@ -250,11 +250,8 @@ lands in `default`. It is logged once per content type, not per item:
 |---|---|
 | Category | `Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy` |
 | Event ID | `1408` |
+| Level | `Warning` |
 | Message | `Content type '{codename}' has no mapped model, using DynamicElements` |
-
-```csharp
-builder.Logging.AddFilter("Kontent.Ai.Delivery.ContentItems.ItemTypingStrategy", LogLevel.Debug);
-```
 
 Seeing it means a type was added since you last generated, the models came from a different
 environment, or they are split across projects and auto-discovery found only one — see
