@@ -4,6 +4,10 @@ about: Suggest an idea for this project
 labels: enhancement, needs triage
 ---
 
+### Affected product
+
+Which package? (e.g. `Kontent.Ai.Management`)
+
 ### Motivation
 
 Why is this feature required? What problems does it solve?
