@@ -5,4 +5,4 @@ contact_links:
     about: Report it privately as the security policy describes, not as a public issue.
   - name: Usage question
     url: https://stackoverflow.com/questions/tagged/kontent-ai
-    about: Ask how to use the SDKs on Stack Overflow, tagged kontent-ai.
+    about: Ask how to use the SDKs on Stack Overflow, tagged kontent-ai, or email devrel@kontent.ai.
