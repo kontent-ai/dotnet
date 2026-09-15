@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest a change or an addition to a package.
+labels: [enhancement]
+body:
+  # Option text is matched by .github/workflows/issue-labels.yml to apply product labels.
+  - type: dropdown
+    id: product
+    attributes:
+      label: Product
+      description: >-
+        Every product the request involves. Delivery SDK covers Kontent.Ai.Delivery, its Abstractions, Caching
+        and SourceGeneration packages, and Kontent.Ai.Urls.
+      multiple: true
+      options:
+        - Delivery SDK
+        - Management SDK
+        - Sync SDK
+        - ASP.NET Core extensions
+        - Model generator
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context

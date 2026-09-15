@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in a package does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Security issues go to security@kontent.ai, not here.
+  # Option text is matched by .github/workflows/issue-labels.yml to apply product labels.
+  - type: dropdown
+    id: product
+    attributes:
+      label: Product
+      description: >-
+        Every product the bug involves. Delivery SDK covers Kontent.Ai.Delivery, its Abstractions, Caching and
+        SourceGeneration packages, and Kontent.Ai.Urls.
+      multiple: true
+      options:
+        - Delivery SDK
+        - Management SDK
+        - Sync SDK
+        - ASP.NET Core extensions
+        - Model generator
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      placeholder: Kontent.Ai.Delivery 20.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro steps
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+  - type: input
+    id: dotnet
+    attributes:
+      label: .NET version
+  - type: input
+    id: os
+    attributes:
+      label: OS
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: >-
+        A request ID from `IError.RequestId`, a stack trace, a minimal project. Remove API keys from anything
+        you paste.

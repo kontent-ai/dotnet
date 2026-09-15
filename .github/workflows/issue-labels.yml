@@ -1,0 +1,40 @@
+name: Label issues
+
+# Every new issue gets needs triage, however it was created, plus a product label per pick in the
+# issue form's Product field. Only ever adds labels. Pull requests are labelled from their paths by
+# labeler.yml instead. Nothing here checks out code; the body is read as data.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    name: Apply triage and product labels
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            // Option text in .github/ISSUE_TEMPLATE/*.yml -> label. Keep in step with the forms and
+            // eng/products.json. "Not sure" maps to nothing and is left to triage.
+            const labels = {
+              'Delivery SDK': 'product: delivery',
+              'Management SDK': 'product: management',
+              'Sync SDK': 'product: sync',
+              'ASP.NET Core extensions': 'product: aspnetcore',
+              'Model generator': 'product: model-generator',
+            };
+
+            // A form renders each answer under a "### <label>" heading; a multi-select joins picks with ", ".
+            const section = (context.payload.issue.body ?? '').split(/^### /m).find(s => /^Product\r?\n/.test(s));
+            const products = (section?.split(/\r?\n/).slice(1).join(' ') ?? '')
+              .split(',').map(p => labels[p.trim()]).filter(Boolean);
+
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.issue.number,
+              labels: ['needs triage', ...products],
+            });
