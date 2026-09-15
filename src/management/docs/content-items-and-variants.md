@@ -12,8 +12,8 @@ workflow.
 Recipes below assume a configured `IManagementClient client` (see
 [configuration](configuration.md#client-registration-and-lifetime)), a content type `article` with
 `title` (text), `body` (rich text) and `post_date` (date & time) elements, and the languages `en-US` and
-`de-DE`. No recipe depends on another having run; where one needs an identifier or a model, it declares
-it.
+`de-DE`. No recipe depends on another having run. Each section declares the identifiers and models it
+needs in its first snippet; later snippets in the same section continue from those.
 
 ## Items versus language variants
 

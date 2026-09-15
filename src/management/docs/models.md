@@ -30,7 +30,8 @@ Examples below assume a configured `IManagementClient client` (see
 [configuration](configuration.md#client-registration-and-lifetime)) and an `Article` record generated
 from an `article` content type with these elements: `title` (text), `body` (rich text), `post_date`
 (date & time), `slug` (URL slug) and `rating` (custom). The inline-component example additionally
-assumes a `callout` type with a multiple-choice `type` element, generated as `Callout`.
+assumes a `callout` type whose multiple-choice `type` element allows several selections and offers a
+`warning` option — that is why the generated `Callout.Type` is a collection.
 
 ## Read and write typed variants
 

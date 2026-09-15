@@ -26,12 +26,12 @@ record the rest of the line.
 
   993 lines became 117, with configuration, requests and results, content items and variants, models
   and rich text, assets, content model, and administration each owning one topic under `docs/`.
-  Inbound links inside the repository were updated, including the 8 to 9 upgrade guide's. An external
-  link to an old README anchor no longer resolves; every one of them maps to a new guide section. Two
-  contract corrections came with the move: an upsert omits an element because its property value is
-  null rather than because the SDK tracks what you assigned, and `CreateContentItemWithVariantAsync`
-  has no retry recovery - on a partial failure the item is left without a variant and re-running the
-  composite creates a second item.
+  Inbound links inside the repository were updated, including the 8 to 9 upgrade guide's. Four README
+  anchors are unchanged; the rest moved, and each maps to a new guide section. Two contract corrections
+  came with the move: an upsert omits an element because its property value is null rather than because
+  the SDK tracks what you assigned, and `CreateContentItemWithVariantAsync` does not resume a previous
+  partial failure - it attempts another create, so recover by reconciling the existing item and retrying
+  the variant step.
 
 ### Fixed
 
