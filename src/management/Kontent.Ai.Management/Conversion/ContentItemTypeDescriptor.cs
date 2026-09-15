@@ -31,9 +31,9 @@ internal sealed class ContentItemTypeDescriptor
 
     private static ContentItemTypeDescriptor Build(Type type)
     {
-        var typeAttr = type.GetCustomAttribute<KontentTypeAttribute>()
+        var typeAttr = type.GetCustomAttribute<ContentTypeAttribute>()
             ?? throw new InvalidOperationException(
-                $"Type '{type.FullName}' is missing [KontentType]; the envelope converter only handles generated content-type records.");
+                $"Type '{type.FullName}' is missing [ContentType]; the envelope converter only handles generated content-type records.");
 
         var properties = type
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
@@ -55,7 +55,7 @@ internal sealed class ContentItemTypeDescriptor
 
     private static ContentItemPropertyDescriptor? BuildPropertyDescriptor(PropertyInfo property)
     {
-        var elementAttr = property.GetCustomAttribute<KontentElementAttribute>();
+        var elementAttr = property.GetCustomAttribute<ContentElementAttribute>();
         if (elementAttr is null) return null;
 
         var (kind, collectionElementType, isSingleChoice) = DetectKind(property.PropertyType, property);
@@ -115,7 +115,7 @@ internal sealed class ContentItemPropertyDescriptor
 }
 
 /// <summary>
-/// Cached reflection metadata for an <c>[KontentEnumValue]</c>-annotated enum (multiple-choice element). Maps
+/// Cached reflection metadata for a <c>[ContentOption]</c>-annotated enum (multiple-choice element). Maps
 /// codename and option-id back to the boxed enum value, and the value back to a codename for writes.
 /// </summary>
 internal sealed class EnumDescriptor
@@ -141,7 +141,7 @@ internal sealed class EnumDescriptor
 
         foreach (var field in enumType.GetFields(BindingFlags.Public | BindingFlags.Static))
         {
-            var attr = field.GetCustomAttribute<KontentEnumValueAttribute>();
+            var attr = field.GetCustomAttribute<ContentOptionAttribute>();
             if (attr is null) continue;
 
             var value = field.GetValue(null)!;

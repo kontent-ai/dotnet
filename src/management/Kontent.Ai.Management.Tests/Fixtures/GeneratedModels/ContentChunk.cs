@@ -16,9 +16,9 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("content_chunk", "aaca014e-ca52-5543-b8fc-76509b245e87")]
+[ContentType("content_chunk", "aaca014e-ca52-5543-b8fc-76509b245e87")]
 public sealed partial record ContentChunk : IElementsModel
 {
-    [KontentElement("content", "b60790f9-7ed1-5b6d-92ed-15594b9e4253")]
+    [ContentElement("content", "b60790f9-7ed1-5b6d-92ed-15594b9e4253")]
     public RichTextValue? Content { get; init; }
 }

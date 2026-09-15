@@ -9,7 +9,7 @@ public sealed class ManagementProperty : Property
 {
     /// <summary>
     /// Attributes to emit on the generated property, in declaration order — the element-identity
-    /// attribute (<c>[KontentElement]</c>).
+    /// attribute (<c>[ContentElement]</c>).
     /// </summary>
     public IReadOnlyList<AttributeSpec> Attributes { get; }
 

@@ -16,17 +16,17 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("action", "46d20e5c-a72c-5a48-bfae-b054632877ca")]
+[ContentType("action", "46d20e5c-a72c-5a48-bfae-b054632877ca")]
 public sealed partial record Action : IElementsModel
 {
-    [KontentElement("image", "bee5bc76-a644-546b-8e3b-e3b5c2dfe2c3")]
+    [ContentElement("image", "bee5bc76-a644-546b-8e3b-e3b5c2dfe2c3")]
     public IEnumerable<AssetReference>? Image { get; init; }
-    [KontentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
+    [ContentElement("reference__caption", "75684270-5e43-5d21-b93a-700f85e50853")]
     public string? ReferenceCaption { get; init; }
-    [KontentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
+    [ContentElement("reference__content__item_link", "ed9d88d5-2375-57c3-9916-615eaae7d5da")]
     public IEnumerable<Reference>? ReferenceContentItemLink { get; init; }
-    [KontentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
+    [ContentElement("reference__external_uri", "580e3f46-f033-50d4-9f34-4ed91384f4e4")]
     public string? ReferenceExternalUri { get; init; }
-    [KontentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
+    [ContentElement("reference__label", "15ee4053-00fd-5d5e-a2d7-4437079251ce")]
     public string? ReferenceLabel { get; init; }
 }

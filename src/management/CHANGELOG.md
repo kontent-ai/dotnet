@@ -20,6 +20,17 @@ Full migration: [8 → 9](https://github.com/kontent-ai/dotnet/blob/main/src/man
 The sections below list what changed since `9.0.0-rc.3`; the `beta` and `rc` entries further down
 record the rest of the line.
 
+### Breaking changes
+
+- **The model attributes are renamed to content-model terminology.**
+
+  `KontentTypeAttribute`, `KontentElementAttribute` and `KontentEnumValueAttribute` are now
+  `ContentTypeAttribute`, `ContentElementAttribute` and `ContentOptionAttribute` — the API's own words
+  for a content type, an element, and a multiple-choice option. The old names are gone, so a generated
+  model carrying them no longer compiles. They have only ever shipped in the `9.0.0` prereleases, so
+  8.x has nothing to rename. Regenerate with model generator `11.0.0` or newer, which emits the new
+  names.
+
 ### Changed
 
 - **The README is a routing page; its reference material moved into seven guides.**

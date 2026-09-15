@@ -9,7 +9,7 @@ public class ManagementPropertyTests
     {
         var attrs = new[]
         {
-            new AttributeSpec("KontentElement",
+            new AttributeSpec("ContentElement",
             [
                 AttributeArg.Positional("title"),
                 AttributeArg.Positional("abc-123"),
@@ -28,7 +28,7 @@ public class ManagementPropertyTests
         property.Id.Should().Be("abc-123");
         property.Identifier.Should().Be("Title");
         property.Attributes.Should().HaveCount(2);
-        property.Attributes[0].Name.Should().Be("KontentElement");
+        property.Attributes[0].Name.Should().Be("ContentElement");
         property.Attributes[1].Name.Should().Be("StringLength");
     }
 

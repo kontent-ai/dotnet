@@ -62,13 +62,13 @@ public class RichTextBuilderTests
         new SystemAction(() => new RichTextBuilder().Component(null!)).Should().Throw<ArgumentNullException>();
 
     [Fact]
-    public void Component_ItemWithoutKontentType_Throws()
+    public void Component_ItemWithoutContentType_Throws()
     {
         var rt = new RichTextBuilder();
 
         var act = () => rt.Component(new BareContentItem());
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("*KontentType*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*ContentType*");
     }
 
     // --- LinkedItem ---

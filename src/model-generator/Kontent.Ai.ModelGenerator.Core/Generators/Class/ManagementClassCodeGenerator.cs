@@ -7,7 +7,7 @@ namespace Kontent.Ai.ModelGenerator.Core.Generators.Class;
 
 /// <summary>
 /// Emits a content type as a <c>sealed partial record</c> implementing <c>IElementsModel</c>,
-/// with <c>[KontentType]</c> at the type level and <c>[KontentElement]</c> per property. Property
+/// with <c>[ContentType]</c> at the type level and <c>[ContentElement]</c> per property. Property
 /// attributes come from each <see cref="ManagementProperty"/>'s <see cref="ManagementProperty.Attributes"/> list.
 /// </summary>
 public sealed class ManagementClassCodeGenerator(
@@ -17,7 +17,7 @@ public sealed class ManagementClassCodeGenerator(
     : ClassCodeGenerator(classDefinition, classFilename, @namespace)
 {
     private const string ElementsModelInterfaceName = "IElementsModel";
-    private const string KontentTypeAttribute = "KontentType";
+    private const string ContentTypeAttribute = "ContentType";
 
     protected override AttributeListSyntax[] BuildPropertyAttributes(Property property)
     {
@@ -35,13 +35,13 @@ public sealed class ManagementClassCodeGenerator(
     {
         var declaration = (RecordDeclarationSyntax)base.GetClassDeclaration();
 
-        var kontentTypeArgs = new List<AttributeArg>
+        var contentTypeArgs = new List<AttributeArg>
         {
             AttributeArg.Positional(ClassDefinition.Codename),
         };
         if (!string.IsNullOrWhiteSpace(ClassDefinition.Id))
         {
-            kontentTypeArgs.Add(AttributeArg.Positional(ClassDefinition.Id));
+            contentTypeArgs.Add(AttributeArg.Positional(ClassDefinition.Id));
         }
 
         // C# requires 'partial' immediately before the type keyword. Base emits 'public partial';
@@ -52,7 +52,7 @@ public sealed class ManagementClassCodeGenerator(
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword),
                 SyntaxFactory.Token(SyntaxKind.PartialKeyword)))
             .AddAttributeLists(BuildAttributeList(
-                new AttributeSpec(KontentTypeAttribute, kontentTypeArgs)))
+                new AttributeSpec(ContentTypeAttribute, contentTypeArgs)))
             .WithBaseList(SyntaxFactory.BaseList(
                 SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
                     SyntaxFactory.SimpleBaseType(

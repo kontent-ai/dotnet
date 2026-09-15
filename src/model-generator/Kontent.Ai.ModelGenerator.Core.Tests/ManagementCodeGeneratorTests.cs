@@ -33,7 +33,7 @@ public class ManagementCodeGeneratorTests
     }
 
     [Fact]
-    public async Task RunAsync_EmittedCode_ContainsKontentTypeAttribute()
+    public async Task RunAsync_EmittedCode_ContainsContentTypeAttribute()
     {
         var typeId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         var type = BuildArticleType(id: typeId);
@@ -47,7 +47,7 @@ public class ManagementCodeGeneratorTests
 
         emitted.Should().NotBeNull();
         // Both args emitted: codename + id (positional).
-        emitted.Should().Contain($"[KontentType(\"article\", \"{typeId}\")]");
+        emitted.Should().Contain($"[ContentType(\"article\", \"{typeId}\")]");
         emitted.Should().Contain(": IElementsModel");
         emitted.Should().Contain("namespace MyProject.Models;");
     }
@@ -374,9 +374,9 @@ public class ManagementCodeGeneratorTests
         // Snippet-contributed codename arrives from MAPI already `seo__`-prefixed and passes
         // through verbatim — not re-prefixed (regression guard against double `seo__seo__`).
         emitted.Should().Contain("public string? SeoMetaTitle { get; init; }");
-        emitted.Should().Contain("[KontentElement(\"seo__meta_title\"");
+        emitted.Should().Contain("[ContentElement(\"seo__meta_title\"");
         emitted.Should().Contain("public string? SeoMetaDescription { get; init; }");
-        emitted.Should().Contain("[KontentElement(\"seo__meta_description\"");
+        emitted.Should().Contain("[ContentElement(\"seo__meta_description\"");
     }
 
     [Fact]

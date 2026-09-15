@@ -9,7 +9,7 @@ public sealed class AttributeSpec
 {
     /// <summary>
     /// Attribute name without the <c>[]</c> brackets and without a trailing <c>Attribute</c> suffix
-    /// (e.g. <c>"KontentElement"</c>, <c>"KontentEnumValue"</c>).
+    /// (e.g. <c>"ContentElement"</c>, <c>"ContentOption"</c>).
     /// </summary>
     public string Name { get; }
 

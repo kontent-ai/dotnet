@@ -54,7 +54,7 @@ internal sealed class ContentItemEnvelopeConverter
     // ---- Write direction ----
 
     /// <summary>
-    /// Turns <paramref name="item"/>'s <c>[KontentElement]</c> properties into the element records an upsert model
+    /// Turns <paramref name="item"/>'s <c>[ContentElement]</c> properties into the element records an upsert model
     /// carries; a <c>null</c> property is omitted.
     /// </summary>
     public IReadOnlyList<BaseElement> ToElements(IElementsModel item)
@@ -113,7 +113,7 @@ internal sealed class ContentItemEnvelopeConverter
             if (!enumDescriptor.CodenameByValue.TryGetValue(option, out var codename))
             {
                 throw new InvalidOperationException(
-                    $"Enum value '{option}' on '{prop.Property.DeclaringType?.Name}.{prop.Property.Name}' has no [KontentEnumValue] mapping.");
+                    $"Enum value '{option}' on '{prop.Property.DeclaringType?.Name}.{prop.Property.Name}' has no [ContentOption] mapping.");
             }
             references.Add(Reference.ByCodename(codename));
         }
@@ -208,7 +208,7 @@ internal sealed class ContentItemEnvelopeConverter
         if (seen > 0 && matched == 0 && descriptor.Properties.Count > 0)
         {
             throw new InvalidOperationException(
-                $"None of the {seen} elements in the response match a [KontentElement] on '{contentType.Name}'. " +
+                $"None of the {seen} elements in the response match a [ContentElement] on '{contentType.Name}'. " +
                 "The variant belongs to a different content type, or the record's element ids come from another environment.");
         }
 
@@ -307,7 +307,7 @@ internal sealed class ContentItemEnvelopeConverter
                 // Skipping instead would silently deselect the option on the next upsert of the read model.
                 throw new InvalidOperationException(
                     $"Multiple-choice option {entry.GetRawText()} on '{prop.Property.DeclaringType?.Name}.{prop.Property.Name}' " +
-                    $"has no matching [KontentEnumValue] member on '{enumType.Name}'. Regenerate the model if the type's options changed.");
+                    $"has no matching [ContentOption] member on '{enumType.Name}'. Regenerate the model if the type's options changed.");
             }
             list.Add(member);
         }
@@ -360,7 +360,7 @@ internal sealed class ContentItemEnvelopeConverter
         var contentType = _registry.ResolveById(typeId)
             ?? throw new InvalidOperationException(
                 $"Rich-text component references content type id '{typeId}', which is not registered. The model's " +
-                "[KontentType] must carry this id, and its assembly must be scanned via ContentTypeRegistry before reading.");
+                "[ContentType] must carry this id, and its assembly must be scanned via ContentTypeRegistry before reading.");
 
         var elements = componentElem.GetProperty("elements");
         var content = ReadEnvelopes(elements, contentType);

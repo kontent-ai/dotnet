@@ -16,17 +16,17 @@ using Kontent.Ai.Management.Models.Content;
 
 namespace MyProject.Models;
 
-[KontentType("person", "3b8aea57-afdc-55b4-b7aa-30991e2515f8")]
+[ContentType("person", "3b8aea57-afdc-55b4-b7aa-30991e2515f8")]
 public sealed partial record Person : IElementsModel
 {
-    [KontentElement("bio", "4341b423-f053-523f-bd0f-b63b6c786532")]
+    [ContentElement("bio", "4341b423-f053-523f-bd0f-b63b6c786532")]
     public RichTextValue? Bio { get; init; }
-    [KontentElement("first_name", "412e6d34-62aa-524a-b97f-a23b2cf3e252")]
+    [ContentElement("first_name", "412e6d34-62aa-524a-b97f-a23b2cf3e252")]
     public string? FirstName { get; init; }
-    [KontentElement("last_name", "3b153753-6cd6-58e8-99ae-e60020ffd890")]
+    [ContentElement("last_name", "3b153753-6cd6-58e8-99ae-e60020ffd890")]
     public string? LastName { get; init; }
-    [KontentElement("occupation", "d73579bd-b03a-59e0-8464-63939e0cb6c7")]
+    [ContentElement("occupation", "d73579bd-b03a-59e0-8464-63939e0cb6c7")]
     public string? Occupation { get; init; }
-    [KontentElement("photograph", "514655d3-a35d-5c58-8807-b62108651728")]
+    [ContentElement("photograph", "514655d3-a35d-5c58-8807-b62108651728")]
     public IEnumerable<AssetReference>? Photograph { get; init; }
 }

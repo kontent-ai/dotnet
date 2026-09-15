@@ -107,7 +107,7 @@ public class EnvelopeConverter_RichTextTests
     }
 
     [Fact]
-    public void Write_ComponentWithoutKontentTypeAttribute_Throws()
+    public void Write_ComponentWithoutContentTypeAttribute_Throws()
     {
         var article = new Article
         {
@@ -120,9 +120,9 @@ public class EnvelopeConverter_RichTextTests
 
         var act = () => Converter.WriteEnvelopes(article);
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("*KontentType*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*ContentType*");
     }
 
-    // A degenerate IElementsModel that lacks [KontentType] — exercises the converter's defensive check.
+    // A degenerate IElementsModel that lacks [ContentType] — exercises the converter's defensive check.
     private sealed record BareContentItem : IElementsModel;
 }

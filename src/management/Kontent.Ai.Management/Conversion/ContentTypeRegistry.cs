@@ -6,7 +6,7 @@ namespace Kontent.Ai.Management.Conversion;
 
 /// <summary>
 /// Resolves Kontent.ai content-type ids to the CLR record types that carry the matching
-/// <see cref="KontentTypeAttribute"/>. Used by <see cref="ContentItemEnvelopeConverter"/> for polymorphic
+/// <see cref="ContentTypeAttribute"/>. Used by <see cref="ContentItemEnvelopeConverter"/> for polymorphic
 /// dispatch on the read path — specifically, materializing rich-text components into their concrete generated
 /// record types.
 /// </summary>
@@ -21,7 +21,7 @@ internal sealed class ContentTypeRegistry
 
     /// <summary>
     /// Indexes every <see cref="IElementsModel"/>-implementing type in <paramref name="assembly"/> that carries
-    /// a <see cref="KontentTypeAttribute"/>. Idempotent — subsequent calls for the same assembly are no-ops.
+    /// a <see cref="ContentTypeAttribute"/>. Idempotent — subsequent calls for the same assembly are no-ops.
     /// </summary>
     public void Scan(Assembly assembly)
     {
@@ -41,23 +41,23 @@ internal sealed class ContentTypeRegistry
 
     /// <summary>
     /// Registers <paramref name="type"/>. Throws when it is not a content-type record (must implement
-    /// <see cref="IElementsModel"/> and carry <see cref="KontentTypeAttribute"/> with an id), or when a
+    /// <see cref="IElementsModel"/> and carry <see cref="ContentTypeAttribute"/> with an id), or when a
     /// different type is already registered for the same id.
     /// </summary>
     public void Register(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        if (type.GetCustomAttribute<KontentTypeAttribute>() is not { } attr || !typeof(IElementsModel).IsAssignableFrom(type))
+        if (type.GetCustomAttribute<ContentTypeAttribute>() is not { } attr || !typeof(IElementsModel).IsAssignableFrom(type))
         {
             throw new ArgumentException(
-                $"Type '{type.FullName}' is not a content-type record (must implement IElementsModel and carry [KontentType]).",
+                $"Type '{type.FullName}' is not a content-type record (must implement IElementsModel and carry [ContentType]).",
                 nameof(type));
         }
         if (attr.Id is null)
         {
             throw new ArgumentException(
-                $"Type '{type.FullName}' carries [KontentType] without an id, so it can never be resolved as a rich-text component. " +
+                $"Type '{type.FullName}' carries [ContentType] without an id, so it can never be resolved as a rich-text component. " +
                 "Set the attribute's id to register it.",
                 nameof(type));
         }
@@ -77,7 +77,7 @@ internal sealed class ContentTypeRegistry
     }
 
     /// <summary>
-    /// Resolves a content-type <paramref name="id"/> (from <see cref="KontentTypeAttribute.Id"/>) to the registered
+    /// Resolves a content-type <paramref name="id"/> (from <see cref="ContentTypeAttribute.Id"/>) to the registered
     /// CLR type, or <c>null</c> if none is registered for it. Case-insensitive.
     /// </summary>
     public Type? ResolveById(string id)
@@ -90,7 +90,7 @@ internal sealed class ContentTypeRegistry
     {
         // Id-less content-type records are skipped, not rejected: only the component read path needs ids, and
         // scans / read-path self-registration must tolerate write-only models that never carry one.
-        if (type.GetCustomAttribute<KontentTypeAttribute>() is { Id: { } id } && typeof(IElementsModel).IsAssignableFrom(type))
+        if (type.GetCustomAttribute<ContentTypeAttribute>() is { Id: { } id } && typeof(IElementsModel).IsAssignableFrom(type))
         {
             AddById(type, id);
         }

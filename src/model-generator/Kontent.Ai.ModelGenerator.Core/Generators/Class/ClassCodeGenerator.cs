@@ -37,7 +37,7 @@ public abstract class ClassCodeGenerator : GeneralGenerator
     /// <summary>
     /// Returns the attribute lists to apply to each emitted property.
     /// Override in subclasses to inject SDK-specific attributes (e.g. <c>[JsonPropertyName]</c> for Delivery,
-    /// <c>[KontentElement]</c> + constraint attributes for Management). Default emits nothing.
+    /// <c>[ContentElement]</c> + constraint attributes for Management). Default emits nothing.
     /// </summary>
     protected virtual AttributeListSyntax[] BuildPropertyAttributes(Property property) => [];
 
