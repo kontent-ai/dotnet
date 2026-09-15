@@ -1,6 +1,6 @@
 name: Bug report
 description: Something in a package does not work as documented.
-labels: [bug, needs triage]
+labels: [bug]
 body:
   - type: markdown
     attributes:

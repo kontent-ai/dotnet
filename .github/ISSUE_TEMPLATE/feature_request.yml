@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest a change or an addition to a package.
-labels: [enhancement, needs triage]
+labels: [enhancement]
 body:
   # Option text is matched by .github/workflows/issue-labels.yml to apply product labels.
   - type: dropdown

@@ -1,20 +1,18 @@
 name: Label issues
 
-# Applies product labels from the Product answer of an issue form. Pull requests are labelled from
-# their paths by labeler.yml instead. Nothing here checks out code; the body is read as data.
+# Every new issue gets needs triage, however it was created, plus a product label per pick in the
+# issue form's Product field. Only ever adds labels. Pull requests are labelled from their paths by
+# labeler.yml instead. Nothing here checks out code; the body is read as data.
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
 
 permissions:
   issues: write
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.issue.number }}
-
 jobs:
   label:
-    name: Apply product labels
+    name: Apply triage and product labels
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v9
@@ -31,26 +29,12 @@ jobs:
             };
 
             // A form renders each answer under a "### <label>" heading; a multi-select joins picks with ", ".
-            const products = body => {
-              const section = (body ?? '').split(/^### /m).find(s => /^Product\r?\n/.test(s));
-              const answer = section?.split(/\r?\n/).slice(1).join(' ') ?? '';
-              return new Set(answer.split(',').map(p => labels[p.trim()]).filter(Boolean));
-            };
+            const section = (context.payload.issue.body ?? '').split(/^### /m).find(s => /^Product\r?\n/.test(s));
+            const products = (section?.split(/\r?\n/).slice(1).join(' ') ?? '')
+              .split(',').map(p => labels[p.trim()]).filter(Boolean);
 
-            const { action, issue, changes } = context.payload;
-            if (action === 'edited' && !changes?.body) return;
-
-            const wanted = products(issue.body);
-            // On an edit, retract only what the previous answer implied, so a label set during triage survives.
-            const previous = action === 'edited' ? products(changes.body.from) : new Set();
-            const current = new Set(issue.labels.map(l => l.name));
-
-            const add = [...wanted].filter(l => !current.has(l));
-            const remove = [...previous].filter(l => !wanted.has(l) && current.has(l));
-
-            if (add.length) {
-              await github.rest.issues.addLabels({ ...context.repo, issue_number: issue.number, labels: add });
-            }
-            for (const name of remove) {
-              await github.rest.issues.removeLabel({ ...context.repo, issue_number: issue.number, name });
-            }
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.issue.number,
+              labels: ['needs triage', ...products],
+            });
