@@ -264,5 +264,5 @@ BenchmarkDotNet.Artifacts/
 # macOS Finder metadata
 .DS_Store
 
-# Local plans, analyses and probes; never committed (see CLAUDE.md)
+# Local plans, analyses and probes; never committed (see AGENTS.md)
 scratch/
