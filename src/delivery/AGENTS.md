@@ -31,7 +31,7 @@ Delivery and Sync are the read-only pair and compile the same `src/common/Http/D
 
 - Abstractions declares the `I*` contract, Delivery implements it as a `public sealed record` with `/// <inheritdoc/>`, and the SDK returns the interface. Every public type in the Abstractions assembly must live under `Kontent.Ai.Delivery.Abstractions` (test-enforced).
 - `init`-only, `required` where the API always sends the value, explicit `[JsonPropertyName]` on every property. Collections are `IEnumerable`/`IReadOnlyDictionary`.
-- **Dates are `DateTime` throughout**, including the filter overloads, and `IDateTimeContent.DisplayTimezone` carries the IANA name separately. Nothing in Delivery is caller-supplied, so `DateTimeOffset` does not appear.
+- **Dates are `DateTime` throughout**, including the filter overloads, and `IDateTimeContent.DisplayTimezone` carries the IANA name separately. A response timestamp reads as `DateTime` and passes straight into a filter that takes one; see the date rule in the root `AGENTS.md`.
 - Query builders: `With*` for shaping, bare verbs for paging, `Where(f => f.System("type").IsEqualTo(...))` with AND semantics, terminal `ExecuteAsync`/`EnumerateAsync`. Client methods return a builder, never a `Task`. The DSL takes raw values; a caller who pre-encodes gets their percent signs.
 - Generated content models need both `[ContentTypeCodename]` and `[JsonPropertyName]`; a property without the latter is dropped silently with `IsSuccess == true`.
 - `DeliveryOptions.CopyTo` is reflection on purpose: a hand-written list keeps compiling when an option is added and silently stops carrying it.
@@ -41,7 +41,7 @@ Delivery and Sync are the read-only pair and compile the same `src/common/Http/D
 - `IDeliveryCacheManager.GetOrSetAsync` factory protocol: `null` means the origin has no value (nothing cached, stale copy dropped); a throw means the origin is unreachable (fail-safe may serve stale). Do not blur the two.
 - Cached families are item, items, type, types, taxonomy, taxonomies. Languages, single elements, used-in and all dynamic queries always reach the API; preview, `WaitForLoadingNewContent(true)` and dynamic results are never cached. The preview bypass lives in `DeliveryClient`, not in the cache manager.
 - Keys are built by `Caching/CacheKeyBuilder`: readable, deterministic, order-independent, filters hashed, model type appended only in hydrated-object mode, credentials never part of identity. `FusionCacheManager` folds the environment id into the prefix and the backplane channel name, and `DistributedFormatVersion` is bumped whenever a cached type or FusionCache's entry format changes.
-- Tag data outlives entries; tag reads fail open, invalidations do not and report `false`. `PurgeAsync` throws when a distributed purge cannot complete.
+- Tag data outlives entries; tag reads fail open, invalidations do not and report `false`. `PurgeAsync` reports the same way — `false` when a distributed purge cannot complete — and only cancellation and disposal throw.
 - Asset elements are not tagged, because the URL GUID identifies the binary, not the asset; `InvalidateAssetAsync` is the route for asset events.
 - `ConfigureFusionCache` may not override what `DeliveryCacheOptions` decides: duration, fail-safe, jitter, eager refresh.
 - `Kontent.Ai.Delivery.Caching` compiles no `src/common` files, knowingly, because a second copy would be `CS0436`-ambiguous through the `InternalsVisibleTo` chain.

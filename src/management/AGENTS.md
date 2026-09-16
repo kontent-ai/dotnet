@@ -39,6 +39,7 @@ A client for the [Management API v2](https://kontent.ai/learn/docs/apis/openapi/
 - **All collection properties are `IReadOnlyList<T>`** (never `IEnumerable`, `ISet`, or concrete types). Method *parameters* may accept `IEnumerable<T>`.
 - Names mirror Kontent.ai API terminology; request and response shapes are separate records when the wire shapes differ (a response model with a fake-`required` field forced into a request body is a defect — see `UserRolesUpdateModel`).
 - Models must stay **generator-friendly** (record-based, immutable, STJ-serializable) — the shape is coordinated with `src/model-generator`, which consumes this package at a floor, so a change here reaches it only after a release.
+- **The generated model shape is shared with `src/model-generator`.** Records, mapping attributes and collection types are agreed jointly; change them in both products together, never in one alone.
 - **Content-type CLR models come from the generator.** Extensions belong in separate partial record files. Generated models map via `ContentTypeAttribute`/`ContentElementAttribute`/`ContentOptionAttribute` under `Annotations/`; the converters read them at runtime (typed *reads* match by id — environment-bound; *writes* key by codename — portable).
 - **Asset uploads must carry a `Content-Length`** (verified against the live endpoint). A chunked request is refused with error `206`, *"the file is bigger than the maximal allowed limit (2 GB)"*, whatever the real size — so the message is no guide to the actual fault. A zero-length body, by contrast, is **accepted** and stores an empty asset. `FileContentSource` therefore only takes sources whose size is knowable, which is also what makes every upload safe to retry.
 
@@ -68,7 +69,6 @@ A client for the [Management API v2](https://kontent.ai/learn/docs/apis/openapi/
 
 ## Open questions (do not invent answers)
 
-- **Coordination with `src/model-generator`** for Management-model generation — the generated model shape (records, mapping attributes, collection types) must be agreed jointly before DTOs are declared final.
 - **Webhook trigger switches** (`Enabled`/`Events`/`Slot` nullability) and the **webhook update endpoint** need live-API verification before changing.
 - **How long a continuation token stays valid.** `ListingPage<T>.ContinuationToken` is what makes an interrupted listing resumable rather than restartable, so the answer decides what the docs may promise. It is undocumented — absent from the MAPI reference and the [API limitations](https://kontent.ai/learn/docs/apis/management-api-v2/api-limitations) page — while the error catalog carries *"The specified continuation token is incorrect"*, so an invalid token is a reachable state.
 
