@@ -150,33 +150,37 @@ the write may already have landed.
 
 Set `EnableResilience = false` to make the pipeline a passthrough.
 
-### Replacing the pipeline
+### Tuning retries
 
-`ConfigureResilience` **replaces** the pipeline rather than adding to it, across both the
-environment-scoped and subscription-scoped transports. Replacing it drops the idempotency rule, so
-re-establish a write-safety rule of your own:
+Use `TuneRetry` to adjust the initialized default `HttpRetryStrategyOptions` before the SDK assembles
+the pipeline:
 
 ```csharp
-var retry = new HttpRetryStrategyOptions { MaxRetryAttempts = 5 };
-retry.DisableFor(HttpMethod.Post, HttpMethod.Patch);   // do not replay writes
-
 services.AddManagementClient(management =>
 {
     management.Options.Configure(options => { options.EnvironmentId = "…"; options.ApiKey = "…"; });
-    management.ConfigureResilience(pipeline => pipeline
-        .AddRetry(retry)
-        .AddTimeout(TimeSpan.FromSeconds(30)));
+    management.TuneRetry(retry => retry.MaxRetryAttempts = 5);
 });
 ```
 
-> [!WARNING]
-> A bare `new HttpRetryStrategyOptions()` retries **every** method on **every** transient failure, `POST`
-> and `PATCH` included. Against a write API that turns one ambiguous failure into duplicate content.
+Changing the attempt count preserves the idempotency rule, `Retry-After` handling, backoff and jitter.
+Settings you leave alone follow the defaults of the SDK version you install. Assigning `ShouldHandle`
+or `DelayGenerator` explicitly replaces that part of the retry behavior; replacing `ShouldHandle`
+means taking responsibility for write safety.
 
-`DisableFor` is **not** equivalent to the built-in rule. It excludes by method, so a rate-limited `POST`
-is not retried either, where the default would have honoured `Retry-After` and backed off. That errs on
-the safe side, but under the per-minute rate limit you may see writes fail that the default would have
-carried through.
+Callbacks run in registration order with fresh options for each pipeline construction, on both the
+environment and subscription transports. The same hook works in `ManagementClient.Create`.
+It does not run when `EnableResilience` is `false` or `ConfigureResilience` replaces the pipeline.
+Management still has no default per-attempt timeout.
+
+### Replacing the pipeline
+
+`ConfigureResilience` replaces the entire pipeline on both transports, including the idempotency rule.
+Use it when you need different strategies or ordering. Prefer `TuneRetry` for retry settings.
+
+A bare `new HttpRetryStrategyOptions()` retries transient failures on every method, including `POST`
+and `PATCH`. `DisableFor(HttpMethod.Post, HttpMethod.Patch)` prevents those replays but also prevents
+retrying rate-limited writes; it is not equivalent to the SDK's rule.
 
 ### Timeouts
 

@@ -1,5 +1,6 @@
 using Kontent.Ai.Common.Clients;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
 
@@ -12,6 +13,12 @@ internal sealed class ManagementClientBuilder(string name, IServiceCollection se
     /// Assigned by the transport registration before the builder reaches the consumer.
     /// </summary>
     public IHttpClientBuilder SubscriptionHttpClient { get; internal set; } = null!;
+
+    public IManagementClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure)
+    {
+        AddRetryTuning(configure);
+        return this;
+    }
 
     public IManagementClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
     {

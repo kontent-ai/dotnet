@@ -37,6 +37,12 @@ of the line.
 
   `IDynamicItemQuery.ExecuteAsync` returns `IDeliveryResult<DeliveryItemResponse>` instead of `IDeliveryResult<IContentItem>`. The response carries the `Item` - runtime-typed where a model exists, as before - and the `ModularContent` the single-item read used to discard, so the linked items and rich text components of an item with no generated model can now be resolved, the way listing and feed responses already allowed. A pattern match or `switch` on `result.Value` fails to compile with `CS8121`; read `result.Value.Item` instead, after checking `IsSuccess` - a failed result's `Value` is `null`, which the old pattern match tolerated. Code that passes `result.Value` where any object is accepted - `Ok(result.Value)`, a serializer, a log message - still compiles and now receives the whole response; pass `result.Value.Item`.
 
+### Added
+
+- **`TuneRetry` adjusts default retries without replacing the pipeline.**
+
+  `IDeliveryClientBuilder.TuneRetry` receives initialized retry options, so changing the attempt count preserves the SDK's retry predicates and `Retry-After` handling. Callbacks run in registration order; `ConfigureResilience` still replaces the pipeline and bypasses tuning.
+
 ### Changed
 
 - **Unmapped content types log a warning instead of a debug message.**

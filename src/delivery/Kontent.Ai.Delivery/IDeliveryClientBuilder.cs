@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
 
@@ -35,6 +36,19 @@ public interface IDeliveryClientBuilder
 
     /// <summary>The named HTTP client the transport is built on.</summary>
     IHttpClientBuilder HttpClient { get; }
+
+    /// <summary>
+    /// Tunes the default retry options before the SDK assembles the pipeline.
+    /// Settings not changed by the callback retain their SDK defaults.
+    /// </summary>
+    /// <remarks>
+    /// Callbacks run in registration order with fresh options for each pipeline construction.
+    /// Has no effect when <see cref="DeliveryOptions.EnableResilience"/> is <c>false</c> or
+    /// <see cref="ConfigureResilience"/> replaces the pipeline.
+    /// </remarks>
+    /// <param name="configure">Configures the initialized default retry options.</param>
+    /// <returns>This builder.</returns>
+    IDeliveryClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure);
 
     /// <summary>
     /// Replaces the default resilience pipeline. Has no effect when <see cref="DeliveryOptions.EnableResilience"/>

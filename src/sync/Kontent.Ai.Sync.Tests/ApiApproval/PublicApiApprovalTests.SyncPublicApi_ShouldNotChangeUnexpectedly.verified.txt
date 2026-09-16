@@ -30,6 +30,7 @@ public interface ISyncClientBuilder
     OptionsBuilder<SyncOptions> Options { get; }
     String Name { get; }
     ISyncClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
+    ISyncClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure)
 
 // Kontent.Ai.Sync
 public interface ISyncClientFactory

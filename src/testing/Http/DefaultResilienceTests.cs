@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Kontent.Ai.Common.Http;
+using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Polly.Timeout;
 
@@ -48,10 +49,12 @@ public class DefaultResilienceTests
         attempts.Should().Be(1);
     }
 
-    [Fact]
-    public async Task ConfigureReadPipeline_RetriesAnAttemptTheTimeoutRejected()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConfigureReadPipeline_RetriesAnAttemptTheTimeoutRejected(bool tuned)
     {
-        var pipeline = Build();
+        var pipeline = Build(tuned ? retry => retry.MaxRetryAttempts = 5 : null);
 
         var attempts = 0;
         var response = await pipeline.ExecuteAsync<HttpResponseMessage>(_ =>
@@ -67,10 +70,10 @@ public class DefaultResilienceTests
         attempts.Should().Be(2);
     }
 
-    private static ResiliencePipeline<HttpResponseMessage> Build()
+    private static ResiliencePipeline<HttpResponseMessage> Build(Action<HttpRetryStrategyOptions>? tuneRetry = null)
     {
         var builder = new ResiliencePipelineBuilder<HttpResponseMessage>();
-        DefaultResilience.ConfigureReadPipeline(builder);
+        DefaultResilience.ConfigureReadPipeline(builder, tuneRetry);
         return builder.Build();
     }
 

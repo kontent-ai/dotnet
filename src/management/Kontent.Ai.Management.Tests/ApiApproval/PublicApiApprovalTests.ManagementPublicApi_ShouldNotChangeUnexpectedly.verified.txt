@@ -137,6 +137,7 @@ public interface IManagementClientBuilder
     OptionsBuilder<ManagementOptions> Options { get; }
     String Name { get; }
     IManagementClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
+    IManagementClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure)
 
 // Kontent.Ai.Management
 public interface IManagementClientFactory

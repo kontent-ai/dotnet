@@ -18,6 +18,12 @@ live in `Kontent.Ai.Delivery` — removed in Delivery 19.0 — start at the same
 The sections below list what changed since `2.0.0-rc.3`; the `rc` entries further down record the rest
 of the line.
 
+### Added
+
+- **`TuneRetry` adjusts default retries without replacing the pipeline.**
+
+  `ISyncClientBuilder.TuneRetry` receives initialized retry options, so changing the attempt count preserves the SDK's retry predicates and `Retry-After` handling. Callbacks run in registration order; `ConfigureResilience` still replaces the pipeline and bypasses tuning.
+
 ### Fixed
 
 - **A missing default client no longer reports the internal `'Default'` name.**

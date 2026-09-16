@@ -61,24 +61,28 @@ public static partial class ServiceCollectionExtensions
     /// (the request was rejected, not processed), while other transient failures — 408/5xx and transport exceptions,
     /// where the request may have already been applied server-side — retry only for idempotent methods. POST and
     /// PATCH are never assumed safe: a replayed create can duplicate an entity, and the Management API PATCH grammar
-    /// includes non-idempotent <c>addInto</c>. Consumers who want different semantics (e.g. retrying the POST-based
-    /// variant-filter listing) replace the pipeline through <c>ConfigureResilience</c> on the builder, which applies to both transports. Diverges from
+    /// includes non-idempotent <c>addInto</c>. Consumers can adjust the initialized retry options through <c>TuneRetry</c>
+    /// or replace the pipeline through <c>ConfigureResilience</c>, on both transports. Diverges from
     /// delivery-sdk-net / sync-sdk-net by omitting <c>AddTimeout</c> — management operations include asset uploads
     /// where a per-attempt timeout would be more hindrance than help. The ceiling on the call as a whole is
     /// <see cref="ManagementOptions.Timeout"/>.
     /// </summary>
-    internal static void ConfigureDefaultResilience(ResiliencePipelineBuilder<HttpResponseMessage> builder)
+    internal static void ConfigureDefaultResilience(
+        ResiliencePipelineBuilder<HttpResponseMessage> builder,
+        Action<HttpRetryStrategyOptions>? tuneRetry = null)
     {
         // No DelayGenerator override: the options' default (ShouldRetryAfterHeader) already honors a server-provided
         // Retry-After in both delta and HTTP-date form, falling back to the backoff below when absent.
-        builder.AddRetry(new HttpRetryStrategyOptions
+        var retry = new HttpRetryStrategyOptions
         {
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(1),
             BackoffType = DelayBackoffType.Exponential,
             UseJitter = true,
             ShouldHandle = args => ValueTask.FromResult(ShouldRetry(args.Outcome, args.Context)),
-        });
+        };
+        tuneRetry?.Invoke(retry);
+        builder.AddRetry(retry);
     }
 
     internal static bool ShouldRetry(Outcome<HttpResponseMessage> outcome, ResilienceContext context)
