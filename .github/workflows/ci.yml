@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main, vnext, 'maintenance/**' ]
 
+permissions:
+  contents: read
+
 # A monorepo PR triggers everything, so supersede in-flight runs on the same ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -57,11 +60,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       # Explicit on every leg, so the default in Directory.Build.targets cannot silently
@@ -83,7 +86,7 @@ jobs:
       # would be meaningless. A new product needs its own step here.
       - name: Codecov (aspnetcore)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: src/aspnetcore/Kontent.Ai.AspNetCore.Tests/coverage.opencover.xml
@@ -91,7 +94,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (management)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: src/management/Kontent.Ai.Management.Tests/coverage.opencover.xml
@@ -99,7 +102,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (delivery)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: src/delivery/Kontent.Ai.Delivery.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Urls.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/coverage.opencover.xml
@@ -107,7 +110,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (sync)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: src/sync/Kontent.Ai.Sync.Tests/coverage.opencover.xml
@@ -115,7 +118,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (model-generator)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: src/model-generator/Kontent.Ai.ModelGenerator.Tests/coverage.opencover.xml,src/model-generator/Kontent.Ai.ModelGenerator.Core.Tests/coverage.opencover.xml
@@ -135,11 +138,11 @@ jobs:
     # in-repo sources, so a sibling breaking change fails in the PR that makes it. Blocking -
     # mark it required in branch protection, since only a required check blocks the merge.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - name: Restore
@@ -157,11 +160,11 @@ jobs:
       PACKAGE_VERSION: 0.0.0-ci.${{ github.run_number }}
       PACK_OUTPUT: ./artifacts/pack-validation
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       # Explicit package mode: packing is only ever valid against the declared floors.
@@ -205,7 +208,7 @@ jobs:
           fi
       - name: Upload pack validation artifacts
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pack-validation-artifacts
           path: |
@@ -227,11 +230,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - name: Restore dependencies
@@ -255,11 +258,11 @@ jobs:
       SMOKE_VERSION: 0.0.0-smoke.${{ github.run_number }}
       SMOKE_FEED: ${{ github.workspace }}/artifacts/smoke-feed
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
 

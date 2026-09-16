@@ -15,7 +15,7 @@ jobs:
     name: Apply triage and product labels
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v9
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             // Option text in .github/ISSUE_TEMPLATE/*.yml -> label. Keep in step with the forms and

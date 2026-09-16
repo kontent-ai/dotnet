@@ -1,0 +1,41 @@
+# Keeps pinned action SHAs and third-party packages current. Cross-product floors are not
+# dependencies to bump on a schedule: Kontent.Ai.* versions in Directory.Packages.props are the
+# minimum a consumer may resolve and are raised in their own PR after the dependency ships.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      microsoft-extensions:
+        patterns: ["Microsoft.Extensions.*"]
+        update-types: [minor, patch]
+      test-tooling:
+        patterns: ["xunit*", "coverlet.*", "AwesomeAssertions", "NSubstitute", "Verify.*", "RichardSzalay.MockHttp", "Microsoft.NET.Test.Sdk"]
+        update-types: [minor, patch]
+    ignore:
+      # Declared dependency floors, raised deliberately once the sibling is on nuget.org.
+      - dependency-name: Kontent.Ai.*
+
+  # global.json pins the SDK; roll forward within the .NET 10 line only.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2
+    ignore:
+      - dependency-name: dotnet-sdk
+        update-types: ["version-update:semver-major"]
