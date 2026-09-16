@@ -71,11 +71,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # Restore downloads the same closure in every job, and it is the slowest step on Windows.
-      # Central Package Management makes the key exact: the graph cannot change unless one of these
-      # files does. A partial hit through restore-keys still saves most of the download. Our own
-      # packages stay out of it - the smoke job packs 0.0.0-smoke.<run> builds into this folder, and
-      # a cache is for inputs, not for something a job produced.
+      # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -162,11 +158,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # Restore downloads the same closure in every job, and it is the slowest step on Windows.
-      # Central Package Management makes the key exact: the graph cannot change unless one of these
-      # files does. A partial hit through restore-keys still saves most of the download. Our own
-      # packages stay out of it - the smoke job packs 0.0.0-smoke.<run> builds into this folder, and
-      # a cache is for inputs, not for something a job produced.
+      # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -197,11 +189,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # Restore downloads the same closure in every job, and it is the slowest step on Windows.
-      # Central Package Management makes the key exact: the graph cannot change unless one of these
-      # files does. A partial hit through restore-keys still saves most of the download. Our own
-      # packages stay out of it - the smoke job packs 0.0.0-smoke.<run> builds into this folder, and
-      # a cache is for inputs, not for something a job produced.
+      # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -280,11 +268,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # Restore downloads the same closure in every job, and it is the slowest step on Windows.
-      # Central Package Management makes the key exact: the graph cannot change unless one of these
-      # files does. A partial hit through restore-keys still saves most of the download. Our own
-      # packages stay out of it - the smoke job packs 0.0.0-smoke.<run> builds into this folder, and
-      # a cache is for inputs, not for something a job produced.
+      # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -321,11 +305,7 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
-      # Restore downloads the same closure in every job, and it is the slowest step on Windows.
-      # Central Package Management makes the key exact: the graph cannot change unless one of these
-      # files does. A partial hit through restore-keys still saves most of the download. Our own
-      # packages stay out of it - the smoke job packs 0.0.0-smoke.<run> builds into this folder, and
-      # a cache is for inputs, not for something a job produced.
+      # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
