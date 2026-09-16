@@ -59,6 +59,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+    # A run triggered by a bot - Dependabot and anything like it - is handed its own secret store,
+    # so this is empty there. The uploads below skip rather than fail, whichever bot it is.
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,42 +89,42 @@ jobs:
       # One flag per product - a merged repo-wide percentage across a library and a CLI
       # would be meaningless. A new product needs its own step here.
       - name: Codecov (aspnetcore)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: src/aspnetcore/Kontent.Ai.AspNetCore.Tests/coverage.opencover.xml
           flags: aspnetcore
           fail_ci_if_error: true
       - name: Codecov (management)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: src/management/Kontent.Ai.Management.Tests/coverage.opencover.xml
           flags: management
           fail_ci_if_error: true
       - name: Codecov (delivery)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: src/delivery/Kontent.Ai.Delivery.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Urls.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/coverage.opencover.xml
           flags: delivery
           fail_ci_if_error: true
       - name: Codecov (sync)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: src/sync/Kontent.Ai.Sync.Tests/coverage.opencover.xml
           flags: sync
           fail_ci_if_error: true
       - name: Codecov (model-generator)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
         uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: src/model-generator/Kontent.Ai.ModelGenerator.Tests/coverage.opencover.xml,src/model-generator/Kontent.Ai.ModelGenerator.Core.Tests/coverage.opencover.xml
           flags: model-generator
           fail_ci_if_error: true
