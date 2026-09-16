@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.0 (2026-09-16)
+
 The first stable release of the **11.x** line. The tool needs the **.NET 10** runtime, and
 `Kontent.Ai.ModelGenerator.Core` targets `net10.0`.
 

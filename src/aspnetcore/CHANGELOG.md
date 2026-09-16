@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 1.0.0 (2026-09-16)
+
 The first stable release. Targets `net10.0` and requires `Kontent.Ai.Delivery` **20** or later.
 
 Coming from **0.16.x / 0.17.x**, the public surface was tightened while the package was still pre-1.0.

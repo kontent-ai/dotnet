@@ -7,7 +7,7 @@
     <DeliveryVersion>20.0.0</DeliveryVersion>
     <SyncVersion>2.0.0</SyncVersion>
     <ManagementVersion>9.0.0</ManagementVersion>
-    <AspNetCoreVersion>1.0.0-rc.3</AspNetCoreVersion>
-    <ModelGeneratorVersion>11.0.0-rc.3</ModelGeneratorVersion>
+    <AspNetCoreVersion>1.0.0</AspNetCoreVersion>
+    <ModelGeneratorVersion>11.0.0</ModelGeneratorVersion>
   </PropertyGroup>
 </Project>
