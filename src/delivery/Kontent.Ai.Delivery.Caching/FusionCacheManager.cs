@@ -42,6 +42,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// </summary>
     private const string DistributedFormatVersion = "v1:";
 
+    /// <summary>How long an invalidation is remembered; it must outlive the entries it applies to.</summary>
+    private static readonly TimeSpan TagDuration = TimeSpan.FromDays(10);
+
     /// <summary>
     /// The <see cref="GetOrSetAsync{T}"/> call in flight on the current async context. FusionCache raises
     /// its events inline (<see cref="FusionCacheOptions.EnableSyncEventHandlersExecution"/>), so a stale
@@ -289,7 +292,9 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Tag data must outlive the entries it invalidates. Retains FusionCache's default tag duration of ten days.
+    /// Tag data must outlive the entries it invalidates, so the ten days is set here rather than inherited:
+    /// FusionCache's own default has changed between versions, and a shorter one forgets an invalidation while
+    /// a quiet entry is still cached, which serves it again.
     /// </para>
     /// <para>
     /// Tag reads fail open. <see cref="InvalidationOptions"/> creates a strict copy after consumer configuration.
@@ -297,6 +302,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
     /// </remarks>
     private static void ConfigureTagEntries(FusionCacheEntryOptions tagOptions, bool memoryOnly)
     {
+        tagOptions.Duration = TagDuration;
         tagOptions.Size = EntrySize;
         tagOptions.IsFailSafeEnabled = false;
         tagOptions.SkipDistributedCacheRead = memoryOnly;
