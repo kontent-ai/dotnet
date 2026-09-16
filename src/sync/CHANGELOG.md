@@ -5,6 +5,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 2.0.0 (2026-09-16)
+
 The first stable release of the **2.x** line. Targets `net10.0` and Sync API v2.
 
 Coming from **1.x**: `Kontent.Ai.Sync.Abstractions` is folded into the main package, the four delta

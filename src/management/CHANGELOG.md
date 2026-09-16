@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.0.0 (2026-09-16)
+
 The first stable release of the **9.x** line, and the GA of the modernization the `9.0.0-beta` and
 `9.0.0-rc` series delivered. Targets `net10.0`.
 
