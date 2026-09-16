@@ -51,5 +51,4 @@ The generated Management model shape (records, mapping attributes, collection ty
 
 - `Kontent.Ai.ModelGenerator/` — `Program.cs`, `CommandLine/` (arg mappings, `ArgHelpers`, validation, SDK version probe), `FileSystemOutputProvider`, `UserMessageLogger`, `appSettings.json` (a JSONC template the README tells users to copy; not installed with the tool).
 - `Kontent.Ai.ModelGenerator.Core/` — `CodeGeneratorBase` and the two mode orchestrators, `Generators/` (Roslyn emitters), `Common/` (`ClassDefinition` with the identifier-collision registry, `Property`, the `ManagementElementInput` records, `SnippetExpander`), `Services/` (the Management element metadata adapter and element service).
-- `self-contained.ps1` — maintainer convenience for single-file publishes per RID; not wired into any workflow. Releases are NuGet packages only.
 - `docs/upgrade/10-to-11.md` — the in-progress major's guide. Its headline promise is that Delivery models are byte-identical to `10.2.0` while Management models must be regenerated; keep both true or update the guide.
