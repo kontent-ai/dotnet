@@ -109,6 +109,12 @@ after the dependency has been published, and only when the consuming code needs 
 See [Changing an API that another product consumes](./CONTRIBUTING.md#changing-an-api-that-another-product-consumes)
 for the sequence.
 
+A dependent product's **first stable release** needs the floor raised in between: publish the products
+it depends on, raise the floors, then publish the dependent. Otherwise its GA package declares a
+prerelease dependency, and a consumer installing it resolves that prerelease. Publish takes a product
+list (`delivery management sync`, then `aspnetcore model-generator`) so the two waves stay explicit.
+Packages inside one product are unaffected - they reference each other by project and ship together.
+
 To check the current floors:
 
 ```sh
