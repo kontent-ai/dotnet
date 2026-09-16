@@ -45,6 +45,10 @@ of the line.
 
 ### Changed
 
+- **The invalidation lifetime is set by the SDK, not inherited from FusionCache.**
+
+  Tag data - what makes an invalidation outlive the entries it applies to - stayed at ten days because that was FusionCache's default. FusionCache 2.8.0 lowers it to one hour, which would forget a webhook's invalidation while a quiet entry was still cached and serve it again. The ten days is now set explicitly, so a future change to that default cannot shorten it. `ConfigureFusionCache(f => f.TagsDefaultEntryOptions.Duration = …)` still overrides it.
+
 - **Unmapped content types log a warning instead of a debug message.**
 
   When the API returns a content type no generated model covers, the SDK falls back to `DynamicElements` and logs event `1408`. That event is now `Warning` once a type provider is in place - `Kontent.Ai.Delivery.SourceGeneration` or a custom `ITypeProvider` - so stale models show up without enabling debug logging. An application with neither reads every type dynamically by design and still logs it at `Debug`. A client logs a type the first time it falls back, not per item.

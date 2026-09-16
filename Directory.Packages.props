@@ -65,11 +65,11 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.12" />
     <PackageVersion Include="NodaTime" Version="3.3.3" />
     <PackageVersion Include="StackExchange.Redis" Version="3.1.3" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.8.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.8.0" />
     <!-- Test-only: an in-process backplane, so multi-node cache coherence can be exercised without Redis. -->
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.6.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.6.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.Memory" Version="2.8.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.8.0" />
     <!-- Model generator -->
     <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-rc.2" />
