@@ -80,7 +80,7 @@ var result = await client.GetItem("homepage").ExecuteAsync();
 
 if (result.IsSuccess)
 {
-    Console.WriteLine(result.Value.System.Name);
+    Console.WriteLine(result.Value.Item.System.Name);
 }
 else
 {

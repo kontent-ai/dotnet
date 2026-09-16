@@ -8,7 +8,7 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// resolved to its strongly-typed model at runtime. Use pattern matching to access the typed item:
 /// <code>
 /// var result = await client.GetItem("codename").ExecuteAsync();
-/// if (result.Value is IContentItem&lt;Article&gt; article)
+/// if (result.IsSuccess &amp;&amp; result.Value.Item is IContentItem&lt;Article&gt; article)
 /// {
 ///     var title = article.Elements.Title;
 /// }
@@ -56,9 +56,9 @@ public interface IDynamicItemQuery
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>
-    /// A delivery result containing the content item. The item will be runtime-typed
-    /// if a custom <see cref="ITypeProvider"/> is registered and provides a mapping,
+    /// A delivery result containing the content item and the response's modular content. The item will be
+    /// runtime-typed if a custom <see cref="ITypeProvider"/> is registered and provides a mapping,
     /// otherwise it will be <see cref="IContentItem{IDynamicElements}"/>.
     /// </returns>
-    Task<IDeliveryResult<IContentItem>> ExecuteAsync(CancellationToken cancellationToken = default);
+    Task<IDeliveryResult<DeliveryItemResponse>> ExecuteAsync(CancellationToken cancellationToken = default);
 }

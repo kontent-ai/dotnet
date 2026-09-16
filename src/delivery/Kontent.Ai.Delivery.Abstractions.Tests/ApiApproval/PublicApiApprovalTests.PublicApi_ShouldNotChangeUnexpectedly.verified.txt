@@ -69,6 +69,17 @@ public sealed class DeliveryEnumeration`1<T> : IAsyncEnumerable<T>
     static DeliveryEnumeration<T> FromPages(IEnumerable<DeliveryPage<T>> pages)
 
 // Kontent.Ai.Delivery.Abstractions
+public sealed class DeliveryItemResponse : IEquatable<DeliveryItemResponse>
+    .ctor()
+    required IContentItem Item { get; init; }
+    required IReadOnlyDictionary<String, JsonElement> ModularContent { get; init; }
+    Boolean Equals(DeliveryItemResponse? other)
+    Boolean Equals(Object? obj)
+    DeliveryItemResponse <Clone>$()
+    Int32 GetHashCode()
+    String ToString()
+
+// Kontent.Ai.Delivery.Abstractions
 public sealed class DeliveryOptions : IValidatableObject
     const String DefaultConfigurationSectionName = DeliveryOptions
     .ctor()
@@ -322,7 +333,7 @@ public interface IDynamicItemQuery
     IDynamicItemQuery WithElements(String[] elementCodenames)
     IDynamicItemQuery WithLanguage(String languageCodename)
     IDynamicItemQuery WithoutElements(String[] elementCodenames)
-    Task<IDeliveryResult<IContentItem>> ExecuteAsync(CancellationToken cancellationToken)
+    Task<IDeliveryResult<DeliveryItemResponse>> ExecuteAsync(CancellationToken cancellationToken)
 
 // Kontent.Ai.Delivery.Abstractions
 public interface IDynamicItemsQuery
