@@ -29,7 +29,7 @@
     <!-- Test dependencies -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="coverlet.msbuild" Version="10.0.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
@@ -53,7 +53,7 @@
     <PackageVersion Include="RichardSzalay.MockHttp" Version="7.1.0" />
     <PackageVersion Include="Verify.Xunit" Version="31.12.5" />
     <!-- Delivery -->
-    <PackageVersion Include="AngleSharp" Version="1.7.0" />
+    <PackageVersion Include="AngleSharp" Version="1.8.1" />
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4" />
@@ -73,7 +73,7 @@
     <!-- Model generator -->
     <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-rc.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.6.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.9.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
   </ItemGroup>
