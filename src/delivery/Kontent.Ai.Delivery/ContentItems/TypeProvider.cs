@@ -29,7 +29,18 @@ internal sealed class TypeProvider : ITypeProvider
 {
     private const string GeneratedTypeProviderName = "Kontent.Ai.Delivery.Generated.GeneratedTypeProvider";
 
-    private static readonly Lazy<ITypeProvider?> _discoveredProvider = new(DiscoverGeneratedProvider);
+    private static readonly Lazy<ITypeProvider?> _sharedDiscovery = new(DiscoverGeneratedProvider);
+
+    private readonly Lazy<ITypeProvider?> _discoveredProvider;
+
+    public TypeProvider() => _discoveredProvider = _sharedDiscovery;
+
+    internal TypeProvider(ITypeProvider? generatedProvider) => _discoveredProvider = new(generatedProvider);
+
+    /// <summary>
+    /// Whether a source-generated provider was found, i.e. the application references the source generator.
+    /// </summary>
+    internal bool HasGeneratedProvider => _discoveredProvider.Value is not null;
 
     public Type? GetType(string contentType)
         => _discoveredProvider.Value?.GetType(contentType);

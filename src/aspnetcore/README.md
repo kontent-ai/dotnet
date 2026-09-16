@@ -284,8 +284,8 @@ app.MapPost("/webhooks/kontent", async (
     // A language change can reach any cached response through fallbacks and has no key of its own.
     if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
     {
-        await purger.PurgeAsync(cancellationToken: cancellationToken);
-        return Results.NoContent();
+        var purged = await purger.PurgeAsync(cancellationToken: cancellationToken);
+        return purged ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
 
     // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.
