@@ -25,7 +25,7 @@
     <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Delivery.Caching" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Urls" Version="20.0.0-rc.3" />
-    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
     <!-- Test dependencies -->
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="coverlet.msbuild" Version="10.0.1" />
@@ -40,14 +40,14 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
     <PackageVersion Include="AwesomeAssertions" Version="9.5.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
     <PackageVersion Include="Refit" Version="15.2.0" />
     <PackageVersion Include="Refit.HttpClientFactory" Version="15.2.0" />
     <PackageVersion Include="RichardSzalay.MockHttp" Version="7.0.0" />
@@ -60,9 +60,9 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.6.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.11" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.12" />
     <PackageVersion Include="NodaTime" Version="3.3.3" />
     <PackageVersion Include="StackExchange.Redis" Version="3.1.3" />
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
@@ -74,7 +74,7 @@
     <PackageVersion Include="Kontent.Ai.Delivery.SourceGeneration" Version="20.0.0-rc.3" />
     <PackageVersion Include="Kontent.Ai.Management" Version="9.0.0-rc.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="5.6.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.11" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
   </ItemGroup>
 </Project>
