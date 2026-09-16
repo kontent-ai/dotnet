@@ -31,6 +31,12 @@ record the rest of the line.
   8.x has nothing to rename. Regenerate with model generator `11.0.0` or newer, which emits the new
   names.
 
+### Added
+
+- **`TuneRetry` adjusts default retries without replacing the pipeline.**
+
+  `IManagementClientBuilder.TuneRetry` receives initialized retry options, so changing the attempt count preserves the SDK's retry predicates and `Retry-After` handling. Callbacks run in registration order; `ConfigureResilience` still replaces the pipeline and bypasses tuning.
+
 ### Changed
 
 - **The README is a routing page; its reference material moved into seven guides.**

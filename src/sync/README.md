@@ -155,12 +155,13 @@ which is why the four payloads are separate types rather than one.
 
 ## Configuration
 
-The builder passed to `AddSyncClient` (and to `SyncClient.Create`, below) has four members and one method:
+The builder passed to `AddSyncClient` (and to `SyncClient.Create`, below) exposes:
 
 | Member | What it is |
 |---|---|
 | `Options` | The client's `OptionsBuilder<SyncOptions>` - `Configure`, `Configure<TDependency>`, `Bind`, `BindConfiguration`, `Validate`, `PostConfigure` |
 | `HttpClient` | The `IHttpClientBuilder` the transport is built on - every `Microsoft.Extensions.Http` extension applies |
+| `TuneRetry(...)` | Adjusts the default retry options |
 | `ConfigureResilience(...)` | Replaces the default resilience pipeline |
 | `Services`, `Name` | The service collection and the client's registration key, for anything you attach to this client yourself |
 
@@ -230,7 +231,7 @@ freely:
 services.AddSyncClient(sync =>
 {
     sync.Options.BindConfiguration("SyncOptions");
-    sync.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+    sync.TuneRetry(retry => retry.MaxRetryAttempts = 5);
 });
 ```
 
@@ -240,6 +241,17 @@ the object itself is not registered:
 ```csharp
 services.AddSyncClient(new SyncOptions { EnvironmentId = "your-environment-id" }.UsePreviewApi("preview-api-key"));
 ```
+
+### Tuning retries
+
+`TuneRetry` receives the SDK's initialized `HttpRetryStrategyOptions` before the default pipeline is
+assembled. Change only the settings you need; the remaining defaults, including `Retry-After` handling
+and the 30-second per-attempt timeout, stay in place. Replacing `ShouldHandle` or `DelayGenerator`
+replaces that part of the retry behavior.
+
+Callbacks run in registration order with fresh options for each pipeline construction, in both
+`AddSyncClient` and `SyncClient.Create`. They do not run when `EnableResilience` is `false` or
+`ConfigureResilience` replaces the pipeline. Tuning retains the default pipeline's timeout behavior.
 
 ### Timeouts
 
@@ -317,7 +329,7 @@ await using var client = SyncClient.Create(sync =>
 {
     sync.Services.AddSingleton(loggerFactory);
     sync.Options.Configure(o => o.EnvironmentId = "env-id");
-    sync.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+    sync.TuneRetry(retry => retry.MaxRetryAttempts = 5);
 });
 ```
 

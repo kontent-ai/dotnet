@@ -5,6 +5,7 @@
 using Kontent.Ai.Common.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Polly;
@@ -31,7 +32,7 @@ internal sealed record TransportRecipe<TOptions>(
     Func<TOptions, Uri> BaseAddress,
     Func<TOptions, bool> ResilienceEnabled,
     Func<TOptions, bool, TimeSpan, TimeSpan> Ceiling,
-    Action<ResiliencePipelineBuilder<HttpResponseMessage>> DefaultPipeline,
+    Action<ResiliencePipelineBuilder<HttpResponseMessage>, Action<HttpRetryStrategyOptions>?> DefaultPipeline,
     Action<IHttpClientBuilder> AddHandlers)
     where TOptions : class;
 
@@ -153,7 +154,17 @@ internal static class ClientRegistration
             recipe.ResilienceHandlerName,
             name,
             recipe.ResilienceEnabled,
-            pipeline => (resilience.Configure ?? recipe.DefaultPipeline)(pipeline));
+            pipeline =>
+            {
+                if (resilience.Configure is { } configure)
+                {
+                    configure(pipeline);
+                }
+                else
+                {
+                    recipe.DefaultPipeline(pipeline, resilience.TuneRetry);
+                }
+            });
 
         recipe.AddHandlers(httpClientBuilder);
         HttpClientDefaults.ConfigureConnectionRecycling(httpClientBuilder);

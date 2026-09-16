@@ -1,6 +1,7 @@
 // Shared source, compiled into each SDK assembly - see src/common/README.md.
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
 
@@ -27,12 +28,18 @@ internal abstract class ClientBuilder<TOptions>(string name, IServiceCollection 
     public IHttpClientBuilder HttpClient { get; internal set; } = null!;
 
     /// <summary>
-    /// The consumer's replacement pipeline, if any. Read when the HTTP client is first created, not when
-    /// the builder is configured, so it counts whatever the consumer chained after registration. A holder
+    /// The consumer's pipeline replacement and retry tuning. Read when the HTTP client is first created,
+    /// not when the builder is configured, so it counts whatever the consumer chained after registration. A holder
     /// of its own so the transport's closures capture it and not the builder, which would keep the service
     /// collection reachable for as long as the handler chain lives.
     /// </summary>
-    internal ResilienceOverride Resilience { get; } = new();
+    internal ResilienceConfiguration Resilience { get; } = new();
+
+    protected void AddRetryTuning(Action<HttpRetryStrategyOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        Resilience.TuneRetry += configure;
+    }
 
     protected void SetResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
     {
@@ -44,7 +51,9 @@ internal abstract class ClientBuilder<TOptions>(string name, IServiceCollection 
 /// <summary>
 /// The slot <see cref="ClientBuilder{TOptions}.Resilience"/> is; see there.
 /// </summary>
-internal sealed class ResilienceOverride
+internal sealed class ResilienceConfiguration
 {
     public Action<ResiliencePipelineBuilder<HttpResponseMessage>>? Configure { get; set; }
+
+    public Action<HttpRetryStrategyOptions>? TuneRetry { get; set; }
 }

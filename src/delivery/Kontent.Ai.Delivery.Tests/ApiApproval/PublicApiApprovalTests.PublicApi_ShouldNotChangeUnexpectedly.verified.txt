@@ -39,6 +39,7 @@ public interface IDeliveryClientBuilder
     OptionsBuilder<DeliveryOptions> Options { get; }
     String Name { get; }
     IDeliveryClientBuilder ConfigureResilience(Action<ResiliencePipelineBuilder<HttpResponseMessage>> configure)
+    IDeliveryClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure)
 
 // Kontent.Ai.Delivery
 public static class QueryCacheExtensions

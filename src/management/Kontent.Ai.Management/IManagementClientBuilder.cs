@@ -1,5 +1,6 @@
 using Kontent.Ai.Management.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 using Polly;
 
@@ -38,6 +39,20 @@ public interface IManagementClientBuilder
 
     /// <summary>The named HTTP client the subscription-scoped transport is built on.</summary>
     IHttpClientBuilder SubscriptionHttpClient { get; }
+
+    /// <summary>
+    /// Tunes the default retry options on both transports before the SDK assembles the pipeline.
+    /// Settings not changed by the callback retain their SDK defaults.
+    /// </summary>
+    /// <remarks>
+    /// Callbacks run in registration order with fresh options for each pipeline construction.
+    /// Has no effect when <see cref="ManagementOptions.EnableResilience"/> is <c>false</c> or
+    /// <see cref="ConfigureResilience"/> replaces the pipeline.
+    /// Replacing <c>ShouldHandle</c> replaces the SDK's idempotency rule.
+    /// </remarks>
+    /// <param name="configure">Configures the initialized default retry options.</param>
+    /// <returns>This builder.</returns>
+    IManagementClientBuilder TuneRetry(Action<HttpRetryStrategyOptions> configure);
 
     /// <summary>
     /// Replaces the default resilience pipeline on both transports. Has no effect when

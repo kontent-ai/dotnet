@@ -161,7 +161,7 @@ customizing the pipeline are two steps on the same builder:
 services.AddDeliveryClient(delivery =>
 {
     delivery.Options.BindConfiguration("DeliveryOptions");
-    delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 }));
+    delivery.TuneRetry(retry => retry.MaxRetryAttempts = 5);
 });
 ```
 
@@ -253,6 +253,7 @@ The builder is one type in both hosting modes:
 
 - `.Options` — the client's `OptionsBuilder<DeliveryOptions>` (`Configure`, `Bind`, `BindConfiguration`, …)
 - `.HttpClient` — the named `IHttpClientBuilder` the transport is built on (`ConfigurePrimaryHttpMessageHandler`, `AddHttpMessageHandler`, …)
+- `.TuneRetry(...)` — adjusts the default retry options
 - `.ConfigureResilience(...)` — replaces the default resilience pipeline
 - `.Services` and `.Name` — what everything else attaches to: a custom `ITypeProvider`, an `ILoggerFactory`, the caching package's `UseMemoryCache` / `UseHybridCache` / `UseCacheManager`
 
@@ -377,20 +378,31 @@ services.AddDeliveryClient(delivery =>
 {
     delivery.Options.Configure(options => options.EnvironmentId = "your-environment-id");
     delivery.HttpClient.ConfigureHttpClient(client => client.DefaultRequestHeaders.Add("X-App", "my-app"));
-    delivery.ConfigureResilience(pipeline => pipeline.AddRetry(new HttpRetryStrategyOptions
+    delivery.TuneRetry(retry =>
     {
-        MaxRetryAttempts = 5,
-        Delay = TimeSpan.FromSeconds(2)
-    }));
+        retry.MaxRetryAttempts = 5;
+        retry.Delay = TimeSpan.FromSeconds(2);
+    });
 });
 ```
+
+### Tuning retries
+
+`TuneRetry` receives the SDK's initialized `HttpRetryStrategyOptions` before the default pipeline is
+assembled. Change only the settings you need; the remaining defaults, including `Retry-After` handling
+and the 30-second per-attempt timeout, stay in place. Replacing `ShouldHandle` or `DelayGenerator`
+replaces that part of the retry behavior.
+
+Callbacks run in registration order with fresh options for each pipeline construction, in both
+`AddDeliveryClient` and `DeliveryClient.Create`. They do not run when `EnableResilience` is `false` or
+`ConfigureResilience` replaces the pipeline. Tuning retains the default pipeline's timeout behavior.
 
 ### Timeouts
 
 Two clocks bound a request, and they are not the same one:
 
 - **Per attempt** — the default resilience pipeline cancels any single HTTP attempt after 30 seconds and
-  retries it on a fresh connection. Up to four attempts, each with its own budget.
+  retries it on a fresh connection. By default, up to four attempts, each with its own budget.
 - **The whole call** — `DeliveryOptions.Timeout` covers every attempt *and* the waits between them.
 
 `Timeout` is unset by default, which keeps the SDK's own rule: the default pipeline bounds each attempt,

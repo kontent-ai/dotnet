@@ -57,7 +57,8 @@ around it, outermost first:
 
 1. **Resilience** - `src/common/Http/DefaultResilience.cs`: retry on the shared predicate
    (`HttpRetryPredicates.cs`), `Retry-After` honoured (`HttpRetryDelay.cs`), a per-attempt timeout and a
-   total timeout from `DeliveryOptions.Timeout` (`HttpClientTimeouts.cs`). Replaced wholesale by
+   total timeout from `DeliveryOptions.Timeout` (`HttpClientTimeouts.cs`). Retry options are tuned by
+   `TuneRetry` before assembly; the pipeline is replaced wholesale by
    `ConfigureResilience` on the builder.
 2. **Tracking** - `Handlers/TrackingHandler.cs`: `X-KC-SDKID`, and `X-KC-SOURCE` from the calling
    assembly's `DeliverySourceTrackingHeader` attribute.

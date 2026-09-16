@@ -15,7 +15,6 @@ using Kontent.Ai.Management.Models.Types.Patch;
 using Kontent.Ai.Management.Tests.Base;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Http.Resilience;
 using MyProject.Models;
 using Polly;
 using RichardSzalay.MockHttp;
@@ -248,9 +247,7 @@ public class Readme
         services.AddManagementClient(management =>
         {
             management.Options.Configure(options => { options.EnvironmentId = "..."; options.ApiKey = "..."; });
-            management.ConfigureResilience(pipeline => pipeline
-                .AddRetry(new HttpRetryStrategyOptions { MaxRetryAttempts = 5 })
-                .AddTimeout(TimeSpan.FromSeconds(30)));
+            management.TuneRetry(retry => retry.MaxRetryAttempts = 5);
         });
     }
 

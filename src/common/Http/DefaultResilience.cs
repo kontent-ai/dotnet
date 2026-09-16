@@ -15,9 +15,11 @@ namespace Kontent.Ai.Common.Http;
 /// </remarks>
 internal static class DefaultResilience
 {
-    internal static void ConfigureReadPipeline(ResiliencePipelineBuilder<HttpResponseMessage> builder)
+    internal static void ConfigureReadPipeline(
+        ResiliencePipelineBuilder<HttpResponseMessage> builder,
+        Action<HttpRetryStrategyOptions>? tuneRetry = null)
     {
-        builder.AddRetry(new HttpRetryStrategyOptions
+        var retry = new HttpRetryStrategyOptions
         {
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(1),
@@ -28,7 +30,9 @@ internal static class DefaultResilience
                 (args.Outcome.Result?.IsSuccessStatusCode == false &&
                  HttpRetryPredicates.IsRetryableStatusCode(args.Outcome.Result?.StatusCode))),
             DelayGenerator = HttpRetryDelay.FromRetryAfterHeader
-        });
+        };
+        tuneRetry?.Invoke(retry);
+        builder.AddRetry(retry);
 
         builder.AddTimeout(TimeSpan.FromSeconds(30));
     }
