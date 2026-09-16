@@ -51,6 +51,10 @@ of the line.
 
 ### Fixed
 
+- **Custom cache documentation describes payloads, storage-mode forwarding and result provenance.**
+
+  `RawJson` passes structured payloads rather than plain strings. The API documentation now describes this contract, tells decorators to forward `StorageMode`, and explains how custom managers report freshly produced and stale values. Runtime behavior is unchanged.
+
 - **A missing default client no longer reports the internal `'Default'` name.**
 
   `IDeliveryClientFactory.Get()` resolves the client registered without a name, which the SDK files under an internal key. When none was registered the error named that key and advised `AddDeliveryClient("Default", ...)` - a call that registers an ordinary named client and then collides with the unnamed registration. It now says to call `AddDeliveryClient(...)` without a name. Registering the default twice reports it as a default rather than as a name clash. Errors for explicitly named clients are unchanged.

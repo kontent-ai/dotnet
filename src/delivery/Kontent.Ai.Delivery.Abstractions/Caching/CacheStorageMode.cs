@@ -12,10 +12,14 @@ public enum CacheStorageMode
     HydratedObject = 0,
 
     /// <summary>
-    /// Stores raw JSON strings extracted from the API response. Suitable for hybrid/distributed caches
-    /// (e.g., Redis, SQL Server) where values must be serialized. Avoids serialization issues with
-    /// complex object graphs (circular references, custom converters, non-serializable types).
-    /// On cache hit, the raw JSON is rehydrated using the SDK's standard deserialization pipeline.
+    /// Stores item and item-list responses as SDK-internal payload records containing raw JSON and
+    /// response metadata. Other query families store their response models. Suitable for hybrid/distributed
+    /// caches: item payloads avoid serializing hydrated object graphs and are rehydrated on cache hits.
     /// </summary>
+    /// <remarks>
+    /// When persisting a value, serialize and deserialize it as the supplied generic type.
+    /// The payload format is not a public contract; custom persistent stores must clear or isolate entries
+    /// when upgrading the SDK.
+    /// </remarks>
     RawJson = 1
 }

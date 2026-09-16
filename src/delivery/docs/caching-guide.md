@@ -345,7 +345,7 @@ Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-o
 |---|---|
 | Invoke the factory **at most once** per key under concurrency | Stampede protection. Without it a cold key sends one origin request per concurrent caller. |
 | Return the factory's dependencies as `DependencyKeys` — on hits as well as misses | They drive webhook invalidation and output-cache tagging. Returning `[]` on a hit silently disables both. |
-| Set `FromFactory` when the factory produced the value | In `RawJson` mode the SDK reuses the value the factory already hydrated. Leave it `false` and the same payload is parsed and mapped a second time on every miss. |
+| Set `FromFactory` when returning the value produced by this call's factory | Leave it `false` and a fresh result is reported as a cache hit. In `RawJson` mode the same item payload is also parsed and mapped a second time on a miss. |
 | Set `IsStale` on a copy served because the origin was unreachable | This is what surfaces as `ResponseSource.FailSafe`. Never setting it means fail-safe can never be reported. |
 | Honour `expiration`, falling back to your own default when it is `null` | It carries the per-query `WithCacheExpiration` override. |
 | Evict on `InvalidateAsync`: cascade over dependency keys, match case-insensitively, stay idempotent | Return `false` when invalidation did not complete. Returning `true` unconditionally tells a webhook endpoint its work succeeded when nothing was evicted. |
@@ -357,7 +357,7 @@ silently. Start from the worked reference:
 [`FusionCacheManager.cs`](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/Kontent.Ai.Delivery.Caching/FusionCacheManager.cs).
 
 > [!WARNING]
-> In `RawJson` mode the `T` handed to your manager is an **SDK-internal payload record**, not your model. Serializing it into a durable store couples that store to a type outside the public contract, which can change between releases. Plan to clear the store when you upgrade the SDK.
+> In `RawJson` mode, item and item-list queries hand your manager an **SDK-internal payload record** containing raw JSON and response metadata. Other query families pass their response models. Do not assume `T` is a string or your application model. The payload format can change between SDK releases; clear your custom store or use a new key namespace when upgrading. The built-in hybrid manager versions its distributed keys for format changes.
 
 #### Decorating an existing manager
 

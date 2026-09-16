@@ -47,8 +47,12 @@ public interface IDeliveryCacheManager
     /// <remarks>
     /// <para>
     /// <see cref="CacheStorageMode.HydratedObject"/> (default) stores fully hydrated C# objects,
-    /// suitable for in-memory caches. <see cref="CacheStorageMode.RawJson"/> stores raw JSON
-    /// strings, suitable for hybrid/distributed caches that require serialization.
+    /// suitable for in-memory caches. <see cref="CacheStorageMode.RawJson"/> uses serializable payloads
+    /// for hybrid/distributed caches.
+    /// </para>
+    /// <para>
+    /// Decorators must forward this property to the wrapped manager; omitting it selects
+    /// <see cref="CacheStorageMode.HydratedObject"/> regardless of the wrapped manager's mode.
     /// </para>
     /// </remarks>
     CacheStorageMode StorageMode => CacheStorageMode.HydratedObject;
@@ -82,6 +86,10 @@ public interface IDeliveryCacheManager
     /// <para>
     /// When the factory returns <c>null</c>, nothing is cached, any stale copy of the key is removed, and
     /// <c>null</c> is returned to the caller.
+    /// </para>
+    /// <para>
+    /// Set <see cref="CacheResult{T}.FromFactory"/> when returning the value produced by this call's factory,
+    /// or <see cref="CacheResult{T}.IsStale"/> when serving a fail-safe copy. Leaving both unset reports a cache hit.
     /// </para>
     /// </remarks>
     Task<CacheResult<T>?> GetOrSetAsync<T>(
