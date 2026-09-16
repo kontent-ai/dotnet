@@ -10,9 +10,7 @@ body:
     id: product
     attributes:
       label: Product
-      description: >-
-        Every product the bug involves. Delivery SDK covers Kontent.Ai.Delivery, its Abstractions, Caching and
-        SourceGeneration packages, and Kontent.Ai.Urls.
+      description: Select more than one if it involves several.
       multiple: true
       options:
         - Delivery SDK
