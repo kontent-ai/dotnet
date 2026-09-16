@@ -8,6 +8,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 20.0.0 (2026-09-16)
+
 The first stable release of the **20.x** line, and the GA of everything the `20.0.0-rc` series
 introduced. Targets `net10.0`.
 
