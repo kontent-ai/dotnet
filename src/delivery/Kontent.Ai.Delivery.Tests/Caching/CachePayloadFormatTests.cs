@@ -40,7 +40,9 @@ public class CachePayloadFormatTests
 
         await manager.GetOrSetAsync("item|hero", _ => Task.FromResult<CacheEntry<string>?>(new("value", ["item_hero"])));
 
-        File.WriteAllLines("/tmp/probe-keys.txt", store.Keys);
+        store.Keys.Should().NotBeEmpty();
+        // Bumping DistributedFormatVersion retires every entry a previous format wrote.
+        store.Keys.Should().AllSatisfy(key => key.Should().StartWith("prefix:v1:"));
     }
 
     private sealed class KeyRecordingDistributedCache : IDistributedCache
