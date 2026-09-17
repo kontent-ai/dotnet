@@ -94,6 +94,7 @@ Changelog entries have one shape across products, because `release-notes.cs` tur
 
 ## Commits and PRs
 
+- **Base a branch on `main` unless the work belongs to a long-running line.** `main` is the released state and the base for bug fixes, documentation and anything else that ships in a patch or minor. `vnext` carries long-term continuous work — the kind that spans many PRs and lands as a major, such as the move to .NET 10. `maintenance/**` is for hotfixes of an already-released major. Ask which of the three the change is before cutting the branch; after a release, `vnext` may lag `main` until the release is merged back.
 - Commit messages: `TICKET-ID - Description` when a ticket exists (e.g. `EN-713 - Add component_types filter`); otherwise a concise lowercase summary matching branch history.
 - Branch names are `<type>/<short-description>`, lower case and hyphenated (e.g. `docs/fix-delivery-upgrade-guides`). The type is a Conventional Commits type — `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `chore`, `ci` — or, when the work tracks a ticket, the ticket ID in that slot instead: `EN-713/add-component-types-filter`. `release/` and `maintenance/` are not free to use: the prepare-release workflow creates `release/batch-<date>-<run>` itself, and `maintenance/**` is the hotfix line CI and the publish workflow both key on.
 - Keep each PR scoped: infra separate from per-product work; version bumps come only from the prepare-release workflow; floor raises in their own PR.
