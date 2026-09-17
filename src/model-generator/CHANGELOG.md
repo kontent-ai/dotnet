@@ -9,6 +9,31 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **A failed Delivery API call reports the API's error instead of an empty environment.**
+
+  The Delivery client does not throw on an API error — it reports it through `IsSuccess`, `Error` and
+  `StatusCode` — and Delivery mode read only the response body. An invalid environment id or a rejected
+  API key therefore looked identical to an environment with no content types: the run logged "No content
+  type available for the environment (…)", wrote nothing, and **exited 0**. A pipeline that regenerates
+  models and diffs them passed green having generated nothing, which reads as "no model changes".
+
+  The listing is now unwrapped the way Management mode already did it. A failed call aborts with the
+  API's own message, its status code and, when the API supplies one, the request id:
+
+  ```
+  Failed to list content types from the Delivery API (404): The requested environment was not found. Request ID: 0HN…
+  ```
+
+  A `401` is reported as a rejected `--apikey` rather than passing through the API's advice about
+  forming an HTTP bearer `Authorization` header, which describes a mistake a command-line user did not
+  make. An environment that genuinely has no content types is unchanged — it still logs "No content type
+  available…" and exits 0.
+
+  A run that was silently failing now exits 1. That is the point of the change, but a pipeline relying
+  on the old exit code will start failing — correctly.
+
 ## 11.0.0 (2026-09-16)
 
 The first stable release of the **11.x** line. The tool needs the **.NET 10** runtime, and
