@@ -101,5 +101,8 @@ public interface IItemsQuery<TModel>
     /// </summary>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A delivery result containing the response with items and pagination info.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The active <see cref="ITypeProvider"/> has no content type codename for <typeparamref name="TModel"/>.
+    /// </exception>
     Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default);
 }

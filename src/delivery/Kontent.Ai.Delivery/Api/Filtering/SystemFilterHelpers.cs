@@ -27,14 +27,19 @@ internal static class SystemFilterHelpers
 
         var codename = typeProvider.GetCodename(typeof(TModel));
 
-        if (string.IsNullOrEmpty(codename))
+        if (string.IsNullOrWhiteSpace(codename))
         {
+            var modelName = typeof(TModel).FullName ?? typeof(TModel).Name;
             if (logger is not null)
             {
-                LoggerMessages.GenericQueryTypeCodenameNotFound(logger, typeof(TModel).Name);
+                LoggerMessages.GenericQueryTypeCodenameNotFound(logger, modelName);
             }
 
-            return;
+            throw new InvalidOperationException(
+                $"Cannot resolve a content type codename for model '{modelName}'. " +
+                "Ensure the model has [ContentTypeCodename] and its project references Kontent.Ai.Delivery.SourceGeneration, " +
+                "or register an ITypeProvider that maps this model. To query without a model, use the non-generic overload. " +
+                "See https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation.");
         }
 
         var typeFilterKeyPrefix = FilterPath.System("type") + "[";

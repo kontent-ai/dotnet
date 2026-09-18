@@ -210,9 +210,9 @@ internal sealed class ItemsQuery<TModel>(
     {
         if (_typeFilterApplied)
             return;
-        _typeFilterApplied = true;
 
         SystemFilterHelpers.AddGenericTypeFilter<TModel>(_serializedFilters, typeProvider, logger);
+        _typeFilterApplied = true;
     }
 
     private async Task<IDeliveryResult<DeliveryItemListingResponse<TModel>>> FetchFromApiAsync(

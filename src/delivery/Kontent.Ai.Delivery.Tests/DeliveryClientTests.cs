@@ -1,5 +1,6 @@
 using System.Net;
 using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Generated;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,7 @@ public class DeliveryClientTests
     {
         var services = new ServiceCollection();
         var opts = options ?? new DeliveryOptions { EnvironmentId = _guid.ToString() };
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         services.AddDeliveryClient(opts, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
@@ -109,7 +111,7 @@ public class DeliveryClientTests
 
         var client = CreateClient(mock);
 
-        var result = await client.GetItems<object>().ExecuteAsync();
+        var result = await client.GetItems<Article>().ExecuteAsync();
 
         Assert.NotNull(result.DependencyKeys);
         var dependencyKeys = result.DependencyKeys;

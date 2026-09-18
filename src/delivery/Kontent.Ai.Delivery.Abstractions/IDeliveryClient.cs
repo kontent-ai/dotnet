@@ -22,7 +22,7 @@ public interface IDeliveryClient
     /// <summary>
     /// Returns a query builder for retrieving a single strongly typed content item.
     /// </summary>
-    /// <typeparam name="T">Type of the model. (Or <see cref="object"/> if the return type is not yet known.)</typeparam>
+    /// <typeparam name="T">Type of the model.</typeparam>
     /// <param name="codename">The codename of a content item.</param>
     /// <returns>A query builder that can be configured and executed to retrieve the content item.</returns>
     IItemQuery<T> GetItem<T>(string codename);
@@ -37,7 +37,7 @@ public interface IDeliveryClient
     /// <summary>
     /// Returns a query builder for retrieving multiple strongly typed content items.
     /// </summary>
-    /// <typeparam name="T">Type of the model. (Or <see cref="object"/> if the return type is not yet known.)</typeparam>
+    /// <typeparam name="T">Type of the model.</typeparam>
     /// <returns>A query builder that can be configured and executed to retrieve content items.</returns>
     IItemsQuery<T> GetItems<T>();
 
@@ -50,7 +50,7 @@ public interface IDeliveryClient
     /// <summary>
     /// Returns a query builder for enumerating through strongly typed content items using a feed.
     /// </summary>
-    /// <typeparam name="T">Type of the model. (Or <see cref="object"/> if the return type is not yet known.)</typeparam>
+    /// <typeparam name="T">Type of the model.</typeparam>
     /// <returns>A query builder that can be configured and executed to enumerate through content items.</returns>
     IEnumerateItemsQuery<T> GetItemsFeed<T>();
 

@@ -321,7 +321,7 @@ var result = await client.GetItems<Article>()
 ```
 
 > [!TIP]
-> No `system.type` filter above: `GetItems<Article>()` adds it from the `[ContentTypeCodename]` attribute. Filter on `system.type` yourself only in a non-generic query.
+> No `system.type` filter above: `GetItems<Article>()` adds it from the `[ContentTypeCodename]` attribute. Filter on `system.type` yourself only in a non-generic query. A model the type provider cannot resolve [throws](models.md#typed-query-validation).
 
 ### Property paths
 

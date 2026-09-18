@@ -8,6 +8,14 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **A typed listing or feed no longer queries every content type when the model is unmapped.**
+
+  When a model's content type could not be resolved, the `system.type` filter was dropped and the query ran anyway, so `GetItems<Article>()` returned every item in the environment and mapped each one as `Article`. The warning that reported this was only emitted when a logger was installed. `GetItems<T>()` and `GetItemsFeed<T>()` now throw `InvalidOperationException` before cache access or HTTP. Reference `Kontent.Ai.Delivery.SourceGeneration` from the project that declares the model, or register the type provider explicitly where auto-discovery cannot reach it, which includes most test hosts. Single-item and typeless queries are unaffected.
+
+  This can break a call that previously appeared to work, including `GetItems<object>()`: use the typeless `GetItems()` to list items of any type. See [typed-query validation](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation).
+
 ## 20.0.0 (2026-09-16)
 
 The first stable release of the **20.x** line, and the GA of everything the `20.0.0-rc` series

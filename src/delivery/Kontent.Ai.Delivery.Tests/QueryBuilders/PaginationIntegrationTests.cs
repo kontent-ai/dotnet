@@ -1334,6 +1334,7 @@ public sealed class PaginationIntegrationTests
         DeliveryOptions? options = null)
     {
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, TestArticleTypeProvider>();
         options ??= new DeliveryOptions { EnvironmentId = env };
         services.AddDeliveryClient(options, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
 
@@ -1395,6 +1396,12 @@ public sealed class PaginationIntegrationTests
         var nextPageUrl = hasNextPage ? $"https://deliver.kontent.ai/languages?skip={skip + limit}&limit={limit}" : "";
 
         return $"{{\"languages\": [{languagesJson}], \"pagination\": {{\"skip\": {skip}, \"limit\": {limit}, \"count\": {codenames.Count}, \"total_count\": {totalCount}, \"next_page\": \"{nextPageUrl}\"}}}}";
+    }
+
+    private sealed class TestArticleTypeProvider : ITypeProvider
+    {
+        public Type? GetType(string contentType) => contentType == "article" ? typeof(TestArticle) : null;
+        public string? GetCodename(Type contentType) => contentType == typeof(TestArticle) ? "article" : null;
     }
 
     private sealed record TestArticle

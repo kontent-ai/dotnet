@@ -110,6 +110,20 @@ if (result.IsSuccess)
 > [!NOTE]
 > When using source generation with `[ContentTypeCodename("article")]`, the SDK automatically adds `system.type=article` filter to generic queries like `GetItems<Article>()`. You don't need to manually filter by type.
 
+### Typed-Query Validation
+
+`GetItems<T>()` and `GetItemsFeed<T>()` throw `InvalidOperationException` before any cache or HTTP
+access when the active `ITypeProvider` has no content type codename for `T`. Without the codename there
+is no `system.type` filter, and the query would return every item in the environment mapped as `T`.
+`EnumerateAsync` throws when it fetches its first page.
+
+- Check that the model has `[ContentTypeCodename]` and that the project declaring it references
+  `Kontent.Ai.Delivery.SourceGeneration`.
+- If auto-discovery cannot reach the models assembly, [register the generated provider
+  explicitly](extensibility-guide.md#explicit-registration-with-dependency-injection). A test host is
+  the usual case.
+- To list items of several types, use a [typeless query](#dynamic-content-access).
+
 ## Working with Linked Items
 
 Linked items (modular content) hydrate into strongly-typed embedded content. Because one element can
