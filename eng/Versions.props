@@ -4,10 +4,10 @@
        Prepare release workflow; Publish ships whatever is declared here and not yet on nuget.org,
        tagging <product>-v<version> itself. -->
   <PropertyGroup>
-    <DeliveryVersion>20.0.0</DeliveryVersion>
+    <DeliveryVersion>20.0.1</DeliveryVersion>
     <SyncVersion>2.0.0</SyncVersion>
     <ManagementVersion>9.0.0</ManagementVersion>
     <AspNetCoreVersion>1.0.0</AspNetCoreVersion>
-    <ModelGeneratorVersion>11.0.0</ModelGeneratorVersion>
+    <ModelGeneratorVersion>11.0.1</ModelGeneratorVersion>
   </PropertyGroup>
 </Project>

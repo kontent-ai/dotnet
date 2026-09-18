@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.1 (2026-09-18)
+
 ### Fixed
 
 - **A failed Delivery API call reports the API's error instead of an empty environment.**
