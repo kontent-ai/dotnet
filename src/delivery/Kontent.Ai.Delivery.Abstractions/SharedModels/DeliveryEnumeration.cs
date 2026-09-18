@@ -8,8 +8,8 @@ namespace Kontent.Ai.Delivery.Abstractions;
 /// </summary>
 /// <remarks>
 /// Enumeration is a composed operation over many requests, so it does not return an <see cref="IDeliveryResult{T}"/>:
-/// a failed request throws <see cref="DeliveryRequestException"/>. Where non-throwing semantics are needed, use the
-/// query's single-request <c>ExecuteAsync</c> instead — one request returns a result, a walk throws.
+/// a failed request throws <see cref="DeliveryRequestException"/>. To receive request failures as results, use the
+/// query's single-request <c>ExecuteAsync</c> instead. Configuration errors and cancellation can still throw.
 /// <para>
 /// To enumerate another token-paged source, supply its page sequence to the constructor.
 /// </para>

@@ -66,6 +66,10 @@ public interface IEnumerateItemsQuery<TModel>
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The first page of items with ability to fetch subsequent pages.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The model has no content type mapping and the query has no explicit type equality/inclusion filter.
+    /// Dynamic models and the <see cref="object"/> metadata-only model do not require a mapping.
+    /// </exception>
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -74,6 +78,10 @@ public interface IEnumerateItemsQuery<TModel>
     /// <param name="continuationToken">A token taken from <see cref="IDeliveryItemsFeedResponse{TModel}.ContinuationToken"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The page following the one the token came from.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The model has no content type mapping and the query has no explicit type equality/inclusion filter.
+    /// Dynamic models and the <see cref="object"/> metadata-only model do not require a mapping.
+    /// </exception>
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -82,8 +90,9 @@ public interface IEnumerateItemsQuery<TModel>
     /// <remarks>
     /// The returned value is both a stream of items and, via <see cref="DeliveryEnumeration{T}.AsPages"/>, a stream of
     /// pages. A failed request throws <see cref="DeliveryRequestException"/> — enumeration is a walk, not a single
-    /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> where non-throwing
-    /// semantics are needed.
+    /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> to receive request
+    /// failures as results. Configuration errors still throw: an unresolved model without an explicit type
+    /// equality/inclusion filter throws <see cref="InvalidOperationException"/> on the first page fetch.
     /// </remarks>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
     /// <returns>An enumeration over the strongly typed content items.</returns>

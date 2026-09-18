@@ -8,6 +8,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Breaking changes
+
+- **Typed listings and feeds reject unresolved type constraints.**
+
+  A listing or feed using a model whose content type cannot be resolved now requires an explicit `system.type` equality or inclusion filter. Otherwise execution throws `InvalidOperationException` before cache access or HTTP, where it previously proceeded without an inferred type filter. This can break existing calls even if their other filters happened to select compatible items. Restore the generated/custom provider mapping, explicitly constrain an intentional projection, or use a typeless query for runtime model selection. Single-item queries, dynamic models and the `object` metadata-only path retain their behavior. See [typed-query validation](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation).
+
 ## 20.0.0 (2026-09-16)
 
 The first stable release of the **20.x** line, and the GA of everything the `20.0.0-rc` series

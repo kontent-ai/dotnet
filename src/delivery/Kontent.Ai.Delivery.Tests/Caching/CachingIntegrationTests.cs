@@ -958,8 +958,8 @@ public partial class CachingIntegrationTests
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
         var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
 
-        var result1 = await client.GetItems<Article>().ExecuteAsync();
-        var result2 = await client.GetItems<Article>().ExecuteAsync();
+        var result1 = await client.GetItems<object>().ExecuteAsync();
+        var result2 = await client.GetItems<object>().ExecuteAsync();
 
         Assert.NotNull(result2.DependencyKeys);
         Assert.Contains("type_about_us", result2.DependencyKeys);
@@ -968,7 +968,7 @@ public partial class CachingIntegrationTests
 
         await cacheManager.InvalidateAsync(["type_brewer"]);
 
-        var result3 = await client.GetItems<Article>().ExecuteAsync();
+        var result3 = await client.GetItems<object>().ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);
@@ -1002,12 +1002,12 @@ public partial class CachingIntegrationTests
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
         var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
 
-        var result1 = await client.GetItems<Article>().ExecuteAsync();
-        var result2 = await client.GetItems<Article>().ExecuteAsync();
+        var result1 = await client.GetItems<object>().ExecuteAsync();
+        var result2 = await client.GetItems<object>().ExecuteAsync();
 
         await cacheManager.InvalidateAsync(["type_unrelated_type"]);
 
-        var result3 = await client.GetItems<Article>().ExecuteAsync();
+        var result3 = await client.GetItems<object>().ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);

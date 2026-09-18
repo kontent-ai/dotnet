@@ -19,8 +19,10 @@ Registration and configuration live in the [README](../README.md); this guide as
 ## Retrieving Content
 
 The examples below use the generic form — `GetItem<Article>(…)`, `GetItems<Article>()` — which is the
-recommended one: it hydrates your [generated models](models.md), gives you compile-time names, and adds
-the `system.type` filter for you.
+recommended one: it hydrates your [generated models](models.md) and gives you compile-time names.
+Listings and feeds infer a `system.type` filter from the model's provider mapping; single-item queries
+select by item codename. See [typed-query validation](models.md#typed-query-validation) for missing
+mappings and explicitly filtered projections.
 
 Every one of them has a non-generic overload, and dropping the type argument does **not** mean giving up
 typing. With generated models in the project, the type provider resolves each item to its model at
@@ -321,7 +323,7 @@ var result = await client.GetItems<Article>()
 ```
 
 > [!TIP]
-> No `system.type` filter above: `GetItems<Article>()` adds it from the `[ContentTypeCodename]` attribute. Filter on `system.type` yourself only in a non-generic query.
+> No `system.type` filter above: `GetItems<Article>()` adds it through the generated provider. For an unregistered projection, supply an explicit type filter as described in [typed-query validation](models.md#typed-query-validation).
 
 ### Property paths
 

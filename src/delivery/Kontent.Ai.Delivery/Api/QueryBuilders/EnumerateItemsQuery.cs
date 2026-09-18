@@ -79,9 +79,9 @@ internal sealed class EnumerateItemsQuery<TModel>(
     {
         if (_typeFilterApplied)
             return;
-        _typeFilterApplied = true;
 
         SystemFilterHelpers.AddGenericTypeFilter<TModel>(_serializedFilters, typeProvider, logger);
+        _typeFilterApplied = true;
     }
 
     public Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default) =>
