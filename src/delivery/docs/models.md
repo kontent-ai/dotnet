@@ -82,8 +82,7 @@ The source generator emits `ContentTypeCodenameAttribute` and produces a `Genera
 
 > [!NOTE]
 > Source generation runs per project/compilation. For the default auto-discovery path, use a single models project containing your attributed models.
-> For discovery boundaries and split model projects, see [Auto-Discovery](extensibility-guide.md#auto-discovery).
-> For independent environments with overlapping codenames, see [Separate Model Sets](extensibility-guide.md#separate-model-sets).
+> If you split models across multiple projects, prefer explicit `ITypeProvider` registration.
 
 **Compile-time diagnostics:**
 - `KDSG001`: Duplicate codename (error)
@@ -113,43 +112,17 @@ if (result.IsSuccess)
 
 ### Typed-Query Validation
 
-`GetItems<T>()` and `GetItemsFeed<T>()` require a nonblank content type codename from the active
-`ITypeProvider`, or an explicit `system.type` equality/inclusion filter. Without either, execution logs
-warning `1410` and throws `InvalidOperationException` before cache access or HTTP. Feed resumption
-checks the same rule; item/page enumeration throws when it first attempts to fetch a page. This is a
-configuration error, not an unsuccessful `IDeliveryResult`.
+`GetItems<T>()` and `GetItemsFeed<T>()` throw `InvalidOperationException` before any cache or HTTP
+access when the active `ITypeProvider` has no content type codename for `T`. Without the codename there
+is no `system.type` filter, and the query would return every item in the environment mapped as `T`.
+`EnumerateAsync` throws when it fetches its first page.
 
-For a generated model, check its `[ContentTypeCodename]` attribute and install sourcegen in the project
-that compiles it. If discovery cannot reach the provider, [register the generated provider
-explicitly](extensibility-guide.md#explicit-registration-with-dependency-injection). A
-[custom provider](extensibility-guide.md#creating-a-custom-type-provider) must map the requested CLR type,
-even if it already maps other models.
-
-An intentional projection without a provider mapping can specify its type set itself:
-
-```csharp
-public sealed record ArticleSummary
-{
-    [System.Text.Json.Serialization.JsonPropertyName("title")]
-    public string? Title { get; init; }
-}
-```
-
-```csharp
-var result = await client.GetItems<ArticleSummary>()
-    .Where(f => f.System("type").IsEqualTo("article"))
-    .ExecuteAsync();
-```
-
-`IsIn("article", "blog_post")` also permits a shared projection. Values must be nonblank; exclusions
-such as `IsNotEqualTo` or `IsNotIn` do not select a complete type set and do not satisfy this check.
-The caller is responsible for matching the projection to those types. An explicit filter does not
-register linked-item models. If the provider does resolve the model, its automatic filter still
-applies alongside caller filters using AND semantics.
-
-Single-item queries do not need an inferred type filter. Typeless queries, `IDynamicElements`,
-`DynamicElements`, the `object` metadata-only path, and [unmapped linked content](#unmapped-content-types)
-retain their behavior. For mixed content with runtime model selection, use the typeless queries below.
+- Check that the model has `[ContentTypeCodename]` and that the project declaring it references
+  `Kontent.Ai.Delivery.SourceGeneration`.
+- If auto-discovery cannot reach the models assembly, [register the generated provider
+  explicitly](extensibility-guide.md#explicit-registration-with-dependency-injection). A test host is
+  the usual case.
+- To list items of several types, use a [typeless query](#dynamic-content-access).
 
 ## Working with Linked Items
 

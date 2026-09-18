@@ -24,7 +24,7 @@ public sealed class TypedQueryValidationTests
             delivery.UseCacheManager(_ => cache);
         });
         using var provider = services.BuildServiceProvider();
-        var query = provider.GetRequiredService<IDeliveryClient>().GetItems<ArticleProjection>();
+        var query = provider.GetRequiredService<IDeliveryClient>().GetItems<UnmappedArticle>();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync());
         await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync());
@@ -33,68 +33,23 @@ public sealed class TypedQueryValidationTests
         Assert.Equal(0, mock.GetMatchCount(request));
     }
 
-    [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task RejectedQuery_WithExplicitTypeFilter_CanRecoverAndPaginate(bool feed, bool inclusion)
+    [Fact]
+    public async Task Feed_UnresolvedModel_RejectsFirstPageAndResumptionWithoutHttp()
     {
         var env = Guid.NewGuid().ToString();
-        var url = $"https://deliver.kontent.ai/{env}/{(feed ? "items-feed" : "items")}";
         var mock = new MockHttpMessageHandler();
-        var filter = inclusion ? "system.type[in]" : "system.type[eq]";
-        var filterValue = inclusion ? "article,product" : "article";
-        var first = mock.Expect(url).WithQueryString(filter, filterValue)
-            .With(request => !request.RequestUri!.Query.Contains("skip="));
-        if (feed)
-            first.Respond(new Dictionary<string, string> { ["X-Continuation"] = "next" }, "application/json", await ReadArticlePageAsync());
-        else
-            first.Respond("application/json", await ReadArticlePageAsync(hasNext: true));
-
-        var second = mock.Expect(url).WithQueryString(filter, filterValue);
-        if (feed)
-            second.WithHeaders("X-Continuation", "next");
-        else
-            second.WithQueryString("skip", "1");
-        second.Respond("application/json", await ReadArticlePageAsync(skip: 1));
-
+        var request = mock.When($"https://deliver.kontent.ai/{env}/items-feed")
+            .Respond("application/json", await ReadArticlePageAsync());
         var services = new ServiceCollection();
         services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, delivery =>
             delivery.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock));
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDeliveryClient>();
-        Func<IItemsFilterBuilder, IItemsFilterBuilder> constrain = filters => inclusion
-            ? filters.System("type").IsIn("article", "product")
-            : filters.System("type").IsEqualTo("article");
+        var query = provider.GetRequiredService<IDeliveryClient>().GetItemsFeed<UnmappedArticle>();
 
-        if (feed)
-        {
-            var query = client.GetItemsFeed<ArticleProjection>();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync());
-            await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync("resume"));
-            var result = await query.Where(constrain).ExecuteAsync();
-            Assert.True(result.IsSuccess);
-            Assert.Equal("Title of article 1", Assert.Single(result.Value.Items).Elements.Title);
-            var next = await result.Value.FetchNextPageAsync();
-            Assert.True(next!.IsSuccess);
-            Assert.Equal("Title of article 2", Assert.Single(next.Value.Items).Elements.Title);
-        }
-        else
-        {
-            var query = client.GetItems<ArticleProjection>();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync());
-            var result = await query.Where(constrain).ExecuteAsync();
-            Assert.True(result.IsSuccess);
-            Assert.Equal("Title of article 1", Assert.Single(result.Value.Items).Elements.Title);
-            var next = await result.Value.FetchNextPageAsync();
-            Assert.True(next!.IsSuccess);
-            Assert.Equal("Title of article 2", Assert.Single(next.Value.Items).Elements.Title);
-        }
+        await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync());
+        await Assert.ThrowsAsync<InvalidOperationException>(() => query.ExecuteAsync("resume"));
 
-        Assert.Equal(1, mock.GetMatchCount(first));
-        Assert.Equal(1, mock.GetMatchCount(second));
-        mock.VerifyNoOutstandingExpectation();
+        Assert.Equal(0, mock.GetMatchCount(request));
     }
 
     [Theory]
@@ -110,7 +65,7 @@ public sealed class TypedQueryValidationTests
         services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, delivery =>
             delivery.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock));
         using var provider = services.BuildServiceProvider();
-        var enumeration = provider.GetRequiredService<IDeliveryClient>().GetItemsFeed<ArticleProjection>().EnumerateAsync();
+        var enumeration = provider.GetRequiredService<IDeliveryClient>().GetItemsFeed<UnmappedArticle>().EnumerateAsync();
 
         if (asPages)
         {
@@ -161,7 +116,7 @@ public sealed class TypedQueryValidationTests
         });
     }
 
-    public sealed record ArticleProjection
+    public sealed record UnmappedArticle
     {
         [JsonPropertyName("title")]
         public string? Title { get; init; }

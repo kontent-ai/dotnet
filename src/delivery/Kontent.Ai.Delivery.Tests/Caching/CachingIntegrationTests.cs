@@ -1,5 +1,6 @@
 using System.Net;
 using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Generated;
 using Kontent.Ai.Delivery.Caching;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.Caching.Distributed;
@@ -107,8 +108,8 @@ public partial class CachingIntegrationTests
 
         var client = CreateClientWithMemoryCache(mock);
 
-        var result1 = await client.GetItems<object>().ExecuteAsync();
-        var result2 = await client.GetItems<object>().ExecuteAsync();
+        var result1 = await client.GetItems<Article>().ExecuteAsync();
+        var result2 = await client.GetItems<Article>().ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);
@@ -942,6 +943,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -958,8 +960,8 @@ public partial class CachingIntegrationTests
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
         var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
 
-        var result1 = await client.GetItems<object>().ExecuteAsync();
-        var result2 = await client.GetItems<object>().ExecuteAsync();
+        var result1 = await client.GetItems<Article>().ExecuteAsync();
+        var result2 = await client.GetItems<Article>().ExecuteAsync();
 
         Assert.NotNull(result2.DependencyKeys);
         Assert.Contains("type_about_us", result2.DependencyKeys);
@@ -968,7 +970,7 @@ public partial class CachingIntegrationTests
 
         await cacheManager.InvalidateAsync(["type_brewer"]);
 
-        var result3 = await client.GetItems<object>().ExecuteAsync();
+        var result3 = await client.GetItems<Article>().ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);
@@ -986,6 +988,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -1002,12 +1005,12 @@ public partial class CachingIntegrationTests
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
         var cacheManager = serviceProvider.GetRequiredKeyedService<IDeliveryCacheManager>("test");
 
-        var result1 = await client.GetItems<object>().ExecuteAsync();
-        var result2 = await client.GetItems<object>().ExecuteAsync();
+        var result1 = await client.GetItems<Article>().ExecuteAsync();
+        var result2 = await client.GetItems<Article>().ExecuteAsync();
 
         await cacheManager.InvalidateAsync(["type_unrelated_type"]);
 
-        var result3 = await client.GetItems<object>().ExecuteAsync();
+        var result3 = await client.GetItems<Article>().ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);
@@ -1073,6 +1076,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -1151,6 +1155,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", itemsFixture);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -1990,6 +1995,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -2657,6 +2663,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -2839,6 +2846,7 @@ public partial class CachingIntegrationTests
             .Respond("application/json", itemsFixture);
 
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         var options = new DeliveryOptions
         {
             EnvironmentId = _guid.ToString()
@@ -2982,6 +2990,7 @@ public partial class CachingIntegrationTests
         HttpMessageHandler httpHandler,
         Action<IDeliveryClientBuilder>? configure = null)
     {
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
         services.AddDeliveryClient(clientName, d =>
         {
             d.Options.Configure(options.CopyTo);

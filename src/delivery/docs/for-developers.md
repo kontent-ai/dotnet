@@ -80,9 +80,6 @@ params record (`Api/QueryParams/`) plus the ordered filter list, so `with` expre
 for the next-page fetcher are cheap. `ExecuteAsync` decides between the cached and uncached path;
 nothing else in the query knows whether a cache is attached.
 
-Listings and feeds validate their model's type constraint through `SystemFilterHelpers` before cache
-or transport access; [typed-query validation](models.md#typed-query-validation) defines the contract.
-
 Six queries are cached: item, items, type, types, taxonomy, taxonomies. They share two helpers:
 
 - `Helpers/CachedQueryExecutor.cs` runs the manager's `GetOrSetAsync`, translates a failed origin

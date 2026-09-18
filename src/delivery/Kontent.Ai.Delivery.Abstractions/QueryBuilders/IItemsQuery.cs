@@ -102,8 +102,7 @@ public interface IItemsQuery<TModel>
     /// <param name="cancellationToken">Cancellation token for the operation.</param>
     /// <returns>A delivery result containing the response with items and pagination info.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The model has no content type mapping and the query has no explicit type equality/inclusion filter.
-    /// Dynamic models and the <see cref="object"/> metadata-only model do not require a mapping.
+    /// The active <see cref="ITypeProvider"/> has no content type codename for <typeparamref name="TModel"/>.
     /// </exception>
     Task<IDeliveryResult<IDeliveryItemListingResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default);
 }

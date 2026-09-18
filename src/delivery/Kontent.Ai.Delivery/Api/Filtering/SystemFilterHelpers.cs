@@ -29,10 +29,6 @@ internal static class SystemFilterHelpers
 
         if (string.IsNullOrWhiteSpace(codename))
         {
-            // object is the documented metadata-only path; it does not name a content model.
-            if (typeof(TModel) == typeof(object) || filters.Any(IsPositiveTypeFilter))
-                return;
-
             var modelName = typeof(TModel).FullName ?? typeof(TModel).Name;
             if (logger is not null)
             {
@@ -42,8 +38,8 @@ internal static class SystemFilterHelpers
             throw new InvalidOperationException(
                 $"Cannot resolve a content type codename for model '{modelName}'. " +
                 "Ensure the model has [ContentTypeCodename] and its project references Kontent.Ai.Delivery.SourceGeneration, " +
-                "or register an ITypeProvider that maps this model. For an intentional projection, specify a " +
-                "system.type equality or inclusion filter. See https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation.");
+                "or register an ITypeProvider that maps this model. To query without a model, use the non-generic overload. " +
+                "See https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation.");
         }
 
         var typeFilterKeyPrefix = FilterPath.System("type") + "[";
@@ -64,10 +60,4 @@ internal static class SystemFilterHelpers
 
         filters.Add(new KeyValuePair<string, string>(typeFilterKey, typeFilterValue));
     }
-
-    private static bool IsPositiveTypeFilter(KeyValuePair<string, string> filter) =>
-        filter.Key.Equals(FilterPath.System("type") + FilterSuffix.Eq, StringComparison.OrdinalIgnoreCase)
-            ? !string.IsNullOrWhiteSpace(filter.Value)
-            : filter.Key.Equals(FilterPath.System("type") + FilterSuffix.In, StringComparison.OrdinalIgnoreCase) &&
-                filter.Value.Split(',').All(value => !string.IsNullOrWhiteSpace(value));
 }

@@ -201,7 +201,7 @@ internal static partial class LoggerMessages
     [LoggerMessage(
         EventId = LogEventIds.GenericQueryTypeCodenameNotFound,
         Level = LogLevel.Warning,
-        Message = "Query rejected: model '{TypeName}' has no resolvable content type codename or explicit system.type equality/inclusion filter. Configure the generated or custom ITypeProvider mapping, or explicitly filter an intentional projection.")]
+        Message = "Query rejected: model '{TypeName}' has no resolvable content type codename. Ensure the type has [ContentTypeCodename] and the source generator is referenced, or register an ITypeProvider that maps it.")]
     public static partial void GenericQueryTypeCodenameNotFound(ILogger logger, string typeName);
 
     [LoggerMessage(

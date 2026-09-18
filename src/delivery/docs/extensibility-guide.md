@@ -148,16 +148,12 @@ The SDK's default `TypeProvider` automatically discovers source-generated provid
 
 1. **Entry assembly first** - Checks the application's entry assembly for `Kontent.Ai.Delivery.Generated.GeneratedTypeProvider`
 2. **Referenced assemblies** - Checks assemblies referenced by the entry assembly
-3. **Calling assembly fallback** - Best effort; test runners may still require explicit registration
+3. **Calling assembly fallback** - For test scenarios, checks the calling assembly
 
-Discovery stops at the first provider, even if it contains no mappings. It does not recurse through
-assembly references or merge providers. References must appear in the compiled assembly's metadata;
-a project reference alone does not guarantee discovery.
+This bounded search is deterministic and avoids scanning the entire AppDomain. If multiple providers are found, the entry assembly's provider takes precedence.
 
 In practice, the recommended setup is one models project producing one generated provider.
-If discovery misses your models, [register the generated provider explicitly](#explicit-registration-with-dependency-injection).
-For models spanning assemblies, a [custom provider](#creating-a-custom-type-provider) can map types from
-each assembly. Select independent model sets separately as described below.
+If your solution produces multiple generated providers, use explicit `ITypeProvider` registration for deterministic behavior.
 
 ```csharp
 // The auto-discovery happens transparently when you use the SDK
@@ -165,21 +161,6 @@ var result = await client.GetItems<Article>().ExecuteAsync();
 // ↑ SDK looks up "article" codename via auto-discovered GeneratedTypeProvider
 //   and automatically adds system.type=article filter
 ```
-
-### Separate Model Sets
-
-Named clients in one service container share one `ITypeProvider` and mapping pipeline. Registering a
-provider inside a named client's configuration callback changes that shared registration; it does not
-bind the provider to that client.
-
-For independent environments whose codenames map to different CLR types, use separate service
-containers, each with an explicitly registered provider. Separate `DeliveryClient.Create(...)` calls
-create private containers; register the appropriate provider through each builder's `Services`, as in
-[Without Dependency Injection](#without-dependency-injection), and dispose each client at application
-shutdown. Default auto-discovery is static and does not isolate model sets between containers.
-
-Generated providers share the same fully qualified name. If multiple model assemblies make that name
-ambiguous, expose each assembly's provider through a uniquely named factory returning `ITypeProvider`.
 
 ### How Type Resolution Works
 

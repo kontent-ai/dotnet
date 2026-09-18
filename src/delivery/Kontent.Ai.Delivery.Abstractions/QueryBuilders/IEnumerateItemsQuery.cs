@@ -67,8 +67,7 @@ public interface IEnumerateItemsQuery<TModel>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The first page of items with ability to fetch subsequent pages.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The model has no content type mapping and the query has no explicit type equality/inclusion filter.
-    /// Dynamic models and the <see cref="object"/> metadata-only model do not require a mapping.
+    /// The active <see cref="ITypeProvider"/> has no content type codename for <typeparamref name="TModel"/>.
     /// </exception>
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(CancellationToken cancellationToken = default);
 
@@ -79,8 +78,7 @@ public interface IEnumerateItemsQuery<TModel>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The page following the one the token came from.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The model has no content type mapping and the query has no explicit type equality/inclusion filter.
-    /// Dynamic models and the <see cref="object"/> metadata-only model do not require a mapping.
+    /// The active <see cref="ITypeProvider"/> has no content type codename for <typeparamref name="TModel"/>.
     /// </exception>
     Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteAsync(string continuationToken, CancellationToken cancellationToken = default);
 
@@ -91,8 +89,8 @@ public interface IEnumerateItemsQuery<TModel>
     /// The returned value is both a stream of items and, via <see cref="DeliveryEnumeration{T}.AsPages"/>, a stream of
     /// pages. A failed request throws <see cref="DeliveryRequestException"/> — enumeration is a walk, not a single
     /// request, so it has no result to return. Use <see cref="ExecuteAsync(CancellationToken)"/> to receive request
-    /// failures as results. Configuration errors still throw: an unresolved model without an explicit type
-    /// equality/inclusion filter throws <see cref="InvalidOperationException"/> on the first page fetch.
+    /// failures as results. Configuration errors still throw: a model without a content type mapping throws
+    /// <see cref="InvalidOperationException"/> on the first page fetch.
     /// </remarks>
     /// <param name="cancellationToken">Cancellation token to stop enumeration and cancel in-flight requests.</param>
     /// <returns>An enumeration over the strongly typed content items.</returns>

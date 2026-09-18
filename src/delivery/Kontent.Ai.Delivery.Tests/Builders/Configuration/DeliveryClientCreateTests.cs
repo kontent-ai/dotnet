@@ -3,6 +3,8 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Generated;
+using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -209,8 +211,8 @@ public sealed class DeliveryClientCreateTests : IDisposable
             d => d.UseMemoryCache(opts => opts.DefaultExpiration = TimeSpan.FromMinutes(30)));
 
         Assert.Equal(CacheStorageMode.HydratedObject, GetCacheManager(client)!.StorageMode);
-        Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
-        Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Origin, (await client.GetItems<Article>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Cache, (await client.GetItems<Article>().ExecuteAsync()).ResponseSource);
         _http.VerifyNoOutstandingExpectation();
     }
 
@@ -281,8 +283,8 @@ public sealed class DeliveryClientCreateTests : IDisposable
             });
 
         Assert.Equal(CacheStorageMode.RawJson, GetCacheManager(client)!.StorageMode);
-        Assert.Equal(ResponseSource.Origin, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
-        Assert.Equal(ResponseSource.Cache, (await client.GetItems<object>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Origin, (await client.GetItems<Article>().ExecuteAsync()).ResponseSource);
+        Assert.Equal(ResponseSource.Cache, (await client.GetItems<Article>().ExecuteAsync()).ResponseSource);
         _http.VerifyNoOutstandingExpectation();
     }
 
@@ -536,6 +538,7 @@ public sealed class DeliveryClientCreateTests : IDisposable
         {
             d.Options.Configure(configureOptions);
             d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => _http);
+            d.Services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
             configure?.Invoke(d);
         });
 

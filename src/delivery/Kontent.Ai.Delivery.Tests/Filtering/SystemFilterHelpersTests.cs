@@ -19,15 +19,13 @@ public class SystemFilterHelpersTests
     }
 
     [Fact]
-    public void AddGenericTypeFilter_DynamicModelsAndUnmappedObject_DoNotRequireFilters()
+    public void AddGenericTypeFilter_DynamicModels_DoNotRequireFilters()
     {
         var filters = new SerializedFilterCollection();
-        var missingCodenameProvider = new StubTypeProvider(codename: null);
         var resolvedCodenameProvider = new StubTypeProvider(codename: "article");
 
         SystemFilterHelpers.AddGenericTypeFilter<IDynamicElements>(filters, resolvedCodenameProvider, logger: null);
         SystemFilterHelpers.AddGenericTypeFilter<DynamicElements>(filters, resolvedCodenameProvider, logger: null);
-        SystemFilterHelpers.AddGenericTypeFilter<object>(filters, missingCodenameProvider, logger: null);
         Assert.Empty(filters);
     }
 
@@ -57,42 +55,16 @@ public class SystemFilterHelpersTests
             SystemFilterHelpers.AddGenericTypeFilter<TestModel>([], new TypeProvider(generatedProvider: null), logger: null));
     }
 
-    [Theory]
-    [InlineData("system.type[eq]", "article", true)]
-    [InlineData("System.Type[EQ]", "article", true)]
-    [InlineData("system.type[in]", "article", true)]
-    [InlineData("system.type[in]", "article,product", true)]
-    [InlineData("system.type[eq]", "", false)]
-    [InlineData("system.type[eq]", " ", false)]
-    [InlineData("system.type[in]", "", false)]
-    [InlineData("system.type[in]", "article, ", false)]
-    [InlineData("system.type[in]", ",article", false)]
-    [InlineData("system.type[neq]", "article", false)]
-    [InlineData("system.type[nin]", "article", false)]
-    [InlineData("system.type[contains]", "article", false)]
-    [InlineData("system.type[nempty]", "", false)]
-    [InlineData("system.type[eq][eq]", "article", false)]
-    [InlineData("elements.type[eq]", "article", false)]
-    [InlineData("system.codename[eq]", "my_article", false)]
-    public void AddGenericTypeFilter_OnlyPositiveTypeFiltersPermitProjections(string key, string value, bool permitted)
+    [Fact]
+    public void AddGenericTypeFilter_UnresolvedModel_LogsWarningAndIgnoresExplicitTypeFilter()
     {
-        var filters = new SerializedFilterCollection { new(key, value) };
+        var filters = new SerializedFilterCollection { new("system.type[eq]", "article") };
         var logger = new CollectingLogger();
-        var provider = new StubTypeProvider(codename: null);
 
-        if (permitted)
-        {
-            SystemFilterHelpers.AddGenericTypeFilter<TestModel>(filters, provider, logger);
-            Assert.Empty(logger.Entries);
-        }
-        else
-        {
-            Assert.Throws<InvalidOperationException>(() =>
-                SystemFilterHelpers.AddGenericTypeFilter<TestModel>(filters, provider, logger));
-            Assert.Equal((LogLevel.Warning, 1410), Assert.Single(logger.Entries));
-        }
+        Assert.Throws<InvalidOperationException>(() =>
+            SystemFilterHelpers.AddGenericTypeFilter<TestModel>(filters, new StubTypeProvider(codename: null), logger));
 
-        Assert.Equal(new KeyValuePair<string, string>(key, value), Assert.Single(filters));
+        Assert.Equal((LogLevel.Warning, 1410), Assert.Single(logger.Entries));
     }
 
     [Fact]
@@ -105,16 +77,6 @@ public class SystemFilterHelpersTests
 
         Assert.Contains(new KeyValuePair<string, string>("system.type[eq]", "article"), filters);
         Assert.Equal((LogLevel.Warning, 1409), Assert.Single(logger.Entries));
-    }
-
-    [Fact]
-    public void AddGenericTypeFilter_MappedObject_PreservesAutomaticFilter()
-    {
-        var filters = new SerializedFilterCollection();
-
-        SystemFilterHelpers.AddGenericTypeFilter<object>(filters, new StubTypeProvider("article"), logger: null);
-
-        Assert.Equal(new KeyValuePair<string, string>("system.type[eq]", "article"), Assert.Single(filters));
     }
 
     [Fact]
