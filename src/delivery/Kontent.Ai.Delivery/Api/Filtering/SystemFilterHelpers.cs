@@ -66,8 +66,8 @@ internal static class SystemFilterHelpers
     }
 
     private static bool IsPositiveTypeFilter(KeyValuePair<string, string> filter) =>
-        filter.Key.Equals("system.type" + FilterSuffix.Eq, StringComparison.OrdinalIgnoreCase)
+        filter.Key.Equals(FilterPath.System("type") + FilterSuffix.Eq, StringComparison.OrdinalIgnoreCase)
             ? !string.IsNullOrWhiteSpace(filter.Value)
-            : filter.Key.Equals("system.type" + FilterSuffix.In, StringComparison.OrdinalIgnoreCase) &&
+            : filter.Key.Equals(FilterPath.System("type") + FilterSuffix.In, StringComparison.OrdinalIgnoreCase) &&
                 filter.Value.Split(',').All(value => !string.IsNullOrWhiteSpace(value));
 }

@@ -8,11 +8,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-### Breaking changes
+### Fixed
 
-- **Typed listings and feeds reject unresolved type constraints.**
+- **A typed listing or feed no longer queries every content type when the model is unmapped.**
 
-  A listing or feed using a model whose content type cannot be resolved now requires an explicit `system.type` equality or inclusion filter. Otherwise execution throws `InvalidOperationException` before cache access or HTTP, where it previously proceeded without an inferred type filter. This can break existing calls even if their other filters happened to select compatible items. Restore the generated/custom provider mapping, explicitly constrain an intentional projection, or use a typeless query for runtime model selection. Single-item queries, dynamic models and the `object` metadata-only path retain their behavior. See [typed-query validation](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation).
+  When a model's content type could not be resolved, the `system.type` filter was dropped and the query ran anyway, so `GetItems<Article>()` returned every item in the environment and mapped each one as `Article`. The warning that reported this was only emitted when a logger was installed. Such a query now throws `InvalidOperationException` before cache access or HTTP, unless it carries an explicit `system.type` equality or inclusion filter — an explicit filter states the intended type set, so a deliberate projection over an unmapped model keeps working. Restore the generated or custom provider mapping, constrain an intentional projection explicitly, or use a typeless query for runtime model selection. Single-item queries, dynamic models and the `object` metadata-only path are unaffected.
+
+  This can break a call that previously appeared to work: the results were wrong, but other filters may have narrowed them to something usable. See [typed-query validation](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/models.md#typed-query-validation).
 
 ## 20.0.0 (2026-09-16)
 
