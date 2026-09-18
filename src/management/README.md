@@ -80,6 +80,8 @@ That returns the item's **metadata**. Element values live in its language varian
 Register the client and inject `IManagementClient`:
 
 ```csharp
+using Kontent.Ai.Management.Extensions;
+
 services.AddManagementClient(management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";

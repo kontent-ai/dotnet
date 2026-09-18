@@ -16,6 +16,8 @@ Two entry points, same builder: `AddManagementClient` for applications, `Managem
 constructor for scripts.
 
 ```csharp
+using Kontent.Ai.Management.Extensions;
+
 services.AddManagementClient(management => management.Options.Configure(options =>
 {
     options.EnvironmentId = "<YOUR_ENVIRONMENT_ID>";
@@ -23,7 +25,8 @@ services.AddManagementClient(management => management.Options.Configure(options 
 }));
 ```
 
-Inject `IManagementClient` wherever you need it.
+`AddManagementClient` lives in `Kontent.Ai.Management.Extensions`; the registration snippets below
+assume that `using`. Inject `IManagementClient` wherever you need it.
 
 **The container owns a registered client — do not dispose it.** A client you build yourself owns its
 resources, so dispose it:
