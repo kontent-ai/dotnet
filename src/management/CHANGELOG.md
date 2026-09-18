@@ -6,14 +6,6 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
-### Fixed
-
-- **The registration snippets name the namespace `AddManagementClient` lives in.**
-
-  `AddManagementClient` is declared in `Kontent.Ai.Management.Extensions`, which nothing else in a
-  typical file forces you to import, so copying the snippet gave `CS1061: 'IServiceCollection' does not
-  contain a definition for 'AddManagementClient'`. The README, the configuration guide and the 8 → 9
-  upgrade guide now show the `using`. No code change.
 
 ## 9.0.0 (2026-09-16)
 
