@@ -1,4 +1,5 @@
 using Kontent.Ai.Delivery.Abstractions;
+using Kontent.Ai.Delivery.Generated;
 using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using Microsoft.Extensions.DependencyInjection;
 using RichardSzalay.MockHttp;
@@ -206,6 +207,7 @@ public class RedisCacheIntegrationTests
         bool withBackplane = false)
     {
         var services = new ServiceCollection();
+        services.AddSingleton<ITypeProvider, GeneratedTypeProvider>();
 
         services.AddStackExchangeRedisCache(options =>
         {
