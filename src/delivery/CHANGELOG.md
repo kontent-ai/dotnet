@@ -8,6 +8,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 20.0.1 (2026-09-18)
+
 ### Fixed
 
 - **A typed listing or feed no longer queries every content type when the model is unmapped.**
