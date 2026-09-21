@@ -29,4 +29,15 @@ public class ProgramTests
 
         result.Should().Be(1);
     }
+
+    // The mode is detected by exact match, so this ran in Delivery mode while reading as a Management run.
+    [Theory]
+    [InlineData("--management=true")]
+    [InlineData("-m=true")]
+    public async Task Main_ModeSwitchGivenAValue_FailsRatherThanRunningInDeliveryMode(string modeSwitch)
+    {
+        var result = await Program.Main(["-i", EnvironmentId, modeSwitch]);
+
+        result.Should().Be(1);
+    }
 }

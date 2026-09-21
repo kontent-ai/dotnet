@@ -20,6 +20,9 @@ namespace Kontent.Ai.ModelGenerator.CommandLine;
 /// </remarks>
 public static class ValidationExtensions
 {
+    private const string ConfigurationHelp =
+        "See https://github.com/kontent-ai/dotnet/tree/main/src/model-generator#parameters for more details on configuration.";
+
     /// <summary>
     /// Validates that <see cref="CodeGeneratorOptions"/> are initialized for the Delivery SDK.
     /// </summary>
@@ -77,7 +80,7 @@ public static class ValidationExtensions
 
     private static InvalidOperationException MissingEnvironmentId(string memberName) =>
         new($"You have to provide the '{memberName}' argument. " +
-            "See http://bit.ly/k-params for more details on configuration.");
+            ConfigurationHelp);
 
     /// <summary>
     /// Reports every problem at once rather than the first, so a run started with several bad arguments
@@ -100,6 +103,6 @@ public static class ValidationExtensions
         throw new InvalidOperationException(
             $"The {mode} configuration is not valid:{Environment.NewLine}" +
             string.Join(Environment.NewLine, problems) + Environment.NewLine +
-            "See http://bit.ly/k-params for more details on configuration.");
+            ConfigurationHelp);
     }
 }

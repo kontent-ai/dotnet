@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Net;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Configuration;
 using Kontent.Ai.Management.Models.Shared;
@@ -459,7 +460,7 @@ public class ManagementCodeGeneratorTests
         // Built before Returns(): configuring a substitute inside the Returns() argument would
         // overwrite the call NSubstitute is about to attach the return value to.
         var snippets = SuccessListing<IReadOnlyList<ContentTypeSnippetModel>>([]);
-        var types = FailedListing<IReadOnlyList<ContentTypeModel>>("Invalid API key.");
+        var types = FailedListing<IReadOnlyList<ContentTypeModel>>("The environment was not found.", HttpStatusCode.NotFound);
 
         _client.ListContentTypeSnippetsAsync().Returns(snippets);
         _client.ListContentTypesAsync().Returns(types);
@@ -467,7 +468,23 @@ public class ManagementCodeGeneratorTests
         var act = async () => await CreateGenerator().RunAsync();
 
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*content types*Invalid API key.*");
+            .WithMessage("*content types*404*The environment was not found.*");
+    }
+
+    [Fact]
+    public async Task RunAsync_ApiRejectsTheKey_ThrowsNamingTheApiKeyArgument()
+    {
+        var snippets = FailedListing<IReadOnlyList<ContentTypeSnippetModel>>(
+            "Missing or invalid API key. Please include a valid API key in the Authorization header, using the following format: 'Authorization: Bearer <YOUR_API_KEY>'.",
+            HttpStatusCode.Unauthorized);
+        _client.ListContentTypeSnippetsAsync().Returns(snippets);
+
+        var act = async () => await CreateGenerator().RunAsync();
+
+        // The API's own 401 text is about forming an Authorization header, which is not the mistake made here.
+        (await act.Should().ThrowAsync<InvalidOperationException>())
+            .WithMessage("*--apiKey*")
+            .And.Message.Should().NotContain("Authorization header");
     }
 
     [Fact]
@@ -559,13 +576,15 @@ public class ManagementCodeGeneratorTests
         return result;
     }
 
-    private static IManagementResult<T> FailedListing<T>(string message)
+    private static IManagementResult<T> FailedListing<T>(
+        string message, HttpStatusCode statusCode = HttpStatusCode.BadRequest)
     {
         var error = Substitute.For<IError>();
         error.Message.Returns(message);
 
         var result = Substitute.For<IManagementResult<T>>();
         result.IsSuccess.Returns(false);
+        result.StatusCode.Returns(statusCode);
         result.Error.Returns(error);
         return result;
     }

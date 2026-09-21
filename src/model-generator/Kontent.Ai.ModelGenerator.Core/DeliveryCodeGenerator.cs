@@ -65,9 +65,12 @@ public class DeliveryCodeGenerator : CodeGeneratorBase
     private static string DescribeFailure(IDeliveryResult<IDeliveryTypeListingResponse> result)
     {
         // The API's own 401 text explains how to form an Authorization header, which is not the mistake
-        // someone typing a command made. Every other status passes its message through.
+        // someone typing a command made. Every other status passes its message through. The API answers
+        // 401 for a missing key as well as a wrong one, and -k/--apiKey is a Management-mode argument.
         var reason = result.StatusCode == HttpStatusCode.Unauthorized
-            ? "the API key was rejected. Check --apikey (a Delivery preview or secure access key for this environment)."
+            ? "the API key is missing or was rejected. Pass --DeliveryOptions:UseSecureAccess true with "
+              + "--DeliveryOptions:SecureAccessApiKey <key>, or --DeliveryOptions:UsePreviewApi true with "
+              + "--DeliveryOptions:PreviewApiKey <key>."
             : result.Error?.Message ?? "unknown error.";
 
         var requestId = result.Error?.RequestId;
