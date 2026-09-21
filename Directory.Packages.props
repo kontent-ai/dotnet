@@ -19,7 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Build infrastructure -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.301" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
     <!-- Core dependencies -->
     <PackageVersion Include="Kontent.Ai.Delivery" Version="20.0.0" />
     <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="20.0.0" />
