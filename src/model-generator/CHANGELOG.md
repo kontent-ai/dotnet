@@ -9,6 +9,50 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Changed
+
+- **The startup line names the SDK package, not its former repository.**
+
+  "Generating models for delivery-sdk-net version …" is now "Generating models for Kontent.Ai.Delivery
+  version …", and likewise `Kontent.Ai.Management`. A script matching on the old text needs updating.
+
+### Fixed
+
+- **A Delivery `401` names the Delivery key options instead of `--apikey`.**
+
+  The message added in `11.0.1` said "Check --apikey", which is the Management-mode argument and is
+  refused in Delivery mode. It now names `--DeliveryOptions:SecureAccessApiKey` and
+  `--DeliveryOptions:PreviewApiKey` with the switches that enable them, and says the key may be missing,
+  since the API answers `401` for both.
+
+- **A Management `401` names `-k` / `--apiKey`, with the status code and request id.**
+
+  Management mode still passed through the API's advice about forming an `Authorization: Bearer` header,
+  which `11.0.1` replaced in Delivery mode only. Every failed Management listing now reports its status
+  code and, when the API supplies one, the request id, the way Delivery mode does.
+
+- **`--management=true` is refused instead of running in Delivery mode.**
+
+  The mode switch is matched exactly, so `--management=true` was accepted as a known argument, did not
+  switch the mode, and generated Delivery models. `-m=true` failed with the configuration library's
+  "short switch is not defined" message. Both now fail with "is a switch and takes no value".
+
+- **`-p` / `--projectid` with `--management` points at `-i` / `--environmentId`.**
+
+  The message said the argument "configures the Delivery API, which --management does not use", but both
+  are environment id aliases and Management mode needs an environment id. They are still refused there.
+
+- **An SDK option passed by its bare name suggests the section-qualified form.**
+
+  The SDK's validation messages name options bare ("SecureAccessApiKey is required…"), and passing
+  `--SecureAccessApiKey` answered only "Unsupported parameter". It now adds
+  "Did you mean --DeliveryOptions:SecureAccessApiKey?".
+
+- **Configuration errors link to this repository's parameter table.**
+
+  `http://bit.ly/k-params` redirected twice and landed on the root of the former `model-generator-net`
+  repository.
+
 ## 11.0.1 (2026-09-18)
 
 ### Fixed

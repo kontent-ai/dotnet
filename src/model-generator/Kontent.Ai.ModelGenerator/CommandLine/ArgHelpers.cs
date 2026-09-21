@@ -16,10 +16,10 @@ internal static class ArgHelpers
     private const char NamePrefix = '-';
 
     private static readonly ProgramOptionsData<DeliveryOptions> DeliveryProgramOptionsData =
-        new(typeof(DeliveryOptions), "delivery-sdk-net");
+        new(typeof(DeliveryOptions), "Kontent.Ai.Delivery");
 
     private static readonly ProgramOptionsData<ManagementOptions> ManagementProgramOptionsData =
-        new(typeof(ManagementOptions), "management-sdk-net");
+        new(typeof(ManagementOptions), "Kontent.Ai.Management");
 
     /// <summary>
     /// Generator options only one mode reads, so the generic <c>--&lt;PropertyName&gt;</c> form has to be
@@ -80,6 +80,14 @@ internal static class ArgHelpers
         {
             var argumentName = SplitArgument(arg).FirstOrDefault() ?? string.Empty;
 
+            // The mode is detected by exact match, so `--management=true` passed as a known name, did not
+            // switch the mode, and generated Delivery models.
+            if (IsModeSwitch(argumentName) && !IsModeSwitch(arg))
+            {
+                problems.Add($"{argumentName} is a switch and takes no value. Pass it on its own.");
+                continue;
+            }
+
             if (IsKnownInMode(argumentName, managementMode) ||
                 IsOptionPropertyValid(ModeOptionKeys(managementMode), argumentName) ||
                 IsOptionPropertyValid(codeGeneratorOptionsProperties, argumentName))
@@ -87,7 +95,9 @@ internal static class ArgHelpers
                 continue;
             }
 
-            problems.Add(WrongModeProblem(argumentName, managementMode) ?? $"Unsupported parameter: {arg}");
+            problems.Add(WrongModeProblem(argumentName, managementMode)
+                         ?? UnqualifiedOptionProblem(argumentName, managementMode)
+                         ?? $"Unsupported parameter: {arg}");
         }
 
         problems.AddRange(ValidateEnumArgValues(args));
@@ -121,6 +131,14 @@ internal static class ArgHelpers
                        "nullable, because a null element is left untouched on upsert.";
             }
 
+            // -p and --projectid are environment id aliases, and --management does use an environment id.
+            // -i and --environmentId never get here: they are known in both modes.
+            if (ArgMappingsRegister.DeliveryMappings.TryGetValue(argumentName, out var target) &&
+                target == $"{nameof(DeliveryOptions)}:{nameof(DeliveryOptions.EnvironmentId)}")
+            {
+                return $"{argumentName} is a Delivery-mode alias. With --management, pass the environment id as -i or --environmentId.";
+            }
+
             return ArgMappingsRegister.DeliveryMappings.ContainsKey(argumentName) ||
                    IsOptionPropertyValid(DeliveryOptionKeys, argumentName)
                 ? $"{argumentName} configures the Delivery API, which --management does not use."
@@ -132,6 +150,18 @@ internal static class ArgHelpers
             ? $"{argumentName} configures the Management API. Add --management (or -m) to generate from it."
             : null;
     }
+
+    /// <summary>
+    /// The message for an SDK option passed by its bare name, or <c>null</c> when the argument is not one.
+    /// The SDK's validation messages name options that way ("SecureAccessApiKey is required…"), and only
+    /// the section-qualified form binds.
+    /// </summary>
+    private static string? UnqualifiedOptionProblem(string argumentName, bool managementMode) =>
+        ModeOptionKeys(managementMode)
+            .FirstOrDefault(key => string.Equals($"--{key.Split(':')[1]}", argumentName, StringComparison.OrdinalIgnoreCase))
+            is { } qualified
+                ? $"Unsupported parameter: {argumentName}. Did you mean --{qualified}?"
+                : null;
 
     private static IReadOnlyList<string> SectionKeysOf<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>
         (ProgramOptionsData<T> programOptionsData) =>

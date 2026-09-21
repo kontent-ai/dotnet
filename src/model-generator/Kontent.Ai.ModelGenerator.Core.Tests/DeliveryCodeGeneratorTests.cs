@@ -16,7 +16,7 @@ public class DeliveryCodeGeneratorTests
     private readonly ClassCodeGeneratorFactory _classCodeGeneratorFactory = new();
 
     [Fact]
-    public async Task RunAsync_ApiRejectsTheKey_ThrowsNamingTheApiKeyArgument()
+    public async Task RunAsync_ApiRejectsTheKey_ThrowsNamingTheDeliveryKeyArguments()
     {
         SetupClientWith(FailedListing(
             HttpStatusCode.Unauthorized,
@@ -25,9 +25,13 @@ public class DeliveryCodeGeneratorTests
         var act = () => CreateGenerator().RunAsync();
 
         // The API's own 401 text is about forming an Authorization header, which is not the mistake made here.
+        // -k/--apiKey is Management-only and refused in Delivery mode, so the message must not send anyone to it.
         (await act.Should().ThrowAsync<InvalidOperationException>())
-            .WithMessage("*--apikey*")
-            .And.Message.Should().NotContain("bearer authorization scheme");
+            .And.Message.Should()
+            .Contain("--DeliveryOptions:SecureAccessApiKey")
+            .And.Contain("--DeliveryOptions:PreviewApiKey")
+            .And.NotContainEquivalentOf("--apikey")
+            .And.NotContain("bearer authorization scheme");
     }
 
     [Fact]

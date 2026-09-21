@@ -219,11 +219,34 @@ public class ArgHelpersTests
     [Theory]
     [InlineData("-p")]
     [InlineData("--projectid")]
-    public void FindInvalidArgs_DeliveryArgInManagementMode_SaysItIsNotUsedThere(string argument)
+    public void FindInvalidArgs_EnvironmentIdAliasInManagementMode_PointsAtTheManagementArgument(string argument)
     {
+        // Management mode does take an environment id, so "not used" would send the reader the wrong way.
         var result = ArgHelpers.FindInvalidArgs(["-m", argument, "abc-123"]);
 
-        result.Should().ContainSingle().Which.Should().Contain("Delivery API");
+        result.Should().ContainSingle().Which.Should().Contain("--environmentId").And.NotContain("does not use");
+    }
+
+    [Theory]
+    [InlineData("--management=true")]
+    [InlineData("--management=false")]
+    [InlineData("-m=true")]
+    public void FindInvalidArgs_ModeSwitchGivenAValue_Rejected(string argument)
+    {
+        var result = ArgHelpers.FindInvalidArgs(["-i", "abc-123", argument]);
+
+        result.Should().ContainSingle().Which.Should().Contain("takes no value");
+    }
+
+    // The SDK's validation messages name options bare ("SecureAccessApiKey is required..."), and only the
+    // section-qualified form binds.
+    [Theory]
+    [InlineData(new[] { "--SecureAccessApiKey", "key" }, "--DeliveryOptions:SecureAccessApiKey")]
+    [InlineData(new[] { "--usepreviewapi=true" }, "--DeliveryOptions:UsePreviewApi")]
+    [InlineData(new[] { "-m", "--Endpoint", "x" }, "--ManagementOptions:Endpoint")]
+    public void FindInvalidArgs_SdkOptionByItsBareName_SuggestsTheQualifiedForm(string[] args, string expected)
+    {
+        ArgHelpers.FindInvalidArgs(args).Should().ContainSingle().Which.Should().Contain(expected);
     }
 
     public static TheoryData<string[]> ArgsBelongingToTheActiveMode => new()

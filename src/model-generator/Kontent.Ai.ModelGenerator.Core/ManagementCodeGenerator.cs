@@ -1,3 +1,4 @@
+using System.Net;
 using Kontent.Ai.Management;
 using Kontent.Ai.Management.Models.Shared;
 using Kontent.Ai.Management.Models.Types;
@@ -104,8 +105,17 @@ public class ManagementCodeGenerator : CodeGeneratorBase
     {
         if (!result.IsSuccess)
         {
+            // Same substitution as Delivery mode: the API's 401 text explains how to form an Authorization
+            // header, which is not the mistake someone typing a command made.
+            var reason = result.StatusCode == HttpStatusCode.Unauthorized
+                ? "the API key was rejected. Check -k / --apiKey (a Management API key for this environment)."
+                : result.Error?.Message ?? "unknown error.";
+
+            var requestId = result.Error?.RequestId;
+            var trailer = string.IsNullOrWhiteSpace(requestId) ? string.Empty : $" Request ID: {requestId}.";
+
             throw new InvalidOperationException(
-                $"Failed to list {resourceName} from the Management API: {result.Error?.Message ?? "unknown error"}");
+                $"Failed to list {resourceName} from the Management API ({(int)result.StatusCode}): {reason}{trailer}");
         }
 
         // A success result with a null body shouldn't happen, but guard so a downstream
