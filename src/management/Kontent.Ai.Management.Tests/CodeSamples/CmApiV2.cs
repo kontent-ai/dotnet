@@ -1620,7 +1620,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_post_bulk_get_items_with_variants
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        IReadOnlyList<ContentItemWithVariantModel> response = (await client.ListItemsWithVariantsByBulkGetAsync(new ItemWithVariantBulkGetRequestModel
+        IReadOnlyList<ContentItemWithVariantModel> response = (await client.BulkGetItemsWithVariantsAsync(new ItemWithVariantBulkGetRequestModel
         {
             Variants =
             [
@@ -1672,7 +1672,7 @@ public class CmApiV2
         // DocSection: cm_api_v2_post_filter_items_with_variants
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         // Filters variants by language only
-        IReadOnlyList<ItemWithVariantFilterResultModel> variantsInLanguage = (await client.ListItemsWithVariantsByFilterAsync(new ItemWithVariantFilterRequestModel
+        IReadOnlyList<ItemWithVariantFilterResultModel> variantsInLanguage = (await client.FilterItemsWithVariantsAsync(new ItemWithVariantFilterRequestModel
         {
             Filters = new VariantFilterFiltersModel
             {
@@ -1681,7 +1681,7 @@ public class CmApiV2
         })).EnsureSuccess();
 
         // Filters variants with multiple criteria
-        IReadOnlyList<ItemWithVariantFilterResultModel> filteredVariants = (await client.ListItemsWithVariantsByFilterAsync(new ItemWithVariantFilterRequestModel
+        IReadOnlyList<ItemWithVariantFilterResultModel> filteredVariants = (await client.FilterItemsWithVariantsAsync(new ItemWithVariantFilterRequestModel
         {
             Filters = new VariantFilterFiltersModel
             {
