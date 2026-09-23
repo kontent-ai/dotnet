@@ -36,6 +36,7 @@ if (repoRoot is null) { Console.Error.WriteLine("sync-code-samples: not inside a
 var srcRoot = Path.Combine(repoRoot, "src");
 var sections = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
 var reviews = new SortedDictionary<string, string>(StringComparer.Ordinal);
+var clientNames = new Dictionary<string, string>(StringComparer.Ordinal);
 var clients = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
 foreach (var file in Directory.EnumerateFiles(srcRoot, "*.*", SearchOption.AllDirectories)
              .Where(f => Path.GetExtension(f) is ".cs" or ".sh")
@@ -46,23 +47,24 @@ foreach (var file in Directory.EnumerateFiles(srcRoot, "*.*", SearchOption.AllDi
     {
         if (block.Unclosed)
         {
-            Console.Error.WriteLine($"sync-code-samples: {Rel(file)} opens {(block.Id is null ? "a DocClient" : block.Id)} and never closes it");
+            Console.Error.WriteLine($"sync-code-samples: {Rel(file)} opens {block.Id ?? "a DocClient"} and never closes it");
             return 1;
         }
 
         if (block.Id is null)
         {
-            var product = Product(file);
-            if (!clients.TryAdd(product, (file, block.Body)))
+            var key = ClientKey(Product(file), block.ClientName);
+            if (!clients.TryAdd(key, (file, block.Body)))
             {
-                Console.Error.WriteLine($"sync-code-samples: {product} has a DocClient in both {Rel(clients[product].File)} and {Rel(file)}");
+                Console.Error.WriteLine($"sync-code-samples: DocClient {key} is declared in both {Rel(clients[key].File)} and {Rel(file)}");
                 return 1;
             }
         }
         else
         {
             var lines = block.Body.Split('\n');
-            if (!sections.TryAdd(block.Id, (file, string.Join('\n', lines.Where(l => !ReviewMarker().IsMatch(l))))))
+            var sample = lines.Where(l => !ReviewMarker().IsMatch(l) && !ClientNameMarker().IsMatch(l));
+            if (!sections.TryAdd(block.Id, (file, string.Join('\n', sample))))
             {
                 Console.Error.WriteLine($"sync-code-samples: id '{block.Id}' is used by both {Rel(sections[block.Id].File)} and {Rel(file)}");
                 return 1;
@@ -70,6 +72,9 @@ foreach (var file in Directory.EnumerateFiles(srcRoot, "*.*", SearchOption.AllDi
 
             var review = lines.Select(l => ReviewMarker().Match(l)).FirstOrDefault(m => m.Success);
             if (review is not null) reviews[block.Id] = review.Groups[1].Value;
+
+            var clientName = lines.Select(l => ClientNameMarker().Match(l)).FirstOrDefault(m => m.Success);
+            if (clientName is not null) clientNames[block.Id] = clientName.Groups[1].Value;
         }
     }
 }
@@ -120,12 +125,13 @@ foreach (var (id, (file, body)) in sections.OrderBy(s => s.Key, StringComparer.O
 {
     var path = published[id][0];
     var current = File.ReadAllText(path).ReplaceLineEndings("\n");
-    var client = clients.TryGetValue(Product(file), out var c) ? c.Body : null;
+    var clientKey = ClientKey(Product(file), clientNames.GetValueOrDefault(id));
+    var client = clients.TryGetValue(clientKey, out var c) ? c.Body : null;
     var isCSharp = Path.GetExtension(file) == ".cs";
     var rendered = isCSharp ? Render(current, body, client) : Verbatim(current, body);
     if (rendered is null)
     {
-        Console.Error.WriteLine($"sync-code-samples: {Path.GetRelativePath(samplesRoot, path)} declares a client, but {Product(file)} has no DocClient block");
+        Console.Error.WriteLine($"sync-code-samples: {Path.GetRelativePath(samplesRoot, path)} declares a client, but there is no DocClient {clientKey}");
         return 1;
     }
 
@@ -254,26 +260,30 @@ static bool IsPreambleLine(string line)
     return trimmed.Length == 0 || trimmed.StartsWith("//") || UsingDirective().IsMatch(trimmed);
 }
 
-// A DocSection block carries its id; a DocClient block has none.
-static IEnumerable<(string? Id, string Body, bool Unclosed)> ReadBlocks(string file)
+// A DocSection block carries its id; a DocClient block has none, and an optional name.
+static IEnumerable<(string? Id, string? ClientName, string Body, bool Unclosed)> ReadBlocks(string file)
 {
     var open = false;
     string? id = null;
+    string? clientName = null;
     var buffer = new List<string>();
     foreach (var line in File.ReadLines(file))
     {
         var opened = OpenMarker().Match(line);
-        if (opened.Success || OpenClientMarker().IsMatch(line))
+        var openedClient = OpenClientMarker().Match(line);
+        if (opened.Success || openedClient.Success)
         {
-            if (open) yield return (id, "", true);
-            (open, id) = (true, opened.Success ? opened.Groups[1].Value : null);
+            if (open) yield return (id, clientName, "", true);
+            open = true;
+            id = opened.Success ? opened.Groups[1].Value : null;
+            clientName = openedClient.Success && openedClient.Groups[1].Success ? openedClient.Groups[1].Value : null;
             buffer.Clear();
             continue;
         }
 
         if (open && (id is null ? CloseClientMarker() : CloseMarker()).IsMatch(line))
         {
-            yield return (id, Dedent(buffer), false);
+            yield return (id, clientName, Dedent(buffer), false);
             open = false;
             continue;
         }
@@ -281,8 +291,11 @@ static IEnumerable<(string? Id, string Body, bool Unclosed)> ReadBlocks(string f
         if (open) buffer.Add(line.TrimEnd());
     }
 
-    if (open) yield return (id, "", true);
+    if (open) yield return (id, clientName, "", true);
 }
+
+// A product's default client block is its unnamed one; a section picks another with `// DocClientName: <name>`.
+static string ClientKey(string product, string? name) => name is null ? product : $"{product}:{name}";
 
 static string Dedent(List<string> lines)
 {
@@ -465,8 +478,11 @@ partial class Program
     [GeneratedRegex(@"^\s*(?://|#)\s*DocReview:\s*(.+?)\s*$")]
     private static partial Regex ReviewMarker();
 
-    [GeneratedRegex(@"^\s*(?://|#)\s*DocClient\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*DocClient(?::\s*(\S+))?\s*$")]
     private static partial Regex OpenClientMarker();
+
+    [GeneratedRegex(@"^\s*(?://|#)\s*DocClientName:\s*(\S+)\s*$")]
+    private static partial Regex ClientNameMarker();
 
     [GeneratedRegex(@"^\s*(?://|#)\s*EndDocClient\s*$")]
     private static partial Regex CloseClientMarker();

@@ -20,4 +20,18 @@ public class ClientRegistration
         });
         // EndDocClient
     }
+
+    // Subscription endpoints are scoped to a subscription rather than an environment, and take a
+    // subscription API key.
+    public void CreateSubscriptionClient()
+    {
+        // DocClient: subscription
+        // Or register it through DI with services.AddManagementClient()
+        using var client = new ManagementClient(new ManagementOptions
+        {
+            ApiKey = "KONTENT_AI_SUBSCRIPTION_API_KEY",
+            SubscriptionId = "KONTENT_AI_SUBSCRIPTION_ID"
+        });
+        // EndDocClient
+    }
 }

@@ -56,7 +56,9 @@ outside them.
 
 Samples that build a client show the one in their product's `CodeSamples/ClientRegistration.cs`, marked
 `// DocClient` ... `// EndDocClient`. It is compiled but never run, because the placeholders in it would
-fail options validation. A sample that is about client setup - a preview or secure-access key - declares
+fail options validation. A product can declare more than one - `// DocClient: subscription` is Management's
+client for the Subscription API - and a section picks a named one with a `// DocClientName: <name>` line,
+which is not published. A sample that is about client setup - a preview or secure-access key - declares
 its own client inside its section instead.
 
 ## Syncing to Learn
@@ -66,6 +68,10 @@ After a change here is merged, from the repository root:
 ```sh
 dotnet run eng/scripts/sync-code-samples.cs -- <path-to-your-kontent-ai-learn-code-samples-checkout>
 ```
+
+**The sync overwrites the published files.** A fix made directly in the samples repository is lost unless
+it is brought into the section here first, so check that repository's history for .NET changes since the
+last sync before running it.
 
 The script creates `sync/dotnet-<sha>` off `origin/master` in that checkout (`--base <ref>` for another
 base), writes every published file that changed and stages it. It commits nothing: review the diff, commit,

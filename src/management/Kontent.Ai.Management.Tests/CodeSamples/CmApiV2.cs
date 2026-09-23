@@ -166,7 +166,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_delete_workflow
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var identifier = Reference.ById(Guid.Parse("8bfdb62d-7aa1-473b-9d80-311ef93db108"));
+        var identifier = Reference.ById(Guid.Parse("f9f28df0-9dec-4ee3-b087-c501e4b75347"));
         // var identifier = Reference.ByCodename("my_workflow");
 
         await client.DeleteWorkflowAsync(identifier);
@@ -630,9 +630,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUser.json");
 
         // DocSection: cm_api_v2_get_subscription_user
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
-        var identifier = UserIdentifier.ByEmail("Joe.Joe@kontent.ai");
-        //var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = UserIdentifier.ByEmail("user@kontent.ai");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         var response = (await client.GetSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -644,7 +645,8 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUsers.json");
 
         // DocSection: cm_api_v2_get_subscription_users
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListSubscriptionUsersAsync()).EnsureSuccess().Count;
         // EndDocSection
 
@@ -657,7 +659,8 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionProjects.json");
 
         // DocSection: cm_api_v2_get_subscription_projects
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListSubscriptionProjectsAsync()).EnsureSuccess().Count;
         // EndDocSection
 
@@ -707,7 +710,7 @@ public class CmApiV2
         // DocSection: cm_api_v2_get_custom_app
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
-        // var identifier = Reference.ByCodename("my_custom_app");
+        // var identifier = Reference.ByCodename("custom_app_codename");
 
         var response = (await client.GetCustomAppAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -813,6 +816,7 @@ public class CmApiV2
                 {
                     ExternalId = "folder-with-shared-assets",
                     Name = "Shared assets",
+                    Codename = "shared_assets",
                 },
                 Before = Reference.ByExternalId("folder-with-downloadable-assets")
             },
@@ -822,7 +826,7 @@ public class CmApiV2
             },
             new AssetFolderRenamePatchModel
             {
-                Reference = Reference.ByExternalId("folder-documents"),
+                Reference = Reference.ByCodename("folder_documents"),
                 Value = "Legal documents"
             }
         ])).EnsureSuccess();
@@ -1093,6 +1097,7 @@ public class CmApiV2
             {
                 Id = "fcbb12e6-66a3-4672-85d9-d502d16b8d9c"
             },
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Folder = Reference.ByExternalId("another-folder"),
             Title = "Coffee Brewing Techniques",
             ExternalId = "which-brewing-fits-you",
@@ -1140,6 +1145,7 @@ public class CmApiV2
                 {
                     Name = "Top level folder",
                     ExternalId = "top-folder",
+                    Codename = "top_folder",
                     Folders =
                     [
                         new AssetFolderHierarchy
@@ -1502,12 +1508,13 @@ public class CmApiV2
         var response = (await client.CreateWorkflowAsync(new WorkflowUpsertModel
         {
             Name = "My workflow",
+            Codename = "my_workflow",
             Scopes =
             [
                 new()
                 {
-                    Collections = [Reference.ById(Guid.Parse("d29d1904-9011-45ca-8ed3-0f2737a28024"))],
-                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80"))]
+                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80")), Reference.ByCodename("article")],
+                    Collections = [Reference.ById(Guid.Parse("b15b6050-80d8-406d-bf21-3012e4ad0ac5")), Reference.ByCodename("marketing")]
                 }
             ],
             Steps =
@@ -1517,27 +1524,15 @@ public class CmApiV2
                     Name = "First step",
                     Codename = "first_step",
                     Color = WorkflowStepColor.SkyBlue,
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("second_step")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("second_step") }]
                 },
                 new()
                 {
                     Name = "Second step",
                     Codename = "second_step",
                     Color = WorkflowStepColor.Rose,
-                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")],
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("published")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("published") }],
+                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
                 }
             ],
             PublishedStep = new WorkflowPublishedStepUpsertModel
@@ -1592,7 +1587,7 @@ public class CmApiV2
         var response = (await client.CloneEnvironmentAsync(new EnvironmentCloneModel
         {
             Name = "New environment",
-            RolesToActivate = [Guid.Parse("2f925111-1457-49d4-a595-0958feae8ae4")],
+            RolesToActivate = [Guid.Parse("ee483b59-5a24-4010-b277-ae224c34bc71")],
             CopyDataOptions = new CopyDataOptions
             {
                 ContentItemsAssets = true,
@@ -1732,6 +1727,7 @@ public class CmApiV2
         var updatedAssetResponse = await client.UpsertAssetAsync(identifier, new AssetUpsertModel
         {
             Title = "Coffee Brewing Techniques",
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Descriptions =
             [
                 new AssetDescription
@@ -1769,6 +1765,7 @@ public class CmApiV2
                 Id = "ab7bdf75-781b-4bf9-aed8-501048860402"
             },
             Title = "Coffee Brewing Techniques",
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Descriptions =
             [
                 new AssetDescription
@@ -1866,7 +1863,7 @@ public class CmApiV2
             {
                 Elements =
                 [
-                    new MultipleChoiceElement
+                    new TaxonomyElement
                     {
                         Element = Reference.ByCodename("personas"),
                         Value = [Reference.ByCodename("barista"), Reference.ByCodename("coffee_blogger")],
@@ -1907,6 +1904,8 @@ public class CmApiV2
                 {
                     Value = new DateTimeOffset(2092, 1, 7, 6, 4, 0, TimeSpan.Zero)
                 },
+                Note = "Make sure the graphic materials we use here are on brand.",
+                Contributors = [UserIdentifier.ByEmail("user@example.com")],
                 Workflow = new WorkflowStepIdentifier(Reference.ByDefaultCodename(), Reference.ByCodename("review"))
             })).EnsureSuccess();
         // EndDocSection
@@ -1971,7 +1970,7 @@ public class CmApiV2
         (await client.SchedulePublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
             ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
-            DisplayTimeZone = "Europe/London"
+            DisplayTimeZone = "Australia/Sydney"
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -1993,7 +1992,7 @@ public class CmApiV2
         (await client.ScheduleUnpublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
             ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
-            DisplayTimeZone = "Europe/London"
+            DisplayTimeZone = "Australia/Sydney"
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -2022,8 +2021,8 @@ public class CmApiV2
                     {
                         Value = DateTime.UtcNow.AddDays(42)
                     },
-                    Contributors = [UserIdentifier.ByEmail("user@kontent.ai")],
-                    Note = "Moving this to the next workflow step."
+                    Note = "Make sure the graphic materials we use here are on brand.",
+                    Contributors = [UserIdentifier.ByEmail("user@example.com")]
                 }
                 )).EnsureSuccess();
         // EndDocSection
@@ -2059,17 +2058,18 @@ public class CmApiV2
         // DocSection: cm_api_v2_put_workflow
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ByCodename("my_workflow");
-        // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ById(Guid.Parse("f9f28df0-9dec-4ee3-b087-c501e4b75347"));
 
         var response = (await client.UpdateWorkflowAsync(identifier, new WorkflowUpsertModel
         {
-            Name = "My workflow",
+            Name = "My updated workflow",
+            Codename = "my_updated_workflow",
             Scopes =
             [
                 new()
                 {
-                    Collections = [Reference.ById(Guid.Parse("d29d1904-9011-45ca-8ed3-0f2737a28024"))],
-                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80"))]
+                    ContentTypes = [Reference.ByCodename("article")],
+                    Collections = [Reference.ByCodename("marketing")]
                 }
             ],
             Steps =
@@ -2081,32 +2081,26 @@ public class CmApiV2
                     Color = WorkflowStepColor.SkyBlue,
                     TransitionsTo =
                     [
-                        new()
-                        {
-                            Step = Reference.ByCodename("second_step")
-                        }
-                    ]
+                        new() { Step = Reference.ById(Guid.Parse("16221cc2-bd22-4414-a513-f3e555c0fc93")) },
+                        new() { Step = Reference.ByCodename("archived") }
+                    ],
+                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
                 },
                 new()
                 {
-                    Name = "Second step",
-                    Codename = "second_step",
+                    // Renames an existing step, identified by its ID
+                    Id = Guid.Parse("16221cc2-bd22-4414-a513-f3e555c0fc93"),
+                    Name = "Renamed Second step",
+                    Codename = "second_step_renamed",
                     Color = WorkflowStepColor.Rose,
-                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")],
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("published")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("published") }]
                 }
             ],
-            PublishedStep = new WorkflowPublishedStepUpsertModel
+            PublishedStep = new WorkflowPublishedStepUpsertModel(),
+            ArchivedStep = new WorkflowArchivedStepUpsertModel
             {
-                UnpublishRoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
-            },
-            ArchivedStep = new WorkflowArchivedStepUpsertModel()
+                RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
+            }
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -2150,9 +2144,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
         // DocSection: cm_api_v2_put_subscription_user_activate
+        // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
-        //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         (await client.ActivateSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -2164,9 +2159,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
         // DocSection: cm_api_v2_put_subscription_user_deactivate
+        // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
-        //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         (await client.DeactivateSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
