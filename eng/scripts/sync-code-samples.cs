@@ -3,7 +3,9 @@
 //   dotnet run eng/scripts/sync-code-samples.cs -- <samples-checkout> [--check] [--base <ref>]
 //
 // Every `// DocSection: <id>` ... `// EndDocSection` pair under src/**/CodeSamples is the source of
-// net/**/<id>.cs. The published file keeps its structure: leading comments and usings stay exactly
+// net/**/<id>.cs. A sample in another language - the model generator's .sh command - lives in a file of
+// that language under CodeSamples, marked with its own comment syntax (`# DocSection: <id>`), and is
+// published as written. The published file keeps its structure: leading comments and usings stay exactly
 // as they are, as does its trailing newline. A client declaration in the file, with the comments
 // directly above it, is replaced with the `// DocClient` ... `// EndDocClient` block of the section's
 // product, so the registration Learn shows compiles against the SDK too - unless the section declares
@@ -56,7 +58,8 @@ var srcRoot = Path.Combine(repoRoot, "src");
 var sections = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
 var reviews = new SortedDictionary<string, string>(StringComparer.Ordinal);
 var clients = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
-foreach (var file in Directory.EnumerateFiles(srcRoot, "*.cs", SearchOption.AllDirectories)
+foreach (var file in Directory.EnumerateFiles(srcRoot, "*.*", SearchOption.AllDirectories)
+             .Where(f => Path.GetExtension(f) is ".cs" or ".sh")
              .Where(f => f.Split(Path.DirectorySeparatorChar).Contains("CodeSamples"))
              .Where(f => !f.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj")))
 {
@@ -111,7 +114,7 @@ if (!check)
     Console.WriteLine($"created {branch} off {baseRef} in {samplesRoot}");
 }
 
-var published = Directory.EnumerateFiles(netRoot, "*.cs", SearchOption.AllDirectories)
+var published = Directory.EnumerateFiles(netRoot, "*", SearchOption.AllDirectories)
     .GroupBy(f => Path.GetFileNameWithoutExtension(f), StringComparer.Ordinal)
     .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
@@ -123,7 +126,14 @@ var unpublished = sections.Keys.Where(id => !published.ContainsKey(id)).Order(St
 foreach (var id in unpublished)
     Console.Error.WriteLine($"sync-code-samples: {id} ({Rel(sections[id].File)}) has no published file - it must exist in Kontent.ai Learn first");
 
-if (duplicatePublished.Count > 0 || unpublished.Count > 0) return 1;
+var mismatched = sections
+    .Where(s => !string.Equals(Path.GetExtension(s.Value.File), Path.GetExtension(published[s.Key][0]), StringComparison.OrdinalIgnoreCase))
+    .Select(s => s.Key)
+    .ToList();
+foreach (var id in mismatched)
+    Console.Error.WriteLine($"sync-code-samples: {id} is written in {Rel(sections[id].File)} but published as {Path.GetFileName(published[id][0])}");
+
+if (duplicatePublished.Count > 0 || unpublished.Count > 0 || mismatched.Count > 0) return 1;
 
 var updated = new List<string>();
 var unchanged = 0;
@@ -132,14 +142,15 @@ foreach (var (id, (file, body)) in sections.OrderBy(s => s.Key, StringComparer.O
     var path = published[id][0];
     var current = File.ReadAllText(path).ReplaceLineEndings("\n");
     var client = clients.TryGetValue(Product(file), out var c) ? c.Body : null;
-    var rendered = Render(current, body, client);
+    var isCSharp = Path.GetExtension(file) == ".cs";
+    var rendered = isCSharp ? Render(current, body, client) : Verbatim(current, body);
     if (rendered is null)
     {
         Console.Error.WriteLine($"sync-code-samples: {Path.GetRelativePath(samplesRoot, path)} declares a client, but {Product(file)} has no DocClient block");
         return 1;
     }
 
-    if (HasUsings(rendered))
+    if (isCSharp && HasUsings(rendered))
     {
         var context = BindingContext.For(file);
         if (context is null) return 1;
@@ -225,6 +236,13 @@ static (int ClientStart, int ClientEnd, int PreambleEnd) Preamble(string[] lines
     var clientEnd = i;
     while (i < lines.Length && lines[i].Trim().Length == 0) i++;
     return (clientStart, clientEnd, i);
+}
+
+// A sample in any other language - the model generator's shell command - is published as it is written.
+static string Verbatim(string current, string body)
+{
+    var code = body.Trim('\n').TrimEnd();
+    return current.EndsWith('\n') ? code + "\n" : code;
 }
 
 static string[] Header(string text) =>
@@ -459,19 +477,19 @@ sealed class BindingContext
 
 partial class Program
 {
-    [GeneratedRegex(@"^\s*//\s*DocSection:\s*(\S+)\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*DocSection:\s*(\S+)\s*$")]
     private static partial Regex OpenMarker();
 
-    [GeneratedRegex(@"^\s*//\s*EndDocSection\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*EndDocSection\s*$")]
     private static partial Regex CloseMarker();
 
-    [GeneratedRegex(@"^\s*//\s*DocReview:\s*(.+?)\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*DocReview:\s*(.+?)\s*$")]
     private static partial Regex ReviewMarker();
 
-    [GeneratedRegex(@"^\s*//\s*DocClient\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*DocClient\s*$")]
     private static partial Regex OpenClientMarker();
 
-    [GeneratedRegex(@"^\s*//\s*EndDocClient\s*$")]
+    [GeneratedRegex(@"^\s*(?://|#)\s*EndDocClient\s*$")]
     private static partial Regex CloseClientMarker();
 
     [GeneratedRegex(@"^using\s+(static\s+)?[\w.]+(\s*=\s*[\w.<>]+)?\s*;$")]
