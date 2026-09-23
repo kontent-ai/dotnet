@@ -1,0 +1,29 @@
+{
+  "item": {
+    "system": {
+      "id": "2d6e3f80-9b0c-4d1e-8f2a-3b4c5d6e7f80",
+      "name": "Insurance listing",
+      "codename": "insurance_listing",
+      "language": "en-US",
+      "type": "page",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "Insurance"
+      },
+      "subpages": {
+        "type": "modular_content",
+        "name": "Subpages",
+        "value": []
+      }
+    }
+  },
+  "modular_content": {}
+}

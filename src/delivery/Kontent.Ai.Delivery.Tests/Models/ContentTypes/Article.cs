@@ -43,6 +43,9 @@ public record Article
     [JsonPropertyName("metadata__twitter_title")]
     public string? MetadataTwitterTitle { get; init; }
 
+    [JsonPropertyName("hero_image")]
+    public IEnumerable<Asset>? HeroImage { get; init; }
+
     [JsonPropertyName("meta_description")]
     public string? MetaDescription { get; init; }
 

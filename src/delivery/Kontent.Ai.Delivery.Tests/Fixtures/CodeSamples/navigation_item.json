@@ -1,0 +1,29 @@
+{
+  "item": {
+    "system": {
+      "id": "3e7f4091-ac1d-4e2f-9a3b-4c5d6e7f8091",
+      "name": "Root navigation item",
+      "codename": "root_navigation_item",
+      "language": "en-US",
+      "type": "navigation_item",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "Home"
+      },
+      "subitems": {
+        "type": "modular_content",
+        "name": "Subitems",
+        "value": []
+      }
+    }
+  },
+  "modular_content": {}
+}

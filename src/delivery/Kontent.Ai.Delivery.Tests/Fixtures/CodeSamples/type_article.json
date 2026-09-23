@@ -1,0 +1,18 @@
+{
+  "system": {
+    "id": "b7aa4a53-d9b1-48cf-b7a6-ed0b182c4b89",
+    "name": "Article",
+    "codename": "article",
+    "last_modified": "2026-09-01T10:00:00Z"
+  },
+  "elements": {
+    "title": {
+      "type": "text",
+      "name": "Title"
+    },
+    "body_copy": {
+      "type": "rich_text",
+      "name": "Body copy"
+    }
+  }
+}
