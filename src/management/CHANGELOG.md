@@ -6,6 +6,16 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Changed
+
+- **Filter and bulk-get methods are named after their operations again.**
+
+  `FilterItemsWithVariantsAsync` and `BulkGetItemsWithVariantsAsync`, with their `…PageAsync` overloads,
+  replace `ListItemsWithVariantsByFilterAsync` and `ListItemsWithVariantsByBulkGetAsync`. They use the
+  names of the Management API operations, as 8.x did; the `List…By…` names `9.0.0` gave them read as a
+  criterion to list by, which a filter or a bulk get is not. Behaviour is unchanged. The old names still
+  work, are marked `[Obsolete]`, and will be removed in the next major version.
+
 ## 9.0.0 (2026-09-16)
 
 The first stable release of the **9.x** line, and the GA of the modernization the `9.0.0-beta` and

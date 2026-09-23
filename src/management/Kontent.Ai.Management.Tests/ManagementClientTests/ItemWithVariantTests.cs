@@ -19,7 +19,7 @@ public class ItemWithVariantTests
         => File.ReadAllText(Path.Combine(Environment.CurrentDirectory, "Data", "ItemWithVariant", name));
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterAsync_WithAllFilterFacets_SendsFilterBodyAndReturnsResults()
+    public async Task FilterItemsWithVariantsAsync_WithAllFilterFacets_SendsFilterBodyAndReturnsResults()
     {
         var (client, mock) = MockClientFactory.Create();
         mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/filter")
@@ -96,7 +96,7 @@ public class ItemWithVariantTests
             }
         };
 
-        var listResult = await client.ListItemsWithVariantsByFilterAsync(request);
+        var listResult = await client.FilterItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ItemWithVariantFilterResultModel> items = listResult.Value;
 
@@ -117,7 +117,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterAsync_WithMinimalFilter_OmitsUnsetFacetsFromBody()
+    public async Task FilterItemsWithVariantsAsync_WithMinimalFilter_OmitsUnsetFacetsFromBody()
     {
         var (client, mock) = MockClientFactory.Create();
         mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/filter")
@@ -129,7 +129,7 @@ public class ItemWithVariantTests
             Filters = new VariantFilterFiltersModel { Language = Reference.ByCodename("en-US") }
         };
 
-        var listResult = await client.ListItemsWithVariantsByFilterAsync(request);
+        var listResult = await client.FilterItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
 
         mock.VerifyNoOutstandingExpectation();
@@ -139,15 +139,15 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task FilterItemsWithVariantsAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         var (client, _) = MockClientFactory.Create();
 
-        await client.Invoking(x => x.ListItemsWithVariantsByFilterAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+        await client.Invoking(x => x.FilterItemsWithVariantsAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterAsync_WithPagination_PagesThroughAllPages()
+    public async Task FilterItemsWithVariantsAsync_WithPagination_PagesThroughAllPages()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("FilterResponseFirstPage.json");
@@ -166,7 +166,7 @@ public class ItemWithVariantTests
             }
         };
 
-        var listResult = await client.ListItemsWithVariantsByFilterAsync(request);
+        var listResult = await client.FilterItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ItemWithVariantFilterResultModel> items = listResult.Value;
 
@@ -175,7 +175,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterPageAsync_WalksEveryPageByToken()
+    public async Task FilterItemsWithVariantsPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("FilterResponseFirstPage.json");
@@ -195,7 +195,7 @@ public class ItemWithVariantTests
         string? continuationToken = null;
         do
         {
-            var page = (await client.ListItemsWithVariantsByFilterPageAsync(request, continuationToken)).EnsureSuccess();
+            var page = (await client.FilterItemsWithVariantsPageAsync(request, continuationToken)).EnsureSuccess();
             items.AddRange(page.Items);
             continuationToken = page.ContinuationToken;
         }
@@ -206,15 +206,15 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterPageAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task FilterItemsWithVariantsPageAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         var (client, _) = MockClientFactory.Create();
 
-        await client.Invoking(x => x.ListItemsWithVariantsByFilterPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+        await client.Invoking(x => x.FilterItemsWithVariantsPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByFilterAsync_LastPage_StopsAfterOnePage()
+    public async Task FilterItemsWithVariantsAsync_LastPage_StopsAfterOnePage()
     {
         var (client, mock) = MockClientFactory.Create();
         mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/filter")
@@ -228,7 +228,7 @@ public class ItemWithVariantTests
             }
         };
 
-        var listResult = await client.ListItemsWithVariantsByFilterAsync(request);
+        var listResult = await client.FilterItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ItemWithVariantFilterResultModel> items = listResult.Value;
 
@@ -237,7 +237,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetAsync_WithValidRequest_SendsIdentifiersAndReturnsItemsWithVariants()
+    public async Task BulkGetItemsWithVariantsAsync_WithValidRequest_SendsIdentifiersAndReturnsItemsWithVariants()
     {
         var (client, mock) = MockClientFactory.Create();
         mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/bulk-get")
@@ -261,7 +261,7 @@ public class ItemWithVariantTests
             ]
         };
 
-        var listResult = await client.ListItemsWithVariantsByBulkGetAsync(request);
+        var listResult = await client.BulkGetItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ContentItemWithVariantModel> items = listResult.Value;
 
@@ -284,15 +284,15 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task BulkGetItemsWithVariantsAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         var (client, _) = MockClientFactory.Create();
 
-        await client.Invoking(x => x.ListItemsWithVariantsByBulkGetAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+        await client.Invoking(x => x.BulkGetItemsWithVariantsAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetAsync_WithCodenames_ReturnsItemsWithVariants()
+    public async Task BulkGetItemsWithVariantsAsync_WithCodenames_ReturnsItemsWithVariants()
     {
         var (client, mock) = MockClientFactory.Create();
         mock.Expect(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/bulk-get")
@@ -315,7 +315,7 @@ public class ItemWithVariantTests
             ]
         };
 
-        var listResult = await client.ListItemsWithVariantsByBulkGetAsync(request);
+        var listResult = await client.BulkGetItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ContentItemWithVariantModel> items = listResult.Value;
 
@@ -328,7 +328,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetAsync_WithPagination_PagesThroughAllPages()
+    public async Task BulkGetItemsWithVariantsAsync_WithPagination_PagesThroughAllPages()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("BulkGetResponseFirstPage.json");
@@ -351,7 +351,7 @@ public class ItemWithVariantTests
             ]
         };
 
-        var listResult = await client.ListItemsWithVariantsByBulkGetAsync(request);
+        var listResult = await client.BulkGetItemsWithVariantsAsync(request);
         listResult.IsSuccess.Should().BeTrue();
         IReadOnlyList<ContentItemWithVariantModel> items = listResult.Value;
 
@@ -360,7 +360,7 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetPageAsync_WalksEveryPageByToken()
+    public async Task BulkGetItemsWithVariantsPageAsync_WalksEveryPageByToken()
     {
         var (client, mock) = MockClientFactory.Create();
         var firstPage = Fixture("BulkGetResponseFirstPage.json");
@@ -387,7 +387,7 @@ public class ItemWithVariantTests
         string? continuationToken = null;
         do
         {
-            var page = (await client.ListItemsWithVariantsByBulkGetPageAsync(request, continuationToken)).EnsureSuccess();
+            var page = (await client.BulkGetItemsWithVariantsPageAsync(request, continuationToken)).EnsureSuccess();
             items.AddRange(page.Items);
             continuationToken = page.ContinuationToken;
         }
@@ -398,10 +398,33 @@ public class ItemWithVariantTests
     }
 
     [Fact]
-    public async Task ListItemsWithVariantsByBulkGetPageAsync_WithNullRequest_ThrowsArgumentNullException()
+    public async Task BulkGetItemsWithVariantsPageAsync_WithNullRequest_ThrowsArgumentNullException()
     {
         var (client, _) = MockClientFactory.Create();
 
-        await client.Invoking(x => x.ListItemsWithVariantsByBulkGetPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+        await client.Invoking(x => x.BulkGetItemsWithVariantsPageAsync(null!)).Should().ThrowExactlyAsync<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task ObsoleteNames_ReturnWhatTheRenamedMethodsReturn()
+    {
+        var (client, mock) = MockClientFactory.Create();
+        mock.When(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/filter")
+            .Respond("application/json", Fixture("FilterResponseLastPage.json"));
+        mock.When(HttpMethod.Post, $"{MockClientFactory.BaseUrl}/items-with-variant/bulk-get")
+            .Respond("application/json", Fixture("BulkGetResponseLastPage.json"));
+        var filter = new ItemWithVariantFilterRequestModel();
+        var bulkGet = new ItemWithVariantBulkGetRequestModel { Variants = [] };
+
+#pragma warning disable CS0618
+        (await client.ListItemsWithVariantsByFilterAsync(filter)).EnsureSuccess()
+            .Should().BeEquivalentTo((await client.FilterItemsWithVariantsAsync(filter)).EnsureSuccess());
+        (await client.ListItemsWithVariantsByFilterPageAsync(filter)).EnsureSuccess()
+            .Should().BeEquivalentTo((await client.FilterItemsWithVariantsPageAsync(filter)).EnsureSuccess());
+        (await client.ListItemsWithVariantsByBulkGetAsync(bulkGet)).EnsureSuccess()
+            .Should().BeEquivalentTo((await client.BulkGetItemsWithVariantsAsync(bulkGet)).EnsureSuccess());
+        (await client.ListItemsWithVariantsByBulkGetPageAsync(bulkGet)).EnsureSuccess()
+            .Should().BeEquivalentTo((await client.BulkGetItemsWithVariantsPageAsync(bulkGet)).EnsureSuccess());
+#pragma warning restore CS0618
     }
 }
