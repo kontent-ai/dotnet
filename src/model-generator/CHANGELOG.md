@@ -53,6 +53,18 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   `http://bit.ly/k-params` redirected twice and landed on the root of the former `model-generator-net`
   repository.
 
+- **The tool no longer ships the Visual Basic compiler.**
+
+  `11.0.0-rc.3` said so, but only `Kontent.Ai.ModelGenerator.Core` dropped the `Microsoft.CodeAnalysis`
+  meta-package; the CLI project still referenced it and packed the Visual Basic assemblies. The tool
+  package shrinks by about 3 MB.
+
+### Dependencies
+
+- **`Microsoft.CodeAnalysis.CSharp.Workspaces` moves to 5.9.0.**
+
+  It is the shipped floor of `Kontent.Ai.ModelGenerator.Core`.
+
 ## 11.0.1 (2026-09-18)
 
 ### Fixed

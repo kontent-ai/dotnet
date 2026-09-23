@@ -73,7 +73,7 @@ jobs:
           global-json-file: global.json
       # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.nuget/packages
@@ -99,7 +99,7 @@ jobs:
       # would be meaningless. A new product needs its own step here.
       - name: Codecov (aspnetcore)
         if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: src/aspnetcore/Kontent.Ai.AspNetCore.Tests/coverage.opencover.xml
@@ -107,7 +107,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (management)
         if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: src/management/Kontent.Ai.Management.Tests/coverage.opencover.xml
@@ -115,7 +115,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (delivery)
         if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: src/delivery/Kontent.Ai.Delivery.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Urls.Tests/coverage.opencover.xml,src/delivery/Kontent.Ai.Delivery.Abstractions.Tests/coverage.opencover.xml
@@ -123,7 +123,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (sync)
         if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: src/sync/Kontent.Ai.Sync.Tests/coverage.opencover.xml
@@ -131,7 +131,7 @@ jobs:
           fail_ci_if_error: true
       - name: Codecov (model-generator)
         if: runner.os == 'Linux' && env.CODECOV_TOKEN != ''
-        uses: codecov/codecov-action@0b35c9ecc4f0529d0eb674914510c22f85b196b4 # v7.1.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           token: ${{ env.CODECOV_TOKEN }}
           files: src/model-generator/Kontent.Ai.ModelGenerator.Tests/coverage.opencover.xml,src/model-generator/Kontent.Ai.ModelGenerator.Core.Tests/coverage.opencover.xml
@@ -160,7 +160,7 @@ jobs:
           global-json-file: global.json
       # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.nuget/packages
@@ -191,7 +191,7 @@ jobs:
           global-json-file: global.json
       # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.nuget/packages
@@ -270,7 +270,7 @@ jobs:
           global-json-file: global.json
       # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.nuget/packages
@@ -307,7 +307,7 @@ jobs:
           global-json-file: global.json
       # Excludes our own packages: the smoke job packs 0.0.0-smoke.<run> builds into this folder.
       - name: Cache NuGet packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             ~/.nuget/packages
