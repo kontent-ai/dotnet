@@ -3,7 +3,17 @@
 The samples in this folder are tests, so they are guaranteed to compile and to run against the SDK. They
 are also the source for the published documentation samples in
 [Kontent-ai-Learn/kontent-ai-learn-code-samples](https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net).
-After merging a change here, mirror it there.
+After merging a change here, publish it with the sync script from the repository root:
+
+```sh
+dotnet run eng/scripts/sync-code-samples.cs -- <path-to-kontent-ai-learn-code-samples>
+```
+
+It creates a `sync/dotnet-<sha>` branch off `origin/master` in that checkout and stages the updated files for
+review; it commits nothing. `--check` reports drift without touching the checkout. Each published file keeps
+its own leading comments and usings; its client construction is replaced with the `// DocClient` block (the
+product's `using var client = ...` plus a hint at DI registration) in `ClientRegistration.cs`, and the code
+below it with the section.
 
 ## Sections
 
