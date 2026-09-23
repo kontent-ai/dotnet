@@ -468,14 +468,14 @@ public interface IManagementClient
     /// <returns>A result wrapping one page of issues and the token for the next one, or the failure detail.</returns>
     Task<IManagementResult<ListingPage<AsyncValidationTaskIssueModel>>> ListAsyncValidationTaskIssuesPageAsync(Guid taskId, string? continuationToken = null, CancellationToken cancellationToken = default);
 
-    /// <summary>Lists all filtered item variant references.</summary>
+    /// <summary>Filters language variants and lists references to every match, across all pages.</summary>
     /// <param name="filterRequest">The filter request containing filters and ordering options.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping all filtered variant references on success, or the first failed page's detail.</returns>
-    Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default);
+    Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> FilterItemsWithVariantsAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lists one page of filtered item variant references, for filters matching more results than is practical to
+    /// Filters language variants and lists one page of references to the matches, for filters matching more results than is practical to
     /// materialize. Pass the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch the next page;
     /// a <c>null</c> token means the last page.
     /// </summary>
@@ -483,16 +483,16 @@ public interface IManagementClient
     /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping one page of filtered variant references and the token for the next one, or the failure detail.</returns>
-    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
+    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> FilterItemsWithVariantsPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
 
-    /// <summary>Lists all content items with their language variants.</summary>
+    /// <summary>Gets the content items and language variants named in the request, across all pages.</summary>
     /// <param name="bulkGetRequest">The bulk-get request containing variant identifiers.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping all content items with variants on success, or the first failed page's detail.</returns>
-    Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default);
+    Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> BulkGetItemsWithVariantsAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Lists one page of content items with their language variants, for bulk-get requests matching more results than
+    /// Gets one page of the content items and language variants named in the request, for bulk-get requests matching more results than
     /// is practical to materialize. Pass the previous page's <see cref="ListingPage{T}.ContinuationToken"/> to fetch
     /// the next page; a <c>null</c> token means the last page.
     /// </summary>
@@ -500,7 +500,23 @@ public interface IManagementClient
     /// <param name="continuationToken">The previous page's continuation token; <c>null</c> for the first page.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
     /// <returns>A result wrapping one page of content items with variants and the token for the next one, or the failure detail.</returns>
+    Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> BulkGetItemsWithVariantsPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Renamed to <see cref="FilterItemsWithVariantsPageAsync"/>.</summary>
+    [Obsolete("Renamed to FilterItemsWithVariantsPageAsync. This name will be removed in the next major version.")]
+    Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Renamed to <see cref="FilterItemsWithVariantsAsync"/>.</summary>
+    [Obsolete("Renamed to FilterItemsWithVariantsAsync. This name will be removed in the next major version.")]
+    Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default);
+
+    /// <summary>Renamed to <see cref="BulkGetItemsWithVariantsPageAsync"/>.</summary>
+    [Obsolete("Renamed to BulkGetItemsWithVariantsPageAsync. This name will be removed in the next major version.")]
     Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Renamed to <see cref="BulkGetItemsWithVariantsAsync"/>.</summary>
+    [Obsolete("Renamed to BulkGetItemsWithVariantsAsync. This name will be removed in the next major version.")]
+    Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Lists all languages.

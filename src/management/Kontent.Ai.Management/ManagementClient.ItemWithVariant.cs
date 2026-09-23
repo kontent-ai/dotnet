@@ -6,7 +6,7 @@ namespace Kontent.Ai.Management;
 public partial class ManagementClient
 {
     /// <inheritdoc />
-    public Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> FilterItemsWithVariantsAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(filterRequest);
 
@@ -18,7 +18,7 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> FilterItemsWithVariantsPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(filterRequest);
 
@@ -31,7 +31,7 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> BulkGetItemsWithVariantsAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bulkGetRequest);
 
@@ -43,7 +43,7 @@ public partial class ManagementClient
     }
 
     /// <inheritdoc />
-    public Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
+    public Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> BulkGetItemsWithVariantsPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(bulkGetRequest);
 
@@ -54,4 +54,24 @@ public partial class ManagementClient
                 ContinuationToken = page.Pagination?.Token,
             });
     }
+
+    /// <inheritdoc />
+    [Obsolete("Renamed to FilterItemsWithVariantsPageAsync. This name will be removed in the next major version.")]
+    public Task<IManagementResult<ListingPage<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterPageAsync(ItemWithVariantFilterRequestModel filterRequest, string? continuationToken = null, CancellationToken cancellationToken = default) =>
+        FilterItemsWithVariantsPageAsync(filterRequest, continuationToken, cancellationToken);
+
+    /// <inheritdoc />
+    [Obsolete("Renamed to FilterItemsWithVariantsAsync. This name will be removed in the next major version.")]
+    public Task<IManagementResult<IReadOnlyList<ItemWithVariantFilterResultModel>>> ListItemsWithVariantsByFilterAsync(ItemWithVariantFilterRequestModel filterRequest, CancellationToken cancellationToken = default) =>
+        FilterItemsWithVariantsAsync(filterRequest, cancellationToken);
+
+    /// <inheritdoc />
+    [Obsolete("Renamed to BulkGetItemsWithVariantsPageAsync. This name will be removed in the next major version.")]
+    public Task<IManagementResult<ListingPage<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetPageAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, string? continuationToken = null, CancellationToken cancellationToken = default) =>
+        BulkGetItemsWithVariantsPageAsync(bulkGetRequest, continuationToken, cancellationToken);
+
+    /// <inheritdoc />
+    [Obsolete("Renamed to BulkGetItemsWithVariantsAsync. This name will be removed in the next major version.")]
+    public Task<IManagementResult<IReadOnlyList<ContentItemWithVariantModel>>> ListItemsWithVariantsByBulkGetAsync(ItemWithVariantBulkGetRequestModel bulkGetRequest, CancellationToken cancellationToken = default) =>
+        BulkGetItemsWithVariantsAsync(bulkGetRequest, cancellationToken);
 }

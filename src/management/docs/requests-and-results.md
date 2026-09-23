@@ -169,7 +169,9 @@ environment should build the reference explicitly from a codename.
 For configuration data — types, languages, taxonomies — full materialization is a non-issue. Reach for
 the page overload when a listing is genuinely large: content items, assets, the items-with-variants
 filter and bulk-get, the language-variant listings by type, collection and space (which scale as
-items × languages), and an async validation task's issues.
+items × languages), and an async validation task's issues. The filter and bulk-get pair keep their
+operation names — `FilterItemsWithVariantsAsync` / `FilterItemsWithVariantsPageAsync` and
+`BulkGetItemsWithVariantsAsync` / `BulkGetItemsWithVariantsPageAsync` — but behave the same way.
 
 ```csharp
 var result = await client.ListContentItemsAsync();
