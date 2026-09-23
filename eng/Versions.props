@@ -6,8 +6,8 @@
   <PropertyGroup>
     <DeliveryVersion>20.0.1</DeliveryVersion>
     <SyncVersion>2.0.0</SyncVersion>
-    <ManagementVersion>9.0.0</ManagementVersion>
+    <ManagementVersion>9.1.0</ManagementVersion>
     <AspNetCoreVersion>1.0.0</AspNetCoreVersion>
-    <ModelGeneratorVersion>11.0.1</ModelGeneratorVersion>
+    <ModelGeneratorVersion>11.0.2</ModelGeneratorVersion>
   </PropertyGroup>
 </Project>

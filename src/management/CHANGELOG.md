@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.1.0 (2026-09-23)
+
 ### Changed
 
 - **Filter and bulk-get methods are named after their operations again.**
