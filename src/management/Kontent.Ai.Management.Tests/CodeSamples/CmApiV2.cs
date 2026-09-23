@@ -334,11 +334,11 @@ public class CmApiV2
     }
 
     [Fact]
-    public async Task GetProjectInformation()
+    public async Task GetEnvironmentInformation()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Project.json");
 
-        // DocSection: cm_api_v2_get_project_information
+        // DocSection: cm_api_v2_get_environment_information
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.GetEnvironmentInformationAsync()).EnsureSuccess();
         // EndDocSection
@@ -1700,11 +1700,11 @@ public class CmApiV2
     }
 
     [Fact]
-    public async Task PutVariantWorkflow()
+    public async Task PutVariantWorkflowStep()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
-        // DocSection: cm_api_v2_put_variant_workflow
+        // DocSection: cm_api_v2_put_variant_workflow_step
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var itemIdentifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var itemIdentifier = Reference.ByCodename("my_article");

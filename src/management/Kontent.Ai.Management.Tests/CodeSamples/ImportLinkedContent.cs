@@ -87,15 +87,4 @@ public class ImportLinkedContent
         })).EnsureSuccess();
         // EndDocSection
     }
-
-    [Fact]
-    public async Task PostValidate()
-    {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedValidationReport.json");
-
-        // DocSection: import_linked_validate_content
-        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var response = (await client.ValidateEnvironmentAsync()).EnsureSuccess();
-        // EndDocSection
-    }
 }
