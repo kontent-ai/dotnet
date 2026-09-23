@@ -588,7 +588,7 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "Workflows.json");
 
         // DocSection: cm_api_v2_get_workflow_steps
-        // DocReview: redundant with cm_api_v2_get_workflows, which returns the same workflows with their steps
+        // DocReview: documents Retrieve workflow steps, deprecated since 2022 and never in the SDK; it reads the default workflow's steps from cm_api_v2_get_workflows instead
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         IReadOnlyList<WorkflowModel> workflows = (await client.ListWorkflowsAsync()).EnsureSuccess();
         var workflowSteps = workflows.Single(workflow => workflow.Codename == "default").Steps;
