@@ -11,9 +11,10 @@ dotnet run eng/scripts/sync-code-samples.cs -- <path-to-kontent-ai-learn-code-sa
 
 It creates a `sync/dotnet-<sha>` branch off `origin/master` in that checkout and stages the updated files for
 review; it commits nothing. `--check` reports drift without touching the checkout. Each published file keeps
-its own leading comments and usings; its client construction is replaced with the `// DocClient` block (the
-product's `using var client = ...` plus a hint at DI registration) in `ClientRegistration.cs`, and the code
-below it with the section.
+its leading comments. Its client construction is replaced with the product's `// DocClient` block
+(`ClientRegistration.cs` in each product's `CodeSamples`), unless the section declares its own client; the
+code below it becomes the section. A file that opens with using directives gets exactly the ones its code
+needs, found by binding it against the product's test build; a snippet without any stays without.
 
 Every file published there has a section here, including samples that have become redundant: a Learn page
 may still link one, so it is never deleted. Flag it instead with a `// DocReview: <why>` line inside the
