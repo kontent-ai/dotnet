@@ -5,23 +5,30 @@ using Kontent.Ai.Management.Models.Assets;
 using Kontent.Ai.Management.Models.Collections;
 using Kontent.Ai.Management.Models.Collections.Patch;
 using Kontent.Ai.Management.Models.Content;
+using Kontent.Ai.Management.Models.CustomApps;
+using Kontent.Ai.Management.Models.CustomApps.Patch;
 using Kontent.Ai.Management.Models.Environments;
 using Kontent.Ai.Management.Models.Environments.Patch;
+using Kontent.Ai.Management.Models.ItemWithVariant;
 using Kontent.Ai.Management.Models.Items;
-using Kontent.Ai.Management.Models.Languages;
-using Kontent.Ai.Management.Models.Languages.Patch;
 using Kontent.Ai.Management.Models.LanguageVariants;
 using Kontent.Ai.Management.Models.LanguageVariants.Elements;
+using Kontent.Ai.Management.Models.Languages;
+using Kontent.Ai.Management.Models.Languages.Patch;
+using Kontent.Ai.Management.Models.PreviewConfiguration;
 using Kontent.Ai.Management.Models.Publishing;
+using Kontent.Ai.Management.Models.Spaces;
+using Kontent.Ai.Management.Models.Spaces.Patch;
 using Kontent.Ai.Management.Models.TaxonomyGroups;
 using Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
+using Kontent.Ai.Management.Models.TypeSnippets;
+using Kontent.Ai.Management.Models.TypeSnippets.Patch;
 using Kontent.Ai.Management.Models.Types;
 using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.Management.Models.Types.Elements.DefaultValues;
 using Kontent.Ai.Management.Models.Types.Patch;
-using Kontent.Ai.Management.Models.TypeSnippets;
-using Kontent.Ai.Management.Models.TypeSnippets.Patch;
 using Kontent.Ai.Management.Models.Users;
+using Kontent.Ai.Management.Models.VariantFilter;
 using Kontent.Ai.Management.Models.Webhooks;
 using Kontent.Ai.Management.Models.Webhooks.Triggers;
 using Kontent.Ai.Management.Models.Webhooks.Triggers.Asset;
@@ -174,6 +181,34 @@ public class CmApiV2
         // DocSection: cm_api_v2_delete_environment
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         await client.DeleteEnvironmentAsync();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task DeleteCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder);
+
+        // DocSection: cm_api_v2_delete_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("my_custom_app");
+
+        (await client.DeleteCustomAppAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task DeleteSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder);
+
+        // DocSection: cm_api_v2_delete_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        (await client.DeleteSpaceAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -548,6 +583,21 @@ public class CmApiV2
 
 
     [Fact]
+    public async Task GetWorkflowSteps()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Workflows.json");
+
+        // DocSection: cm_api_v2_get_workflow_steps
+        // DocReview: redundant with cm_api_v2_get_workflows, which returns the same workflows with their steps
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<WorkflowModel> workflows = (await client.ListWorkflowsAsync()).EnsureSuccess();
+        var workflowSteps = workflows.Single(workflow => workflow.Codename == "default").Steps;
+        // EndDocSection
+
+        Assert.NotEmpty(workflowSteps);
+    }
+
+    [Fact]
     public async Task GetRole()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectRole.json");
@@ -647,6 +697,104 @@ public class CmApiV2
         // EndDocSection
 
         Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task GetCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApp.json");
+
+        // DocSection: cm_api_v2_get_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("my_custom_app");
+
+        var response = (await client.GetCustomAppAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetCustomApps()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApps.json");
+
+        // DocSection: cm_api_v2_get_custom_apps
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<CustomAppModel> response = (await client.ListCustomAppsAsync()).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(3, response.Count);
+    }
+
+    [Fact]
+    public async Task GetPreviewConfiguration()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PreviewConfiguration.json");
+
+        // DocSection: cm_api_v2_get_preview_configuration
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.GetPreviewConfigurationAsync()).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Space.json");
+
+        // DocSection: cm_api_v2_get_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        var response = (await client.GetSpaceAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetSpaces()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Spaces.json");
+
+        // DocSection: cm_api_v2_get_spaces
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<SpaceModel> response = (await client.ListSpacesAsync()).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(3, response.Count);
+    }
+
+    [Fact]
+    public async Task GetLanguageVariantsByCollection()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariantsPage.json");
+
+        // DocSection: cm_api_v2_get_variants_by_collection
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("3c70b0cc-d9d8-4c9d-a01f-47a2d677fdd5"));
+        // var identifier = Reference.ByCodename("important_collection");
+        // var identifier = Reference.ByExternalId("external-collection");
+
+        IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsByCollectionAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
+    }
+
+    [Fact]
+    public async Task GetLanguageVariantsBySpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariantsPage.json");
+
+        // DocSection: cm_api_v2_get_variants_by_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsBySpaceAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
     }
 
     [Fact]
@@ -882,6 +1030,52 @@ public class CmApiV2
             {
                 Value = "My Little Production"
             }
+        ])).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PatchCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PatchCustomAppResponse.json");
+
+        // DocSection: cm_api_v2_patch_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("my_custom_app");
+
+        var response = (await client.ModifyCustomAppAsync(identifier,
+        [
+            CustomAppPatch.AddAllowedRole(Reference.ByCodename("new_allowed_role_codename_to_add")),
+            CustomAppPatch.RemoveAllowedRole(Reference.ByCodename("allowed_role_codename_to_remove")),
+            CustomAppPatch.ReplaceName("New Custom App Name"),
+            CustomAppPatch.ReplaceCodename("new_custom_app_codename"),
+            CustomAppPatch.ReplaceSourceUrl("https://newcustomapplication.net"),
+            CustomAppPatch.ReplaceConfig(null),
+            CustomAppPatch.ReplaceAllowedRoles(
+                Reference.ByCodename("allowed_role_codename"),
+                Reference.ById(Guid.Parse("f8f0b5cb-f5b7-42e8-af85-fbdab3ddfacf"))),
+            CustomAppPatch.ReplaceDisplayMode(CustomAppDisplayMode.Dialog),
+        ])).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PatchSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PatchSpaceResponse.json");
+
+        // DocSection: cm_api_v2_patch_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        var response = (await client.ModifySpaceAsync(identifier,
+        [
+            SpacePatch.Name("New space name"),
+            SpacePatch.Codename("new_space_codename"),
+            SpacePatch.RootItem(Reference.ById(Guid.Parse("1024356f-858f-421a-b804-07c6bfe10ce5"))),
+            SpacePatch.Collections(Reference.ByCodename("first_collection"), Reference.ByCodename("extra_collection")),
         ])).EnsureSuccess();
         // EndDocSection
     }
@@ -1420,6 +1614,111 @@ public class CmApiV2
     }
 
     [Fact]
+    public async Task PostBulkGetItemsWithVariants()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "BulkGetItemsWithVariants.json");
+
+        // DocSection: cm_api_v2_post_bulk_get_items_with_variants
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<ContentItemWithVariantModel> response = (await client.ListItemsWithVariantsByBulkGetAsync(new ItemWithVariantBulkGetRequestModel
+        {
+            Variants =
+            [
+                new VariantIdentifierModel
+                {
+                    Item = Reference.ById(Guid.Parse("4b628214-e4fe-4fe0-b1ff-955df33e1515")),
+                    Language = Reference.ByDefaultId()
+                },
+                new VariantIdentifierModel
+                {
+                    Item = Reference.ById(Guid.Parse("6a8b4d04-7d3e-4d3c-8b9a-4c7e8f9a1b2c")),
+                    Language = Reference.ByCodename("en-US")
+                }
+            ]
+        })).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
+    }
+
+    [Fact]
+    public async Task PostCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApp.json");
+
+        // DocSection: cm_api_v2_post_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.CreateCustomAppAsync(new CustomAppCreateModel
+        {
+            Name = "Custom App Name",
+            Codename = "custom_app_codename",
+            SourceUrl = "https://customapp.net",
+            Config = "{\"theme\":{\"color\":\"#007BFF\",\"logo_url\":\"https://assets.customapp.net/logo.png\"},\"features\":{\"enable_notifications\":true,\"enable_advanced_mode\":false}}",
+            AllowedRoles =
+            [
+                Reference.ById(Guid.Parse("7740a768-bfa5-4f64-bab4-d77cc0791d4c")),
+                Reference.ById(Guid.Parse("7a51d721-7302-4a85-b4ce-a6a3f3cce4a6"))
+            ],
+            DisplayMode = CustomAppDisplayMode.FullScreen
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PostFilterItemsWithVariants()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "FilterItemsWithVariants.json");
+
+        // DocSection: cm_api_v2_post_filter_items_with_variants
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        // Filters variants by language only
+        IReadOnlyList<ItemWithVariantFilterResultModel> variantsInLanguage = (await client.ListItemsWithVariantsByFilterAsync(new ItemWithVariantFilterRequestModel
+        {
+            Filters = new VariantFilterFiltersModel
+            {
+                Language = Reference.ByCodename("en-US")
+            }
+        })).EnsureSuccess();
+
+        // Filters variants with multiple criteria
+        IReadOnlyList<ItemWithVariantFilterResultModel> filteredVariants = (await client.ListItemsWithVariantsByFilterAsync(new ItemWithVariantFilterRequestModel
+        {
+            Filters = new VariantFilterFiltersModel
+            {
+                SearchPhrase = "test",
+                Language = Reference.ByCodename("en-US"),
+                ContentTypes = [Reference.ByCodename("article")],
+                CompletionStatuses = [VariantFilterCompletionStatus.AllDone]
+            },
+            Order = new VariantFilterOrderModel
+            {
+                By = VariantFilterOrderColumn.Name,
+                Direction = VariantFilterOrderDirection.Ascending
+            }
+        })).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(2, filteredVariants.Count);
+    }
+
+    [Fact]
+    public async Task PostSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Space.json");
+
+        // DocSection: cm_api_v2_post_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.CreateSpaceAsync(new SpaceCreateModel
+        {
+            Name = "Space 1",
+            Codename = "space_1",
+            RootItem = Reference.ByCodename("root_item_1"),
+            Collections = [Reference.ByCodename("first_collection"), Reference.ByExternalId("external-collection")]
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
     public async Task PutAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PutAssetResponse.json");
@@ -1883,6 +2182,47 @@ public class CmApiV2
         (await client.MarkEnvironmentAsProductionAsync(new MarkAsProductionModel
         {
             EnableWebhooks = true
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PutPreviewConfiguration()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PreviewConfiguration.json");
+
+        // DocSection: cm_api_v2_put_preview_configuration
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.UpdatePreviewConfigurationAsync(new PreviewConfigurationModel
+        {
+            SpaceDomains =
+            [
+                new SpaceDomainModel
+                {
+                    Domain = "www.mysite.com",
+                    Space = Reference.ByCodename("my_space")
+                }
+            ],
+            PreviewUrlPatterns =
+            [
+                new TypePreviewUrlPatternModel
+                {
+                    ContentType = Reference.ByCodename("article"),
+                    UrlPatterns =
+                    [
+                        new PreviewUrlPatternModel
+                        {
+                            Space = null,
+                            UrlPattern = "https://www.globalsite.com/{URLSlug}"
+                        },
+                        new PreviewUrlPatternModel
+                        {
+                            Space = Reference.ByCodename("my_space"),
+                            UrlPattern = "https://{Space}/{URLSlug}/test"
+                        }
+                    ]
+                }
+            ]
         })).EnsureSuccess();
         // EndDocSection
     }

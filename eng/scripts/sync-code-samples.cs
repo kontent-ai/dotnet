@@ -10,6 +10,10 @@
 // whose id has no published file is an error: the id is the join key with Kontent.ai Learn, so the
 // file has to exist there first.
 //
+// A `// DocReview: <note>` line inside a section flags the published sample for follow-up review (it
+// is redundant, say, but a Learn page still links it). The line is not published; the summary lists
+// every note.
+//
 // Default mode creates sync/dotnet-<sha> off --base (origin/master) in the checkout, writes the
 // files and stages them. It commits nothing. The checkout must be clean.
 // --check writes nothing and touches no branch: it compares against the checkout as it is and
@@ -38,6 +42,7 @@ if (repoRoot is null) { Console.Error.WriteLine("sync-code-samples: not inside a
 
 var srcRoot = Path.Combine(repoRoot, "src");
 var sections = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
+var reviews = new SortedDictionary<string, string>(StringComparer.Ordinal);
 var clients = new Dictionary<string, (string File, string Body)>(StringComparer.Ordinal);
 foreach (var file in Directory.EnumerateFiles(srcRoot, "*.cs", SearchOption.AllDirectories)
              .Where(f => f.Split(Path.DirectorySeparatorChar).Contains("CodeSamples"))
@@ -60,10 +65,17 @@ foreach (var file in Directory.EnumerateFiles(srcRoot, "*.cs", SearchOption.AllD
                 return 1;
             }
         }
-        else if (!sections.TryAdd(block.Id, (file, block.Body)))
+        else
         {
-            Console.Error.WriteLine($"sync-code-samples: id '{block.Id}' is used by both {Rel(sections[block.Id].File)} and {Rel(file)}");
-            return 1;
+            var lines = block.Body.Split('\n');
+            if (!sections.TryAdd(block.Id, (file, string.Join('\n', lines.Where(l => !ReviewMarker().IsMatch(l))))))
+            {
+                Console.Error.WriteLine($"sync-code-samples: id '{block.Id}' is used by both {Rel(sections[block.Id].File)} and {Rel(file)}");
+                return 1;
+            }
+
+            var review = lines.Select(l => ReviewMarker().Match(l)).FirstOrDefault(m => m.Success);
+            if (review is not null) reviews[block.Id] = review.Groups[1].Value;
         }
     }
 }
@@ -128,6 +140,8 @@ var withoutSource = published.Keys.Where(id => !sections.ContainsKey(id))
 Console.WriteLine($"{(check ? "out of date" : "updated")}: {updated.Count}, unchanged: {unchanged}, published without a source: {withoutSource.Count}");
 foreach (var file in updated) Console.WriteLine($"  {(check ? "stale" : "updated")}  {file}");
 foreach (var file in withoutSource) Console.WriteLine($"  no source  {file}");
+if (reviews.Count > 0) Console.WriteLine($"flagged for review: {reviews.Count}");
+foreach (var (id, note) in reviews) Console.WriteLine($"  review  {id}: {note}");
 
 if (check) return updated.Count > 0 || withoutSource.Count > 0 ? 1 : 0;
 
@@ -258,6 +272,9 @@ partial class Program
 
     [GeneratedRegex(@"^\s*//\s*EndDocSection\s*$")]
     private static partial Regex CloseMarker();
+
+    [GeneratedRegex(@"^\s*//\s*DocReview:\s*(.+?)\s*$")]
+    private static partial Regex ReviewMarker();
 
     [GeneratedRegex(@"^\s*//\s*DocClient\s*$")]
     private static partial Regex OpenClientMarker();

@@ -15,6 +15,10 @@ its own leading comments and usings; its client construction is replaced with th
 product's `using var client = ...` plus a hint at DI registration) in `ClientRegistration.cs`, and the code
 below it with the section.
 
+Every file published there has a section here, including samples that have become redundant: a Learn page
+may still link one, so it is never deleted. Flag it instead with a `// DocReview: <why>` line inside the
+section; the script leaves that line out of the published file and lists every flag for follow-up review.
+
 ## Sections
 
 A marked section is what gets published, so it must contain the sample and nothing else. The pair opens
