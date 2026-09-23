@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.2 (2026-09-23)
+
 ### Changed
 
 - **The startup line names the SDK package, not its former repository.**
