@@ -8,7 +8,7 @@ using Kontent.Ai.Management.Tests.Base;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/import-rich-text
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/import-rich-text
 /// </summary>
 public class ImportRichText
 {
@@ -89,7 +89,7 @@ public class ImportRichText
 
         // DocSection: import_rich_upsert_variant
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("123"), Reference.ByCodename("en-US"));
+        var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("simple-example"), Reference.ByDefaultId());
 
         (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
         {

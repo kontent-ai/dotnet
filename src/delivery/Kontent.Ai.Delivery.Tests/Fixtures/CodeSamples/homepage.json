@@ -1,0 +1,37 @@
+{
+  "item": {
+    "system": {
+      "id": "4f8051a2-bd2e-4f30-ab4c-5d6e7f8091a2",
+      "name": "Hello CaaS world",
+      "codename": "hello_caas_world",
+      "language": "en-US",
+      "type": "homepage",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "body_text": {
+        "type": "rich_text",
+        "name": "Body text",
+        "images": {},
+        "links": {},
+        "modular_content": [],
+        "value": "<p>Hello, content as a service world.</p>"
+      },
+      "headline": {
+        "type": "text",
+        "name": "Headline",
+        "value": "Hello CaaS world"
+      },
+      "picture": {
+        "type": "asset",
+        "name": "Picture",
+        "value": []
+      }
+    }
+  },
+  "modular_content": {}
+}

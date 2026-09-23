@@ -1,0 +1,48 @@
+{
+  "item": {
+    "system": {
+      "id": "6b3e3c8a-4a8e-4a44-9d8b-0f2f7f4c2a11",
+      "name": "My article",
+      "codename": "my_article",
+      "language": "en-US",
+      "type": "article",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "Construction insurance"
+      },
+      "hero_image": {
+        "type": "asset",
+        "name": "Hero image",
+        "value": [
+          {
+            "name": "construction-insurance-header.jpg",
+            "type": "image/jpeg",
+            "size": 90895,
+            "description": "Construction site",
+            "url": "https://assets-us-01.kc-usercontent.com/6b3e3c8a-4a8e-4a44-9d8b-0f2f7f4c2a11/1f2d9c1e-3b5e-4d7a-9a3e-5c3f0b8e2d41/construction-insurance-header.jpg",
+            "width": 1200,
+            "height": 600,
+            "renditions": {
+              "default": {
+                "rendition_id": "d44a2887-74cc-4ab0-8376-ae96f3f534e5",
+                "preset_id": "a6d98cd5-8b2c-4e50-99c9-15192bce2490",
+                "width": 600,
+                "height": 300,
+                "query": "w=600&h=300&fit=clip&rect=0,0,1200,600"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "modular_content": {}
+}

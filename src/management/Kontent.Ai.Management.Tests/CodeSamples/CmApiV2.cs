@@ -5,23 +5,30 @@ using Kontent.Ai.Management.Models.Assets;
 using Kontent.Ai.Management.Models.Collections;
 using Kontent.Ai.Management.Models.Collections.Patch;
 using Kontent.Ai.Management.Models.Content;
+using Kontent.Ai.Management.Models.CustomApps;
+using Kontent.Ai.Management.Models.CustomApps.Patch;
 using Kontent.Ai.Management.Models.Environments;
 using Kontent.Ai.Management.Models.Environments.Patch;
+using Kontent.Ai.Management.Models.ItemWithVariant;
 using Kontent.Ai.Management.Models.Items;
-using Kontent.Ai.Management.Models.Languages;
-using Kontent.Ai.Management.Models.Languages.Patch;
 using Kontent.Ai.Management.Models.LanguageVariants;
 using Kontent.Ai.Management.Models.LanguageVariants.Elements;
+using Kontent.Ai.Management.Models.Languages;
+using Kontent.Ai.Management.Models.Languages.Patch;
+using Kontent.Ai.Management.Models.PreviewConfiguration;
 using Kontent.Ai.Management.Models.Publishing;
+using Kontent.Ai.Management.Models.Spaces;
+using Kontent.Ai.Management.Models.Spaces.Patch;
 using Kontent.Ai.Management.Models.TaxonomyGroups;
 using Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
+using Kontent.Ai.Management.Models.TypeSnippets;
+using Kontent.Ai.Management.Models.TypeSnippets.Patch;
 using Kontent.Ai.Management.Models.Types;
 using Kontent.Ai.Management.Models.Types.Elements;
 using Kontent.Ai.Management.Models.Types.Elements.DefaultValues;
 using Kontent.Ai.Management.Models.Types.Patch;
-using Kontent.Ai.Management.Models.TypeSnippets;
-using Kontent.Ai.Management.Models.TypeSnippets.Patch;
 using Kontent.Ai.Management.Models.Users;
+using Kontent.Ai.Management.Models.VariantFilter;
 using Kontent.Ai.Management.Models.Webhooks;
 using Kontent.Ai.Management.Models.Webhooks.Triggers;
 using Kontent.Ai.Management.Models.Webhooks.Triggers.Asset;
@@ -35,13 +42,13 @@ using Kontent.Ai.Management.Tests.Base;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/management-api-v2
 /// </summary>
 public class CmApiV2
 {
 
     // IF YOU MAKE ANY CHANGE TO THIS FILE - ADJUST THE CODE SAMPLES AT
-    // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
+    // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/management-api-v2
     //
     // A section is published verbatim, so it must hold the sample and nothing else: it opens below the
     // mock client and closes above the assertions, both of which are test scaffolding. The id on the
@@ -159,7 +166,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_delete_workflow
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var identifier = Reference.ById(Guid.Parse("8bfdb62d-7aa1-473b-9d80-311ef93db108"));
+        var identifier = Reference.ById(Guid.Parse("f9f28df0-9dec-4ee3-b087-c501e4b75347"));
         // var identifier = Reference.ByCodename("my_workflow");
 
         await client.DeleteWorkflowAsync(identifier);
@@ -174,6 +181,34 @@ public class CmApiV2
         // DocSection: cm_api_v2_delete_environment
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         await client.DeleteEnvironmentAsync();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task DeleteCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder);
+
+        // DocSection: cm_api_v2_delete_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("my_custom_app");
+
+        (await client.DeleteCustomAppAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task DeleteSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder);
+
+        // DocSection: cm_api_v2_delete_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        (await client.DeleteSpaceAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -334,11 +369,11 @@ public class CmApiV2
     }
 
     [Fact]
-    public async Task GetProjectInformation()
+    public async Task GetEnvironmentInformation()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Project.json");
 
-        // DocSection: cm_api_v2_get_project_information
+        // DocSection: cm_api_v2_get_environment_information
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.GetEnvironmentInformationAsync()).EnsureSuccess();
         // EndDocSection
@@ -548,6 +583,21 @@ public class CmApiV2
 
 
     [Fact]
+    public async Task GetWorkflowSteps()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Workflows.json");
+
+        // DocSection: cm_api_v2_get_workflow_steps
+        // DocReview: redundant with cm_api_v2_get_workflows, which returns the same workflows with their steps
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<WorkflowModel> workflows = (await client.ListWorkflowsAsync()).EnsureSuccess();
+        var workflowSteps = workflows.Single(workflow => workflow.Codename == "default").Steps;
+        // EndDocSection
+
+        Assert.NotEmpty(workflowSteps);
+    }
+
+    [Fact]
     public async Task GetRole()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "ProjectRole.json");
@@ -580,9 +630,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUser.json");
 
         // DocSection: cm_api_v2_get_subscription_user
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
-        var identifier = UserIdentifier.ByEmail("Joe.Joe@kontent.ai");
-        //var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = UserIdentifier.ByEmail("user@kontent.ai");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         var response = (await client.GetSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -594,7 +645,8 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionUsers.json");
 
         // DocSection: cm_api_v2_get_subscription_users
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListSubscriptionUsersAsync()).EnsureSuccess().Count;
         // EndDocSection
 
@@ -607,7 +659,8 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder, "SubscriptionProjects.json");
 
         // DocSection: cm_api_v2_get_subscription_projects
-        // Tip: Find more about .NET SDKs at https://docs.kontent.ai/net
+        // DocClientName: subscription
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var count = (await client.ListSubscriptionProjectsAsync()).EnsureSuccess().Count;
         // EndDocSection
 
@@ -650,6 +703,104 @@ public class CmApiV2
     }
 
     [Fact]
+    public async Task GetCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApp.json");
+
+        // DocSection: cm_api_v2_get_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("custom_app_codename");
+
+        var response = (await client.GetCustomAppAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetCustomApps()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApps.json");
+
+        // DocSection: cm_api_v2_get_custom_apps
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<CustomAppModel> response = (await client.ListCustomAppsAsync()).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(3, response.Count);
+    }
+
+    [Fact]
+    public async Task GetPreviewConfiguration()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PreviewConfiguration.json");
+
+        // DocSection: cm_api_v2_get_preview_configuration
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.GetPreviewConfigurationAsync()).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Space.json");
+
+        // DocSection: cm_api_v2_get_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        var response = (await client.GetSpaceAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task GetSpaces()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Spaces.json");
+
+        // DocSection: cm_api_v2_get_spaces
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<SpaceModel> response = (await client.ListSpacesAsync()).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(3, response.Count);
+    }
+
+    [Fact]
+    public async Task GetLanguageVariantsByCollection()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariantsPage.json");
+
+        // DocSection: cm_api_v2_get_variants_by_collection
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("3c70b0cc-d9d8-4c9d-a01f-47a2d677fdd5"));
+        // var identifier = Reference.ByCodename("important_collection");
+        // var identifier = Reference.ByExternalId("external-collection");
+
+        IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsByCollectionAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
+    }
+
+    [Fact]
+    public async Task GetLanguageVariantsBySpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "LanguageVariantsPage.json");
+
+        // DocSection: cm_api_v2_get_variants_by_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        IReadOnlyList<LanguageVariantModel> response = (await client.ListLanguageVariantsBySpaceAsync(identifier)).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
+    }
+
+    [Fact]
     public async Task PatchAssetFolders()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PatchAssetsFolderResponse.json");
@@ -665,6 +816,7 @@ public class CmApiV2
                 {
                     ExternalId = "folder-with-shared-assets",
                     Name = "Shared assets",
+                    Codename = "shared_assets",
                 },
                 Before = Reference.ByExternalId("folder-with-downloadable-assets")
             },
@@ -674,7 +826,7 @@ public class CmApiV2
             },
             new AssetFolderRenamePatchModel
             {
-                Reference = Reference.ByExternalId("folder-documents"),
+                Reference = Reference.ByCodename("folder_documents"),
                 Value = "Legal documents"
             }
         ])).EnsureSuccess();
@@ -887,6 +1039,52 @@ public class CmApiV2
     }
 
     [Fact]
+    public async Task PatchCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PatchCustomAppResponse.json");
+
+        // DocSection: cm_api_v2_patch_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ByCodename("my_custom_app");
+
+        var response = (await client.ModifyCustomAppAsync(identifier,
+        [
+            CustomAppPatch.AddAllowedRole(Reference.ByCodename("new_allowed_role_codename_to_add")),
+            CustomAppPatch.RemoveAllowedRole(Reference.ByCodename("allowed_role_codename_to_remove")),
+            CustomAppPatch.ReplaceName("New Custom App Name"),
+            CustomAppPatch.ReplaceCodename("new_custom_app_codename"),
+            CustomAppPatch.ReplaceSourceUrl("https://newcustomapplication.net"),
+            CustomAppPatch.ReplaceConfig(null),
+            CustomAppPatch.ReplaceAllowedRoles(
+                Reference.ByCodename("allowed_role_codename"),
+                Reference.ById(Guid.Parse("f8f0b5cb-f5b7-42e8-af85-fbdab3ddfacf"))),
+            CustomAppPatch.ReplaceDisplayMode(CustomAppDisplayMode.Dialog),
+        ])).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PatchSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PatchSpaceResponse.json");
+
+        // DocSection: cm_api_v2_patch_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var identifier = Reference.ById(Guid.Parse("6291c693-f6e4-4a6b-ac67-5c31c32f9388"));
+        // var identifier = Reference.ByCodename("space_1");
+
+        var response = (await client.ModifySpaceAsync(identifier,
+        [
+            SpacePatch.Name("New space name"),
+            SpacePatch.Codename("new_space_codename"),
+            SpacePatch.RootItem(Reference.ById(Guid.Parse("1024356f-858f-421a-b804-07c6bfe10ce5"))),
+            SpacePatch.Collections(Reference.ByCodename("first_collection"), Reference.ByCodename("extra_collection")),
+        ])).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
     public async Task PostAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PostAssetResponse.json");
@@ -899,6 +1097,7 @@ public class CmApiV2
             {
                 Id = "fcbb12e6-66a3-4672-85d9-d502d16b8d9c"
             },
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Folder = Reference.ByExternalId("another-folder"),
             Title = "Coffee Brewing Techniques",
             ExternalId = "which-brewing-fits-you",
@@ -946,6 +1145,7 @@ public class CmApiV2
                 {
                     Name = "Top level folder",
                     ExternalId = "top-folder",
+                    Codename = "top_folder",
                     Folders =
                     [
                         new AssetFolderHierarchy
@@ -1308,12 +1508,13 @@ public class CmApiV2
         var response = (await client.CreateWorkflowAsync(new WorkflowUpsertModel
         {
             Name = "My workflow",
+            Codename = "my_workflow",
             Scopes =
             [
                 new()
                 {
-                    Collections = [Reference.ById(Guid.Parse("d29d1904-9011-45ca-8ed3-0f2737a28024"))],
-                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80"))]
+                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80")), Reference.ByCodename("article")],
+                    Collections = [Reference.ById(Guid.Parse("b15b6050-80d8-406d-bf21-3012e4ad0ac5")), Reference.ByCodename("marketing")]
                 }
             ],
             Steps =
@@ -1323,27 +1524,15 @@ public class CmApiV2
                     Name = "First step",
                     Codename = "first_step",
                     Color = WorkflowStepColor.SkyBlue,
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("second_step")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("second_step") }]
                 },
                 new()
                 {
                     Name = "Second step",
                     Codename = "second_step",
                     Color = WorkflowStepColor.Rose,
-                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")],
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("published")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("published") }],
+                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
                 }
             ],
             PublishedStep = new WorkflowPublishedStepUpsertModel
@@ -1398,7 +1587,7 @@ public class CmApiV2
         var response = (await client.CloneEnvironmentAsync(new EnvironmentCloneModel
         {
             Name = "New environment",
-            RolesToActivate = [Guid.Parse("2f925111-1457-49d4-a595-0958feae8ae4")],
+            RolesToActivate = [Guid.Parse("ee483b59-5a24-4010-b277-ae224c34bc71")],
             CopyDataOptions = new CopyDataOptions
             {
                 ContentItemsAssets = true,
@@ -1420,6 +1609,111 @@ public class CmApiV2
     }
 
     [Fact]
+    public async Task PostBulkGetItemsWithVariants()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "BulkGetItemsWithVariants.json");
+
+        // DocSection: cm_api_v2_post_bulk_get_items_with_variants
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        IReadOnlyList<ContentItemWithVariantModel> response = (await client.BulkGetItemsWithVariantsAsync(new ItemWithVariantBulkGetRequestModel
+        {
+            Variants =
+            [
+                new VariantIdentifierModel
+                {
+                    Item = Reference.ById(Guid.Parse("4b628214-e4fe-4fe0-b1ff-955df33e1515")),
+                    Language = Reference.ByDefaultId()
+                },
+                new VariantIdentifierModel
+                {
+                    Item = Reference.ById(Guid.Parse("6a8b4d04-7d3e-4d3c-8b9a-4c7e8f9a1b2c")),
+                    Language = Reference.ByCodename("en-US")
+                }
+            ]
+        })).EnsureSuccess();
+        // EndDocSection
+
+        Assert.NotEmpty(response);
+    }
+
+    [Fact]
+    public async Task PostCustomApp()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "CustomApp.json");
+
+        // DocSection: cm_api_v2_post_custom_app
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.CreateCustomAppAsync(new CustomAppCreateModel
+        {
+            Name = "Custom App Name",
+            Codename = "custom_app_codename",
+            SourceUrl = "https://customapp.net",
+            Config = "{\"theme\":{\"color\":\"#007BFF\",\"logo_url\":\"https://assets.customapp.net/logo.png\"},\"features\":{\"enable_notifications\":true,\"enable_advanced_mode\":false}}",
+            AllowedRoles =
+            [
+                Reference.ById(Guid.Parse("7740a768-bfa5-4f64-bab4-d77cc0791d4c")),
+                Reference.ById(Guid.Parse("7a51d721-7302-4a85-b4ce-a6a3f3cce4a6"))
+            ],
+            DisplayMode = CustomAppDisplayMode.FullScreen
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PostFilterItemsWithVariants()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "FilterItemsWithVariants.json");
+
+        // DocSection: cm_api_v2_post_filter_items_with_variants
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        // Filters variants by language only
+        IReadOnlyList<ItemWithVariantFilterResultModel> variantsInLanguage = (await client.FilterItemsWithVariantsAsync(new ItemWithVariantFilterRequestModel
+        {
+            Filters = new VariantFilterFiltersModel
+            {
+                Language = Reference.ByCodename("en-US")
+            }
+        })).EnsureSuccess();
+
+        // Filters variants with multiple criteria
+        IReadOnlyList<ItemWithVariantFilterResultModel> filteredVariants = (await client.FilterItemsWithVariantsAsync(new ItemWithVariantFilterRequestModel
+        {
+            Filters = new VariantFilterFiltersModel
+            {
+                SearchPhrase = "test",
+                Language = Reference.ByCodename("en-US"),
+                ContentTypes = [Reference.ByCodename("article")],
+                CompletionStatuses = [VariantFilterCompletionStatus.AllDone]
+            },
+            Order = new VariantFilterOrderModel
+            {
+                By = VariantFilterOrderColumn.Name,
+                Direction = VariantFilterOrderDirection.Ascending
+            }
+        })).EnsureSuccess();
+        // EndDocSection
+
+        Assert.Equal(2, filteredVariants.Count);
+    }
+
+    [Fact]
+    public async Task PostSpace()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "Space.json");
+
+        // DocSection: cm_api_v2_post_space
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.CreateSpaceAsync(new SpaceCreateModel
+        {
+            Name = "Space 1",
+            Codename = "space_1",
+            RootItem = Reference.ByCodename("root_item_1"),
+            Collections = [Reference.ByCodename("first_collection"), Reference.ByExternalId("external-collection")]
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
     public async Task PutAsset()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "PutAssetResponse.json");
@@ -1433,6 +1727,7 @@ public class CmApiV2
         var updatedAssetResponse = await client.UpsertAssetAsync(identifier, new AssetUpsertModel
         {
             Title = "Coffee Brewing Techniques",
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Descriptions =
             [
                 new AssetDescription
@@ -1470,6 +1765,7 @@ public class CmApiV2
                 Id = "ab7bdf75-781b-4bf9-aed8-501048860402"
             },
             Title = "Coffee Brewing Techniques",
+            Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
             Descriptions =
             [
                 new AssetDescription
@@ -1567,7 +1863,7 @@ public class CmApiV2
             {
                 Elements =
                 [
-                    new MultipleChoiceElement
+                    new TaxonomyElement
                     {
                         Element = Reference.ByCodename("personas"),
                         Value = [Reference.ByCodename("barista"), Reference.ByCodename("coffee_blogger")],
@@ -1608,6 +1904,8 @@ public class CmApiV2
                 {
                     Value = new DateTimeOffset(2092, 1, 7, 6, 4, 0, TimeSpan.Zero)
                 },
+                Note = "Make sure the graphic materials we use here are on brand.",
+                Contributors = [UserIdentifier.ByEmail("user@example.com")],
                 Workflow = new WorkflowStepIdentifier(Reference.ByDefaultCodename(), Reference.ByCodename("review"))
             })).EnsureSuccess();
         // EndDocSection
@@ -1672,7 +1970,7 @@ public class CmApiV2
         (await client.SchedulePublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
             ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
-            DisplayTimeZone = "Europe/London"
+            DisplayTimeZone = "Australia/Sydney"
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -1694,17 +1992,17 @@ public class CmApiV2
         (await client.ScheduleUnpublishingOfLanguageVariantAsync(identifier, new ScheduleModel
         {
             ScheduledTo = new DateTimeOffset(2038, 1, 19, 4, 14, 8, TimeSpan.Zero),
-            DisplayTimeZone = "Europe/London"
+            DisplayTimeZone = "Australia/Sydney"
         })).EnsureSuccess();
         // EndDocSection
     }
 
     [Fact]
-    public async Task PutVariantWorkflow()
+    public async Task PutVariantWorkflowStep()
     {
         var client = MockClientFactory.CreateForSample(SampleFolder, "Empty.json");
 
-        // DocSection: cm_api_v2_put_variant_workflow
+        // DocSection: cm_api_v2_put_variant_workflow_step
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var itemIdentifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var itemIdentifier = Reference.ByCodename("my_article");
@@ -1723,8 +2021,8 @@ public class CmApiV2
                     {
                         Value = DateTime.UtcNow.AddDays(42)
                     },
-                    Contributors = [UserIdentifier.ByEmail("user@kontent.ai")],
-                    Note = "Moving this to the next workflow step."
+                    Note = "Make sure the graphic materials we use here are on brand.",
+                    Contributors = [UserIdentifier.ByEmail("user@example.com")]
                 }
                 )).EnsureSuccess();
         // EndDocSection
@@ -1760,17 +2058,18 @@ public class CmApiV2
         // DocSection: cm_api_v2_put_workflow
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ByCodename("my_workflow");
-        // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
+        // var identifier = Reference.ById(Guid.Parse("f9f28df0-9dec-4ee3-b087-c501e4b75347"));
 
         var response = (await client.UpdateWorkflowAsync(identifier, new WorkflowUpsertModel
         {
-            Name = "My workflow",
+            Name = "My updated workflow",
+            Codename = "my_updated_workflow",
             Scopes =
             [
                 new()
                 {
-                    Collections = [Reference.ById(Guid.Parse("d29d1904-9011-45ca-8ed3-0f2737a28024"))],
-                    ContentTypes = [Reference.ById(Guid.Parse("1aeb9220-f167-4f8e-a7db-1bfec365fa80"))]
+                    ContentTypes = [Reference.ByCodename("article")],
+                    Collections = [Reference.ByCodename("marketing")]
                 }
             ],
             Steps =
@@ -1782,32 +2081,26 @@ public class CmApiV2
                     Color = WorkflowStepColor.SkyBlue,
                     TransitionsTo =
                     [
-                        new()
-                        {
-                            Step = Reference.ByCodename("second_step")
-                        }
-                    ]
+                        new() { Step = Reference.ById(Guid.Parse("16221cc2-bd22-4414-a513-f3e555c0fc93")) },
+                        new() { Step = Reference.ByCodename("archived") }
+                    ],
+                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
                 },
                 new()
                 {
-                    Name = "Second step",
-                    Codename = "second_step",
+                    // Renames an existing step, identified by its ID
+                    Id = Guid.Parse("16221cc2-bd22-4414-a513-f3e555c0fc93"),
+                    Name = "Renamed Second step",
+                    Codename = "second_step_renamed",
                     Color = WorkflowStepColor.Rose,
-                    RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")],
-                    TransitionsTo =
-                    [
-                        new()
-                        {
-                            Step = Reference.ByCodename("published")
-                        }
-                    ]
+                    TransitionsTo = [new() { Step = Reference.ByCodename("published") }]
                 }
             ],
-            PublishedStep = new WorkflowPublishedStepUpsertModel
+            PublishedStep = new WorkflowPublishedStepUpsertModel(),
+            ArchivedStep = new WorkflowArchivedStepUpsertModel
             {
-                UnpublishRoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
-            },
-            ArchivedStep = new WorkflowArchivedStepUpsertModel()
+                RoleIds = [Guid.Parse("e796887c-38a1-4ab2-a999-c40861bb7a4b")]
+            }
         })).EnsureSuccess();
         // EndDocSection
     }
@@ -1851,9 +2144,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
         // DocSection: cm_api_v2_put_subscription_user_activate
+        // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
-        //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         (await client.ActivateSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -1865,9 +2159,10 @@ public class CmApiV2
         var client = MockClientFactory.CreateForSample(SampleFolder);
 
         // DocSection: cm_api_v2_put_subscription_user_deactivate
+        // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = UserIdentifier.ByEmail("user@kontent.ai");
-        //var identifier = UserIdentifier.ById("d94bc87a-c066-48a1-a910-4f991ccc1fb5");
+        // var identifier = UserIdentifier.ById("usr_0vKjTCH2TkO687K3y3bKNS");
 
         (await client.DeactivateSubscriptionUserAsync(identifier)).EnsureSuccess();
         // EndDocSection
@@ -1883,6 +2178,47 @@ public class CmApiV2
         (await client.MarkEnvironmentAsProductionAsync(new MarkAsProductionModel
         {
             EnableWebhooks = true
+        })).EnsureSuccess();
+        // EndDocSection
+    }
+
+    [Fact]
+    public async Task PutPreviewConfiguration()
+    {
+        var client = MockClientFactory.CreateForSample(SampleFolder, "PreviewConfiguration.json");
+
+        // DocSection: cm_api_v2_put_preview_configuration
+        // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        var response = (await client.UpdatePreviewConfigurationAsync(new PreviewConfigurationModel
+        {
+            SpaceDomains =
+            [
+                new SpaceDomainModel
+                {
+                    Domain = "www.mysite.com",
+                    Space = Reference.ByCodename("my_space")
+                }
+            ],
+            PreviewUrlPatterns =
+            [
+                new TypePreviewUrlPatternModel
+                {
+                    ContentType = Reference.ByCodename("article"),
+                    UrlPatterns =
+                    [
+                        new PreviewUrlPatternModel
+                        {
+                            Space = null,
+                            UrlPattern = "https://www.globalsite.com/{URLSlug}"
+                        },
+                        new PreviewUrlPatternModel
+                        {
+                            Space = Reference.ByCodename("my_space"),
+                            UrlPattern = "https://{Space}/{URLSlug}/test"
+                        }
+                    ]
+                }
+            ]
         })).EnsureSuccess();
         // EndDocSection
     }

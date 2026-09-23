@@ -55,6 +55,9 @@ dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
 CI collects coverage and enforces each product's coverage threshold.
 
+The `CodeSamples` folders in the test projects are the source of the .NET samples on Kontent.ai Learn.
+Read [CODE_SAMPLES](./CODE_SAMPLES.md) before changing one, and sync the change to Learn once it is merged.
+
 ### Two build modes
 
 ```sh

@@ -49,6 +49,7 @@ The commenting bar above applies to prose. **Short, to the point, only where nee
 README for the prose.
 
 - **State the fact, not the case for it.** Rationale earns its place only when it stops a reader doing the wrong thing — that `DisableFor` diverges from the SDK's retry rule, that a preview client's cache bypass does not cover a CDN. Rationale that defends a decision we already made is padding; cut it.
+- **Samples published to Kontent.ai Learn live in each test project's `CodeSamples` folder.** They are tests, published by `eng/scripts/sync-code-samples.cs`; read [CODE_SAMPLES.md](CODE_SAMPLES.md) before adding, renaming or changing one.
 - **Every example compiles** against the current source. Extract the snippet and build it — do not hand-maintain approximations, and do not describe behaviour you have not run.
 - **One authoritative place per answer.** A README section that restates a guide will contradict it. Link instead.
 

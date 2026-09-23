@@ -1,0 +1,69 @@
+{
+  "item": {
+    "system": {
+      "id": "1c5d2e7f-8a9b-4c0d-9e1f-2a3b4c5d6e7f",
+      "name": "The origin of coffee",
+      "codename": "the_origin_of_coffee",
+      "language": "en-US",
+      "type": "simple_article",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "The origin of coffee"
+      },
+      "body": {
+        "type": "rich_text",
+        "name": "Body",
+        "images": {},
+        "links": {},
+        "modular_content": [],
+        "value": "<p>Coffee was first discovered in the highlands of Ethiopia.</p>"
+      },
+      "author": {
+        "type": "modular_content",
+        "name": "Author",
+        "value": [
+          "jane_doe"
+        ]
+      }
+    }
+  },
+  "modular_content": {
+    "jane_doe": {
+      "system": {
+        "id": "0d3b2f5e-7a1c-4c6e-9d8f-2a4b6c8e0f13",
+        "name": "Jane Doe",
+        "codename": "jane_doe",
+        "language": "en-US",
+        "type": "author",
+        "collection": "default",
+        "sitemap_locations": [],
+        "last_modified": "2026-09-01T10:00:00Z",
+        "workflow": "default",
+        "workflow_step": "published"
+      },
+      "elements": {
+        "name": {
+          "type": "text",
+          "name": "Name",
+          "value": "Jane Doe"
+        },
+        "bio": {
+          "type": "rich_text",
+          "name": "Bio",
+          "images": {},
+          "links": {},
+          "modular_content": [],
+          "value": "<p>Coffee historian.</p>"
+        }
+      }
+    }
+  }
+}

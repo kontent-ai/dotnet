@@ -1,4 +1,3 @@
-using Kontent.Ai.Management.Extensions;
 using Kontent.Ai.Management.Models.Assets;
 using Kontent.Ai.Management.Models.LanguageVariants;
 using Kontent.Ai.Management.Models.LanguageVariants.Elements;
@@ -8,7 +7,7 @@ using AssetReference = Kontent.Ai.Management.Models.Content.AssetReference;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/import-assets
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/import-assets
 /// </summary>
 public class ImportAssets
 {
@@ -19,34 +18,34 @@ public class ImportAssets
     [Fact]
     public async Task CreateAsset()
     {
-        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedFile.json", "ImportedAsset.json");
+        var client = MockClientFactory.CreateForSample(SampleFolder, "ImportedAsset.json");
 
         // DocSection: importing_assets_create_asset
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var filePath = Path.Combine(Environment.CurrentDirectory, "Data", "brno-cafe-1080px.jpg");
-        var contentType = "image/jpg";
-
-        // Uploads the file and creates or updates the asset that references it in a single call
-        var createdAssetResponse = (await client.UpsertAssetAsync(
-            Reference.ByExternalId("which-brewing-fits-you"),
-            new FileContentSource(filePath, contentType),
-            new AssetUpsertModel
+        // Uses the file reference object obtained in step 1
+        var createdAssetResponse = (await client.UpsertAssetAsync(Reference.ByExternalId("which-brewing-fits-you"), new AssetUpsertModel
+        {
+            // 'fileReference' is only required when creating a new asset
+            // To create a file reference, see the "Upload a binary file" endpoint
+            FileReference = new FileReference
             {
-                Title = "Brno Cafe",
-                Descriptions =
-                [
-                    new AssetDescription
-                    {
-                        Description = "Cafe in Brno",
-                        Language = Reference.ByCodename("en-US")
-                    },
-                    new AssetDescription
-                    {
-                        Description = "Café en Brno",
-                        Language = Reference.ByCodename("es-ES")
-                    }
-                ]
-            })).EnsureSuccess();
+                Id = "8660e19c-7bbd-48a3-bb51-721934c7756c"
+            },
+            Title = "Brno Cafe",
+            Descriptions =
+            [
+                new AssetDescription
+                {
+                    Description = "Cafe in Brno",
+                    Language = Reference.ByCodename("en-US")
+                },
+                new AssetDescription
+                {
+                    Description = "Café en Brno",
+                    Language = Reference.ByCodename("es-ES")
+                }
+            ]
+        })).EnsureSuccess();
         // EndDocSection
     }
 
@@ -58,7 +57,7 @@ public class ImportAssets
         // DocSection: importing_assets_upload_file
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var filePath = Path.Combine(Environment.CurrentDirectory, "Data", "brno-cafe-1080px.jpg");
-        var contentType = "image/jpg";
+        var contentType = "image/jpeg";
 
         // Binary file reference to be used when adding a new asset
         var response = (await client.UploadFileAsync(new FileContentSource(filePath, contentType))).EnsureSuccess();
