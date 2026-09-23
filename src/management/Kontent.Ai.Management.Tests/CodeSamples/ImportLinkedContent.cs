@@ -6,7 +6,7 @@ using Kontent.Ai.Management.Tests.Base;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/import-linked-content
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/import-linked-content
 /// </summary>
 public class ImportLinkedContent
 {

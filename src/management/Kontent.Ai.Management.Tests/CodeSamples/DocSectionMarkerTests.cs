@@ -5,8 +5,8 @@ namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
 /// The samples in this folder are the source for
-/// https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net, where each marked
-/// section is published as the file named by its id. Two properties have to hold for that to work, and
+/// https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net, where each marked
+/// section is published as the file named by its id (see CODE_SAMPLES.md in the repository root). Two properties have to hold for that to work, and
 /// neither shows up as a failing test anywhere else: a section that is never closed runs on into the next
 /// method's scaffolding, and a duplicated id has no single file it belongs to.
 /// </summary>

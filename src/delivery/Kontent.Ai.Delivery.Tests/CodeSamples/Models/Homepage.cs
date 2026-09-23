@@ -34,3 +34,4 @@ public partial record Homepage
     public IEnumerable<Asset>? Picture { get; init; }
 }
 // EndDocSection
+#pragma warning restore IDE0005

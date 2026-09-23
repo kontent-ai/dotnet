@@ -8,7 +8,7 @@ using AssetReference = Kontent.Ai.Management.Models.Content.AssetReference;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/import-assets
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/import-assets
 /// </summary>
 public class ImportAssets
 {

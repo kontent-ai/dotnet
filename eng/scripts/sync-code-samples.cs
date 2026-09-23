@@ -1,32 +1,11 @@
-// Publishes the marked code samples to a kontent-ai-learn-code-samples checkout.
+// Publishes the marked code samples to a kontent-ai-learn-code-samples checkout. What a sample is, the
+// rules for writing one and what this script does to each published file: CODE_SAMPLES.md.
 //
 //   dotnet run eng/scripts/sync-code-samples.cs -- <samples-checkout> [--check] [--base <ref>]
 //
-// Every `// DocSection: <id>` ... `// EndDocSection` pair under src/**/CodeSamples is the source of
-// net/**/<id>.cs. A sample in another language - the model generator's .sh command - lives in a file of
-// that language under CodeSamples, marked with its own comment syntax (`# DocSection: <id>`), and is
-// published as written. The published file keeps its structure: leading comments and usings stay exactly
-// as they are, as does its trailing newline. A client declaration in the file, with the comments
-// directly above it, is replaced with the `// DocClient` ... `// EndDocClient` block of the section's
-// product, so the registration Learn shows compiles against the SDK too - unless the section declares
-// its own client, because then the registration is the sample. The code after that is replaced with
-// the section. A section
-// whose id has no published file is an error: the id is the join key with Kontent.ai Learn, so the
-// file has to exist there first.
-//
-// A published file that opens with using directives gets the ones its code needs, worked out by binding
-// the file against the SDK - the product's test project is built for that. A file without any stays
-// without: it is a snippet, and adding usings would change what it is. Namespaces a .NET project imports
-// implicitly are never written.
-//
-// A `// DocReview: <note>` line inside a section flags the published sample for follow-up review (it
-// is redundant, say, but a Learn page still links it). The line is not published; the summary lists
-// every note.
-//
-// Default mode creates sync/dotnet-<sha> off --base (origin/master) in the checkout, writes the
-// files and stages them. It commits nothing. The checkout must be clean.
-// --check writes nothing and touches no branch: it compares against the checkout as it is and
-// exits 1 on drift, on a section with no published file, or on a published file with no section.
+// Default mode creates sync/dotnet-<sha> off --base (origin/master) in the checkout, writes the files and
+// stages them. It commits nothing, and the checkout must be clean. --check writes nothing and touches no
+// branch: it exits 1 on drift, on a section with no published file, or on a published file with no section.
 
 #:package Microsoft.CodeAnalysis.CSharp
 

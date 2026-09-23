@@ -42,13 +42,13 @@ using Kontent.Ai.Management.Tests.Base;
 namespace Kontent.Ai.Management.Tests.CodeSamples;
 
 /// <summary>
-/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
+/// Source for Code examples being store in https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/management-api-v2
 /// </summary>
 public class CmApiV2
 {
 
     // IF YOU MAKE ANY CHANGE TO THIS FILE - ADJUST THE CODE SAMPLES AT
-    // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/master/net/management-api-v2
+    // https://github.com/Kontent-ai-Learn/kontent-ai-learn-code-samples/tree/main/net/management-api-v2
     //
     // A section is published verbatim, so it must hold the sample and nothing else: it opens below the
     // mock client and closes above the assertions, both of which are test scaffolding. The id on the

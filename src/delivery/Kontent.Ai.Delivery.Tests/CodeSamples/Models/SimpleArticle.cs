@@ -34,3 +34,4 @@ public partial record SimpleArticle
     public IEnumerable<IEmbeddedContent>? Author { get; init; }
 }
 // EndDocSection
+#pragma warning restore IDE0005
