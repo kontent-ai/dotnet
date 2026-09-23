@@ -63,19 +63,26 @@ its own client inside its section instead.
 
 ## Syncing to Learn
 
-After a change here is merged, from the repository root:
+The samples repository is write-protected: changes reach it as pull requests from a fork. With a clone of
+your fork, the .NET SDK and an authenticated [GitHub CLI](https://cli.github.com/) (`gh auth status`), run
+from the root of this repository once a change here is merged:
 
 ```sh
-dotnet run eng/scripts/sync-code-samples.cs -- <path-to-your-kontent-ai-learn-code-samples-checkout>
+dotnet run eng/scripts/sync-code-samples.cs -- <path-to-your-fork-clone>
 ```
+
+The clone must have no uncommitted changes. The script adds the samples repository as the `upstream` remote
+if it is missing, branches `sync/dotnet-<sha>` off `upstream/main`, writes and commits every published file
+that changed, pushes the branch to your fork (`origin`) and opens a **draft** pull request against
+`upstream/main`. Review the diff there and mark it ready. When nothing changed, it removes the branch and
+stops. `--check` only compares, touching nothing.
+
+Branching off `upstream/main` rather than your fork's default branch means the pull request contains only
+the sync, however far behind your fork is.
 
 **The sync overwrites the published files.** A fix made directly in the samples repository is lost unless
 it is brought into the section here first, so check that repository's history for .NET changes since the
 last sync before running it.
-
-The script creates `sync/dotnet-<sha>` off `origin/master` in that checkout (`--base <ref>` for another
-base), writes every published file that changed and stages it. It commits nothing: review the diff, commit,
-and open the pull request there. The checkout must be clean. `--check` compares without touching it.
 
 For each published file it:
 
