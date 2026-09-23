@@ -8,6 +8,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Dependencies
+
+- **`AngleSharp` moves to 1.8.2.**
+
+  It is the shipped floor of `Kontent.Ai.Delivery`.
+
 ## 20.0.1 (2026-09-18)
 
 ### Fixed
