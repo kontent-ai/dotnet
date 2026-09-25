@@ -326,7 +326,7 @@ public partial class CachingIntegrationTests
         var serviceProvider = BuildNamedMemoryCacheServiceProvider(
             mock,
             options,
-            defaultExpiration: TimeSpan.FromMilliseconds(50));
+            defaultExpiration: TimeSpan.FromSeconds(1));
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
 
         // First call should hit API
@@ -342,7 +342,7 @@ public partial class CachingIntegrationTests
         mock.VerifyNoOutstandingExpectation();
 
         // Wait past TTL
-        await Task.Delay(200);
+        await Task.Delay(1500);
 
         // Third call should hit API again (cache entry expired)
         mock.Expect($"{BaseUrl}/items/{itemCodename}")
@@ -377,23 +377,23 @@ public partial class CachingIntegrationTests
             .Respond("application/json", fixtureContent);
 
         var result1 = await client.GetItem<Article>(itemCodename)
-            .WithCacheExpiration(TimeSpan.FromMilliseconds(50))
+            .WithCacheExpiration(TimeSpan.FromSeconds(1))
             .ExecuteAsync();
         var result2 = await client.GetItem<Article>(itemCodename)
-            .WithCacheExpiration(TimeSpan.FromMilliseconds(50))
+            .WithCacheExpiration(TimeSpan.FromSeconds(1))
             .ExecuteAsync();
 
         Assert.False(result1.IsCacheHit);
         Assert.True(result2.IsCacheHit);
         mock.VerifyNoOutstandingExpectation();
 
-        await Task.Delay(200);
+        await Task.Delay(1500);
 
         mock.Expect($"{BaseUrl}/items/{itemCodename}")
             .Respond("application/json", fixtureContent);
 
         var result3 = await client.GetItem<Article>(itemCodename)
-            .WithCacheExpiration(TimeSpan.FromMilliseconds(50))
+            .WithCacheExpiration(TimeSpan.FromSeconds(1))
             .ExecuteAsync();
 
         Assert.False(result3.IsCacheHit);
