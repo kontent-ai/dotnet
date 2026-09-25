@@ -71,11 +71,12 @@ from the root of this repository once a change here is merged:
 dotnet run eng/scripts/sync-code-samples.cs -- <path-to-your-fork-clone>
 ```
 
-The clone must have no uncommitted changes. The script adds the samples repository as the `upstream` remote
-if it is missing, branches `sync/dotnet-<sha>` off `upstream/main`, writes and commits every published file
-that changed, pushes the branch to your fork (`origin`) and opens a **draft** pull request against
-`upstream/main`. Review the diff there and mark it ready. When nothing changed, it removes the branch and
-stops. `--check` only compares, touching nothing.
+The clone must have no uncommitted changes, and `origin` must be your fork, not the samples repository. The
+script checks both, and `gh`, before it creates anything. It then adds the samples repository as the
+`upstream` remote if it is missing, branches `sync/dotnet-<sha>` off `upstream/main`, writes and commits every
+published file that changed, pushes the branch to your fork (`origin`) and opens a **draft** pull request
+against `upstream/main`. Review the diff there and mark it ready. When nothing changed, it removes the branch
+and stops. `--check` only compares, touching nothing.
 
 Branching off `upstream/main` rather than your fork's default branch means the pull request contains only
 the sync, however far behind your fork is.
