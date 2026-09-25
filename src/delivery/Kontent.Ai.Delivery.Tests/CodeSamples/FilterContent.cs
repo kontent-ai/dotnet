@@ -43,7 +43,7 @@ public class FilterContent
 
         // DocSection: filtering_get_items_by_datetime
         // Note: Date & time element values are provided by users and stored with minute precision.
-        // The system.last_modified value reflects last content change to an item and is stored with second precision.
+        // The system.last_modified value reflects last content change to an item and is stored with ms precision.
 
         // Gets items modified after May 9 2020, 9 am UTC (using DateTime overload)
         var result = await client.GetItems()

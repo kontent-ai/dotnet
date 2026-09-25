@@ -68,7 +68,7 @@ public sealed class SyncApi : IDisposable
         var syncTaxonomies = delta.Taxonomies;
         var syncLanguages = delta.Languages;
 
-        // Persist this token and use it in the next synchronization call.
+        // Once the changes are processed, persist this token and use it in the next synchronization call.
         string nextSyncToken = result.SyncToken;
         // EndDocSection
 

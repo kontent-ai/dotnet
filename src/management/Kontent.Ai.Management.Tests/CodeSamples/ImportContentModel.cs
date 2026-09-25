@@ -168,7 +168,7 @@ public class ImportContentModel
                 },
                 new TaxonomyElementMetadataModel
                 {
-                    TaxonomyGroup = Reference.ByExternalId("blog_topic"),
+                    TaxonomyGroup = Reference.ByCodename("blog_topic"),
                     Codename = "taxonomy",
                     ContentGroup = Reference.ByExternalId("topic")
                 }

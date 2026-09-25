@@ -67,7 +67,7 @@ public class CmApiV2
         var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
         // var identifier = Reference.ByExternalId("which-brewing-fits-you");
 
-        await client.DeleteAssetAsync(identifier);
+        (await client.DeleteAssetAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -83,7 +83,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("my_article");
         // var identifier = Reference.ByExternalId("59713");
 
-        await client.DeleteContentItemAsync(identifier);
+        (await client.DeleteContentItemAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -98,7 +98,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("metadata");
         // var identifier = Reference.ByExternalId("snippet-type-123");
 
-        await client.DeleteContentTypeSnippetAsync(identifier);
+        (await client.DeleteContentTypeSnippetAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -113,7 +113,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("personas");
         // var identifier = Reference.ByExternalId("Tax-Group-123");
 
-        await client.DeleteTaxonomyGroupAsync(identifier);
+        (await client.DeleteTaxonomyGroupAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -128,7 +128,7 @@ public class CmApiV2
         // var identifier = Reference.ByCodename("hosted_video");
         // var identifier = Reference.ByExternalId("Content-Type-123");
 
-        await client.DeleteContentTypeAsync(identifier);
+        (await client.DeleteContentTypeAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -142,7 +142,7 @@ public class CmApiV2
         var identifier = LanguageVariantIdentifier.ByIds(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"), Guid.Parse("d1f95fde-af02-b3b5-bd9e-f232311ccab8"));
         // var identifier = LanguageVariantIdentifier.ByCodenames("my_article", "es-ES");
 
-        await client.DeleteLanguageVariantAsync(identifier);
+        (await client.DeleteLanguageVariantAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -155,7 +155,7 @@ public class CmApiV2
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var identifier = Reference.ById(Guid.Parse("d53360f7-79e1-42f4-a524-1b53a417d03e"));
 
-        await client.DeleteWebhookAsync(identifier);
+        (await client.DeleteWebhookAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -169,7 +169,7 @@ public class CmApiV2
         var identifier = Reference.ById(Guid.Parse("f9f28df0-9dec-4ee3-b087-c501e4b75347"));
         // var identifier = Reference.ByCodename("my_workflow");
 
-        await client.DeleteWorkflowAsync(identifier);
+        (await client.DeleteWorkflowAsync(identifier)).EnsureSuccess();
         // EndDocSection
     }
 
@@ -180,7 +180,7 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_delete_environment
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        await client.DeleteEnvironmentAsync();
+        (await client.DeleteEnvironmentAsync()).EnsureSuccess();
         // EndDocSection
     }
 
@@ -362,10 +362,10 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_get_languages
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var count = (await client.ListLanguagesAsync()).EnsureSuccess().Count;
+        var response = (await client.ListLanguagesAsync()).EnsureSuccess();
         // EndDocSection
 
-        Assert.Equal(1, count);
+        Assert.Single(response);
     }
 
     [Fact]
@@ -429,10 +429,10 @@ public class CmApiV2
 
         // DocSection: cm_api_v2_get_taxonomy_groups
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var count = (await client.ListTaxonomyGroupsAsync()).EnsureSuccess().Count;
+        var response = (await client.ListTaxonomyGroupsAsync()).EnsureSuccess();
         // EndDocSection
 
-        Assert.Equal(1, count);
+        Assert.Single(response);
     }
 
     [Fact]
@@ -647,10 +647,10 @@ public class CmApiV2
         // DocSection: cm_api_v2_get_subscription_users
         // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var count = (await client.ListSubscriptionUsersAsync()).EnsureSuccess().Count;
+        var response = (await client.ListSubscriptionUsersAsync()).EnsureSuccess();
         // EndDocSection
 
-        Assert.Equal(2, count);
+        Assert.Equal(2, response.Count);
     }
 
     [Fact]
@@ -661,10 +661,10 @@ public class CmApiV2
         // DocSection: cm_api_v2_get_subscription_projects
         // DocClientName: subscription
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var count = (await client.ListSubscriptionProjectsAsync()).EnsureSuccess().Count;
+        var response = (await client.ListSubscriptionProjectsAsync()).EnsureSuccess();
         // EndDocSection
 
-        Assert.Equal(2, count);
+        Assert.Equal(2, response.Count);
     }
 
     [Fact]
@@ -696,10 +696,8 @@ public class CmApiV2
 
         // DocSection: mapi_v2_get_validation_issues
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
-        var result = await client.ListAsyncValidationTaskIssuesAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"));
+        var response = (await client.ListAsyncValidationTaskIssuesAsync(Guid.Parse("88d94fed-4899-4944-9b4b-c919b11a9db0"))).EnsureSuccess();
         // EndDocSection
-
-        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -1361,14 +1359,14 @@ public class CmApiV2
                 {
                     Name = "Article title",
                     Codename = "title",
-                    ContentGroup = Reference.ByCodename("article-copy"),
+                    ContentGroup = Reference.ByExternalId("article-copy"),
                     DefaultValue = new TextElementDefaultValueModel("This is the default value of the text element.")
                 },
                 new RichTextElementMetadataModel
                 {
                     Name = "Article body",
                     Codename = "body",
-                    ContentGroup = Reference.ByCodename("article-copy"),
+                    ContentGroup = Reference.ByExternalId("article-copy"),
                 },
                 new RichTextElementMetadataModel
                 {
@@ -1724,7 +1722,7 @@ public class CmApiV2
         // var identifier = Reference.ById(Guid.Parse("fcbb12e6-66a3-4672-85d9-d502d16b8d9c"));
 
         // Used when updating an existing asset
-        var updatedAssetResponse = await client.UpsertAssetAsync(identifier, new AssetUpsertModel
+        var updatedAssetResponse = (await client.UpsertAssetAsync(identifier, new AssetUpsertModel
         {
             Title = "Coffee Brewing Techniques",
             Collection = new AssetCollectionReference { Reference = Reference.ByCodename("first_collection") },
@@ -1753,10 +1751,10 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
 
         // Used when creating a new asset or updating an existing one
-        var createdAssetResponse = await client.UpsertAssetAsync(Reference.ByExternalId("which-brewing-fits-you"), new AssetUpsertModel
+        var createdAssetResponse = (await client.UpsertAssetAsync(Reference.ByExternalId("which-brewing-fits-you"), new AssetUpsertModel
         {
             // 'fileReference' is only required when creating a new asset
             // To create a file reference, see the "Upload a binary file" endpoint
@@ -1791,7 +1789,7 @@ public class CmApiV2
                     ]
                 }
             ]
-        });
+        })).EnsureSuccess();
         // EndDocSection
 
         Assert.NotNull(createdAssetResponse);
@@ -1834,14 +1832,14 @@ public class CmApiV2
         // var identifier = Reference.ById(Guid.Parse("f4b3fc05-e988-4dae-9ac1-a94aba566474"));
         // var identifier = Reference.ByCodename("my_article");
 
-        var upsertedItemResponse = await client.UpsertContentItemAsync(identifier, new ContentItemUpsertModel
+        var upsertedItemResponse = (await client.UpsertContentItemAsync(identifier, new ContentItemUpsertModel
         {
             Name = "On Roasts",
             Codename = "my_article_my_article",
             Collection = Reference.ByDefaultCodename(),
             // 'Type' is only required when creating a new content item
             Type = Reference.ByCodename("article"),
-        });
+        })).EnsureSuccess();
         // EndDocSection
 
         Assert.NotNull(upsertedItemResponse);
@@ -2019,7 +2017,7 @@ public class CmApiV2
                 {
                     DueDate = new DueDateModel
                     {
-                        Value = DateTime.UtcNow.AddDays(42)
+                        Value = DateTimeOffset.UtcNow.AddDays(42)
                     },
                     Note = "Make sure the graphic materials we use here are on brand.",
                     Contributors = [UserIdentifier.ByEmail("user@example.com")]
