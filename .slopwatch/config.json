@@ -22,6 +22,11 @@
     },
     {
       "ruleId": "SW004",
+      "pattern": "**/Caching/CachingIntegrationTests.cs",
+      "justification": "The expiry tests assert a cache hit inside an entry's lifetime and a miss or fail-safe response after it. Expiry is observable only by letting the lifetime lapse: FusionCache reads the system clock and the manager exposes no clock to replace. Each test shortens the lifetime and waits past it once."
+    },
+    {
+      "ruleId": "SW004",
       "pattern": "**/Caching/HybridCacheInvalidationOutcomeTests.cs",
       "justification": "One test proves an invalidation succeeds again once FusionCache's distributed circuit breaker has closed. The breaker closes only after its duration elapses and the next distributed operation runs, and nothing signals the elapse itself, so the test shortens the duration and waits past it once."
     }

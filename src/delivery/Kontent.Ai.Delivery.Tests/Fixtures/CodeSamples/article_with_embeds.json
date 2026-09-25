@@ -1,0 +1,98 @@
+{
+  "item": {
+    "system": {
+      "id": "3e6f1a2b-4c5d-4e7f-8a9b-0c1d2e3f4a5b",
+      "name": "Brewing at home",
+      "codename": "brewing_at_home",
+      "language": "en-US",
+      "type": "simple_article",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "Brewing at home"
+      },
+      "body": {
+        "type": "rich_text",
+        "name": "Body",
+        "images": {},
+        "links": {},
+        "modular_content": [
+          "brewing_tweet",
+          "brewing_video"
+        ],
+        "value": "<p>Start here.</p><object type=\"application/kenticocloud\" data-type=\"item\" data-codename=\"brewing_tweet\"></object><object type=\"application/kenticocloud\" data-type=\"item\" data-codename=\"brewing_video\"></object>"
+      },
+      "author": {
+        "type": "modular_content",
+        "name": "Author",
+        "value": []
+      }
+    }
+  },
+  "modular_content": {
+    "brewing_tweet": {
+      "system": {
+        "id": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+        "name": "Brewing tweet",
+        "codename": "brewing_tweet",
+        "language": "en-US",
+        "type": "tweet",
+        "collection": "default",
+        "sitemap_locations": [],
+        "last_modified": "2026-09-01T10:00:00Z",
+        "workflow": "default",
+        "workflow_step": "published"
+      },
+      "elements": {
+        "tweet_link": {
+          "type": "text",
+          "name": "Tweet link",
+          "value": "https://twitter.com/kontent_ai/status/1234567890?s=20&t=abc"
+        },
+        "theme": {
+          "type": "multiple_choice",
+          "name": "Theme",
+          "value": [
+            {
+              "name": "Dark",
+              "codename": "dark"
+            }
+          ]
+        },
+        "display_options": {
+          "type": "multiple_choice",
+          "name": "Display options",
+          "value": []
+        }
+      }
+    },
+    "brewing_video": {
+      "system": {
+        "id": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+        "name": "Brewing video",
+        "codename": "brewing_video",
+        "language": "en-US",
+        "type": "video",
+        "collection": "default",
+        "sitemap_locations": [],
+        "last_modified": "2026-09-01T10:00:00Z",
+        "workflow": "default",
+        "workflow_step": "published"
+      },
+      "elements": {
+        "video_id": {
+          "type": "text",
+          "name": "Video ID",
+          "value": "dQw4w9WgXcQ\" onload=\"alert(1)"
+        }
+      }
+    }
+  }
+}

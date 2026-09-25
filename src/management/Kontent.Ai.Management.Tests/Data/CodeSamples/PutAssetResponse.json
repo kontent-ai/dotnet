@@ -3,6 +3,7 @@
   "folder": {
     "id": "8fe4ff47-0ca8-449d-bc63-c280efee44ea"
   },
+  "codename": "which_brewing_fits_you",
   "file_name": "which-brewing-fits-you-1080px.jpg",
   "title": "Coffee Brewing Techniques",
   "size": 125770,
@@ -14,6 +15,21 @@
     "id": "fcbb12e6-66a3-4672-85d9-d502d16b8d9c",
     "type": "internal"
   },
+  "elements": [
+    {
+      "element": {
+        "id": "7ef2ebb4-c480-42b7-ba35-a3078d6cce3f"
+      },
+      "value": [
+        {
+          "id": "4a4f8cb0-e7fe-40ad-9943-66f395e58571"
+        },
+        {
+          "id": "96e493ab-45c4-4505-a3d0-b46192dd179e"
+        }
+      ]
+    }
+  ],
   "descriptions": [
     {
       "language": {

@@ -68,8 +68,8 @@ public class ImportRichText
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         var response = (await client.CreateContentTypeAsync(new ContentTypeCreateModel
         {
+            ExternalId = "simple-rich-text",
             Name = "Simple Rich Text",
-            Codename = "simple-rich-text",
             Elements =
             [
                 new RichTextElementMetadataModel

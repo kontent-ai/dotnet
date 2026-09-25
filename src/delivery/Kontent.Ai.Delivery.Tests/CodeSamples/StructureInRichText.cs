@@ -3,6 +3,7 @@ using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using KontentAiModels;
 using Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Encodings.Web;
 
 namespace Kontent.Ai.Delivery.Tests.CodeSamples;
 
@@ -32,21 +33,27 @@ public class StructureInRichText
     }
 
     [Fact]
-    public void ImplementResolver()
+    public async Task ImplementResolver()
     {
         // DocSection: structure_in_rte_implement_resolver
-        // Build an HTML resolver for embedded content items and content item links
+        // Build an HTML resolver for embedded content items
+        // The returned markup is inserted as is, so encode element values with HtmlEncoder
         var resolver = new HtmlResolverBuilder()
             // Render embedded Tweet components
             .WithContentResolver<Tweet>(tweet =>
-                $"<blockquote class=\"twitter-tweet\" data-lang=\"en\" data-theme=\"{tweet.Elements.Theme?.FirstOrDefault()?.Codename}\"><a href=\"{tweet.Elements.TweetLink}\"></a></blockquote>")
+                $"<blockquote class=\"twitter-tweet\" data-lang=\"en\" data-theme=\"{tweet.Elements.Theme?.FirstOrDefault()?.Codename}\"><a href=\"{HtmlEncoder.Default.Encode(tweet.Elements.TweetLink ?? "")}\"></a></blockquote>")
             // Render embedded YouTube video components
             .WithContentResolver<Video>(video =>
-                $"<iframe src=\"https://youtube.com/embed/{video.Elements.VideoId}\"></iframe>")
+                $"<iframe src=\"https://youtube.com/embed/{HtmlEncoder.Default.Encode(video.Elements.VideoId ?? "")}\"></iframe>")
             .Build();
         // EndDocSection
 
-        Assert.NotNull(resolver);
+        var client = SampleClient.Create("CodeSamples/article_with_embeds.json");
+        var article = (await client.GetItem<SimpleArticle>("brewing_at_home").ExecuteAsync()).Value;
+        var html = await article.Elements.Body!.ToHtmlAsync(resolver);
+
+        Assert.Contains("data-theme=\"dark\"><a href=\"https://twitter.com/kontent_ai/status/1234567890?s=20&amp;t=abc\"></a></blockquote>", html);
+        Assert.Contains("<iframe src=\"https://youtube.com/embed/dQw4w9WgXcQ&quot; onload=&quot;alert(1)\"></iframe>", html);
     }
 
     [Fact]

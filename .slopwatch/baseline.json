@@ -95,15 +95,6 @@
       "baselinedAt": "2026-08-03T16:09:14.638115+00:00"
     },
     {
-      "hash": "127e82b2893a22cf",
-      "ruleId": "SW004",
-      "filePath": "src/delivery/Kontent.Ai.Delivery.Tests/Caching/CachingIntegrationTests.cs",
-      "lineNumber": 164,
-      "codeSnippet": "Task.Delay(200)",
-      "message": "Test uses Task.Delay(200) which may indicate a timing-dependent test",
-      "baselinedAt": "2026-08-03T16:09:14.638123+00:00"
-    },
-    {
       "hash": "b35d17d9b18d1d6f",
       "ruleId": "SW005",
       "filePath": "src/delivery/Kontent.Ai.Delivery.SourceGeneration/Kontent.Ai.Delivery.SourceGeneration.csproj",

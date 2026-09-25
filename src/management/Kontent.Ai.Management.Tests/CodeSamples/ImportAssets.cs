@@ -23,7 +23,7 @@ public class ImportAssets
         // DocSection: importing_assets_create_asset
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
         // Uses the file reference object obtained in step 1
-        var createdAssetResponse = (await client.UpsertAssetAsync(Reference.ByExternalId("which-brewing-fits-you"), new AssetUpsertModel
+        var createdAssetResponse = (await client.UpsertAssetAsync(Reference.ByExternalId("brno-cafe-image"), new AssetUpsertModel
         {
             // 'fileReference' is only required when creating a new asset
             // To create a file reference, see the "Upload a binary file" endpoint
