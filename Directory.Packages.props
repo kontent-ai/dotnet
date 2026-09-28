@@ -35,7 +35,7 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <!-- Management -->
-    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.31.0.145097">
+    <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.34.0.3385">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
