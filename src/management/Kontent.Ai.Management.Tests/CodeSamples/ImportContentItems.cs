@@ -113,7 +113,7 @@ public class ImportContentItems
             [
                 new TextElement { Element = Reference.ByExternalId("street"), Value = "Nove Sady 25" },
                 new TextElement { Element = Reference.ByExternalId("city"), Value = "Brno" },
-                new TextElement { Element = Reference.ByExternalId("country"), Value = "Czech republic" },
+                new TextElement { Element = Reference.ByExternalId("country"), Value = "Czech Republic" },
                 new TextElement { Element = Reference.ByExternalId("state"), Value = "Jihomoravsky kraj" },
                 new TextElement { Element = Reference.ByExternalId("zip_code"), Value = "60200" },
                 new TextElement { Element = Reference.ByExternalId("phone"), Value = "+420 555 555 555" },

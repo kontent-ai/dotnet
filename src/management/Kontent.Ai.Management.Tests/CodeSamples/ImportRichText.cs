@@ -89,6 +89,7 @@ public class ImportRichText
 
         // DocSection: import_rich_upsert_variant
         // Tip: Find more about .NET SDKs at https://kontent.ai/learn/net
+        // Default language; for another language, use e.g. Reference.ByCodename("es-ES")
         var identifier = new LanguageVariantIdentifier(Reference.ByExternalId("simple-example"), Reference.ByDefaultId());
 
         (await client.UpsertLanguageVariantAsync(identifier, new LanguageVariantUpsertModel
