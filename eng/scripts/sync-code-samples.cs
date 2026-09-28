@@ -151,7 +151,8 @@ foreach (var id in unpublished)
     Console.Error.WriteLine($"sync-code-samples: {id} ({Rel(sections[id].File)}) has no published file - it must exist in Kontent.ai Learn first");
 
 var mismatched = sections
-    .Where(s => !string.Equals(Path.GetExtension(s.Value.File), Path.GetExtension(published[s.Key][0]), StringComparison.OrdinalIgnoreCase))
+    .Where(s => published.TryGetValue(s.Key, out var files)
+        && !string.Equals(Path.GetExtension(s.Value.File), Path.GetExtension(files[0]), StringComparison.OrdinalIgnoreCase))
     .Select(s => s.Key)
     .ToList();
 foreach (var id in mismatched)
