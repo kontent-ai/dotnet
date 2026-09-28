@@ -48,8 +48,8 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
-    <PackageVersion Include="Refit" Version="15.2.0" />
-    <PackageVersion Include="Refit.HttpClientFactory" Version="15.2.0" />
+    <PackageVersion Include="Refit" Version="16.3.0" />
+    <PackageVersion Include="Refit.HttpClientFactory" Version="16.3.0" />
     <PackageVersion Include="RichardSzalay.MockHttp" Version="7.1.0" />
     <PackageVersion Include="Verify.Xunit" Version="31.12.5" />
     <!-- Delivery -->
