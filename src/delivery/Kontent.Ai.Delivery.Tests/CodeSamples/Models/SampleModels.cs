@@ -33,9 +33,12 @@ public partial record Product
     public string? Name { get; init; }
 }
 
-[ContentTypeCodename("video")]
-public partial record Video
+[ContentTypeCodename("youtube_video")]
+public partial record YoutubeVideo
 {
     [JsonPropertyName("video_id")]
     public string? VideoId { get; init; }
+
+    [JsonPropertyName("title")]
+    public string? Title { get; init; }
 }

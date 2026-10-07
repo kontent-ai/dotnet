@@ -1,0 +1,48 @@
+{
+  "item": {
+    "system": {
+      "id": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+      "name": "Coffee filters",
+      "codename": "coffee_filters",
+      "language": "en-US",
+      "type": "simple_article",
+      "collection": "default",
+      "sitemap_locations": [],
+      "last_modified": "2026-09-01T10:00:00Z",
+      "workflow": "default",
+      "workflow_step": "published"
+    },
+    "elements": {
+      "title": {
+        "type": "text",
+        "name": "Title",
+        "value": "Coffee filters"
+      },
+      "body": {
+        "type": "rich_text",
+        "name": "Body",
+        "images": {},
+        "links": {
+          "65832c4e-8e9c-445f-a001-b9528d13dac8": {
+            "codename": "which_brewing_fits_you",
+            "type": "article",
+            "url_slug": "which-brewing-fits-you"
+          },
+          "8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a": {
+            "codename": "paper_filters",
+            "type": "product",
+            "url_slug": ""
+          }
+        },
+        "modular_content": [],
+        "value": "<p>The grounds stay in the <a data-item-id=\"8d9e0f1a-2b3c-4d4e-9f5a-6b7c8d9e0f1a\" href=\"\">filter</a>, while the <a data-item-id=\"65832c4e-8e9c-445f-a001-b9528d13dac8\" href=\"\"><strong>brewed coffee</strong></a> drips into a <a data-item-id=\"9e0f1a2b-3c4d-4e5f-8a6b-7c8d9e0f1a2b\" href=\"\">carafe</a>.</p>"
+      },
+      "author": {
+        "type": "modular_content",
+        "name": "Author",
+        "value": []
+      }
+    }
+  },
+  "modular_content": {}
+}
