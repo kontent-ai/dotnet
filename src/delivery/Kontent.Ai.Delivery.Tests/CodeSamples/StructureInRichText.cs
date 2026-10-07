@@ -1,5 +1,4 @@
 using Kontent.Ai.Delivery.Abstractions;
-using Kontent.Ai.Delivery.Tests.Models.ContentTypes;
 using KontentAiModels;
 using Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,36 +14,54 @@ public class StructureInRichText
     private readonly IHtmlResolver _resolver = new HtmlResolverBuilder().Build();
 
     [Fact]
-    public void ImplementLinkResolver()
+    public async Task ImplementLinkResolver()
     {
         // DocSection: structure_in_rte_implement_link_resolver
-        // Define URL patterns for resolving content item links by content type
-        // Available placeholders: {codename}, {type}, {urlslug}, {id}
-        var linkResolver = DefaultResolvers.UrlPatternResolver(new Dictionary<string, string>
+        BlockResolver<IContentItemLink> linkResolver = async (link, resolveChildren) =>
         {
-            ["article"] = "/articles/{urlslug}"
-        });
+            // The link text with its formatting, already rendered to HTML, so don't encode it
+            var text = await resolveChildren(link.Children);
 
-        // For other means of resolving links, see SDK docs:
-        // https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md#content-item-link-resolvers
+            // Metadata is null when the linked item isn't available, such as when it's deleted or unpublished
+            var metadata = link.Metadata;
+            var slug = metadata is { UrlSlug.Length: > 0 } ? metadata.UrlSlug : metadata?.Codename;
+
+            var url = metadata?.ContentTypeCodename switch
+            {
+                "article" => $"/articles/{slug}",
+                "product" => $"/products/{slug}",
+                _ => null
+            };
+
+            return url is null ? text : $"<a href=\"{HtmlEncoder.Default.Encode(url)}\">{text}</a>";
+        };
         // EndDocSection
 
-        Assert.NotNull(linkResolver);
+        var client = SampleClient.Create("CodeSamples/article_with_links.json");
+        var article = (await client.GetItem<SimpleArticle>("coffee_filters").ExecuteAsync()).Value;
+        var html = await article.Elements.Body!.ToHtmlAsync(new HtmlResolverBuilder().WithContentItemLinkResolver(linkResolver).Build());
+
+        Assert.Equal(
+            "<p>The grounds stay in the <a href=\"/products/paper_filters\">filter</a>, while the <a href=\"/articles/which-brewing-fits-you\"><strong>brewed coffee</strong></a> drips into a carafe.</p>",
+            html);
     }
 
     [Fact]
     public async Task ImplementResolver()
     {
         // DocSection: structure_in_rte_implement_resolver
-        // Build an HTML resolver for embedded content items
         // The returned markup is inserted as is, so encode element values with HtmlEncoder
         var resolver = new HtmlResolverBuilder()
-            // Render embedded Tweet components
-            .WithContentResolver<Tweet>(tweet =>
-                $"<blockquote class=\"twitter-tweet\" data-lang=\"en\" data-theme=\"{tweet.Elements.Theme?.FirstOrDefault()?.Codename}\"><a href=\"{HtmlEncoder.Default.Encode(tweet.Elements.TweetLink ?? "")}\"></a></blockquote>")
-            // Render embedded YouTube video components
-            .WithContentResolver<Video>(video =>
-                $"<iframe src=\"https://youtube.com/embed/{HtmlEncoder.Default.Encode(video.Elements.VideoId ?? "")}\"></iframe>")
+            .WithContentResolver<YoutubeVideo>(video =>
+            {
+                var videoId = HtmlEncoder.Default.Encode(video.Elements.VideoId ?? "");
+                var title = HtmlEncoder.Default.Encode(video.Elements.Title ?? "YouTube video");
+
+                return $"""
+                    <iframe src="https://www.youtube.com/embed/{videoId}" title="{title}" width="560" height="315"
+                            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    """;
+            })
             .Build();
         // EndDocSection
 
@@ -52,17 +69,15 @@ public class StructureInRichText
         var article = (await client.GetItem<SimpleArticle>("brewing_at_home").ExecuteAsync()).Value;
         var html = await article.Elements.Body!.ToHtmlAsync(resolver);
 
-        Assert.Contains("data-theme=\"dark\"><a href=\"https://twitter.com/kontent_ai/status/1234567890?s=20&amp;t=abc\"></a></blockquote>", html);
-        Assert.Contains("<iframe src=\"https://youtube.com/embed/dQw4w9WgXcQ&quot; onload=&quot;alert(1)\"></iframe>", html);
+        Assert.Contains("<iframe src=\"https://www.youtube.com/embed/dQw4w9WgXcQ&quot; onload=&quot;alert(1)\" title=\"French press &amp; pour-over\"", html);
     }
 
     [Fact]
     public void RegisterLinkResolver()
     {
-        var linkResolver = DefaultResolvers.UrlPatternResolver(new Dictionary<string, string> { ["article"] = "/articles/{urlslug}" });
+        BlockResolver<IContentItemLink> linkResolver = (_, _) => ValueTask.FromResult(string.Empty);
 
         // DocSection: structure_in_rte_register_link_resolver
-        // Build an HTML resolver with the content item link resolver from the previous step
         var resolver = new HtmlResolverBuilder()
             .WithContentItemLinkResolver(linkResolver)
             .Build();
@@ -78,7 +93,6 @@ public class StructureInRichText
         var resolver = new HtmlResolverBuilder().Build();
 
         // DocSection: structure_in_rte_register_resolver
-        // Register the resolver as a singleton in the service collection
         services.AddSingleton<IHtmlResolver>(resolver);
 
         // Alternatively, resolvers can be instantiated directly and passed to ToHtmlAsync
@@ -98,7 +112,6 @@ public class StructureInRichText
 
         if (result.IsSuccess && result.Value.Elements.Body is { } body)
         {
-            // Resolve the rich text body to HTML
             // _resolver can be a local variable or resolved from DI (IHtmlResolver)
             string html = await body.ToHtmlAsync(_resolver);
         }
