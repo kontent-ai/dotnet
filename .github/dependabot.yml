@@ -1,6 +1,11 @@
 # Keeps pinned action SHAs and third-party packages current. Cross-product floors are not
 # dependencies to bump on a schedule: Kontent.Ai.* versions in Directory.Packages.props are the
 # minimum a consumer may resolve and are raised in their own PR after the dependency ships.
+#
+# The same holds for every third-party package a shipped project references: its version lands
+# in the nuspec as a floor. Those go to the runtime group, which a human merges. The actions and
+# tooling groups never reach a consumer and are merged by dependabot-auto-merge.yml. A dependency
+# matching more than one group joins the first, so tooling is listed before runtime.
 version: 2
 
 updates:
@@ -20,15 +25,45 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      microsoft-extensions:
-        patterns: ["Microsoft.Extensions.*"]
+      tooling:
+        patterns:
+          - "xunit*"
+          - "coverlet.*"
+          - "AwesomeAssertions"
+          - "NSubstitute"
+          - "Verify.*"
+          - "RichardSzalay.MockHttp"
+          - "Microsoft.NET.Test.Sdk"
+          - "Microsoft.AspNetCore.TestHost"
+          - "Microsoft.CodeAnalysis.CSharp.Analyzer.Testing"
+          - "NodaTime"
+          - "StackExchange.Redis"
+          - "BenchmarkDotNet"
+          - "SonarAnalyzer.CSharp"
+          - "Microsoft.SourceLink.*"
         update-types: [minor, patch]
-      test-tooling:
-        patterns: ["xunit*", "coverlet.*", "AwesomeAssertions", "NSubstitute", "Verify.*", "RichardSzalay.MockHttp", "Microsoft.NET.Test.Sdk"]
+      runtime:
+        patterns:
+          - "Microsoft.Extensions.*"
+          - "Microsoft.CodeAnalysis.*"
+          - "Refit*"
+          - "AngleSharp"
+          - "ZiggyCreatures.*"
         update-types: [minor, patch]
     ignore:
       # Declared dependency floors, raised deliberately once the sibling is on nuget.org.
       - dependency-name: Kontent.Ai.*
+      # A major of a shipped dependency is a decision, not a weekly bump.
+      - dependency-name: Microsoft.Extensions.*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: Microsoft.CodeAnalysis.*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: Refit*
+        update-types: ["version-update:semver-major"]
+      - dependency-name: AngleSharp
+        update-types: ["version-update:semver-major"]
+      - dependency-name: ZiggyCreatures.*
+        update-types: ["version-update:semver-major"]
 
   # global.json pins the SDK; roll forward within the .NET 10 line only.
   - package-ecosystem: dotnet-sdk
