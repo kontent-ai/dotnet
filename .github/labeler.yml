@@ -48,6 +48,9 @@
           - "src/*/docs/**"
 
 # Raising a Kontent.Ai.* floor is its own step, after the dependency is on nuget.org.
+# Dependabot ignores Kontent.Ai.*, so its branches never raise one.
 "dependency floor":
-  - changed-files:
-      - any-glob-to-any-file: "Directory.Packages.props"
+  - all:
+      - changed-files:
+          - any-glob-to-any-file: "Directory.Packages.props"
+      - head-branch: ["^(?!dependabot/)"]
