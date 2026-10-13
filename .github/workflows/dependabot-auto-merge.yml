@@ -1,9 +1,9 @@
 name: Dependabot auto-merge
 
-# Approves and queues auto-merge for the Dependabot updates that never reach a consumer: the
-# actions and tooling groups from dependabot.yml, and SDK roll-forwards in global.json. The
-# runtime group and anything ungrouped wait for a human. The merge itself waits for the required
-# status checks on the base branch.
+# Queues auto-merge for the Dependabot updates that never reach a consumer: the actions and
+# tooling groups from dependabot.yml, and SDK roll-forwards in global.json. The runtime group and
+# anything ungrouped are not queued. The merge still waits for a code owner's approval and the
+# required status checks; a bot approval would not count as a code-owner review.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -22,7 +22,7 @@ jobs:
     steps:
       - id: meta
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
-      - name: Approve and enable auto-merge
+      - name: Enable auto-merge
         if: >-
           contains(fromJSON('["actions", "tooling"]'), steps.meta.outputs.dependency-group) ||
           (steps.meta.outputs.dependency-names == 'dotnet-sdk' &&
@@ -30,6 +30,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: |
-          gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
+        run: gh pr merge --auto --squash "$PR_URL"
