@@ -1,9 +1,6 @@
 name: Dependabot auto-merge
 
-# Queues auto-merge for the Dependabot updates that never reach a consumer: the actions and
-# tooling groups from dependabot.yml, and SDK roll-forwards in global.json. The runtime group and
-# anything ungrouped are not queued. The merge still waits for a code owner's approval and the
-# required status checks; a bot approval would not count as a code-owner review.
+# Only updates that never reach a consumer: the actions and tooling groups, and SDK roll-forwards.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
