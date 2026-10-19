@@ -19,7 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Build infrastructure -->
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.402" />
     <!-- Core dependencies -->
     <PackageVersion Include="Kontent.Ai.Delivery" Version="20.0.0" />
     <PackageVersion Include="Kontent.Ai.Delivery.Abstractions" Version="20.0.0" />
@@ -29,8 +29,8 @@
     <!-- Test dependencies -->
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="coverlet.msbuild" Version="10.1.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
@@ -64,7 +64,7 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.12" />
     <PackageVersion Include="NodaTime" Version="3.3.5" />
-    <PackageVersion Include="StackExchange.Redis" Version="3.3.1" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.4.5" />
     <PackageVersion Include="ZiggyCreatures.FusionCache" Version="2.8.0" />
     <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.8.0" />
     <!-- Test-only: an in-process backplane, so multi-node cache coherence can be exercised without Redis. -->
