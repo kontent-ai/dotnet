@@ -7,9 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AngleSharp" VersionOverride="1.8.6" />
     <PackageReference Include="Kontent.Ai.Delivery" />
     <PackageReference Include="Kontent.Ai.Delivery.Abstractions" />
     <PackageReference Include="Kontent.Ai.Urls" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
   </ItemGroup>
 
   <ItemGroup>
