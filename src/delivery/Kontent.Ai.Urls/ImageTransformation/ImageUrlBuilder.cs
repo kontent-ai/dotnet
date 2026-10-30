@@ -87,11 +87,13 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
     /// <summary>
     /// The fit transformation controls how the output image is fit to its target dimensions after resizing.
     /// </summary>
-    /// <param name="fitMode">Specifies the mode for the transformation. </param>
+    /// <param name="fitMode">
+    /// An <see cref="ImageFitMode" /> name, ignoring case. Any other value leaves the fit mode unchanged.
+    /// </param>
     /// <returns>The same <see cref="ImageUrlBuilder" /> instance. </returns>
     public ImageUrlBuilder WithFitMode(string fitMode)
     {
-        if (!string.IsNullOrWhiteSpace(fitMode) && Enum.TryParse(fitMode, true, out ImageFitMode parsedFitMode))
+        if (TryParseName(fitMode, out ImageFitMode parsedFitMode))
         {
             WithFitMode(parsedFitMode);
         }
@@ -154,11 +156,13 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
     /// <summary>
     /// The format transformation enables the source image to be converted (a.k.a., "transcoded") from one encoded format to another. This is very useful when the source image has been saved in a sub-optimal file format that hinders performance.
     /// </summary>
-    /// <param name="format">The output image format. </param>
+    /// <param name="format">
+    /// An <see cref="ImageFormat" /> name, ignoring case. Any other value leaves the format unchanged.
+    /// </param>
     /// <returns>The same <see cref="ImageUrlBuilder" /> instance. </returns>
     public ImageUrlBuilder WithFormat(string format)
     {
-        if (!string.IsNullOrWhiteSpace(format) && Enum.TryParse(format, true, out ImageFormat parsedFormat))
+        if (TryParseName(format, out ImageFormat parsedFormat))
         {
             WithFormat(parsedFormat);
         }
@@ -216,6 +220,15 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
     public ImageUrlBuilder WithAutomaticFormat(ImageFormat backupFormat) => WithFormat(backupFormat).WithAutomaticFormat();
 
     private static string FormatDouble(double number) => number.ToString("0.##########", CultureInfo.InvariantCulture);
+
+    // Names only. Enum.TryParse also accepts numbers and comma-separated lists, which select a value the caller never
+    // named: "png,pjpg" combines the flags into Webp.
+    private static bool TryParseName<TEnum>(string? value, out TEnum result) where TEnum : struct, Enum
+    {
+        var name = Enum.GetNames<TEnum>().FirstOrDefault(name => name.Equals(value?.Trim(), StringComparison.OrdinalIgnoreCase));
+        result = name is null ? default : Enum.Parse<TEnum>(name);
+        return name is not null;
+    }
 
     private static string StringifyEnum(Enum value) => value.ToString().ToLowerInvariant();
 }
