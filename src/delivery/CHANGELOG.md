@@ -22,6 +22,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   No valid codename or language contains those characters, so existing keys are unchanged.
 
+### Changed
+
+- **`ImageUrlBuilder` rejects a relative URI when it is created.**
+
+  The `Uri` constructor accepted a relative URI, and the first read of `Url` then threw `InvalidOperationException`, because a transformation needs the asset's host. The constructor now throws `ArgumentException`. A builder created this way could never produce a URL, so only the exception type and where it is thrown change.
+
 ### Fixed
 
 - **`WithLanguage` replaces its language filter instead of adding another.**
