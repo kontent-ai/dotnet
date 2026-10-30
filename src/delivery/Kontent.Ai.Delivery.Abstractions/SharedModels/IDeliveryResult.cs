@@ -10,7 +10,8 @@ namespace Kontent.Ai.Delivery.Abstractions;
 public interface IDeliveryResult<out T>
 {
     /// <summary>
-    /// Gets the result value when the operation was successful.
+    /// Gets the result value. Meaningful only when <see cref="IsSuccess"/> is <c>true</c>; a failed result holds
+    /// <see langword="default"/>.
     /// </summary>
     T Value { get; }
 
