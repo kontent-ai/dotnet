@@ -1,5 +1,7 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
+using Kontent.Ai.Delivery.Api.Filtering;
 
 namespace Kontent.Ai.Delivery.Caching;
 
@@ -31,6 +33,9 @@ internal static class CacheKeyBuilder
     private const char Separator = ':';
     private const char ArraySeparator = '|';
 
+    // The key's separators and '=', plus '%' so an escape cannot be forged.
+    private static readonly SearchValues<char> KeySyntax = SearchValues.Create("%:=|");
+
     /// <summary>
     /// Builds cache key for single item query.
     /// </summary>
@@ -44,7 +49,7 @@ internal static class CacheKeyBuilder
     {
         var builder = new StringBuilder(128);
         builder.Append("item").Append(Separator);
-        builder.Append(codename).Append(Separator);
+        builder.Append(Escape(codename)).Append(Separator);
 
         AppendModelDiscriminator(builder, modelType);
         AppendLanguage(builder, parameters.Language);
@@ -111,7 +116,7 @@ internal static class CacheKeyBuilder
     {
         var builder = new StringBuilder(128);
         builder.Append("type").Append(Separator);
-        builder.Append(codename).Append(Separator);
+        builder.Append(Escape(codename)).Append(Separator);
 
         AppendElementProjection(builder, parameters.Elements, excludeElements: null);
 
@@ -143,7 +148,7 @@ internal static class CacheKeyBuilder
     public static string BuildTaxonomyKey(string codename)
     {
         var builder = new StringBuilder(128);
-        builder.Append("taxonomy").Append(Separator).Append(codename).Append(Separator);
+        builder.Append("taxonomy").Append(Separator).Append(Escape(codename)).Append(Separator);
         return TrimTrailingSeparator(builder);
     }
 
@@ -151,7 +156,7 @@ internal static class CacheKeyBuilder
     {
         if (!string.IsNullOrEmpty(language))
         {
-            builder.Append("lang=").Append(language).Append(Separator);
+            builder.Append("lang=").Append(Escape(language)).Append(Separator);
         }
     }
 
@@ -179,7 +184,7 @@ internal static class CacheKeyBuilder
     {
         if (!string.IsNullOrEmpty(orderBy))
         {
-            builder.Append("order=").Append(orderBy).Append(Separator);
+            builder.Append("order=").Append(Escape(orderBy)).Append(Separator);
         }
     }
 
@@ -209,19 +214,30 @@ internal static class CacheKeyBuilder
 
     private static void AppendSortedCsv(StringBuilder builder, string csv)
     {
-        var sorted = csv.Split(',').OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
+        var sorted = csv.Split(',').Select(Escape).OrderBy(x => x, StringComparer.OrdinalIgnoreCase);
         builder.AppendJoin(ArraySeparator, sorted);
     }
+
+    // Caller-supplied text written into the key verbatim could spell the key's own syntax - a codename of
+    // "coffee:lang=de" would build the key of "coffee" in German. Percent-encoding just these characters keeps
+    // every key unique and leaves valid codenames, languages and order paths, which contain none of them, as
+    // they read.
+    private static string Escape(string value)
+        => value.AsSpan().ContainsAny(KeySyntax)
+            ? string.Concat(value.Select(c => KeySyntax.Contains(c) ? Uri.HexEscape(c) : c.ToString()))
+            : value;
 
     private static void AppendFilters(StringBuilder builder, IReadOnlyList<KeyValuePair<string, string>> filters)
     {
         if (filters is not { Count: > 0 })
             return;
 
+        // Escaped exactly as sent: unescaped, a value holding '&' or '=' joins into the same string as a
+        // query with one more filter, and the two would share an entry.
         var sortedFilters = filters
             .OrderBy(kvp => kvp.Key, StringComparer.OrdinalIgnoreCase)
             .ThenBy(kvp => kvp.Value, StringComparer.Ordinal)
-            .Select(kvp => $"{kvp.Key}={kvp.Value}");
+            .Select(FilterQueryString.RenderPair);
 
         var filterString = string.Join('&', sortedFilters);
         var hash = ComputeStableHash(filterString);

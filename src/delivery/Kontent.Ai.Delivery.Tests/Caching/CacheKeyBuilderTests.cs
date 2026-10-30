@@ -121,6 +121,28 @@ public class CacheKeyBuilderTests
     }
 
     [Fact]
+    public void BuildItemsKey_FilterValueContainingSeparators_DoesNotCollideWithAnExtraFilter()
+    {
+        var smuggled = new List<KeyValuePair<string, string>>
+        {
+            new("elements.category[eq]", "news&elements.title[eq]=foo"),
+            new("system.type[eq]", "article")
+        };
+        var genuine = new List<KeyValuePair<string, string>>
+        {
+            new("elements.category[eq]", "news"),
+            new("elements.title[eq]", "foo"),
+            new("system.type[eq]", "article")
+        };
+        var parameters = new ListItemsParams();
+
+        var smuggledKey = CacheKeyBuilder.BuildItemsKey(parameters, smuggled);
+        var genuineKey = CacheKeyBuilder.BuildItemsKey(parameters, genuine);
+
+        Assert.NotEqual(smuggledKey, genuineKey);
+    }
+
+    [Fact]
     public void BuildItemsKey_WithAllParams_ProducesExpectedFormat()
     {
         var parameters = new ListItemsParams
@@ -194,5 +216,61 @@ public class CacheKeyBuilderTests
 
         Assert.StartsWith("type:article:", key);
         Assert.Contains("elements=codename", key);
+    }
+
+    [Fact]
+    public void BuildItemKey_WithValidValues_IsUnescaped()
+    {
+        var parameters = new SingleItemParams { Language = "en-US", Depth = 2, Elements = "title,description" };
+
+        var key = CacheKeyBuilder.BuildItemKey("hero", parameters);
+
+        Assert.Equal("item:hero:lang=en-US:depth=2:elements=description|title", key);
+    }
+
+    [Fact]
+    public void BuildItemKey_CodenameContainingKeySyntax_DoesNotCollideWithALanguage()
+    {
+        var smuggledKey = CacheKeyBuilder.BuildItemKey("coffee:lang=de", new SingleItemParams());
+        var genuineKey = CacheKeyBuilder.BuildItemKey("coffee", new SingleItemParams { Language = "de" });
+
+        Assert.NotEqual(smuggledKey, genuineKey);
+    }
+
+    [Fact]
+    public void BuildItemKey_LanguageContainingKeySyntax_DoesNotCollideWithADepth()
+    {
+        var smuggledKey = CacheKeyBuilder.BuildItemKey("coffee", new SingleItemParams { Language = "de:depth=3" });
+        var genuineKey = CacheKeyBuilder.BuildItemKey("coffee", new SingleItemParams { Language = "de", Depth = 3 });
+
+        Assert.NotEqual(smuggledKey, genuineKey);
+    }
+
+    [Fact]
+    public void BuildItemKey_ElementContainingArraySeparator_DoesNotCollideWithTwoElements()
+    {
+        var smuggledKey = CacheKeyBuilder.BuildItemKey("coffee", new SingleItemParams { Elements = "body|title" });
+        var genuineKey = CacheKeyBuilder.BuildItemKey("coffee", new SingleItemParams { Elements = "body,title" });
+
+        Assert.NotEqual(smuggledKey, genuineKey);
+    }
+
+    [Fact]
+    public void BuildItemsKey_OrderContainingKeySyntax_DoesNotCollideWithTotalCount()
+    {
+        var smuggledKey = CacheKeyBuilder.BuildItemsKey(new ListItemsParams { OrderBy = "system.name[asc]:total" }, []);
+        var genuineKey = CacheKeyBuilder.BuildItemsKey(
+            new ListItemsParams { OrderBy = "system.name[asc]", IncludeTotalCount = true }, []);
+
+        Assert.NotEqual(smuggledKey, genuineKey);
+    }
+
+    [Fact]
+    public void BuildTypeKey_CodenameContainingKeySyntax_DoesNotCollideWithAProjection()
+    {
+        var smuggledKey = CacheKeyBuilder.BuildTypeKey("article:elements=name", new SingleTypeParams());
+        var genuineKey = CacheKeyBuilder.BuildTypeKey("article", new SingleTypeParams { Elements = "name" });
+
+        Assert.NotEqual(smuggledKey, genuineKey);
     }
 }

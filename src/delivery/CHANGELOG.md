@@ -8,6 +8,20 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Security
+
+- **A filter value can no longer share a cache key with another query.**
+
+  Listing cache keys hashed filters as unescaped `key=value` pairs joined with `&`, so a value containing `&` or `=` produced the same key as a query with one more filter: `category = "news&elements.title[eq]=foo"` collided with `category = "news"` plus `title = "foo"`. An application that passes user input into `Where()` could have the first query's empty result cached and served for the second. Keys now hash each pair escaped exactly as it is sent to the API.
+
+  Every key with a `filters=` part changes, so existing entries for filtered queries miss once after the upgrade.
+
+- **Codenames and languages can no longer impersonate other cache key parts.**
+
+  Cache keys wrote codenames, languages, element names and order paths verbatim between `:` separators, so `GetItem("coffee:lang=de")` produced the key of `GetItem("coffee").WithLanguage("de")`. The bogus request fails, and a failed fetch removes the entry under its key, so repeating it kept the genuine entry evicted. These parts are now percent-encoded where they contain `%`, `:`, `|` or `=`.
+
+  No valid codename or language contains those characters, so existing keys are unchanged.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
