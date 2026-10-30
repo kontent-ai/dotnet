@@ -133,13 +133,11 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             CacheName = ComposeCacheName("Memory", keyPrefix),
             CacheKeyPrefix = keyPrefix,
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
-            // Required for deterministic fail-safe source propagation in query builders.
-            EnableSyncEventHandlersExecution = true,
             DefaultEntryOptions = EntryDefaults(cacheOptions, memoryOnly: true)
         };
         ConfigureTagEntries(fusionCacheOptions.TagsDefaultEntryOptions, memoryOnly: true);
 
-        cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
+        ApplyConsumerOptions(fusionCacheOptions, cacheOptions);
 
         var fusion = new FusionCache(
             Options.Create(fusionCacheOptions),
@@ -188,8 +186,6 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             // FusionCache would otherwise version the distributed keys itself; DistributedFormatVersion
             // covers its wire format as well, and keeps the keys readable.
             DistributedCacheKeyModifierMode = CacheKeyModifierMode.None,
-            // Required for deterministic fail-safe source propagation in query builders.
-            EnableSyncEventHandlersExecution = true,
             // A distributed cache that is down is worked around, not retried on every request: while the
             // breaker is open the memory tier and the origin carry the load, and FusionCache re-syncs the
             // distributed tier when it comes back.
@@ -198,7 +194,7 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         };
         ConfigureTagEntries(fusionCacheOptions.TagsDefaultEntryOptions, memoryOnly: false);
 
-        cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
+        ApplyConsumerOptions(fusionCacheOptions, cacheOptions);
 
         var fusion = new FusionCache(
             Options.Create(fusionCacheOptions),
@@ -226,6 +222,20 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
             logger,
             WriteOptions(fusionCacheOptions, cacheOptions, memoryOnly: false),
             InvalidationOptions(fusionCacheOptions));
+    }
+
+    /// <summary>
+    /// Runs the consumer's callback, then re-applies the cache-wide settings the SDK depends on.
+    /// </summary>
+    /// <remarks>
+    /// Stale detection reads <c>FailSafeActivate</c> inline (see <see cref="CurrentCall"/>). Run on another thread,
+    /// the handler fires after the result is built and a fail-safe hit is reported as a fresh one. Only the SDK's
+    /// own handlers subscribe to this cache, so nothing is lost by pinning it.
+    /// </remarks>
+    private static void ApplyConsumerOptions(FusionCacheOptions fusionCacheOptions, DeliveryCacheOptions cacheOptions)
+    {
+        cacheOptions.ConfigureFusionCacheOptions?.Invoke(fusionCacheOptions);
+        fusionCacheOptions.EnableSyncEventHandlersExecution = true;
     }
 
     /// <summary>

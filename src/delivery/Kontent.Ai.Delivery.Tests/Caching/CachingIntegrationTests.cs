@@ -2314,8 +2314,10 @@ public partial class CachingIntegrationTests
         Assert.False(refreshed.IsCacheHit);
     }
 
-    [Fact]
-    public async Task MemoryCache_FailSafe_SetsResponseSourceToFailSafe()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MemoryCache_FailSafe_SetsResponseSourceToFailSafe(bool callbackTurnsOffSyncEventHandlers)
     {
         var mock = new MockHttpMessageHandler();
         var itemCodename = "coffee_beverages_explained";
@@ -2333,6 +2335,10 @@ public partial class CachingIntegrationTests
             opts.IsFailSafeEnabled = true;
             opts.FailSafeMaxDuration = TimeSpan.FromMinutes(5);
             opts.FailSafeThrottleDuration = TimeSpan.FromSeconds(1);
+            if (callbackTurnsOffSyncEventHandlers)
+            {
+                opts.ConfigureFusionCache(fusion => fusion.EnableSyncEventHandlersExecution = false);
+            }
         }));
         var serviceProvider = services.BuildServiceProvider();
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
@@ -2363,8 +2369,10 @@ public partial class CachingIntegrationTests
         mock.VerifyNoOutstandingExpectation();
     }
 
-    [Fact]
-    public async Task HybridCache_FailSafe_SetsResponseSourceToFailSafe()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task HybridCache_FailSafe_SetsResponseSourceToFailSafe(bool callbackTurnsOffSyncEventHandlers)
     {
         var mock = new MockHttpMessageHandler();
         var itemCodename = "coffee_beverages_explained";
@@ -2384,6 +2392,10 @@ public partial class CachingIntegrationTests
             opts.IsFailSafeEnabled = true;
             opts.FailSafeMaxDuration = TimeSpan.FromMinutes(5);
             opts.FailSafeThrottleDuration = TimeSpan.FromSeconds(1);
+            if (callbackTurnsOffSyncEventHandlers)
+            {
+                opts.ConfigureFusionCache(fusion => fusion.EnableSyncEventHandlersExecution = false);
+            }
         }));
         var serviceProvider = services.BuildServiceProvider();
         var client = serviceProvider.GetRequiredKeyedService<IDeliveryClient>("test");
