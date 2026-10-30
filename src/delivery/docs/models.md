@@ -78,10 +78,10 @@ public partial record Article
 For the complete shape the generator emits — every element, the codename constants, the nullability modes — see the
 [model generator README](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator#generated-model-example-delivery).
 
-The source generator emits `ContentTypeCodenameAttribute` and produces a `GeneratedTypeProvider` at compile time with bi-directional lookup (codename ↔ Type). The SDK auto-discovers this provider at runtime.
+The source generator emits `ContentTypeCodenameAttribute` and, in a project that declares at least one model, a `GeneratedTypeProvider` with bi-directional lookup (codename ↔ Type). The SDK auto-discovers this provider at runtime.
 
 > [!NOTE]
-> Source generation runs per project/compilation. For the default auto-discovery path, use a single models project containing your attributed models.
+> Source generation runs per project/compilation, and an analyzer does not flow through project references: reference the package from the project that declares the models. For the default auto-discovery path, use a single models project containing your attributed models.
 > If you split models across multiple projects, prefer explicit `ITypeProvider` registration.
 
 **Compile-time diagnostics:**

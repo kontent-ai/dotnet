@@ -177,7 +177,12 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             .OrderBy(i => i.Codename, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        // Always generate the type provider (even if empty)
+        // No models, no provider. Runtime discovery checks the app before its references, so an app that references
+        // the generator with its models in another project would find an empty one first - and an explicit
+        // GeneratedTypeProvider registration there would bind to it instead of the models project's.
+        if (finalInfos.Count == 0)
+            return;
+
         var source = GenerateTypeProvider(finalInfos);
         context.AddSource("GeneratedTypeProvider.g.cs", SourceText.From(source, Encoding.UTF8));
     }
