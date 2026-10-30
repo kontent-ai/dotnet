@@ -50,6 +50,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   It passed a two-parameter lambda to `WithContentResolver` and read members `IEmbeddedContent` does not have.
 
+- **A fail-safe hit is reported as `FailSafe` whatever `ConfigureFusionCache` sets.**
+
+  The SDK recognizes a stale copy served during an outage by handling FusionCache's fail-safe event as it fires. Setting `EnableSyncEventHandlersExecution = false` in the callback moved that handler to another thread, so the result was built first and reported as `ResponseSource.Cache`. The setting is now re-applied after the callback; only the SDK's own handlers subscribe to that cache.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
