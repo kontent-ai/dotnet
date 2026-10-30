@@ -92,29 +92,49 @@ internal sealed class EnumerateItemsQuery<TModel>(
         return ExecuteLoggedAsync(continuationToken, cancellationToken);
     }
 
+    // Everything a feed request sends except the continuation token. A page's next-page fetcher replays the request
+    // that produced the page, so a builder changed afterwards cannot pair the old token with a different query.
+    private sealed record FeedRequest(EnumItemsParams Parameters, string? Filters, bool? WaitForLoadingNewContent);
+
+    // Throws for an unmapped model. Its callers are async, so that faults the returned task rather than the call.
+    private FeedRequest CaptureRequest()
+    {
+        ApplyGenericTypeFilter();
+        return new(_params, FilterQueryString.Render(_serializedFilters), _waitForLoadingNewContent ? true : null);
+    }
+
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteLoggedAsync(string? continuationToken, CancellationToken cancellationToken) =>
+        await ExecuteLoggedAsync(CaptureRequest(), continuationToken, cancellationToken).ConfigureAwait(false);
+
     // Wraps one request in the same starting/completed bracket every other query builder emits. A walk goes straight
     // to ExecutePageAsync instead: it has its own Pagination bracket, and per-page timings would drown it.
-    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteLoggedAsync(string? continuationToken, CancellationToken cancellationToken)
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecuteLoggedAsync(
+        FeedRequest request,
+        string? continuationToken,
+        CancellationToken cancellationToken)
     {
         _log.LogQueryStarting();
         var stopwatch = _log.StartTimingIfEnabled();
 
-        var result = await ExecutePageAsync(continuationToken, cancellationToken).ConfigureAwait(false);
+        var result = await ExecutePageAsync(request, continuationToken, cancellationToken).ConfigureAwait(false);
 
         _log.LogQueryCompleted(stopwatch, result.StatusCode, result.IsCacheHit, result.HasStaleContent);
         return result;
     }
 
-    // Takes the token as an argument rather than reading the field, so a walk never mutates the query it came from.
+    // A walk captures the builder for every page it fetches.
     // Internal, not private: the dynamic wrapper's walk needs this unlogged path too.
-    internal async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken)
-    {
-        ApplyGenericTypeFilter();
+    internal async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken) =>
+        await ExecutePageAsync(CaptureRequest(), continuationToken, cancellationToken).ConfigureAwait(false);
 
-        bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
+    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(
+        FeedRequest request,
+        string? continuationToken,
+        CancellationToken cancellationToken)
+    {
         var (deliveryResult, nextContinuationToken) = await FetchFeedPageAsync(
+            request,
             continuationToken,
-            waitForLoadingNewContent,
             cancellationToken).ConfigureAwait(false);
 
         if (!deliveryResult.IsSuccess)
@@ -123,14 +143,16 @@ internal sealed class EnumerateItemsQuery<TModel>(
             return CreateFailureResult(deliveryResult);
         }
 
-        var response = await PreparePageAsync(deliveryResult.Value, nextContinuationToken, cancellationToken).ConfigureAwait(false);
+        var response = await PreparePageAsync(request, deliveryResult.Value, nextContinuationToken, cancellationToken).ConfigureAwait(false);
         return WrapSuccess(response, deliveryResult);
     }
 
     // The logged path: FetchNextPageAsync is one caller-issued request, exactly like ExecuteAsync(token), and gets
     // the same bracket. Only the walk skips it, because it brackets itself once with Pagination*.
-    private Func<CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>>? CreateNextPageFetcher(string? continuationToken) =>
-        string.IsNullOrEmpty(continuationToken) ? null : (ct => ExecuteLoggedAsync(continuationToken, ct));
+    private Func<CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>>? CreateNextPageFetcher(
+        FeedRequest request,
+        string? continuationToken) =>
+        string.IsNullOrEmpty(continuationToken) ? null : (ct => ExecuteLoggedAsync(request, continuationToken, ct));
 
     public DeliveryEnumeration<IContentItem<TModel>> EnumerateAsync(CancellationToken cancellationToken = default) =>
         LoggedDeliveryEnumeration.Create<IContentItem<TModel>, IDeliveryItemsFeedResponse<TModel>>(
@@ -145,16 +167,16 @@ internal sealed class EnumerateItemsQuery<TModel>(
             cancellationToken);
 
     private async Task<(IDeliveryResult<DeliveryItemsFeedResponse<TModel>> DeliveryResult, string? ContinuationToken)> FetchFeedPageAsync(
+        FeedRequest request,
         string? continuationToken,
-        bool? waitForLoadingNewContent,
         CancellationToken cancellationToken)
     {
         var resp = await api
             .GetItemsFeedInternalAsync<TModel>(
-                _params,
-                FilterQueryString.Render(_serializedFilters),
+                request.Parameters,
+                request.Filters,
                 continuationToken,
-                waitForLoadingNewContent,
+                request.WaitForLoadingNewContent,
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -163,6 +185,7 @@ internal sealed class EnumerateItemsQuery<TModel>(
     }
 
     private async Task<DeliveryItemsFeedResponse<TModel>> PreparePageAsync(
+        FeedRequest request,
         DeliveryItemsFeedResponse<TModel> content,
         string? continuationToken,
         CancellationToken cancellationToken)
@@ -184,7 +207,7 @@ internal sealed class EnumerateItemsQuery<TModel>(
         return content with
         {
             ContinuationToken = continuationToken,
-            NextPageFetcher = CreateNextPageFetcher(continuationToken)
+            NextPageFetcher = CreateNextPageFetcher(request, continuationToken)
         };
     }
 
