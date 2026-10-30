@@ -58,6 +58,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `EagerRefreshThreshold` at its default of 0, a threshold set on `DefaultEntryOptions` in `ConfigureFusionCache` took effect, although the docs say the eager-refresh policy comes from `DeliveryCacheOptions` regardless. It is now ignored there, like the duration, fail-safe and jitter. If you enabled eager refresh that way, set `DeliveryCacheOptions.EagerRefreshThreshold` instead.
 
+- **`WithFormat` and `WithFitMode` accept only format and fit-mode names.**
+
+  The string overloads also parsed numbers and comma-separated lists, so `WithFormat("png,pjpg")` produced `fm=webp` and `WithFitMode("2")` produced `fit=crop`. Anything other than a name, ignoring case, now leaves the URL unchanged, as an unknown name already did.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
