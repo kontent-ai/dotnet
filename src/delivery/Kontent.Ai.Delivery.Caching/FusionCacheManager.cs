@@ -288,11 +288,8 @@ internal sealed class FusionCacheManager : IDeliveryCacheManager, IDeliveryCache
         options.FailSafeMaxDuration = cacheOptions.FailSafeMaxDuration;
         options.FailSafeThrottleDuration = cacheOptions.FailSafeThrottleDuration;
         options.JitterMaxDuration = cacheOptions.JitterMaxDuration;
-
-        if (cacheOptions.EagerRefreshThreshold > 0)
-        {
-            options.EagerRefreshThreshold = cacheOptions.EagerRefreshThreshold;
-        }
+        // Null at 0, not left alone: 0 means off, and a threshold set in the callback must not turn it on.
+        options.EagerRefreshThreshold = cacheOptions.EagerRefreshThreshold > 0 ? cacheOptions.EagerRefreshThreshold : null;
 
         return options;
     }

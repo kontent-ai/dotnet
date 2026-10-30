@@ -54,6 +54,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The SDK recognizes a stale copy served during an outage by handling FusionCache's fail-safe event as it fires. Setting `EnableSyncEventHandlersExecution = false` in the callback moved that handler to another thread, so the result was built first and reported as `ResponseSource.Cache`. The setting is now re-applied after the callback; only the SDK's own handlers subscribe to that cache.
 
+- **Eager refresh follows `DeliveryCacheOptions` even when it is off.**
+
+  With `EagerRefreshThreshold` at its default of 0, a threshold set on `DefaultEntryOptions` in `ConfigureFusionCache` took effect, although the docs say the eager-refresh policy comes from `DeliveryCacheOptions` regardless. It is now ignored there, like the duration, fail-safe and jitter. If you enabled eager refresh that way, set `DeliveryCacheOptions.EagerRefreshThreshold` instead.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
