@@ -184,7 +184,13 @@ public static class RichTextExtensions
     /// <param name="modularContent">Optional modular_content dictionary for embedded item resolution.
     /// Pass the ModularContent from the delivery response to enable embedded content resolution.</param>
     /// <param name="cancellationToken">A cancellation token to observe while parsing.</param>
-    /// <returns>The parsed rich text content, or null if parsing fails or the element is not a rich text type.</returns>
+    /// <returns>The parsed rich text content, or null if the element is not a rich text element or its JSON is malformed.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// An embedded item or component has no <c>data-codename</c> attribute. The Delivery API always sends one.
+    /// </exception>
+    /// <remarks>
+    /// Runs without a client, so inline image URLs are the API's own: the client's <c>CustomAssetDomain</c> is not applied.
+    /// </remarks>
     /// <example>
     /// <code>
     /// // A listing read without a model keeps every element as JSON, and carries the modular content
