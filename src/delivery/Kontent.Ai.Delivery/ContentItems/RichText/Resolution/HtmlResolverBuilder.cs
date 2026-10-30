@@ -26,10 +26,8 @@ namespace Kontent.Ai.Delivery.ContentItems.RichText.Resolution;
 ///         ["article"] = "/articles/{urlslug}",
 ///         ["product"] = "/products/{urlslug}"
 ///     }))
-///     .WithContentResolver("tweet", (content, ctx) =>
-///         $"&lt;div class='tweet'&gt;{content.Name}&lt;/div&gt;")
-///     .WithContentResolver("video", (content, ctx) =>
-///         $"&lt;video src='{content.Content.Url}'&gt;&lt;/video&gt;")
+///     .WithContentResolver("tweet", content =>
+///         $"&lt;div class='tweet'&gt;{content.System.Name}&lt;/div&gt;")
 ///     .Build();
 ///
 /// var html = await richText.ToHtmlAsync(resolver);

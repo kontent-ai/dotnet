@@ -46,6 +46,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With no models anywhere, falling back to dynamic types now logs at Debug, as without the generator, instead of Warning.
 
+- **The `HtmlResolverBuilder` example compiles.**
+
+  It passed a two-parameter lambda to `WithContentResolver` and read members `IEmbeddedContent` does not have.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
