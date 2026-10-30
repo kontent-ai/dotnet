@@ -45,6 +45,39 @@ public class MemoryCacheManagerTests : IDisposable
         Assert.False(hit!.FromFactory);
     }
 
+    [Theory]
+    [InlineData(0f, 0.1f, false)]
+    [InlineData(0.1f, 0.9f, true)]
+    public async Task GetOrSetAsync_EagerRefreshFollowsDeliveryCacheOptions_NotTheCallback(
+        float sdkThreshold, float callbackThreshold, bool expectEarlyRefresh)
+    {
+        using var memoryCache = new MemoryCache(new MemoryCacheOptions());
+        using var cacheManager = FusionCacheManager.CreateMemory(memoryCache, new DeliveryCacheOptions
+        {
+            DefaultExpiration = TimeSpan.FromSeconds(2),
+            EagerRefreshThreshold = sdkThreshold,
+        }.ConfigureFusionCache(fusion => fusion.DefaultEntryOptions.EagerRefreshThreshold = callbackThreshold));
+
+        var factoryCalls = 0;
+        Task<CacheEntry<TestCacheValue>?> Factory(CancellationToken _)
+        {
+            Interlocked.Increment(ref factoryCalls);
+            return Task.FromResult<CacheEntry<TestCacheValue>?>(new CacheEntry<TestCacheValue>(new TestCacheValue { Id = 1, Name = "Test" }, []));
+        }
+
+        await cacheManager.GetOrSetAsync("eager_key", Factory);
+        // Past a 0.1 threshold, well short of 0.9 and of expiry: only a 0.1 threshold refreshes in the background here.
+        await Task.Delay(TimeSpan.FromMilliseconds(400));
+        await cacheManager.GetOrSetAsync("eager_key", Factory);
+
+        var refreshed = await WaitUntilAsync(
+            () => Task.FromResult(Volatile.Read(ref factoryCalls) > 1),
+            timeout: TimeSpan.FromMilliseconds(500),
+            pollInterval: TimeSpan.FromMilliseconds(20));
+
+        Assert.Equal(expectEarlyRefresh, refreshed);
+    }
+
     [Fact]
     public async Task GetOrSetAsync_CacheMiss_CallsFactory()
     {
