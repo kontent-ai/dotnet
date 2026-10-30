@@ -9,10 +9,12 @@ internal static class QueryExecutionResultHelper
     {
         var error = new Error
         {
-            Message = $"Unexpected SDK cache pipeline failure for '{queryType}' query '{queryTarget}': API result was not captured after a cache miss."
+            Message = $"No API response was recorded for '{queryType}' query '{queryTarget}' after a cache miss. " +
+                "A custom IDeliveryCacheManager must invoke the factory on a miss, and set FromFactory only on the value that call produced."
         };
 
-        return DeliveryResult.Failure<T>(string.Empty, HttpStatusCode.InternalServerError, error);
+        // Status 0 is how the SDK reports a request that got no HTTP response; none was recorded here either.
+        return DeliveryResult.Failure<T>(string.Empty, default(HttpStatusCode), error);
     }
 
     public static IDeliveryResult<T> EnsureApiResult<T>(

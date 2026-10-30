@@ -68,6 +68,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The string overloads also parsed numbers and comma-separated lists, so `WithFormat("png,pjpg")` produced `fm=webp` and `WithFitMode("2")` produced `fit=crop`. Anything other than a name, ignoring case, now leaves the URL unchanged, as an unknown name already did.
 
+- **A cache manager that skips the factory no longer yields an HTTP 500.**
+
+  When a custom `IDeliveryCacheManager` returned on a miss without invoking the factory, or set `FromFactory` on a value its factory did not produce, the query failed with `StatusCode` 500 although no response had been recorded. It now fails with `StatusCode` 0, as a request that got no HTTP response does, and the error message names the cache manager. The built-in managers never reach this.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
