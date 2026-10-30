@@ -36,6 +36,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   The API applies both, but the key recorded only `elements`, so `WithElements("title", "summary").WithoutElements("summary")` shared an entry with `WithElements("title", "summary")` and whichever ran first was served to both. Only keys of queries that set both change; those miss once after the upgrade.
 
+- **Generic and inaccessible models get a diagnostic, not uncompilable generated code.**
+
+  `[ContentTypeCodename]` on a generic type, a type nested in one, a private or protected nested type or a `file` type made the generated provider fail with `CS0246`, `CS0122` or `CS0234`. The generator now reports `KDSG003` for generic types and the new `KDSG004` for inaccessible ones, and leaves the type out. These builds failed before and still fail, now with an error on the model that names the cause.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**

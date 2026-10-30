@@ -87,7 +87,8 @@ The source generator emits `ContentTypeCodenameAttribute` and produces a `Genera
 **Compile-time diagnostics:**
 - `KDSG001`: Duplicate codename (error)
 - `KDSG002`: Invalid codename - null, empty, or whitespace (error)
-- `KDSG003`: Unsupported target type - interfaces, abstract classes and structs (error)
+- `KDSG003`: Unsupported target type - interfaces, abstract classes, structs and generic types (error)
+- `KDSG004`: Inaccessible target type - private, protected or `file` types, or types nested in one (error)
 
 ### Use Strongly-Typed Models
 
@@ -251,8 +252,8 @@ in Kontent.ai:
 - **Keep optional elements nullable**, so an element that has not been filled reads as `null` rather than an empty string you cannot distinguish from "not set". The generator's [nullability modes](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator#nullability-mode) decide this for you.
 - **Think about deployment order** if a release is long-running: a model generated from the new content model, deployed before that model ships, reads elements that do not exist yet.
 
-Source generation catches the errors it can at build time — duplicate codenames, invalid codenames
-and unsupported target types are `KDSG001`-`KDSG003`, reported by the compiler rather than at runtime.
+Source generation catches the errors it can at build time — duplicate codenames, invalid codenames,
+unsupported and inaccessible target types are `KDSG001`-`KDSG004`, reported by the compiler rather than at runtime.
 
 ### Unmapped Content Types
 
