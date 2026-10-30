@@ -79,6 +79,10 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         var location = attributeData.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation()
             ?? context.TargetNode.GetLocation();
 
+        // The provider names the model as typeof(global::...) from another namespace, so a type parameter or an
+        // accessibility narrower than internal anywhere in the nesting chain makes the generated code fail to compile.
+        var nestingChain = SelfAndContainingTypes(typeSymbol).ToList();
+
         return new ContentTypeInfo(
             codename: codename,
             fullyQualifiedTypeName: typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -88,7 +92,18 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             lineSpan: location.GetLineSpan().Span,
             isInterface: typeSymbol.TypeKind == TypeKind.Interface,
             isAbstract: typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class,
-            isValueType: typeSymbol.IsValueType);
+            isValueType: typeSymbol.IsValueType,
+            isGeneric: nestingChain.Any(static type => type.IsGenericType),
+            isInaccessible: nestingChain.Any(static type => type.IsFileLocal
+                || type.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal));
+    }
+
+    private static IEnumerable<INamedTypeSymbol> SelfAndContainingTypes(INamedTypeSymbol type)
+    {
+        for (var current = type; current is not null; current = current.ContainingType)
+        {
+            yield return current;
+        }
     }
 
     private static void Execute(SourceProductionContext context, ImmutableArray<ContentTypeInfo> infos)
@@ -109,10 +124,19 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             }
 
             // Models must support in-place hydration.
-            if (info.IsInterface || info.IsAbstract || info.IsValueType)
+            if (info.IsInterface || info.IsAbstract || info.IsValueType || info.IsGeneric)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     DiagnosticDescriptors.UnsupportedTargetType,
+                    info.Location,
+                    info.TypeName));
+                continue;
+            }
+
+            if (info.IsInaccessible)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.InaccessibleTargetType,
                     info.Location,
                     info.TypeName));
                 continue;
@@ -242,7 +266,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         LinePositionSpan lineSpan,
         bool isInterface,
         bool isAbstract,
-        bool isValueType) : IEquatable<ContentTypeInfo>
+        bool isValueType,
+        bool isGeneric,
+        bool isInaccessible) : IEquatable<ContentTypeInfo>
     {
         public string? Codename { get; } = codename;
         public string FullyQualifiedTypeName { get; } = fullyQualifiedTypeName;
@@ -254,6 +280,8 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         public bool IsInterface { get; } = isInterface;
         public bool IsAbstract { get; } = isAbstract;
         public bool IsValueType { get; } = isValueType;
+        public bool IsGeneric { get; } = isGeneric;
+        public bool IsInaccessible { get; } = isInaccessible;
 
         public bool Equals(ContentTypeInfo other) =>
             Codename == other.Codename &&
@@ -261,7 +289,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             TypeName == other.TypeName &&
             IsInterface == other.IsInterface &&
             IsAbstract == other.IsAbstract &&
-            IsValueType == other.IsValueType;
+            IsValueType == other.IsValueType &&
+            IsGeneric == other.IsGeneric &&
+            IsInaccessible == other.IsInaccessible;
 
         public override bool Equals(object? obj) => obj is ContentTypeInfo other && Equals(other);
 

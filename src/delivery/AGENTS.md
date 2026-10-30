@@ -48,7 +48,7 @@ Delivery and Sync are the read-only pair and compile the same `src/common/Http/D
 
 ## Source generator
 
-The Roslyn package version in `Kontent.Ai.Delivery.SourceGeneration.csproj` bypasses Central Package Management on purpose: it decides the oldest compiler that can load the generator. Raise it only for a newer Roslyn API and treat that as a consumer-visible change. Diagnostics are `KDSG001`–`KDSG003`. The package is consumed as an analyzer and is not swapped to a ProjectReference in `/p:UseProjectReferences=true` mode.
+The Roslyn package version in `Kontent.Ai.Delivery.SourceGeneration.csproj` bypasses Central Package Management on purpose: it decides the oldest compiler that can load the generator. Raise it only for a newer Roslyn API and treat that as a consumer-visible change. Diagnostics are `KDSG001`–`KDSG004`. The package is consumed as an analyzer and is not swapped to a ProjectReference in `/p:UseProjectReferences=true` mode.
 
 ## Testing conventions
 

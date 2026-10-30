@@ -89,7 +89,7 @@ The default path, and the one to use unless you have a reason not to: attribute 
 `[ContentTypeCodename]`, reference `Kontent.Ai.Delivery.SourceGeneration` from the models project, and a
 `GeneratedTypeProvider` is emitted at compile time and discovered at runtime with no registration.
 
-Setup, the generated shape, and the `KDSG001`-`KDSG003` diagnostics are in the [Content Models
+Setup, the generated shape, and the `KDSG001`-`KDSG004` diagnostics are in the [Content Models
 guide](models.md#source-generation-for-type-resolution). The rest of this section is about the runtime
 mechanism behind it, and about replacing it when auto-discovery is not what you want.
 
