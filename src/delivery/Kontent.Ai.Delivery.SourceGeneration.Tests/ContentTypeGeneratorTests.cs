@@ -52,22 +52,42 @@ public class ContentTypeGeneratorTests
     }
 
     [Fact]
-    public void Generator_WithNoContentTypes_GeneratesEmptyRegistry()
+    public void Generator_WithNoContentTypes_EmitsNoProvider()
     {
-        // Arrange
+        // Runtime discovery checks the app before its references. An empty provider in an app whose models live in
+        // a referenced project would be found first and map nothing.
         var source = """
             namespace TestApp.Models;
 
             public class Article { }
             """;
 
-        // Act
         var (diagnostics, output) = RunGenerator(source);
 
-        // Assert
         diagnostics.Should().BeEmpty();
-        output.Should().Contain("class GeneratedTypeProvider : ITypeProvider");
-        output.Should().Contain("private static readonly Dictionary<string, Type> _codenameToType =");
+        output.Should().BeEmpty();
+        LastRunTrees.Should().ContainSingle(tree => tree.Contains("class ContentTypeCodenameAttribute", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Generator_WithEveryModelRejected_ReportsDiagnosticsAndEmitsNoProvider()
+    {
+        var source = """
+            using Kontent.Ai.Delivery.Attributes;
+
+            namespace TestApp.Models;
+
+            [ContentTypeCodename("")]
+            public class Article { }
+
+            [ContentTypeCodename("home")]
+            public struct Home { }
+            """;
+
+        var (diagnostics, output) = RunGenerator(source);
+
+        diagnostics.Select(d => d.Id).Should().BeEquivalentTo("KDSG002", "KDSG003");
+        output.Should().BeEmpty();
     }
 
     [Fact]

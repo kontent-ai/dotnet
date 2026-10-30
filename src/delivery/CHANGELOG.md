@@ -40,6 +40,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   `[ContentTypeCodename]` on a generic type, a type nested in one, a private or protected nested type or a `file` type made the generated provider fail with `CS0246`, `CS0122` or `CS0234`. The generator now reports `KDSG003` for generic types and the new `KDSG004` for inaccessible ones, and leaves the type out. These builds failed before and still fail, now with an error on the model that names the cause.
 
+- **An app's empty generated provider no longer hides the models project's.**
+
+  A project that referenced the source generator without declaring models got an empty `GeneratedTypeProvider`. Discovery checks the app first, and an explicit `AddSingleton<ITypeProvider, GeneratedTypeProvider>()` in that project bound to the empty one with a `CS0436` warning. Either way typed queries threw, asking for the generator reference the project already had. The generator now emits no provider for a project without models, so both paths reach the models project's provider. Code that names `GeneratedTypeProvider` in a build where no project declares models no longer compiles; that provider mapped nothing.
+
+  With no models anywhere, falling back to dynamic types now logs at Debug, as without the generator, instead of Warning.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
