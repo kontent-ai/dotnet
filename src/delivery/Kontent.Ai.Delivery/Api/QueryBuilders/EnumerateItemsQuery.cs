@@ -20,15 +20,13 @@ internal sealed class EnumerateItemsQuery<TModel>(
     private bool _waitForLoadingNewContent;
     private readonly SerializedFilterCollection _serializedFilters = [];
     private bool _typeFilterApplied;
+    private KeyValuePair<string, string>? _languageFilter;
     private static bool IsDynamicModel => ModelTypeHelper.IsDynamic<TModel>();
 
     public IEnumerateItemsQuery<TModel> WithLanguage(string languageCodename, LanguageFallbackMode languageFallbackMode = LanguageFallbackMode.Enabled)
     {
         _params = _params with { Language = languageCodename };
-        if (languageFallbackMode == LanguageFallbackMode.Disabled)
-        {
-            SystemFilterHelpers.AddSystemLanguageFilter(_serializedFilters, languageCodename);
-        }
+        _languageFilter = SystemFilterHelpers.ReplaceSystemLanguageFilter(_serializedFilters, _languageFilter, languageCodename, languageFallbackMode);
         return this;
     }
 

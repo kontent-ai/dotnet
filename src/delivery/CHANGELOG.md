@@ -22,6 +22,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   No valid codename or language contains those characters, so existing keys are unchanged.
 
+### Fixed
+
+- **`WithLanguage` replaces its language filter instead of adding another.**
+
+  With `LanguageFallbackMode.Disabled`, every call added a `system.language[eq]` filter while the `language` parameter kept only the last value. Calling it twice returned no items with `IsSuccess == true`, and a later call with fallback enabled kept the earlier filter. The last call now wins on item listings and the items feed, as with every other `With*` method. A language filter added through `Where()` is unaffected, so to find items that fell back from one language to another, pass the requested language to `WithLanguage` and filter `system.language` in `Where()`.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**

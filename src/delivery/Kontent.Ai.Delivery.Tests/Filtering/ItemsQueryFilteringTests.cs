@@ -118,6 +118,64 @@ public class ItemsQueryFilteringTests
         mockHttp.VerifyNoOutstandingExpectation();
     }
 
+    [Theory]
+    [InlineData(LanguageFallbackMode.Disabled, "language=es-ES&system.language[eq]=es-ES")]
+    [InlineData(LanguageFallbackMode.Enabled, "language=es-ES")]
+    public async Task ItemsQuery_WithLanguageCalledTwice_LastCallWins(LanguageFallbackMode secondMode, string expectedQuery)
+    {
+        var env = Guid.NewGuid().ToString();
+        var itemsUrl = $"https://deliver.kontent.ai/{env}/items";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(itemsUrl)
+            .WithExactQueryString(expectedQuery)
+            .Respond("application/json",
+                await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory,
+                    $"Fixtures{Path.DirectorySeparatorChar}DeliveryClient{Path.DirectorySeparatorChar}items.json")));
+
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+
+        var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
+
+        var result = await client.GetItems()
+            .WithLanguage("en-US", LanguageFallbackMode.Disabled)
+            .WithLanguage("es-ES", secondMode)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task ItemsQuery_WithLanguage_KeepsLanguageFilterAddedThroughWhere()
+    {
+        var env = Guid.NewGuid().ToString();
+        var itemsUrl = $"https://deliver.kontent.ai/{env}/items";
+        var mockHttp = new MockHttpMessageHandler();
+
+        // Items requested in es-ES that fell back to en-US.
+        mockHttp.Expect(itemsUrl)
+            .WithExactQueryString("language=es-ES&system.language[eq]=en-US")
+            .Respond("application/json",
+                await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory,
+                    $"Fixtures{Path.DirectorySeparatorChar}DeliveryClient{Path.DirectorySeparatorChar}items.json")));
+
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+
+        var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
+
+        var result = await client.GetItems()
+            .Where(f => f.System("language").IsEqualTo("en-US"))
+            .WithLanguage("de-DE", LanguageFallbackMode.Disabled)
+            .WithLanguage("es-ES")
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
     [Fact]
     public async Task DynamicItemQuery_WithLanguage_UsesLanguageParameterOnly()
     {

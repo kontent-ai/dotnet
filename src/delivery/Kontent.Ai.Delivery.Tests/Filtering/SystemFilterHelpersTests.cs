@@ -9,13 +9,27 @@ namespace Kontent.Ai.Delivery.Tests.Filtering;
 public class SystemFilterHelpersTests
 {
     [Fact]
-    public void SystemFilterHelpers_AddSystemLanguageFilter_AddsSystemLanguageEq()
+    public void ReplaceSystemLanguageFilter_FallbackDisabled_AddsSystemLanguageEq()
     {
         var filters = new SerializedFilterCollection();
 
-        SystemFilterHelpers.AddSystemLanguageFilter(filters, "es-ES");
+        var added = SystemFilterHelpers.ReplaceSystemLanguageFilter(filters, previous: null, "es-ES", LanguageFallbackMode.Disabled);
 
-        Assert.Contains(new KeyValuePair<string, string>("system.language[eq]", "es-ES"), filters);
+        Assert.Equal(new KeyValuePair<string, string>("system.language[eq]", "es-ES"), Assert.Single(filters));
+        Assert.Equal(Assert.Single(filters), added);
+    }
+
+    [Fact]
+    public void ReplaceSystemLanguageFilter_FallbackEnabled_RemovesThePreviousFilterOnly()
+    {
+        var userFilter = new KeyValuePair<string, string>("system.language[eq]", "en-US");
+        var filters = new SerializedFilterCollection { userFilter };
+        var previous = SystemFilterHelpers.ReplaceSystemLanguageFilter(filters, previous: null, "de-DE", LanguageFallbackMode.Disabled);
+
+        var added = SystemFilterHelpers.ReplaceSystemLanguageFilter(filters, previous, "es-ES", LanguageFallbackMode.Enabled);
+
+        Assert.Null(added);
+        Assert.Equal(userFilter, Assert.Single(filters));
     }
 
     [Fact]

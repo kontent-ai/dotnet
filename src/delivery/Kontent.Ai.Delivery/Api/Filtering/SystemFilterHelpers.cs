@@ -6,12 +6,25 @@ namespace Kontent.Ai.Delivery.Api.Filtering;
 
 internal static class SystemFilterHelpers
 {
-    internal static void AddSystemLanguageFilter(ICollection<KeyValuePair<string, string>> filters, string languageCodename)
+    // WithLanguage replaces the language parameter, so it replaces the filter its previous call added too. Two
+    // system.language[eq] filters for different languages AND to nothing. Returns the filter it added, if any.
+    internal static KeyValuePair<string, string>? ReplaceSystemLanguageFilter(
+        ICollection<KeyValuePair<string, string>> filters,
+        KeyValuePair<string, string>? previous,
+        string languageCodename,
+        LanguageFallbackMode languageFallbackMode)
     {
-        ArgumentNullException.ThrowIfNull(filters);
-        filters.Add(new KeyValuePair<string, string>(
+        if (previous is { } added)
+            filters.Remove(added);
+
+        if (languageFallbackMode != LanguageFallbackMode.Disabled)
+            return null;
+
+        var filter = new KeyValuePair<string, string>(
             FilterPath.System("language") + FilterSuffix.Eq,
-            FilterValueSerializer.Serialize(languageCodename)));
+            FilterValueSerializer.Serialize(languageCodename));
+        filters.Add(filter);
+        return filter;
     }
 
     internal static void AddGenericTypeFilter<TModel>(

@@ -39,6 +39,35 @@ public class EnumerateItemsLanguageFallbackTests
         mockHttp.VerifyNoOutstandingExpectation();
     }
 
+    [Theory]
+    [InlineData(LanguageFallbackMode.Disabled, "language=es-ES&system.language[eq]=es-ES")]
+    [InlineData(LanguageFallbackMode.Enabled, "language=es-ES")]
+    public async Task ItemsFeed_WithLanguageCalledTwice_LastCallWins(LanguageFallbackMode secondMode, string expectedQuery)
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString(expectedQuery)
+            .Respond("application/json",
+                await File.ReadAllTextAsync(Path.Combine(Environment.CurrentDirectory,
+                    $"Fixtures{Path.DirectorySeparatorChar}DeliveryClient{Path.DirectorySeparatorChar}articles_feed.json")));
+
+        var services = new ServiceCollection();
+        services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = env }, d => d.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp));
+
+        var client = services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
+
+        var result = await client.GetItemsFeed()
+            .WithLanguage("en-US", LanguageFallbackMode.Disabled)
+            .WithLanguage("es-ES", secondMode)
+            .ExecuteAsync();
+
+        Assert.True(result.IsSuccess);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
     [Fact]
     public async Task DynamicEnumerateItemsQuery_ChainedParameters_AreForwarded()
     {
