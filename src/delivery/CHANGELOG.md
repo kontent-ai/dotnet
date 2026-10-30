@@ -32,6 +32,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   It read the builder at call time, so changing the builder after the first page sent the old continuation token with a different query. It now sends the original request, as item listings already did. `ExecuteAsync(continuationToken)` still uses the builder as it stands.
 
+- **Cache keys include `excludeElements` when `elements` is also set.**
+
+  The API applies both, but the key recorded only `elements`, so `WithElements("title", "summary").WithoutElements("summary")` shared an entry with `WithElements("title", "summary")` and whichever ran first was served to both. Only keys of queries that set both change; those miss once after the upgrade.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**
