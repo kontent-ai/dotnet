@@ -484,6 +484,71 @@ public sealed class PaginationIntegrationTests
         mockHttp.VerifyNoOutstandingExpectation();
     }
 
+    [Fact]
+    public async Task ItemsFeed_FetchNextPage_UsesFirstPageRequest_WhenSourceQueryMutates()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES&system.type[eq]=article")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(req => CreateFeedResponse(["f1"], "token"));
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES&system.type[eq]=article")
+            .WithHeaders("X-Continuation", "token")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(req => CreateFeedResponse(["f2"], null));
+
+        var client = BuildClient(env, mockHttp);
+
+        var query = client.GetItemsFeed<TestArticle>().WithLanguage("es-ES");
+
+        var firstPage = await query.ExecuteAsync();
+        Assert.True(firstPage.IsSuccess);
+
+        // Mutate original query after the first page. Its next-page fetch should ignore these changes.
+        query.WithLanguage("de-DE").Where(f => f.Element("title").IsEqualTo("other")).WaitForLoadingNewContent();
+
+        var secondPage = await firstPage.Value.FetchNextPageAsync();
+        Assert.NotNull(secondPage);
+        Assert.True(secondPage.IsSuccess);
+
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task ItemsFeed_DynamicQuery_FetchNextPage_UsesFirstPageRequest_WhenSourceQueryMutates()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES")
+            .Respond(req => CreateFeedResponse(["d1"], "token"));
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES")
+            .WithHeaders("X-Continuation", "token")
+            .Respond(req => CreateFeedResponse(["d2"], null));
+
+        var client = BuildClient(env, mockHttp);
+
+        var query = client.GetItemsFeed().WithLanguage("es-ES");
+
+        var firstPage = await query.ExecuteAsync();
+        Assert.True(firstPage.IsSuccess);
+
+        query.WithLanguage("de-DE").Where(f => f.Element("title").IsEqualTo("other"));
+
+        var secondPage = await firstPage.Value.FetchNextPageAsync();
+        Assert.NotNull(secondPage);
+        Assert.True(secondPage.IsSuccess);
+
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
     #endregion
 
     #region Large Dataset Tests
