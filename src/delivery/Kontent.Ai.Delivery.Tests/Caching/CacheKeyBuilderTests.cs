@@ -71,6 +71,32 @@ public class CacheKeyBuilderTests
     }
 
     [Fact]
+    public void BuildItemKey_WithElementsAndExclude_KeepsBothProjections()
+    {
+        // The API applies both: elements=summary,title with exclude=summary returns only title.
+        var both = CacheKeyBuilder.BuildItemKey("hero", new SingleItemParams { Elements = "title,summary", ExcludeElements = "summary" });
+
+        Assert.Equal("item:hero:elements=summary|title:exclude=summary", both);
+    }
+
+    [Fact]
+    public void BuildItemKey_WithOneProjection_KeyIsUnchanged()
+    {
+        Assert.Equal("item:hero:elements=summary|title", CacheKeyBuilder.BuildItemKey("hero", new SingleItemParams { Elements = "title,summary" }));
+        Assert.Equal("item:hero:exclude=summary", CacheKeyBuilder.BuildItemKey("hero", new SingleItemParams { ExcludeElements = "summary" }));
+    }
+
+    [Fact]
+    public void BuildItemsKey_WithElementsAndExclude_DoesNotShareTheElementsOnlyKey()
+    {
+        var elementsOnly = CacheKeyBuilder.BuildItemsKey(new ListItemsParams { Elements = "title,summary" }, []);
+        var both = CacheKeyBuilder.BuildItemsKey(new ListItemsParams { Elements = "title,summary", ExcludeElements = "summary" }, []);
+
+        Assert.Equal("items:elements=summary|title", elementsOnly);
+        Assert.Equal("items:elements=summary|title:exclude=summary", both);
+    }
+
+    [Fact]
     public void BuildItemsKey_WithOrderBy_AppendsOrder()
     {
         var parameters = new ListItemsParams { OrderBy = "system.name[asc]" };

@@ -44,7 +44,7 @@ internal static class CacheKeyBuilder
     /// <param name="modelType">
     /// Optional model type discriminator used to isolate hydrated-object caches for different generic model types.
     /// </param>
-    /// <returns>Cache key in format: <c>item:{codename}:lang={language}:depth={depth}:elements={sorted}</c></returns>
+    /// <returns>Cache key in format: <c>item:{codename}:lang={language}:depth={depth}:elements={sorted}:exclude={sorted}</c></returns>
     public static string BuildItemKey(string codename, SingleItemParams parameters, Type? modelType = null)
     {
         var builder = new StringBuilder(128);
@@ -204,7 +204,9 @@ internal static class CacheKeyBuilder
             AppendSortedCsv(builder, elements);
             builder.Append(Separator);
         }
-        else if (!string.IsNullOrEmpty(excludeElements))
+
+        // Not else-if: the API applies both, so elements=a,b with exclude=b returns only a.
+        if (!string.IsNullOrEmpty(excludeElements))
         {
             builder.Append("exclude=");
             AppendSortedCsv(builder, excludeElements);
