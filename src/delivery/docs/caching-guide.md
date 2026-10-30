@@ -318,7 +318,7 @@ Timing matters: the plain `Action<DeliveryCacheOptions>` overloads run immediate
 
 #### Reaching into FusionCache
 
-`ConfigureFusionCache` hands you the `FusionCacheOptions` the SDK built, after its defaults are applied. Every SDK operation starts from the `DefaultEntryOptions` you leave there, so a `Size`, a distributed-cache timeout or the background-operation flags take effect; `TagsDefaultEntryOptions` is what an invalidation is stored with. What the SDK decides stays decided: the duration, fail-safe, jitter and eager-refresh policy come from `DeliveryCacheOptions`, serialization failures are thrown, distributed-cache and backplane failures are not.
+`ConfigureFusionCache` hands you the `FusionCacheOptions` the SDK built, after its defaults are applied. Every SDK operation starts from the `DefaultEntryOptions` you leave there, so a `Size`, a distributed-cache timeout or the background-operation flags take effect; `TagsDefaultEntryOptions` is what an invalidation is stored with. What the SDK decides stays decided: the duration, fail-safe, jitter and eager-refresh policy come from `DeliveryCacheOptions`, serialization failures are thrown, distributed-cache and backplane failures are not. `CacheKeyPrefix` carries the environment ID; replace it, and clients for different environments that share a store can read each other's entries.
 
 ```csharp
 delivery.UseHybridCache(cache => cache.ConfigureFusionCache(fusion =>

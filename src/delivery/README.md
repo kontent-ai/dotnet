@@ -48,11 +48,11 @@ Install-Package Kontent.Ai.Delivery
 | Package | Purpose |
 |---------|---------|
 | `Kontent.Ai.Delivery.Caching` | FusionCache-backed memory and hybrid caching |
-| `Kontent.Ai.Delivery.SourceGeneration` | Compile-time type provider via source generation |
+| `Kontent.Ai.Delivery.SourceGeneration` | Compile-time type provider via source generation, in the project that declares your models |
 
 ```bash
 dotnet add package Kontent.Ai.Delivery.Caching
-dotnet add package Kontent.Ai.Delivery.SourceGeneration
+dotnet add <models-project> package Kontent.Ai.Delivery.SourceGeneration
 ```
 
 The SDK targets `net10.0`, and all of these packages ship on one version. See the [changelog](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/CHANGELOG.md) for what each release changed.

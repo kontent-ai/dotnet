@@ -84,6 +84,8 @@ When set, all asset URLs returned by the SDK are rewritten from the default Kont
 - Inline image URLs in rich text content (`IInlineImage.Url`)
 - `<img>` tag `src` attributes in resolved rich text HTML
 
+Elements kept as raw JSON (`IDynamicElements`) carry the API's own URLs, and so does rich text parsed from them with `ParseRichTextAsync`, which runs without a client.
+
 The domain must be a root URL without a path, query string, or fragment. The SDK validates this at configuration time and throws `ArgumentException` for invalid values.
 
 > [!NOTE]

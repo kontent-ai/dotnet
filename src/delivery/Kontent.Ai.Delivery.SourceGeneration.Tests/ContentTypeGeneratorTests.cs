@@ -52,22 +52,42 @@ public class ContentTypeGeneratorTests
     }
 
     [Fact]
-    public void Generator_WithNoContentTypes_GeneratesEmptyRegistry()
+    public void Generator_WithNoContentTypes_EmitsNoProvider()
     {
-        // Arrange
+        // Runtime discovery checks the app before its references. An empty provider in an app whose models live in
+        // a referenced project would be found first and map nothing.
         var source = """
             namespace TestApp.Models;
 
             public class Article { }
             """;
 
-        // Act
         var (diagnostics, output) = RunGenerator(source);
 
-        // Assert
         diagnostics.Should().BeEmpty();
-        output.Should().Contain("class GeneratedTypeProvider : ITypeProvider");
-        output.Should().Contain("private static readonly Dictionary<string, Type> _codenameToType =");
+        output.Should().BeEmpty();
+        LastRunTrees.Should().ContainSingle(tree => tree.Contains("class ContentTypeCodenameAttribute", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Generator_WithEveryModelRejected_ReportsDiagnosticsAndEmitsNoProvider()
+    {
+        var source = """
+            using Kontent.Ai.Delivery.Attributes;
+
+            namespace TestApp.Models;
+
+            [ContentTypeCodename("")]
+            public class Article { }
+
+            [ContentTypeCodename("home")]
+            public struct Home { }
+            """;
+
+        var (diagnostics, output) = RunGenerator(source);
+
+        diagnostics.Select(d => d.Id).Should().BeEquivalentTo("KDSG002", "KDSG003");
+        output.Should().BeEmpty();
     }
 
     [Fact]
@@ -276,29 +296,50 @@ public class ContentTypeGeneratorTests
         output.Should().Contain("typeof(global::TestApp.Models.Outer.NestedArticle)");
     }
 
-    [Fact]
-    public void Generator_WithGenericClass_GeneratesRegistry()
+    [Theory]
+    [InlineData("""[ContentTypeCodename("article")] public class Article<T> { }""")]
+    [InlineData("""public class Outer<T> { [ContentTypeCodename("article")] public class Article { } }""")]
+    public void Generator_WithGenericType_ReportsUnsupportedTargetType(string declaration)
     {
-        // Arrange — closed generic usage is not possible via attribute syntax,
-        // but an open generic class can be decorated. The generator should
-        // include it with the fully qualified open-generic name.
-        var source = """
-            using Kontent.Ai.Delivery.Attributes;
+        var (diagnostics, output) = RunGenerator(ModelSource(declaration));
 
-            namespace TestApp.Models;
-
-            [ContentTypeCodename("typed_content")]
-            public class TypedContent<T> { }
-            """;
-
-        // Act
-        var (diagnostics, output) = RunGenerator(source);
-
-        // Assert
-        diagnostics.Should().BeEmpty();
-        output.Should().Contain("\"typed_content\"");
-        output.Should().Contain("typeof(global::TestApp.Models.TypedContent<T>)");
+        diagnostics.Should().ContainSingle(d => d.Id == "KDSG003").Which.GetMessage().Should().Contain("Article");
+        output.Should().NotContain("\"article\"");
     }
+
+    [Theory]
+    [InlineData("""public class Outer { [ContentTypeCodename("article")] private class Article { } }""")]
+    [InlineData("""public class Outer { [ContentTypeCodename("article")] protected class Article { } }""")]
+    [InlineData("""public class Outer { [ContentTypeCodename("article")] private protected class Article { } }""")]
+    [InlineData("""public class Outer { private class Inner { [ContentTypeCodename("article")] public class Article { } } }""")]
+    [InlineData("""[ContentTypeCodename("article")] file class Article { }""")]
+    public void Generator_WithInaccessibleType_ReportsInaccessibleTargetType(string declaration)
+    {
+        var (diagnostics, output) = RunGenerator(ModelSource(declaration));
+
+        diagnostics.Should().ContainSingle(d => d.Id == "KDSG004").Which.GetMessage().Should().Contain("Article");
+        output.Should().NotContain("\"article\"");
+    }
+
+    [Theory]
+    [InlineData("""[ContentTypeCodename("article")] internal class Article { }""", "global::TestApp.Models.Article")]
+    [InlineData("""public class Outer { [ContentTypeCodename("article")] protected internal class Article { } }""", "global::TestApp.Models.Outer.Article")]
+    [InlineData("""internal class Outer { [ContentTypeCodename("article")] internal class Article { } }""", "global::TestApp.Models.Outer.Article")]
+    public void Generator_WithTypeTheAssemblyCanAccess_GeneratesRegistry(string declaration, string typeName)
+    {
+        var (diagnostics, output) = RunGenerator(ModelSource(declaration));
+
+        diagnostics.Should().BeEmpty();
+        output.Should().Contain($"typeof({typeName})");
+    }
+
+    private static string ModelSource(string declaration) => $"""
+        using Kontent.Ai.Delivery.Attributes;
+
+        namespace TestApp.Models;
+
+        {declaration}
+        """;
 
     private static (ImmutableArray<Diagnostic> Diagnostics, string Output) RunGenerator(string source)
     {
@@ -322,9 +363,15 @@ public class ContentTypeGeneratorTests
         var generator = new ContentTypeGenerator();
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(generator);
-        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out var diagnostics);
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
 
         var runResult = driver.GetRunResult();
+
+        // Whatever the generator emits must compile. Errors in a test's own source - an attribute on an interface is
+        // CS0592 - are that test's business.
+        outputCompilation.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error && d.Location.SourceTree is { } tree && runResult.GeneratedTrees.Contains(tree))
+            .Should().BeEmpty();
         LastRunTrees = [.. runResult.GeneratedTrees.Select(tree => tree.GetText().ToString())];
         var generatedSource = runResult.GeneratedTrees
             .Select(tree => tree.GetText().ToString())

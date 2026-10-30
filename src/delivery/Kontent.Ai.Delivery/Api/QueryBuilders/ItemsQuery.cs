@@ -26,16 +26,14 @@ internal sealed class ItemsQuery<TModel>(
     private ListItemsParams _params = new();
     private bool _waitForLoadingNewContent;
     private bool _typeFilterApplied;
+    private KeyValuePair<string, string>? _languageFilter;
     public TimeSpan? CacheExpiration { get; set; }
     private static bool IsDynamicModel => ModelTypeHelper.IsDynamic<TModel>();
 
     public IItemsQuery<TModel> WithLanguage(string languageCodename, LanguageFallbackMode languageFallbackMode = LanguageFallbackMode.Enabled)
     {
         _params = _params with { Language = languageCodename };
-        if (languageFallbackMode == LanguageFallbackMode.Disabled)
-        {
-            SystemFilterHelpers.AddSystemLanguageFilter(_serializedFilters, languageCodename);
-        }
+        _languageFilter = SystemFilterHelpers.ReplaceSystemLanguageFilter(_serializedFilters, _languageFilter, languageCodename, languageFallbackMode);
         return this;
     }
 

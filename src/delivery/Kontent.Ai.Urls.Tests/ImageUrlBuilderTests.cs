@@ -26,6 +26,16 @@ public class ImageUrlBuilderTests
         Assert.Equal(expected, builder.Url);
     }
 
+    [Fact]
+    public void ConstructorWithUri_RelativeUri_ThrowsArgumentException()
+    {
+        var relative = new Uri("/assets/image.jpg", UriKind.Relative);
+
+        var exception = Assert.Throws<ArgumentException>(() => new ImageUrlBuilder(relative));
+
+        Assert.Equal("assetUrl", exception.ParamName);
+    }
+
     [Theory]
     [InlineData(0.5, "?w=0.5")]
     [InlineData(1, "?w=1")]
@@ -71,6 +81,7 @@ public class ImageUrlBuilderTests
     [InlineData("scale", "?fit=scale")]
     [InlineData("crop", "?fit=crop")]
     [InlineData("Crop", "?fit=crop")]
+    [InlineData(" crop ", "?fit=crop")]
     public void WithFitMode_TransformedQuery(string fitMode, string expectedQuery)
     {
         var builder = new ImageUrlBuilder(BaseUrl);
@@ -78,6 +89,21 @@ public class ImageUrlBuilderTests
         builder.WithFitMode(fitMode);
 
         Assert.Equal(expectedQuery, builder.Url.Query);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("fill")]
+    [InlineData("2")]
+    [InlineData("7")]
+    [InlineData("clip,scale")]
+    public void WithFitMode_NotAFitModeName_LeavesTheUrlUnchanged(string fitMode)
+    {
+        var builder = new ImageUrlBuilder(BaseUrl);
+
+        builder.WithFitMode(fitMode);
+
+        Assert.Equal(new Uri(BaseUrl), builder.Url);
     }
 
     public static IEnumerable<object[]> FitModesData()
@@ -145,6 +171,7 @@ public class ImageUrlBuilderTests
     [InlineData("webp", "?fm=webp")]
     [InlineData("Jpg", "?fm=jpg")]
     [InlineData("JPG", "?fm=jpg")]
+    [InlineData(" png ", "?fm=png")]
     public void WithFormat_TransformedQuery(string format, string expectedQuery)
     {
         var builder = new ImageUrlBuilder(BaseUrl);
@@ -152,6 +179,21 @@ public class ImageUrlBuilderTests
         builder.WithFormat(format);
 
         Assert.Equal(expectedQuery, builder.Url.Query);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("jpeg")]
+    [InlineData("1")]
+    [InlineData("99")]
+    [InlineData("png,pjpg")]
+    public void WithFormat_NotAFormatName_LeavesTheUrlUnchanged(string format)
+    {
+        var builder = new ImageUrlBuilder(BaseUrl);
+
+        builder.WithFormat(format);
+
+        Assert.Equal(new Uri(BaseUrl), builder.Url);
     }
 
     public static IEnumerable<object[]> FormatData()

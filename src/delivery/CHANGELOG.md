@@ -22,6 +22,56 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   No valid codename or language contains those characters, so existing keys are unchanged.
 
+### Changed
+
+- **`ImageUrlBuilder` rejects a relative URI when it is created.**
+
+  The `Uri` constructor accepted a relative URI, and the first read of `Url` then threw `InvalidOperationException`, because a transformation needs the asset's host. The constructor now throws `ArgumentException`. A builder created this way could never produce a URL, so only the exception type and where it is thrown change.
+
+### Fixed
+
+- **`WithLanguage` replaces its language filter instead of adding another.**
+
+  With `LanguageFallbackMode.Disabled`, every call added a `system.language[eq]` filter while the `language` parameter kept only the last value. Calling it twice returned no items with `IsSuccess == true`, and a later call with fallback enabled kept the earlier filter. The last call now wins on item listings and the items feed, as with every other `With*` method. A language filter added through `Where()` is unaffected, so to find items that fell back from one language to another, pass the requested language to `WithLanguage` and filter `system.language` in `Where()`.
+
+- **A feed page's `FetchNextPageAsync` repeats the query that produced it.**
+
+  It read the builder at call time, so changing the builder after the first page sent the old continuation token with a different query. It now sends the original request, as item listings already did. `ExecuteAsync(continuationToken)` still uses the builder as it stands.
+
+- **Cache keys include `excludeElements` when `elements` is also set.**
+
+  The API applies both, but the key recorded only `elements`, so `WithElements("title", "summary").WithoutElements("summary")` shared an entry with `WithElements("title", "summary")` and whichever ran first was served to both. Only keys of queries that set both change; those miss once after the upgrade.
+
+- **Generic and inaccessible models get a diagnostic, not uncompilable generated code.**
+
+  `[ContentTypeCodename]` on a generic type, a type nested in one, a private or protected nested type or a `file` type made the generated provider fail with `CS0246`, `CS0122` or `CS0234`. The generator now reports `KDSG003` for generic types and the new `KDSG004` for inaccessible ones, and leaves the type out. These builds failed before and still fail, now with an error on the model that names the cause.
+
+- **An app's empty generated provider no longer hides the models project's.**
+
+  A project that referenced the source generator without declaring models got an empty `GeneratedTypeProvider`. Discovery checks the app first, and an explicit `AddSingleton<ITypeProvider, GeneratedTypeProvider>()` in that project bound to the empty one with a `CS0436` warning. Either way typed queries threw, asking for the generator reference the project already had. The generator now emits no provider for a project without models, so both paths reach the models project's provider. Code that names `GeneratedTypeProvider` in a build where no project declares models no longer compiles; that provider mapped nothing.
+
+  With no models anywhere, falling back to dynamic types now logs at Debug, as without the generator, instead of Warning.
+
+- **The `HtmlResolverBuilder` example compiles.**
+
+  It passed a two-parameter lambda to `WithContentResolver` and read members `IEmbeddedContent` does not have.
+
+- **A fail-safe hit is reported as `FailSafe` whatever `ConfigureFusionCache` sets.**
+
+  The SDK recognizes a stale copy served during an outage by handling FusionCache's fail-safe event as it fires. Setting `EnableSyncEventHandlersExecution = false` in the callback moved that handler to another thread, so the result was built first and reported as `ResponseSource.Cache`. The setting is now re-applied after the callback; only the SDK's own handlers subscribe to that cache.
+
+- **Eager refresh follows `DeliveryCacheOptions` even when it is off.**
+
+  With `EagerRefreshThreshold` at its default of 0, a threshold set on `DefaultEntryOptions` in `ConfigureFusionCache` took effect, although the docs say the eager-refresh policy comes from `DeliveryCacheOptions` regardless. It is now ignored there, like the duration, fail-safe and jitter. If you enabled eager refresh that way, set `DeliveryCacheOptions.EagerRefreshThreshold` instead.
+
+- **`WithFormat` and `WithFitMode` accept only format and fit-mode names.**
+
+  The string overloads also parsed numbers and comma-separated lists, so `WithFormat("png,pjpg")` produced `fm=webp` and `WithFitMode("2")` produced `fit=crop`. Anything other than a name, ignoring case, now leaves the URL unchanged, as an unknown name already did.
+
+- **A cache manager that skips the factory no longer yields an HTTP 500.**
+
+  When a custom `IDeliveryCacheManager` returned on a miss without invoking the factory, or set `FromFactory` on a value its factory did not produce, the query failed with `StatusCode` 500 although no response had been recorded. It now fails with `StatusCode` 0, as a request that got no HTTP response does, and the error message names the cache manager. The built-in managers never reach this.
+
 ### Dependencies
 
 - **`AngleSharp` moves to 1.8.2.**

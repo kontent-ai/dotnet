@@ -105,7 +105,9 @@ public sealed class DeliveryCacheOptions
     /// from the <c>DefaultEntryOptions</c> the callback leaves behind, so a <c>Size</c>, a distributed-cache
     /// timeout or the background-operation flags set there take effect; the duration, fail-safe, jitter
     /// and eager-refresh policy come from this object regardless, serialization failures are always thrown,
-    /// and distributed-cache and backplane failures never are. <c>TagsDefaultEntryOptions</c> is what an
+    /// distributed-cache and backplane failures never are, and event handlers run synchronously. The SDK builds
+    /// the environment ID into <c>CacheKeyPrefix</c>; replace it, and clients for different environments that share
+    /// a store can read each other's entries. <c>TagsDefaultEntryOptions</c> is what an
     /// invalidation is stored with: its duration, ten days by default, is how long an invalidation is
     /// remembered for an entry that has not been read since, and must exceed your longest expiration.
     /// </para>
