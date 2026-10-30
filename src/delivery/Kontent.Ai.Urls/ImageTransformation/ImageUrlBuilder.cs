@@ -12,9 +12,16 @@ namespace Kontent.Ai.Urls.ImageTransformation;
 /// <param name="assetUrl">An asset URI. </param>
 /// <exception cref="T:System.ArgumentNullException">
 /// <paramref name="assetUrl" /> is null. </exception>
+/// <exception cref="T:System.ArgumentException">
+/// <paramref name="assetUrl" /> is a relative URI. </exception>
 public sealed class ImageUrlBuilder(Uri assetUrl)
 {
-    private readonly Uri _assetUrl = assetUrl ?? throw new ArgumentNullException(nameof(assetUrl));
+    private readonly Uri _assetUrl = assetUrl switch
+    {
+        null => throw new ArgumentNullException(nameof(assetUrl)),
+        { IsAbsoluteUri: false } => throw new ArgumentException("The asset URL must be absolute.", nameof(assetUrl)),
+        _ => assetUrl,
+    };
     private readonly Dictionary<string, StringValues> _queryParameters = [];
 
     /// <summary>

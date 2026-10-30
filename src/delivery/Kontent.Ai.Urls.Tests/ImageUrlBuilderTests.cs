@@ -26,6 +26,16 @@ public class ImageUrlBuilderTests
         Assert.Equal(expected, builder.Url);
     }
 
+    [Fact]
+    public void ConstructorWithUri_RelativeUri_ThrowsArgumentException()
+    {
+        var relative = new Uri("/assets/image.jpg", UriKind.Relative);
+
+        var exception = Assert.Throws<ArgumentException>(() => new ImageUrlBuilder(relative));
+
+        Assert.Equal("assetUrl", exception.ParamName);
+    }
+
     [Theory]
     [InlineData(0.5, "?w=0.5")]
     [InlineData(1, "?w=1")]
