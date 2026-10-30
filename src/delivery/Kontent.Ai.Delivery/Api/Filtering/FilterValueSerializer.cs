@@ -7,7 +7,6 @@ internal static class FilterValueSerializer
     internal static string Serialize(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        // Encoding is handled by Refit.
         return value;
     }
 

@@ -27,7 +27,12 @@ internal static class FilterQueryString
             return null;
         }
 
-        return string.Join('&', filters.Select(static filter =>
-            $"{Uri.EscapeDataString(filter.Key)}={Uri.EscapeDataString(filter.Value)}"));
+        return string.Join('&', filters.Select(RenderPair));
     }
+
+    /// <summary>
+    /// Renders one filter as <c>key=value</c>, with the key and the value escaped.
+    /// </summary>
+    internal static string RenderPair(KeyValuePair<string, string> filter)
+        => $"{Uri.EscapeDataString(filter.Key)}={Uri.EscapeDataString(filter.Value)}";
 }

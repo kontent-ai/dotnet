@@ -493,6 +493,7 @@ The general format is: `{queryType}:{identifier}:{params}:{filters}`
 - **Order-independent**: Arrays and filter dictionaries in different orders produce the same key
 - **Human-readable**: Common parameters are visible for debugging (e.g., `lang=en-US:depth=2`)
 - **Efficient**: Filters are hashed to keep keys compact when queries are complex
+- **Unambiguous**: Codenames, languages, element names and order paths are percent-encoded where they contain `%`, `:`, `|` or `=`, so a value cannot pass for another part of the key. Valid values contain none of these and read as shown
 - **Credential-independent**: `SecureAccessApiKey` and `PreviewApiKey` are deliberately not part of key identity. Secure access only gates *which* published content a key may read, not what that content is, and a preview client bypasses the cache entirely - so neither can make two otherwise-identical queries return different content from the same cache
 
 #### Examples
@@ -540,6 +541,7 @@ When queries include filters, they are hashed using SHA256 (first 12 characters 
 
 - Filters are sorted by key, then by value before hashing
 - This ensures `{("a", "1"), ("b", "2")}` and `{("b", "2"), ("a", "1")}` produce the same hash
+- Each key and value is escaped as it is sent to the API, so a value containing `&` or `=` cannot hash the same as a query with an extra filter
 - The 12-character hash provides ~72 bits of entropy (extremely low collision probability)
 
 #### Key Prefixing
