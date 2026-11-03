@@ -57,13 +57,19 @@ internal sealed class HtmlResolver : IHtmlResolver
             return typeResolver(content);
         }
 
-        // Priority 2: Codename-based resolver (existing fallback)
+        // Priority 2: Codename-based resolver
         if (_embeddedContentResolvers.TryGetValue(content.System.Type, out var codenameResolver))
         {
             return codenameResolver(content);
         }
 
-        // Priority 3: Missing resolver handling
+        // Priority 3: Fallback resolver
+        if (_options.FallbackContentResolver is { } fallbackResolver)
+        {
+            return fallbackResolver(content);
+        }
+
+        // Priority 4: Missing resolver handling
         return _options.ThrowOnMissingResolver
             ? throw new InvalidOperationException($"No resolver registered for embedded content type: {content.System.Type}")
             : ValueTask.FromResult(string.Format(MissingEmbeddedContentResolver,
@@ -207,6 +213,11 @@ internal sealed record HtmlResolverOptions
     /// no built-in default: a link's URL is the application's to decide, not the SDK's.
     /// </summary>
     public BlockResolver<IContentItemLink>? ContentItemLinkResolver { get; init; }
+
+    /// <summary>
+    /// Renders embedded content that no type-based or codename-based resolver matches.
+    /// </summary>
+    public Func<IEmbeddedContent, ValueTask<string>>? FallbackContentResolver { get; init; }
 
     /// <summary>
     /// Codename-based resolvers for embedded content (components and linked items).

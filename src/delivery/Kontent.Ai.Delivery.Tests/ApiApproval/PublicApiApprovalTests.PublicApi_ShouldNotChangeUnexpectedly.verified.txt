@@ -132,6 +132,8 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     IHtmlResolverBuilder WithContentResolvers(IReadOnlyDictionary<Type, Func<IEmbeddedContent, String>> resolvers)
     IHtmlResolverBuilder WithContentResolvers(ValueTuple<String, Func<IEmbeddedContent, String>>[] resolvers)
     IHtmlResolverBuilder WithContentResolvers(ValueTuple<Type, Func<IEmbeddedContent, String>>[] resolvers)
+    IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, String> resolver)
+    IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, ValueTask<String>> resolver)
     IHtmlResolverBuilder WithHtmlElementResolver(BlockResolver<IHtmlNode> resolver)
     IHtmlResolverBuilder WithHtmlNodeResolver(HtmlNodePredicate predicate, BlockResolver<IHtmlNode> resolver, String? description)
     IHtmlResolverBuilder WithHtmlNodeResolver(String tagName, BlockResolver<IHtmlNode> resolver)

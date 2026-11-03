@@ -40,6 +40,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     private readonly Dictionary<Type, Func<IEmbeddedContent, ValueTask<string>>> _typeBasedContentResolvers = [];
     private readonly Dictionary<string, BlockResolver<IContentItemLink>> _contentItemLinkResolvers = new(StringComparer.OrdinalIgnoreCase);
     private BlockResolver<IContentItemLink>? _contentItemLinkResolver;
+    private Func<IEmbeddedContent, ValueTask<string>>? _fallbackContentResolver;
     private BlockResolver<IInlineImage>? _inlineImageResolver;
     private BlockResolver<ITextNode>? _textNodeResolver;
     private BlockResolver<IHtmlNode>? _htmlElementResolver;
@@ -205,6 +206,22 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
     }
 
     /// <inheritdoc />
+    public IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, ValueTask<string>> resolver)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        _fallbackContentResolver = resolver;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, string> resolver)
+    {
+        ArgumentNullException.ThrowIfNull(resolver);
+        _fallbackContentResolver = content => ValueTask.FromResult(resolver(content));
+        return this;
+    }
+
+    /// <inheritdoc />
     public IHtmlResolverBuilder WithInlineImageResolver(BlockResolver<IInlineImage> resolver)
     {
         ArgumentNullException.ThrowIfNull(resolver);
@@ -300,6 +317,7 @@ public sealed class HtmlResolverBuilder : IHtmlResolverBuilder
         InlineImageResolver = _inlineImageResolver ?? DefaultInlineImageResolver,
         DefaultHtmlNodeResolver = _htmlElementResolver ?? DefaultResolvers.HtmlElementResolver(),
         ContentItemLinkResolver = _contentItemLinkResolver,
+        FallbackContentResolver = _fallbackContentResolver,
 
         ConditionalHtmlNodeResolvers = [.. _conditionalHtmlNodeResolvers],
         ThrowOnMissingResolver = _throwOnMissingResolver,
