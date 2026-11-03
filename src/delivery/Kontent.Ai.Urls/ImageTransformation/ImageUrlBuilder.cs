@@ -232,9 +232,10 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
     // named: "png,pjpg" combines the flags into Webp.
     private static bool TryParseName<TEnum>(string? value, out TEnum result) where TEnum : struct, Enum
     {
-        var name = Enum.GetNames<TEnum>().FirstOrDefault(name => name.Equals(value?.Trim(), StringComparison.OrdinalIgnoreCase));
-        result = name is null ? default : Enum.Parse<TEnum>(name);
-        return name is not null;
+        result = default;
+        var name = value?.Trim();
+        return Enum.GetNames<TEnum>().Contains(name, StringComparer.OrdinalIgnoreCase)
+            && Enum.TryParse(name, ignoreCase: true, out result);
     }
 
     private static string StringifyEnum(Enum value) => value.ToString().ToLowerInvariant();
