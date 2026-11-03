@@ -8,6 +8,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 20.1.0 (2026-11-03)
+
 ### Security
 
 - **A filter value can no longer share a cache key with another query.**
