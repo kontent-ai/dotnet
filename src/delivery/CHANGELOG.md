@@ -22,6 +22,14 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   No valid codename or language contains those characters, so existing keys are unchanged.
 
+### Added
+
+- **`WithFallbackContentResolver` renders embedded content no other resolver matches.**
+
+  An embedded component or linked item was resolved by its model type or content type codename, and anything else rendered as the missing-resolver comment or threw with `ThrowOnMissingResolver()`, so a content type added after the application was built could not be handled ([#83](https://github.com/kontent-ai/dotnet/issues/83)). The fallback runs after both lookups and receives the non-generic `IEmbeddedContent`; see [Fallback Content Resolver](https://github.com/kontent-ai/dotnet/blob/main/src/delivery/docs/rich-text-customization.md#fallback-content-resolver).
+
+  Both overloads are new members of `IHtmlResolverBuilder`, so a hand-written implementation must add them.
+
 ### Changed
 
 - **`ImageUrlBuilder` accepts only an absolute http or https URL.**

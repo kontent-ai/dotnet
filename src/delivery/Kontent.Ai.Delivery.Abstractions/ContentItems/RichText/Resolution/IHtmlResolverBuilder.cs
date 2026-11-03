@@ -149,6 +149,36 @@ public interface IHtmlResolverBuilder
         params (Type ModelType, Func<IEmbeddedContent, string> Resolver)[] resolvers);
 
     /// <summary>
+    /// Registers an async resolver for embedded content (components or linked items) that no model type or
+    /// codename resolver matches, such as a content type added after the application was built.
+    /// </summary>
+    /// <param name="resolver">The async resolver function that returns HTML for the content.</param>
+    /// <returns>This builder for method chaining.</returns>
+    /// <remarks>
+    /// It replaces the missing-resolver comment, so <see cref="ThrowOnMissingResolver"/> no longer throws
+    /// for embedded content. Content item links are unaffected.
+    /// </remarks>
+    IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, ValueTask<string>> resolver);
+
+    /// <summary>
+    /// Registers a synchronous resolver for embedded content (components or linked items) that no model type
+    /// or codename resolver matches, such as a content type added after the application was built.
+    /// </summary>
+    /// <param name="resolver">The synchronous resolver function that returns HTML for the content.</param>
+    /// <returns>This builder for method chaining.</returns>
+    /// <remarks>
+    /// It replaces the missing-resolver comment, so <see cref="ThrowOnMissingResolver"/> no longer throws
+    /// for embedded content. Content item links are unaffected.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// builder.WithFallbackContentResolver(content =&gt;
+    ///     $"&lt;p&gt;Content of type '{HtmlEncoder.Default.Encode(content.System.Type)}' couldn't be displayed.&lt;/p&gt;");
+    /// </code>
+    /// </example>
+    IHtmlResolverBuilder WithFallbackContentResolver(Func<IEmbeddedContent, string> resolver);
+
+    /// <summary>
     /// Registers a resolver for inline image blocks.
     /// </summary>
     /// <param name="resolver">The resolver function.</param>

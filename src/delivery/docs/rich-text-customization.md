@@ -24,6 +24,7 @@ Rich text elements in Kontent.ai contain structured content that needs to be res
   - [Tuple-Based Content Resolvers](#tuple-based-content-resolvers)
   - [Complex Component Example](#complex-component-example)
   - [Dynamic Mode Resolution](#dynamic-mode-resolution)
+  - [Fallback Content Resolver](#fallback-content-resolver)
 - [Failing Fast on a Missing Resolver](#failing-fast-on-a-missing-resolver)
 - [Registering the Resolver with Dependency Injection](#registering-the-resolver-with-dependency-injection)
 - [Rich Text Extension Methods](#rich-text-extension-methods)
@@ -125,6 +126,7 @@ var resolver = new HtmlResolverBuilder()
     .WithContentResolver("tweet", tweetResolver)
     .WithContentResolver("video", videoResolver)
     .WithContentResolvers(contentResolverDictionary)
+    .WithFallbackContentResolver(fallbackContentResolver)
 
     // Inline image resolver
     .WithInlineImageResolver(imageResolver)
@@ -414,7 +416,8 @@ static string? Value(IContentItem<IDynamicElements> item, string codename)
 **Resolver Priority:**
 1. Type-based resolvers (highest priority)
 2. Codename-based resolvers
-3. Default/missing resolver handling
+3. The [fallback resolver](#fallback-content-resolver)
+4. Missing resolver handling
 
 ### Async Content Resolvers
 
@@ -623,6 +626,25 @@ every embedded item whatever its type:
     </div>
     """)
 ```
+
+### Fallback Content Resolver
+
+`WithFallbackContentResolver` handles embedded content that no type-based or codename-based resolver
+matches, such as a content type added after the application was built. It receives the non-generic
+`IEmbeddedContent`; a type with no registered model is an `IContentItem<IDynamicElements>`, read as shown
+in [Codename-Based Content Resolvers](#codename-based-content-resolvers).
+
+```csharp
+var resolver = new HtmlResolverBuilder()
+    .WithContentResolver<Tweet>(tweet =>
+        $"<blockquote>{HtmlEncoder.Default.Encode(tweet.Elements.TweetText ?? "")}</blockquote>")
+    .WithFallbackContentResolver(content =>
+        $"<p>Content of type '{HtmlEncoder.Default.Encode(content.System.Type)}' couldn't be displayed.</p>")
+    .Build();
+```
+
+It replaces the diagnostic comment, so `ThrowOnMissingResolver()` no longer throws for embedded content.
+It does not cover content item links, which fall back to the [global link resolver](#global-link-resolver).
 
 ## Failing Fast on a Missing Resolver
 

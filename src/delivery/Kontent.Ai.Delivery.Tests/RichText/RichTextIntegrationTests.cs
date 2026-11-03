@@ -1068,6 +1068,56 @@ public class RichTextIntegrationTests
     }
 
     [Fact]
+    public async Task IntegrationTest_FallbackContentResolver_RendersEmbeddedContentWithoutResolver()
+    {
+        var client = await CreateDeliveryClientAsync("coffee_beverages_explained.json");
+        var resolver = new HtmlResolverBuilder()
+            .WithContentResolver<Tweet>(_ => "<blockquote>tweet</blockquote>")
+            .WithFallbackContentResolver(content => $"<p>fallback:{content.System.Type}</p>")
+            .Build();
+
+        var result = await client.GetItem<Article>("coffee_beverages_explained").ExecuteAsync();
+        var html = await result.Value.Elements.BodyCopy.ToHtmlAsync(resolver);
+
+        Assert.Contains("<blockquote>tweet</blockquote>", html);
+        Assert.Contains("<p>fallback:hosted_video</p>", html);
+        Assert.DoesNotContain("fallback:tweet", html);
+        Assert.DoesNotContain("Missing resolver", html);
+    }
+
+    [Fact]
+    public async Task IntegrationTest_FallbackContentResolver_DoesNotOverrideCodenameResolver()
+    {
+        var richText = new RichTextContent([new EmbeddedArticleBlock("Typed title")]);
+        var resolver = new HtmlResolverBuilder()
+            .WithFallbackContentResolver(_ => "fallback")
+            .WithContentResolver("article", _ => "codename")
+            .Build();
+
+        var html = await richText.ToHtmlAsync(resolver);
+
+        Assert.Equal("codename", html);
+    }
+
+    [Fact]
+    public async Task IntegrationTest_FallbackContentResolver_Async_PreventsThrowOnMissingResolver()
+    {
+        var richText = new RichTextContent([new EmbeddedArticleBlock("Typed title")]);
+        var resolver = new HtmlResolverBuilder()
+            .ThrowOnMissingResolver()
+            .WithFallbackContentResolver(async content =>
+            {
+                await Task.Yield();
+                return content.System.Codename;
+            })
+            .Build();
+
+        var html = await richText.ToHtmlAsync(resolver);
+
+        Assert.Equal("embedded_article", html);
+    }
+
+    [Fact]
     public async Task IntegrationTest_TypeBasedResolver_DispatchesForNonContentItemNamedEmbeddedBlock()
     {
         var richText = new RichTextContent([new EmbeddedArticleBlock("Typed title")]);
