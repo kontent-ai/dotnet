@@ -79,10 +79,10 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         var location = attributeData.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation()
             ?? context.TargetNode.GetLocation();
 
-        // The provider is a separate type in a separate file that names the model as typeof(global::...). A type
-        // parameter, a file-local type or an accessibility narrower than internal anywhere in the nesting chain makes
-        // that fail to compile.
-        var nestingChain = SelfAndContainingTypes(typeSymbol).ToList();
+        // The provider is a separate type in a separate file that names the model as typeof(global::...). A file-local
+        // type or an accessibility narrower than internal anywhere in the nesting chain makes that fail to compile.
+        var isInaccessible = SelfAndContainingTypes(typeSymbol).Any(static type => type.IsFileLocal
+            || type.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal);
 
         return new ContentTypeInfo(
             codename: codename,
@@ -94,9 +94,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             isInterface: typeSymbol.TypeKind == TypeKind.Interface,
             isAbstract: typeSymbol.IsAbstract && typeSymbol.TypeKind == TypeKind.Class,
             isValueType: typeSymbol.IsValueType,
-            isGeneric: nestingChain.Any(static type => type.IsGenericType),
-            isInaccessible: nestingChain.Any(static type => type.IsFileLocal
-                || type.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected or Accessibility.ProtectedAndInternal));
+            // True for a type nested in a generic one too.
+            isGeneric: typeSymbol.IsGenericType,
+            isInaccessible: isInaccessible);
     }
 
     private static IEnumerable<INamedTypeSymbol> SelfAndContainingTypes(INamedTypeSymbol type)
@@ -124,7 +124,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
                 continue;
             }
 
-            // Models must support in-place hydration.
+            // The SDK creates the model and hydrates that instance.
             if (info.IsInterface || info.IsAbstract || info.IsValueType || info.IsGeneric)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
