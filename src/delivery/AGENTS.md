@@ -18,7 +18,7 @@ A client for the Delivery API — a *read* API. Five packages ship in lockstep o
 
 ## Current phase
 
-`eng/Versions.props` is the authority. The `20.x` line moves to `net10.0` and rewrites registration onto one builder; `docs/upgrade/19-to-20.md` is the guide in progress and `18-to-19.md` is frozen. The `CHANGELOG.md` `## Unreleased` section already carries the stable-major overview; keep adding entries under the headings below it.
+`eng/Versions.props` is the authority on where this product is; read it rather than trusting a sentence here.
 
 ## Divergences from the siblings
 
@@ -43,7 +43,7 @@ Delivery and Sync are the read-only pair and compile the same `src/common/Http/D
 - Keys are built by `Caching/CacheKeyBuilder`: readable, deterministic, order-independent, filters hashed, model type appended only in hydrated-object mode, credentials never part of identity. `FusionCacheManager` folds the environment id into the prefix and the backplane channel name, and `DistributedFormatVersion` is bumped whenever a cached type or FusionCache's entry format changes.
 - Tag data outlives entries; tag reads fail open, invalidations do not and report `false`. `PurgeAsync` reports the same way — `false` when a distributed purge cannot complete — and only cancellation and disposal throw.
 - Asset elements are not tagged, because the URL GUID identifies the binary, not the asset; `InvalidateAssetAsync` is the route for asset events.
-- `ConfigureFusionCache` may not override what `DeliveryCacheOptions` decides: duration, fail-safe, jitter, eager refresh.
+- `ConfigureFusionCache` may not override what `DeliveryCacheOptions` decides: duration, fail-safe, jitter, eager refresh. `EnableSyncEventHandlersExecution` is re-applied after the callback too, because stale detection reads the fail-safe event inline.
 - `Kontent.Ai.Delivery.Caching` compiles no `src/common` files, knowingly, because a second copy would be `CS0436`-ambiguous through the `InternalsVisibleTo` chain.
 
 ## Source generator

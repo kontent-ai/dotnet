@@ -79,8 +79,9 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         var location = attributeData.ApplicationSyntaxReference?.GetSyntax(ct).GetLocation()
             ?? context.TargetNode.GetLocation();
 
-        // The provider names the model as typeof(global::...) from another namespace, so a type parameter or an
-        // accessibility narrower than internal anywhere in the nesting chain makes the generated code fail to compile.
+        // The provider is a separate type in a separate file that names the model as typeof(global::...). A type
+        // parameter, a file-local type or an accessibility narrower than internal anywhere in the nesting chain makes
+        // that fail to compile.
         var nestingChain = SelfAndContainingTypes(typeSymbol).ToList();
 
         return new ContentTypeInfo(

@@ -55,5 +55,5 @@ internal static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The generated type provider refers to every content model from its own namespace, so it can map only types the rest of the assembly can access.");
+        description: "The generated type provider is a separate type in a separate file, so it can map only types accessible throughout the assembly.");
 }
