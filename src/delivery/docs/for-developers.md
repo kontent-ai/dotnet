@@ -91,8 +91,8 @@ Six queries are cached: item, items, type, types, taxonomy, taxonomies. They sha
 
 Languages, single elements and used-in never touch the cache. Feed enumeration
 (`EnumerateItemsQuery.cs`, `Abstractions/SharedModels/DeliveryEnumeration.cs`) is a walk over
-continuation tokens; a failed page throws `DeliveryRequestException`, because a walk has no single
-result to carry a failure in.
+continuation tokens that captures its request when it starts, so every page sends the same query; a
+failed page throws `DeliveryRequestException`, because a walk has no single result to carry a failure in.
 
 The runtime-typed queries (`DynamicItemQuery.cs`, `DynamicItemsQuery.cs`) wrap the typed ones over
 `IDynamicElements`, then ask the mapper to re-read each item as whatever type the type provider names

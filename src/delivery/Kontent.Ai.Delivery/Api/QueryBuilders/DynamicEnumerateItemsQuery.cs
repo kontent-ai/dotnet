@@ -79,10 +79,14 @@ internal sealed class DynamicEnumerateItemsQuery(
         return await ConvertResultAsync(await _inner.ExecuteAsync(continuationToken, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
     }
 
-    // The walk's per-page fetch. Goes to the inner query's unlogged path: a walk is bracketed once by Pagination*,
+    // The walk's page fetcher. Goes to the inner query's unlogged path: a walk is bracketed once by Pagination*,
     // not once per page by the query-starting/completed pair the public overloads above emit.
-    private async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken) =>
-        await ConvertResultAsync(await _inner.ExecutePageAsync(continuationToken, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+    private Func<string?, CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse>>> StartWalk()
+    {
+        var fetchPage = _inner.StartWalk();
+        return async (continuationToken, cancellationToken) =>
+            await ConvertResultAsync(await fetchPage(continuationToken, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+    }
 
     private async Task<IDeliveryResult<IDeliveryItemsFeedResponse>> ConvertResultAsync(
         IDeliveryResult<IDeliveryItemsFeedResponse<IDynamicElements>> deliveryResult,
@@ -136,7 +140,7 @@ internal sealed class DynamicEnumerateItemsQuery(
         LoggedDeliveryEnumeration.Create<IContentItem, IDeliveryItemsFeedResponse>(
             "ItemsFeed",
             logger,
-            ExecutePageAsync,
+            StartWalk,
             static response => new DeliveryPage<IContentItem>
             {
                 Items = response.Items,

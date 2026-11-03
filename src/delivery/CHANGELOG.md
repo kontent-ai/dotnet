@@ -34,9 +34,9 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   With `LanguageFallbackMode.Disabled`, every call added a `system.language[eq]` filter while the `language` parameter kept only the last value. Calling it twice returned no items with `IsSuccess == true`, and a later call with fallback enabled kept the earlier filter. The last call now wins on item listings and the items feed, as with every other `With*` method. A language filter added through `Where()` is unaffected, so to find items that fell back from one language to another, pass the requested language to `WithLanguage` and filter `system.language` in `Where()`.
 
-- **A feed page's `FetchNextPageAsync` repeats the query that produced it.**
+- **Later feed and used-in pages repeat the query that started them.**
 
-  It read the builder at call time, so changing the builder after the first page sent the old continuation token with a different query. It now sends the original request, as item listings already did. `ExecuteAsync(continuationToken)` still uses the builder as it stands.
+  A feed page's `FetchNextPageAsync`, and each page of an `EnumerateAsync` walk over the items feed or a used-in listing, read the builder when that page was fetched, so changing the builder after the first page sent the old continuation token with a different query. Both now send the request the first page was sent with, as item listings already did. `ExecuteAsync(continuationToken)` and a new walk, including one resumed through `AsPages(continuationToken)`, use the builder as it stands.
 
 - **Cache keys include `excludeElements` when `elements` is also set.**
 

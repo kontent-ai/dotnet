@@ -281,6 +281,40 @@ public sealed class UsedInQueriesTests
         mockHttp.VerifyNoOutstandingExpectation();
     }
 
+    [Fact]
+    public async Task ItemUsedIn_Walk_UsesFirstPageRequest_WhenSourceQueryMutates()
+    {
+        var env = Guid.NewGuid().ToString();
+        var usedInUrl = $"https://deliver.kontent.ai/{env}/items/my_item/used-in";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(usedInUrl)
+            .WithExactQueryString("system.type[eq]=article")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(_ => CreateUsedInResponse(["parent_1"], continuationToken: "token_1"));
+        mockHttp.Expect(usedInUrl)
+            .WithExactQueryString("system.type[eq]=article")
+            .WithHeaders("X-Continuation", "token_1")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(_ => CreateUsedInResponse(["parent_2"], continuationToken: null));
+
+        var client = BuildClient(env, mockHttp);
+        var query = client.GetItemUsedIn("my_item").Where(f => f.System("type").IsEqualTo("article"));
+
+        var codenames = new List<string>();
+        await foreach (var item in query.EnumerateAsync())
+        {
+            codenames.Add(item.System.Codename);
+            if (item.System.Codename == "parent_1")
+            {
+                query.Where(f => f.System("language").IsEqualTo("de-DE")).WaitForLoadingNewContent();
+            }
+        }
+
+        Assert.Equal(["parent_1", "parent_2"], codenames);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
     private static IDeliveryClient BuildClient(
         string env,
         MockHttpMessageHandler mockHttp,
