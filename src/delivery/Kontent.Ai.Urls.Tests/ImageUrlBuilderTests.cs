@@ -37,6 +37,27 @@ public class ImageUrlBuilderTests
     }
 
     [Theory]
+    [InlineData("file:///assets/image.jpg")]
+    [InlineData("ftp://test.com/assets/image.jpg")]
+    [InlineData("data:image/png;base64,AAAA")]
+    public void ConstructorWithUri_NotAnHttpUrl_ThrowsArgumentException(string assetUrl)
+    {
+        var exception = Assert.Throws<ArgumentException>(() => new ImageUrlBuilder(new Uri(assetUrl)));
+
+        Assert.Equal("assetUrl", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData("http://test.com/assets/image.jpg", "http://test.com/assets/image.jpg?w=100")]
+    [InlineData("HTTPS://test.com/assets/image.jpg", "https://test.com/assets/image.jpg?w=100")]
+    public void ConstructorWithUri_HttpOrHttpsUrl_Transforms(string assetUrl, string expected)
+    {
+        var builder = new ImageUrlBuilder(new Uri(assetUrl)).WithWidth(100);
+
+        Assert.Equal(new Uri(expected), builder.Url);
+    }
+
+    [Theory]
     [InlineData(0.5, "?w=0.5")]
     [InlineData(1, "?w=1")]
     [InlineData(97.55, "?w=97.55")]
