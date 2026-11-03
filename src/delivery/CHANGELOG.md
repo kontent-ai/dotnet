@@ -40,7 +40,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **Cache keys include `excludeElements` when `elements` is also set.**
 
-  The API applies both, but the key recorded only `elements`, so `WithElements("title", "summary").WithoutElements("summary")` shared an entry with `WithElements("title", "summary")` and whichever ran first was served to both. Only keys of queries that set both change; those miss once after the upgrade.
+  The API applies both, but the key recorded only `elements`, so `WithElements("title", "summary").WithoutElements("summary")` shared an entry with `WithElements("title", "summary")` and whichever ran first was served to both. Only keys of queries that set both change; those miss once after the upgrade. An elements-only entry that already holds the narrower result keeps serving it until it expires or is invalidated; `IDeliveryCachePurger.PurgeAsync` clears it.
 
 - **Generic and inaccessible models get a diagnostic, not uncompilable generated code.**
 

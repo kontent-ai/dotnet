@@ -205,7 +205,7 @@ internal static class CacheKeyBuilder
             builder.Append(Separator);
         }
 
-        // Not else-if: the API applies both, so elements=a,b with exclude=b returns only a.
+        // The API applies both: elements=a,b with exclude=b returns only a.
         if (!string.IsNullOrEmpty(excludeElements))
         {
             builder.Append("exclude=");
