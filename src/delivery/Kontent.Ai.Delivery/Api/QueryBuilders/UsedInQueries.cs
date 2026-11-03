@@ -99,6 +99,12 @@ internal sealed class UsedInQueryCore(
 
     public void WaitForLoadingNewContent(bool enabled = true) => _waitForLoadingNewContent = enabled;
 
+    // Everything a used-in request sends except the continuation token. A walk captures one for all its pages.
+    private sealed record UsedInRequest(string? Filters, bool? WaitForLoadingNewContent);
+
+    private UsedInRequest CaptureRequest(SerializedFilterCollection filters) =>
+        new(FilterQueryString.Render(filters), _waitForLoadingNewContent ? true : null);
+
     // Wraps one request in the same starting/completed bracket every other query builder emits. A walk goes straight
     // to ExecutePageAsync instead: it has its own Pagination bracket, and per-page timings would drown it.
     public async Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecuteLoggedAsync(
@@ -109,7 +115,7 @@ internal sealed class UsedInQueryCore(
         _log.LogQueryStarting();
         var stopwatch = _log.StartTimingIfEnabled();
 
-        var result = await ExecutePageAsync(filters, continuationToken, cancellationToken).ConfigureAwait(false);
+        var result = await ExecutePageAsync(CaptureRequest(filters), continuationToken, cancellationToken).ConfigureAwait(false);
 
         _log.LogQueryCompleted(stopwatch, result.StatusCode, result.IsCacheHit, result.HasStaleContent);
         return result;
@@ -119,21 +125,23 @@ internal sealed class UsedInQueryCore(
         LoggedDeliveryEnumeration.Create<IUsedInItem, DeliveryPage<IUsedInItem>>(
             queryType,
             logger,
-            (token, ct) => ExecutePageAsync(filters, token, ct),
+            () =>
+            {
+                var request = CaptureRequest(filters);
+                return (token, ct) => ExecutePageAsync(request, token, ct);
+            },
             static page => page,
             cancellationToken);
 
-    public async Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecutePageAsync(
-        SerializedFilterCollection filters,
+    private async Task<IDeliveryResult<DeliveryPage<IUsedInItem>>> ExecutePageAsync(
+        UsedInRequest request,
         string? continuationToken,
         CancellationToken cancellationToken)
     {
-        bool? waitForLoadingNewContent = _waitForLoadingNewContent ? true : null;
-
         var response = await fetchPage(
             codename,
-            FilterQueryString.Render(filters),
-            waitForLoadingNewContent,
+            request.Filters,
+            request.WaitForLoadingNewContent,
             continuationToken,
             cancellationToken).ConfigureAwait(false);
 

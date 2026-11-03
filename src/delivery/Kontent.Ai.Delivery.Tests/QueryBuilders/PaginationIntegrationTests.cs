@@ -549,6 +549,109 @@ public sealed class PaginationIntegrationTests
         mockHttp.VerifyNoOutstandingExpectation();
     }
 
+    [Fact]
+    public async Task ItemsFeed_Walk_UsesFirstPageRequest_WhenSourceQueryMutates()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES&system.type[eq]=article")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(req => CreateFeedResponse(["f1"], "token"));
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES&system.type[eq]=article")
+            .WithHeaders("X-Continuation", "token")
+            .With(req => !req.Headers.Contains("X-KC-Wait-For-Loading-New-Content"))
+            .Respond(req => CreateFeedResponse(["f2"], null));
+
+        var client = BuildClient(env, mockHttp);
+        var query = client.GetItemsFeed<TestArticle>().WithLanguage("es-ES");
+
+        var codenames = new List<string>();
+        await foreach (var item in query.EnumerateAsync())
+        {
+            codenames.Add(item.System.Codename);
+            if (item.System.Codename == "f1")
+            {
+                query.WithLanguage("de-DE").Where(f => f.Element("title").IsEqualTo("other")).WaitForLoadingNewContent();
+            }
+        }
+
+        Assert.Equal(["f1", "f2"], codenames);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task ItemsFeed_DynamicQuery_Walk_UsesFirstPageRequest_WhenSourceQueryMutates()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES")
+            .Respond(req => CreateFeedResponse(["d1"], "token"));
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES")
+            .WithHeaders("X-Continuation", "token")
+            .Respond(req => CreateFeedResponse(["d2"], null));
+
+        var client = BuildClient(env, mockHttp);
+        var query = client.GetItemsFeed().WithLanguage("es-ES");
+
+        var codenames = new List<string>();
+        await foreach (var item in query.EnumerateAsync())
+        {
+            codenames.Add(item.System.Codename);
+            if (item.System.Codename == "d1")
+            {
+                query.WithLanguage("de-DE").Where(f => f.Element("title").IsEqualTo("other"));
+            }
+        }
+
+        Assert.Equal(["d1", "d2"], codenames);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task ItemsFeed_EnumeratedAgain_SecondWalkUsesTheBuilderAsItStands()
+    {
+        var env = Guid.NewGuid().ToString();
+        var feedUrl = $"https://deliver.kontent.ai/{env}/items-feed";
+        var mockHttp = new MockHttpMessageHandler();
+
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=es-ES&system.type[eq]=article")
+            .Respond(req => CreateFeedResponse(["es"], null));
+        mockHttp.Expect(feedUrl)
+            .WithExactQueryString("language=de-DE&system.type[eq]=article")
+            .Respond(req => CreateFeedResponse(["de"], null));
+
+        var client = BuildClient(env, mockHttp);
+        var query = client.GetItemsFeed<TestArticle>().WithLanguage("es-ES");
+        var walk = query.EnumerateAsync();
+
+        var first = new List<string>();
+        await foreach (var item in walk)
+        {
+            first.Add(item.System.Codename);
+        }
+
+        query.WithLanguage("de-DE");
+
+        var second = new List<string>();
+        await foreach (var item in walk)
+        {
+            second.Add(item.System.Codename);
+        }
+
+        Assert.Equal(["es"], first);
+        Assert.Equal(["de"], second);
+        mockHttp.VerifyNoOutstandingExpectation();
+    }
+
     #endregion
 
     #region Large Dataset Tests

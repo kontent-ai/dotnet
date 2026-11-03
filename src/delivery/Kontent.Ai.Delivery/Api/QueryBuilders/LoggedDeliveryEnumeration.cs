@@ -6,29 +6,31 @@ namespace Kontent.Ai.Delivery.Api.QueryBuilders;
 
 /// <summary>
 /// Builds the walk every paged query returns: <see cref="DeliveryEnumeration{T}"/>'s shared page loop wrapped in this
-/// SDK's pagination logging. Queries supply only how to fetch a page and how to project it.
+/// SDK's pagination logging. Queries supply only how a walk fetches its pages and how to project one.
 /// </summary>
 /// <remarks>
 /// Lives here rather than in <c>Kontent.Ai.Delivery.Abstractions</c>, which has no logging dependency.
 /// </remarks>
 internal static class LoggedDeliveryEnumeration
 {
+    // startWalk runs once per walk, as it starts, and the fetcher it returns serves every page of that walk. A query
+    // fixes its request there, so a builder changed mid-walk cannot pair a continuation token with a different query.
     public static DeliveryEnumeration<TItem> Create<TItem, TResponse>(
         string queryType,
         ILogger? logger,
-        Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
+        Func<Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>>> startWalk,
         Func<TResponse, DeliveryPage<TItem>> selectPage,
         CancellationToken requestCancellationToken) =>
         new(
             (continuationToken, cancellationToken) =>
-                WalkLoggedAsync(queryType, logger, continuationToken, fetchPage, selectPage, cancellationToken),
+                WalkLoggedAsync(queryType, logger, continuationToken, startWalk, selectPage, cancellationToken),
             requestCancellationToken);
 
     private static async IAsyncEnumerable<DeliveryPage<TItem>> WalkLoggedAsync<TItem, TResponse>(
         string queryType,
         ILogger? logger,
         string? continuationToken,
-        Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>> fetchPage,
+        Func<Func<string?, CancellationToken, Task<IDeliveryResult<TResponse>>>> startWalk,
         Func<TResponse, DeliveryPage<TItem>> selectPage,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
@@ -40,7 +42,7 @@ internal static class LoggedDeliveryEnumeration
         var pageCount = 0;
         var totalItems = 0;
 
-        var pages = DeliveryEnumeration<TItem>.Walk(continuationToken, fetchPage, selectPage, cancellationToken);
+        var pages = DeliveryEnumeration<TItem>.Walk(continuationToken, startWalk(), selectPage, cancellationToken);
 
         await foreach (var page in pages.ConfigureAwait(false))
         {

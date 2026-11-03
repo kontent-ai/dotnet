@@ -93,10 +93,11 @@ internal sealed class EnumerateItemsQuery<TModel>(
     }
 
     // Everything a feed request sends except the continuation token. A page's next-page fetcher replays the request
-    // that produced the page, so a builder changed afterwards cannot pair the old token with a different query.
+    // that produced the page, and a walk sends one request for all its pages, so a builder changed afterwards cannot
+    // pair an old token with a different query.
     private sealed record FeedRequest(EnumItemsParams Parameters, string? Filters, bool? WaitForLoadingNewContent);
 
-    // Throws for an unmapped model. Its callers are async, so that faults the returned task rather than the call.
+    // Throws for an unmapped model. That faults the task ExecuteLoggedAsync returns, and a walk's first MoveNextAsync.
     private FeedRequest CaptureRequest()
     {
         ApplyGenericTypeFilter();
@@ -122,10 +123,12 @@ internal sealed class EnumerateItemsQuery<TModel>(
         return result;
     }
 
-    // A walk captures the builder for every page it fetches.
     // Internal, not private: the dynamic wrapper's walk needs this unlogged path too.
-    internal async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(string? continuationToken, CancellationToken cancellationToken) =>
-        await ExecutePageAsync(CaptureRequest(), continuationToken, cancellationToken).ConfigureAwait(false);
+    internal Func<string?, CancellationToken, Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>>> StartWalk()
+    {
+        var request = CaptureRequest();
+        return (continuationToken, cancellationToken) => ExecutePageAsync(request, continuationToken, cancellationToken);
+    }
 
     private async Task<IDeliveryResult<IDeliveryItemsFeedResponse<TModel>>> ExecutePageAsync(
         FeedRequest request,
@@ -158,7 +161,7 @@ internal sealed class EnumerateItemsQuery<TModel>(
         LoggedDeliveryEnumeration.Create<IContentItem<TModel>, IDeliveryItemsFeedResponse<TModel>>(
             "ItemsFeed",
             logger,
-            ExecutePageAsync,
+            StartWalk,
             static response => new DeliveryPage<IContentItem<TModel>>
             {
                 Items = response.Items,
