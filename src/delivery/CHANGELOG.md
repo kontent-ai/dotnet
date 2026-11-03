@@ -24,9 +24,9 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Changed
 
-- **`ImageUrlBuilder` rejects a relative URI when it is created.**
+- **`ImageUrlBuilder` accepts only an absolute http or https URL.**
 
-  The `Uri` constructor accepted a relative URI, and the first read of `Url` then threw `InvalidOperationException`, because a transformation needs the asset's host. The constructor now throws `ArgumentException`. A builder created this way could never produce a URL, so only the exception type and where it is thrown change.
+  The `Uri` constructor accepted a relative URI, and the first read of `Url` then threw `InvalidOperationException`. Both constructors also accepted any other scheme: on macOS and Linux the string constructor reads a rooted path such as `/assets/image.jpg` as `file:///assets/image.jpg`, which a transformation turned into `file:///assets/%3Fw=100`. Both now throw `ArgumentException` for anything but an absolute http or https URL. Such a builder could not produce a working image URL; without a transformation it only returned its input.
 
 ### Fixed
 

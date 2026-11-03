@@ -13,14 +13,15 @@ namespace Kontent.Ai.Urls.ImageTransformation;
 /// <exception cref="T:System.ArgumentNullException">
 /// <paramref name="assetUrl" /> is null. </exception>
 /// <exception cref="T:System.ArgumentException">
-/// <paramref name="assetUrl" /> is a relative URI. </exception>
+/// <paramref name="assetUrl" /> is not an absolute http or https URI. </exception>
 public sealed class ImageUrlBuilder(Uri assetUrl)
 {
+    // Scheme throws on a relative URI, and a property pattern does not promise to test IsAbsoluteUri first.
     private readonly Uri _assetUrl = assetUrl switch
     {
         null => throw new ArgumentNullException(nameof(assetUrl)),
-        { IsAbsoluteUri: false } => throw new ArgumentException("The asset URL must be absolute.", nameof(assetUrl)),
-        _ => assetUrl,
+        { IsAbsoluteUri: true } when assetUrl.Scheme is "http" or "https" => assetUrl,
+        _ => throw new ArgumentException("The asset URL must be an absolute http or https URL.", nameof(assetUrl)),
     };
     private readonly Dictionary<string, StringValues> _queryParameters = [];
 
@@ -65,6 +66,11 @@ public sealed class ImageUrlBuilder(Uri assetUrl)
     /// <param name="assetUrl">A string representing asset URI. </param>
     /// <exception cref="T:System.ArgumentNullException">
     /// <paramref name="assetUrl" /> is null. </exception>
+    /// <exception cref="T:System.UriFormatException">
+    /// <paramref name="assetUrl" /> is not a valid URI. </exception>
+    /// <exception cref="T:System.ArgumentException">
+    /// <paramref name="assetUrl" /> is not an absolute http or https URL. On macOS and Linux, a rooted path such as
+    /// <c>/assets/image.jpg</c> reads as a <c>file:</c> URI and is rejected here. </exception>
     public ImageUrlBuilder(string assetUrl) : this(new Uri(assetUrl))
     {
     }
