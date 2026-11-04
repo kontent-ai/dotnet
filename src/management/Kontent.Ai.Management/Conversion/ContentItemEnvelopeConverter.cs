@@ -265,13 +265,9 @@ internal sealed class ContentItemEnvelopeConverter
                 Value = value.GetDateTimeOffset(),
                 DisplayTimeZone = envelope.Sibling("display_timezone") is { ValueKind: JsonValueKind.String } tz ? tz.GetString() : null,
             },
-            ElementKind.UrlSlug => new UrlSlugValue
-            {
-                Value = value.GetString(),
-                Mode = envelope.Sibling("mode") is { ValueKind: JsonValueKind.String } mode
-                    ? mode.Deserialize<UrlSlugMode>(_scalarOptions)
-                    : default,
-            },
+            ElementKind.UrlSlug => envelope.Sibling("mode") is { ValueKind: JsonValueKind.String } mode
+                ? new UrlSlugValue { Value = value.GetString(), Mode = mode.Deserialize<UrlSlugMode>(_scalarOptions) }
+                : new UrlSlugValue { Value = value.GetString() },
             ElementKind.Custom => new CustomValue
             {
                 Value = value.GetString(),
