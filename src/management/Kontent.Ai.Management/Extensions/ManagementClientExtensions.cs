@@ -192,6 +192,11 @@ public static class ManagementClientExtensions
     /// previous partial failure: it always attempts another create. Reconcile the existing item and retry the
     /// variant step, or compose the two calls yourself with
     /// <see cref="IManagementClient.UpsertContentItemAsync"/> by external id, which is idempotent.
+    /// <para>
+    /// The typed variant upsert can also throw after writing, when <typeparamref name="T"/>'s ids come from another
+    /// environment (see <see cref="IManagementClient.UpsertLanguageVariantAsync{T}"/>). The item and the variant then
+    /// both exist, and calling this helper again creates a second item.
+    /// </para>
     /// </remarks>
     /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
     /// <param name="client">Content management client instance.</param>

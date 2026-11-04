@@ -86,12 +86,22 @@ LanguageVariantModel<Article> article = client.ToTyped<Article>(variant);
 ## Environment binding and partial updates
 
 > [!IMPORTANT]
-> **A typed read matches elements by id**, so a record works only against the environment it was
-> generated from. A response in which no element matches throws `InvalidOperationException` — that is a
-> mismatch between your model and the environment, not an outcome of the call. Elements the record does
-> not know are skipped, so a record generated before a type gained an element keeps working.
+> **A typed read matches elements by id.** A record's ids match the environment it was generated from and
+> that environment's clones, made in the app or through the API. Content recreated piece by piece — by an
+> export/import, or by a sync that adds types or elements to a clone — gets new ids; regenerate the records
+> against it.
 >
-> **Writes key off codenames** and are portable across environments.
+> - No element in the response matches: the read throws `InvalidOperationException`. That is a mismatch
+>   between your model and the environment, not an outcome of the call.
+> - Some elements match: the others read as `null`. An unmatched multiple-choice option or component type
+>   throws.
+> - An element the record does not have is skipped, so a record generated before a type gained an element
+>   keeps working.
+>
+> **The typed upsert is bound the same way.** It writes by codename, so the write succeeds anywhere, then
+> reads the response back by these rules. If that read throws, the variant has already been written, and
+> `CreateContentItemWithVariantAsync<T>` has already created the item, so calling it again creates a
+> second one.
 
 An upsert sends every element whose property value is **not null**, and omits the rest. Generated
 Management records have nullable properties and no initializers, so a fresh record sends only the
