@@ -4,8 +4,9 @@ namespace Kontent.Ai.Management.Models.LanguageVariants.Elements;
 /// <remarks>Use this to set a rich_text element by hand in the untyped element array; <c>Element</c> says which element it targets. With a generated content-type record, set the element via <see cref="Content.RichTextValue"/> instead.</remarks>
 public sealed record RichTextElement : BaseElement
 {
-    /// <summary>The rich-text markup.</summary>
+    /// <summary>The rich-text markup. <c>null</c> clears the element.</summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Value { get; init; }
 
     /// <summary>Components embedded in the rich text; omitted when null.</summary>

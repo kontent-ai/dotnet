@@ -4,8 +4,9 @@ namespace Kontent.Ai.Management.Models.LanguageVariants.Elements;
 /// <remarks>Use this to set a custom element by hand in the untyped element array; <c>Element</c> says which element it targets. With a generated content-type record, set the element via <see cref="Content.CustomValue"/> instead.</remarks>
 public sealed record CustomElement : BaseElement
 {
-    /// <summary>The opaque value owned by the custom element.</summary>
+    /// <summary>The opaque value owned by the custom element. <c>null</c> clears the element.</summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string? Value { get; init; }
 
     /// <summary>Plaintext used for search; omitted when null.</summary>

@@ -109,6 +109,22 @@ public class ElementSerializationTests
     }
 
     [Fact]
+    public void ValueElements_NullValue_SerializeExplicitNull()
+    {
+        BaseElement[] cleared =
+        [
+            new TextElement { Element = Reference.ByCodename("title") },
+            new NumberElement { Element = Reference.ByCodename("price") },
+            new DateTimeElement { Element = Reference.ByCodename("published") },
+            new RichTextElement { Element = Reference.ByCodename("body") },
+            new CustomElement { Element = Reference.ByCodename("widget") },
+        ];
+
+        cleared.Select(element => Wire(element).GetProperty("value").ValueKind)
+            .Should().AllBeEquivalentTo(JsonValueKind.Null);
+    }
+
+    [Fact]
     public void CustomElement_SerializesValueAndSearchableValue()
     {
         var wire = Wire(new CustomElement

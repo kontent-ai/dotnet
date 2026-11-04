@@ -21,5 +21,6 @@ public abstract record CustomAppOperationBaseModel
     /// Value for the operation. Type depends on <see cref="PropertyName"/>. May be <c>null</c> when replacing a nullable property (e.g. clearing <c>config</c>).
     /// </summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public required object? Value { get; init; }
 }

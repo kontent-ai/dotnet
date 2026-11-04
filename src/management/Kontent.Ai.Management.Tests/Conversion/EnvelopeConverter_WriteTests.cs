@@ -143,13 +143,13 @@ public class EnvelopeConverter_WriteTests
     }
 
     [Fact]
-    public void Custom_WithNullValue_OmitsValue()
+    public void Custom_WithNullValue_SendsExplicitNull()
     {
         var article = new Article { Rating = new CustomValue { SearchableValue = "searchable only" } };
 
         var envelopes = ParseEnvelopes(Converter.WriteEnvelopes(article));
 
-        envelopes["rating"].TryGetProperty("value", out _).Should().BeFalse("a null custom value is omitted rather than sent as null");
+        envelopes["rating"].GetProperty("value").ValueKind.Should().Be(JsonValueKind.Null);
         envelopes["rating"].GetProperty("searchable_value").GetString().Should().Be("searchable only");
     }
 

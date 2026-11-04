@@ -5,6 +5,9 @@ using Kontent.Ai.Management.Models.Languages.Patch;
 using Kontent.Ai.Management.Models.Spaces.Patch;
 using Kontent.Ai.Management.Models.TaxonomyGroups;
 using Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
+using Kontent.Ai.Management.Models.Types.Patch;
+using Kontent.Ai.Management.Tests.Base;
+using System.Text.Json;
 
 namespace Kontent.Ai.Management.Tests.Patch;
 
@@ -37,6 +40,20 @@ public class DomainPatchFactoryTests
         SpacePatch.RootItem(null).Value.Should().BeNull();
         SpacePatch.Collections(Reference.ByCodename("web")).Should().BeEquivalentTo(
             new { PropertyName = SpacePropertyName.Collections, Value = new[] { Reference.ByCodename("web") } });
+    }
+
+    [Fact]
+    public void ClearingPatches_SerializeExplicitNullValue()
+    {
+        object[] clears =
+        [
+            SpacePatch.RootItem(null),
+            CustomAppPatch.ReplaceConfig(null),
+            ContentTypePatch.ReplaceGuidelines(Reference.ByCodename("title"), null),
+        ];
+
+        clears.Select(patch => JsonSerializer.Serialize(patch, patch.GetType(), SharedTestJsonOptions.Default))
+            .Should().AllSatisfy(json => json.Should().Contain("\"value\":null"));
     }
 
     [Fact]

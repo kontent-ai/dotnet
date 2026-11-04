@@ -21,5 +21,6 @@ public sealed record SpaceReplacePatchModel
     /// New value. Type depends on <see cref="PropertyName"/>. Set to <c>null</c> to unset the root item.
     /// </summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public required object? Value { get; init; }
 }

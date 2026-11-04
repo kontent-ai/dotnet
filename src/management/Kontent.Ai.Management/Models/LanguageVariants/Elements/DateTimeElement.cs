@@ -6,8 +6,9 @@ namespace Kontent.Ai.Management.Models.LanguageVariants.Elements;
 /// <remarks>Use this to set a date_time element by hand in the untyped element array; <c>Element</c> says which element it targets. With a generated content-type record, set the element via <see cref="Content.DateTimeValue"/> instead.</remarks>
 public sealed record DateTimeElement : BaseElement
 {
-    /// <summary>The instant, serialized as a UTC "Z" value to match the API's storage.</summary>
+    /// <summary>The instant, serialized as a UTC "Z" value to match the API's storage. <c>null</c> clears the element.</summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     [JsonConverter(typeof(UtcDateTimeOffsetJsonConverter))]
     public DateTimeOffset? Value { get; init; }
 
