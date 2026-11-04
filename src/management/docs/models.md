@@ -86,10 +86,11 @@ LanguageVariantModel<Article> article = client.ToTyped<Article>(variant);
 ## Environment binding and partial updates
 
 > [!IMPORTANT]
-> **A typed read matches elements by id.** A record's ids match the environment it was generated from and
-> that environment's clones, made in the app or through the API. Content recreated piece by piece — by an
-> export/import, or by a sync that adds types or elements to a clone — gets new ids; regenerate the records
-> against it.
+> **A typed read matches elements by id.** A record carries its content model's ids — types, elements and
+> options — and they match the environment it was generated from and that environment's clones, made in
+> the app or through the API. A content model recreated by an export/import gets new ids, and a sync into a
+> clone gives new ids to the types, elements and options it adds; regenerate the records against that
+> environment.
 >
 > - No element in the response matches: the read throws `InvalidOperationException`. That is a mismatch
 >   between your model and the environment, not an outcome of the call.
@@ -98,10 +99,14 @@ LanguageVariantModel<Article> article = client.ToTyped<Article>(variant);
 > - An element the record does not have is skipped, so a record generated before a type gained an element
 >   keeps working.
 >
-> **The typed upsert is bound the same way.** It writes by codename, so the write succeeds anywhere, then
-> reads the response back by these rules. If that read throws, the variant has already been written, and
-> `CreateContentItemWithVariantAsync<T>` has already created the item, so calling it again creates a
-> second one.
+> **The typed upsert is bound the same way.** It keys elements, options and component types by codename, so
+> the write does not depend on the record's ids, then reads the response back by these rules. If that read
+> throws, the variant has already been written, and `CreateContentItemWithVariantAsync<T>` has already
+> created the item, so calling it again creates a second one.
+>
+> **Reference values are written as they are.** Linked items, assets and taxonomy terms are `Reference`s,
+> and a record read from the Management API carries them by id. Upserted into another environment, it
+> sends the first environment's ids.
 
 An upsert sends every element whose property value is **not null**, and omits the rest. Generated
 Management records have nullable properties and no initializers, so a fresh record sends only the

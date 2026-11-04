@@ -27,10 +27,10 @@ namespace Kontent.Ai.Management.Conversion;
 /// </para>
 /// <para>
 /// <b>Environment binding.</b> The read path resolves rich-text component types by id (MAPI returns component types by
-/// id only — no codename on the wire). Ids are environment-specific: clones keep them, content recreated by an
-/// export/import or a sync gets new ones. Typed read therefore assumes the generated models carry the ids of the
-/// environment being read.
-/// Writes stay portable because they key off codenames.
+/// id only — no codename on the wire). Ids are environment-specific: clones keep them; a content model recreated by an
+/// export/import gets new ones, as do the types, elements and options a sync adds. Typed read therefore assumes the
+/// generated models carry the ids of the environment being read. Writes key elements, options and component types by
+/// codename.
 /// </para>
 /// <para>
 /// Thread-safe; intended to be shared across calls. Reflection cost is paid once per content type

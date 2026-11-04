@@ -24,8 +24,8 @@ namespace Kontent.Ai.Management.Models.ContentModel;
 /// committed snapshots diff meaningfully. Breaking changes to the format bump <see cref="CurrentVersion"/>.
 /// </para>
 /// <para>
-/// Ids are environment-specific. A clone keeps its source's ids, so their snapshots diff cleanly; a model recreated by
-/// an export/import or a sync gets new ids, so its snapshot differs in every one.
+/// Ids are environment-specific. A clone keeps its source's ids, so their snapshots diff cleanly. An export/import gives
+/// the whole model new ids, so its snapshot differs in every one; a sync gives new ids to what it adds.
 /// </para>
 /// </remarks>
 [Experimental("KAIM001")]
