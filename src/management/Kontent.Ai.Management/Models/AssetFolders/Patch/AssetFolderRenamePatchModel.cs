@@ -8,6 +8,7 @@ public sealed record AssetFolderRenamePatchModel : AssetFolderOperationBaseModel
     /// <summary>
     /// Represents the rename operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "rename";
 
     /// <summary>

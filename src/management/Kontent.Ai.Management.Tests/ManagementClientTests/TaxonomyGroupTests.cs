@@ -199,7 +199,7 @@ public class TaxonomyGroupTests
         // converter. Assert the part that's behaviourally meaningful and converter-free — the ordered sequence of
         // operation kinds (PATCH order matters), via each element's stable "op" discriminator.
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 
@@ -221,7 +221,7 @@ public class TaxonomyGroupTests
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<TaxonomyGroupModel>(TaxonomyGroup, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 
@@ -243,7 +243,7 @@ public class TaxonomyGroupTests
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<TaxonomyGroupModel>(TaxonomyGroup, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 

@@ -195,7 +195,7 @@ public class ContentTypeSnippetTests
         // Heterogeneous polymorphic operation list: assert the converter-free, behaviourally meaningful part — the
         // ordered sequence of operation kinds (PATCH order matters), via each element's stable "op" discriminator.
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 
@@ -217,7 +217,7 @@ public class ContentTypeSnippetTests
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentTypeSnippetModel>(Snippet, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 
@@ -239,7 +239,7 @@ public class ContentTypeSnippetTests
         result.Value.Should().BeEquivalentTo(JsonSerializer.Deserialize<ContentTypeSnippetModel>(Snippet, SharedTestJsonOptions.Default));
         capturedBody.Value.Should().NotBeNull();
         var sentOps = JsonNode.Parse(capturedBody.Value)!.AsArray().Select(t => (string?)t!["op"]);
-        var expectedOps = JsonNode.Parse(JsonSerializer.Serialize(changes, SharedTestJsonOptions.Default))!.AsArray().Select(t => (string?)t!["op"]);
+        var expectedOps = changes.Select(c => c.Op);
         sentOps.Should().Equal(expectedOps);
     }
 

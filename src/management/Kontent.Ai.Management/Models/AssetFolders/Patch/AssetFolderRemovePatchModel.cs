@@ -8,6 +8,7 @@ public sealed record AssetFolderRemovePatchModel : AssetFolderOperationBaseModel
     /// <summary>
     /// Represents remove operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "remove";
 
     /// <summary>

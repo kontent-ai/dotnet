@@ -9,5 +9,6 @@ public sealed record CustomAppAddIntoPatchModel : CustomAppOperationBaseModel
     /// <summary>
     /// Represents the addInto operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "addInto";
 }

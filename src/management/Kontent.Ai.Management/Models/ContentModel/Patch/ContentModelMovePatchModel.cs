@@ -6,6 +6,7 @@ namespace Kontent.Ai.Management.Models.ContentModel.Patch;
 public sealed record ContentModelMovePatchModel : ContentModelOperationBaseModel
 {
     /// <inheritdoc/>
+    [JsonPropertyName("op")]
     public override string Op => "move";
 
     /// <summary>

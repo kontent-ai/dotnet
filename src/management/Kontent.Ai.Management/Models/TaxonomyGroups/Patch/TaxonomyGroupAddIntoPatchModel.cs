@@ -6,6 +6,7 @@ namespace Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
 public sealed record TaxonomyGroupAddIntoPatchModel : TaxonomyGroupOperationBaseModel
 {
     /// <inheritdoc/>
+    [JsonPropertyName("op")]
     public override string Op => "addInto";
 
     /// <summary>

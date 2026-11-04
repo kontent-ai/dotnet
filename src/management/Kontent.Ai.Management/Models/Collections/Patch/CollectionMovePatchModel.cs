@@ -8,6 +8,7 @@ public sealed record CollectionMovePatchModel : CollectionOperationBaseModel
     /// <summary>
     /// Represents move operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "move";
 
     /// <summary>

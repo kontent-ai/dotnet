@@ -9,5 +9,6 @@ public sealed record CustomAppReplacePatchModel : CustomAppOperationBaseModel
     /// <summary>
     /// Represents the replace operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "replace";
 }

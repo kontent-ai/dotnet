@@ -8,6 +8,7 @@ public sealed record CollectionRemovePatchModel : CollectionOperationBaseModel
     /// <summary>
     /// Represents the remove operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "remove";
 
     /// <summary>
