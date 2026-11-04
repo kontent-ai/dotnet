@@ -53,6 +53,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   A transient failure on one of those workflow calls now comes back as a failed result instead of being retried.
   Check the variant's state before calling again.
 
+- **A success response the SDK cannot read says so.**
+
+  A `2xx` whose body did not match the SDK's model was reported as having "no readable response body". The
+  message now gives the status and the reason, such as "The request succeeded (201), but its response could not be
+  read: …". The request was applied.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed

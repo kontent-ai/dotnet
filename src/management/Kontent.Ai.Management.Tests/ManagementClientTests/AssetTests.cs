@@ -173,7 +173,7 @@ public class AssetTests
 
         result.IsSuccess.Should().BeFalse();
         result.Value.Should().BeNull();
-        result.Error!.Message.Should().Contain("success status");
+        result.Error!.Message.Should().Be("The request succeeded (200), but the response carried no value.");
     }
 
     [Fact]
