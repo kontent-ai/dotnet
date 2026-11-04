@@ -26,6 +26,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   Content type, snippet, taxonomy, collection, asset folder, custom app and environment operations sent `"Op"`. The
   API accepts it, but its contract is `op`.
 
+- **`VariantFilterWorkflowStepsModel.Steps` is documented as required.**
+
+  Its docs said to omit the steps to match any step. The API rejects a workflow-step filter without them.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed

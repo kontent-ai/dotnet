@@ -27,7 +27,7 @@ public static class CustomAppPatch
         return new() { PropertyName = CustomAppPropertyName.SourceUrl, Value = sourceUrl };
     }
 
-    /// <summary>Replaces the custom app's config. Pass <c>null</c> to clear it.</summary>
+    /// <summary>Replaces the custom app's config, a string such as serialized JSON. Pass <c>null</c> to clear it.</summary>
     public static CustomAppReplacePatchModel ReplaceConfig(object? config) =>
         new() { PropertyName = CustomAppPropertyName.Config, Value = config };
 
