@@ -129,7 +129,7 @@ Names are compared ordinally. A client needing different credentials — a subsc
 | `ApiKey` | Yes | — | A Management API key for environment-scoped endpoints, or a **Subscription API key** for subscription-scoped ones. They are different keys — see [subscription-scoped operations](administration.md#subscription-scoped-operations). |
 | `SubscriptionId` | For subscription endpoints | — | The subscription GUID. Required only for subscription-scoped endpoints such as user management. |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
-| `Timeout` | No | `30 minutes` | Ceiling on one call, covering every retry attempt and the waits between them. |
+| `Timeout` | No | `30 minutes` | Ceiling on one HTTP request, covering every retry attempt and the waits between them. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address. Override only when targeting a non-production endpoint. |
 
 Options are validated on use. A missing `ApiKey`, a malformed identifier, or neither `EnvironmentId` nor
@@ -195,14 +195,16 @@ retrying rate-limited writes; it is not equivalent to the SDK's rule.
 
 Two clocks bound a request:
 
-- **Per attempt** — no default. Asset and file uploads can legitimately run long, and cutting one off
-  only to retry it re-uploads the same bytes. Add one through `ConfigureResilience` if you want it.
-- **The whole call** — `ManagementOptions.Timeout`, covering every attempt and the waits between them.
-  Defaults to **30 minutes**, sized against the 2 GB asset limit.
+- **Per attempt** — none. Asset and file uploads can legitimately run long, and cutting one off only to
+  retry it re-uploads the same bytes. `ConfigureResilience` can add one, but it replaces the whole
+  pipeline, so a pipeline with only a timeout has no retries.
+- **Per request** — `ManagementOptions.Timeout`, covering every attempt of one HTTP request and the
+  waits between them. A listing that walks several pages gets it once per page. Defaults to
+  **30 minutes**, sized against the 2 GB asset limit.
 
-Prefer `Timeout` for changing the total budget; replacing the pipeline is not the way to set one. Use
+Prefer `Timeout` for changing the budget; replacing the pipeline is not the way to set one. Use
 `Timeout.InfiniteTimeSpan` to be bounded only by your `CancellationToken`. `Timeout` outranks
-`Retry-After`: the pipeline waits exactly as long as the server asked, but the call is still cut short
+`Retry-After`: the pipeline waits exactly as long as the server asked, but the request is still cut short
 if your ceiling runs out first.
 
 Uploads have their own retry-safety rules — see [supported sources and
@@ -225,8 +227,8 @@ Every request carries two analytics headers:
 - **`X-KC-SOURCE`** — identifies a library built *on top of* the SDK. Set only when a caller assembly opts in.
 
 **End-user applications need do nothing here.** If you publish a library that wraps this SDK, add the
-attribute at assembly level; at request time the SDK walks the call stack, finds your assembly and reads
-it:
+attribute at assembly level; on the first request the SDK walks the call stack once, finds your assembly
+and reads it, and sends that header for the rest of the process:
 
 ```csharp
 using Kontent.Ai.Management.Attributes;

@@ -44,14 +44,14 @@ public sealed class ManagementOptions : IValidatableObject
     public bool EnableResilience { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the ceiling on one call, covering every retry attempt and the waits between them.
-    /// Defaults to 30 minutes. Use <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to leave the call
-    /// bounded only by the caller's <see cref="CancellationToken"/>.
+    /// Gets or sets the ceiling on one HTTP request, covering every retry attempt and the waits between them; a
+    /// listing that walks several pages gets it once per page. Defaults to 30 minutes. Use
+    /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to be bounded only by the caller's <see cref="CancellationToken"/>.
     /// </summary>
     /// <remarks>
     /// This SDK sets no per-attempt timeout: an asset upload takes as long as the file is large and the link
     /// is slow, and cutting one off mid-transfer helps nobody. This ceiling is therefore the only bound, and
-    /// it covers the whole call - every attempt plus the backoff between them - so it has to clear the
+    /// it covers the whole request - every attempt plus the backoff between them - so it has to clear the
     /// slowest legitimate upload rather than the slowest single attempt. The default is sized against the
     /// documented 2 GB asset limit: 30 minutes carries that much over a link of roughly 10 Mbps.
     /// </remarks>
