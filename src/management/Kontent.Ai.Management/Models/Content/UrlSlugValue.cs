@@ -27,6 +27,6 @@ public sealed record UrlSlugValue
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Value, Mode);
 
-    /// <summary>A bare-string slug is by definition a custom one.</summary>
-    public static implicit operator UrlSlugValue(string value) => new() { Value = value, Mode = UrlSlugMode.Custom };
+    /// <summary>A slug from a string, with <see cref="Mode"/> defaulting as for any other value.</summary>
+    public static implicit operator UrlSlugValue(string value) => new() { Value = value };
 }
