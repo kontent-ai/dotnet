@@ -23,6 +23,9 @@ public partial class DocSectionMarkerTests
             Path.Combine(Environment.CurrentDirectory, "..", "..", "..", "CodeSamples"), "*.cs");
 
     [Fact]
+    public void SampleFiles_AreFound() => SampleFiles().Should().NotBeEmpty();
+
+    [Fact]
     public void EverySection_IsClosed()
     {
         var unclosed = new List<string>();
@@ -100,6 +103,8 @@ public partial class DocSectionMarkerTests
                 if (open is null) continue;
 
                 if (line.Contains("MockClientFactory") ||
+                    line.Contains("Environment.CurrentDirectory") ||
+                    line.Contains(".Should(") ||
                     line.Contains("[Fact]") ||
                     line.Contains("Record.ExceptionAsync") ||
                     line.TrimStart().StartsWith("Assert.", StringComparison.Ordinal))
