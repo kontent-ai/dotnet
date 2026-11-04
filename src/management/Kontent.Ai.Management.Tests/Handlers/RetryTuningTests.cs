@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Kontent.Ai.Management.Extensions;
+using Kontent.Ai.Management.Models.Environments;
+using Kontent.Ai.Management.Models.Items;
 using Kontent.Ai.Management.Models.ItemWithVariant;
 using Kontent.Ai.Management.Models.LanguageVariants;
 using Microsoft.Extensions.DependencyInjection;
@@ -190,30 +192,67 @@ public sealed class RetryTuningTests
         act.Should().Throw<ArgumentNullException>();
     }
 
-    [Fact]
-    public async Task WorkflowActionThatFailsOnReplay_IsNotRetriedOnServerError()
+    [Theory]
+    [InlineData("publish", 1)]
+    [InlineData("new-version", 1)]
+    [InlineData("unpublish", 1)]
+    [InlineData("cancel-publishing", 1)]
+    [InlineData("cancel-unpublishing", 1)]
+    [InlineData("mark-as-production", 1)]
+    [InlineData("delete", 1)]
+    [InlineData("validate", 1)]
+    [InlineData("upsert", 4)]
+    [InlineData("filter", 4)]
+    [InlineData("bulk-get", 4)]
+    public async Task ServerError_RetriesOnlyRequestsSafeToRepeat(string operation, int expectedAttempts)
     {
         var handler = new StubHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
         using var client = RetryingClient(handler);
 
-        var result = await client.PublishLanguageVariantAsync(
-            new LanguageVariantIdentifier(Reference.ByCodename("item"), Reference.ByCodename("en")));
+        var result = await Call(client, operation);
 
         result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        handler.Attempts.Should().Be(1);
+        handler.Attempts.Should().Be(expectedAttempts);
     }
 
-    [Fact]
-    public async Task ReadOnlyPost_IsRetriedOnServerError()
+    [Theory]
+    [InlineData("publish", HttpRequestError.NameResolutionError, 4)]
+    [InlineData("publish", HttpRequestError.ConnectionError, 4)]
+    [InlineData("publish", HttpRequestError.ResponseEnded, 1)]
+    [InlineData("create", HttpRequestError.ConnectionError, 4)]
+    [InlineData("create", HttpRequestError.ResponseEnded, 1)]
+    [InlineData("upsert", HttpRequestError.ResponseEnded, 4)]
+    public async Task TransportFailure_RetriesAnyRequestThatWasNeverSent(string operation, HttpRequestError error, int expectedAttempts)
     {
-        var handler = new StubHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        var handler = new StubHandler(_ => throw new HttpRequestException(error, "Transport failure"));
         using var client = RetryingClient(handler);
 
-        var result = await client.FilterItemsWithVariantsPageAsync(new ItemWithVariantFilterRequestModel());
+        var result = await Call(client, operation);
 
-        result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-        handler.Attempts.Should().Be(4);
+        result.IsSuccess.Should().BeFalse();
+        handler.Attempts.Should().Be(expectedAttempts);
     }
+
+    private static readonly LanguageVariantIdentifier Variant = new(Reference.ByCodename("item"), Reference.ByCodename("en"));
+
+    private static Task<IManagementResult> Call(IManagementClient client, string operation) => operation switch
+    {
+        "publish" => AsResult(client.PublishLanguageVariantAsync(Variant)),
+        "new-version" => AsResult(client.CreateNewVersionOfLanguageVariantAsync(Variant)),
+        "unpublish" => AsResult(client.UnpublishLanguageVariantAsync(Variant)),
+        "cancel-publishing" => AsResult(client.CancelPublishingOfLanguageVariantAsync(Variant)),
+        "cancel-unpublishing" => AsResult(client.CancelUnpublishingOfLanguageVariantAsync(Variant)),
+        "mark-as-production" => AsResult(client.MarkEnvironmentAsProductionAsync(new MarkAsProductionModel())),
+        "delete" => AsResult(client.DeleteContentItemAsync(Reference.ByCodename("item"))),
+        "validate" => AsResult(client.ValidateEnvironmentAsync()),
+        "upsert" => AsResult(client.UpsertContentItemAsync(Reference.ByExternalId("item"), new ContentItemUpsertModel { Name = "Item" })),
+        "create" => AsResult(client.CreateContentItemAsync(new ContentItemCreateModel { Name = "Item", Type = Reference.ByCodename("type") })),
+        "filter" => AsResult(client.FilterItemsWithVariantsPageAsync(new ItemWithVariantFilterRequestModel())),
+        "bulk-get" => AsResult(client.BulkGetItemsWithVariantsPageAsync(new ItemWithVariantBulkGetRequestModel { Variants = [] })),
+        _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null),
+    };
+
+    private static async Task<IManagementResult> AsResult<TResult>(Task<TResult> call) where TResult : IManagementResult => await call;
 
     private static ManagementClient RetryingClient(HttpMessageHandler handler) => ManagementClient.Create(management =>
     {

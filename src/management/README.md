@@ -103,8 +103,8 @@ Binding from configuration, several named clients, and transport customization a
   `ListXPageAsync` overload for large sets —
   [details](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/requests-and-results.md#pagination).
 - **Retries depend on the request.** Every request retries on `429`; other transient failures retry
-  only requests that are safe to repeat, so a create, a `PATCH` or a publish that fails mid-flight is
-  never replayed —
+  only requests that are safe to repeat, so a create, a delete, a `PATCH` or a publish that fails
+  mid-flight is never replayed —
   [details](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/configuration.md#retries-and-timeouts).
 - **A multi-call helper is not a transaction.** `CreateContentItemWithVariantAsync` can leave an item
   with no variant —

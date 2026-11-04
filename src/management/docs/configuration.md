@@ -129,7 +129,7 @@ Names are compared ordinally. A client needing different credentials — a subsc
 | `ApiKey` | Yes | — | A Management API key for environment-scoped endpoints, or a **Subscription API key** for subscription-scoped ones. They are different keys — see [subscription-scoped operations](administration.md#subscription-scoped-operations). |
 | `SubscriptionId` | For subscription endpoints | — | The subscription GUID. Required only for subscription-scoped endpoints such as user management. |
 | `EnableResilience` | No | `true` | Toggles the built-in retry/backoff pipeline without uninstalling it. |
-| `Timeout` | No | `30 minutes` | Ceiling on one HTTP request, covering every retry attempt and the waits between them. |
+| `Timeout` | No | `30 minutes` | Ceiling on one HTTP request up to its response headers, covering every retry attempt and the waits between them. |
 | `Endpoint` | No | `https://manage.kontent.ai` | The Management API base address. Override only when targeting a non-production endpoint. |
 
 Options are validated on use. A missing `ApiKey`, a malformed identifier, or neither `EnvironmentId` nor
@@ -146,16 +146,17 @@ Every client comes with a resilience pipeline
 ([`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience)):
 exponential backoff with jitter, `Retry-After` handling, and **idempotency-aware retries**.
 
-A `429` is retried for every request, because it was rejected rather than applied. Other transient
-failures — `408`, `500`, `502`, `503`, `504` and transport errors — are retried only for idempotent
-requests, because the first attempt may already have landed. The HTTP method decides, with two exceptions:
+A `429` is retried for every request, because it was rejected rather than applied. So is a failure to
+resolve the host or connect to it, because nothing was sent. Other transient failures — `408`, `500`,
+`502`, `503`, `504` and transport errors after sending — are retried only for requests that are safe to
+repeat, because the first attempt may already have landed:
 
-- **Not retried:** publishing now, creating a new version, unpublishing now and cancelling a schedule.
-  They are `PUT`s, but the API rejects a repeat of one that succeeded.
-- **Retried:** filtering and bulk-getting variants, and validating the environment. They are `POST`s that
-  only read.
-
-Every other `POST`, and every `PATCH`, is never replayed.
+- **Retried:** `GET`, `HEAD`, `OPTIONS` and `PUT`, plus filtering and bulk-getting variants, which are
+  `POST`s that only read.
+- **Not retried:** publishing now, creating a new version, unpublishing now, cancelling a schedule and
+  marking the environment as production — `PUT`s the API rejects when a successful one is repeated — and
+  every `DELETE`, which a repeat answers with `404`. Every other `POST`, and every `PATCH`, is not
+  retried either.
 
 Set `EnableResilience = false` to make the pipeline a passthrough.
 
@@ -199,7 +200,8 @@ Two clocks bound a request:
   retry it re-uploads the same bytes. `ConfigureResilience` can add one, but it replaces the whole
   pipeline, so a pipeline with only a timeout has no retries.
 - **Per request** — `ManagementOptions.Timeout`, covering every attempt of one HTTP request and the
-  waits between them. A listing that walks several pages gets it once per page. Defaults to
+  waits between them, up to the response headers; reading the response body is bounded only by your
+  `CancellationToken`. A listing that walks several pages gets it once per page. Defaults to
   **30 minutes**, sized against the 2 GB asset limit.
 
 Prefer `Timeout` for changing the budget; replacing the pipeline is not the way to set one. Use

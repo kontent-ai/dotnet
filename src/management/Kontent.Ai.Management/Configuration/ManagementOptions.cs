@@ -44,8 +44,9 @@ public sealed class ManagementOptions : IValidatableObject
     public bool EnableResilience { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the ceiling on one HTTP request, covering every retry attempt and the waits between them; a
-    /// listing that walks several pages gets it once per page. Defaults to 30 minutes. Use
+    /// Gets or sets the ceiling on one HTTP request up to its response headers, covering every retry attempt and the
+    /// waits between them; reading the response body is bounded only by the caller's <see cref="CancellationToken"/>,
+    /// and a listing that walks several pages gets the ceiling once per page. Defaults to 30 minutes. Use
     /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> to be bounded only by the caller's <see cref="CancellationToken"/>.
     /// </summary>
     /// <remarks>
