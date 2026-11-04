@@ -146,10 +146,16 @@ Every client comes with a resilience pipeline
 ([`Microsoft.Extensions.Http.Resilience`](https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience)):
 exponential backoff with jitter, `Retry-After` handling, and **idempotency-aware retries**.
 
-A `429` is retried for every method, because the request was rejected rather than applied. Other
-transient failures — `408`, `5xx`, transport errors — are retried only for idempotent methods (`GET`,
-`HEAD`, `OPTIONS`, `PUT`, `DELETE`). A `POST` or `PATCH` that fails mid-flight is never replayed, because
-the write may already have landed.
+A `429` is retried for every request, because it was rejected rather than applied. Other transient
+failures — `408`, `500`, `502`, `503`, `504` and transport errors — are retried only for idempotent
+requests, because the first attempt may already have landed. The HTTP method decides, with two exceptions:
+
+- **Not retried:** publishing now, creating a new version, unpublishing now and cancelling a schedule.
+  They are `PUT`s, but the API rejects a repeat of one that succeeded.
+- **Retried:** filtering and bulk-getting variants, and validating the environment. They are `POST`s that
+  only read.
+
+Every other `POST`, and every `PATCH`, is never replayed.
 
 Set `EnableResilience = false` to make the pipeline a passthrough.
 

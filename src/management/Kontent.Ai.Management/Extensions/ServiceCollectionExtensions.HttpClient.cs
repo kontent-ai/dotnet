@@ -57,15 +57,11 @@ public static partial class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Configures the default resilience pipeline. Retries are idempotency-aware: HTTP 429 retries for every method
-    /// (the request was rejected, not processed), while other transient failures — 408/5xx and transport exceptions,
-    /// where the request may have already been applied server-side — retry only for idempotent methods. POST and
-    /// PATCH are never assumed safe: a replayed create can duplicate an entity, and the Management API PATCH grammar
-    /// includes non-idempotent <c>addInto</c>. Consumers can adjust the initialized retry options through <c>TuneRetry</c>
-    /// or replace the pipeline through <c>ConfigureResilience</c>, on both transports. Diverges from
-    /// delivery-sdk-net / sync-sdk-net by omitting <c>AddTimeout</c> — management operations include asset uploads
-    /// where a per-attempt timeout would be more hindrance than help. The ceiling on the call as a whole is
-    /// <see cref="ManagementOptions.Timeout"/>.
+    /// Configures the default resilience pipeline. Retries are idempotency-aware: HTTP 429 retries every request (it
+    /// was rejected, not processed), while other transient failures — 408/5xx and transport exceptions, where the
+    /// request may already have been applied — retry idempotent requests only. The HTTP method decides, except for the
+    /// endpoints in <see cref="EndpointIdempotency"/>. Unlike Delivery and Sync there is no
+    /// per-attempt timeout; <see cref="ManagementOptions.Timeout"/> bounds each request, retries included.
     /// </summary>
     internal static void ConfigureDefaultResilience(
         ResiliencePipelineBuilder<HttpResponseMessage> builder,
@@ -91,17 +87,35 @@ public static partial class ServiceCollectionExtensions
         {
             return !response.IsSuccessStatusCode
                 && (response.StatusCode == HttpStatusCode.TooManyRequests
-                    || (HttpRetryPredicates.IsRetryableStatusCode(response.StatusCode) && IsIdempotent(RequestMethod(response, context))));
+                    || (HttpRetryPredicates.IsRetryableStatusCode(response.StatusCode)
+                        && IsRequestIdempotent(response.RequestMessage ?? context.GetRequestMessage())));
         }
 
         return HttpRetryPredicates.IsTransientException(outcome.Exception, context.CancellationToken)
-            && IsIdempotent(context.GetRequestMessage()?.Method);
+            && IsRequestIdempotent(context.GetRequestMessage());
     }
 
-    // The response usually carries its request (set by the primary handler); the resilience context (populated by
-    // ResilienceHandler) is the fallback for handlers that don't set it.
-    private static HttpMethod? RequestMethod(HttpResponseMessage response, ResilienceContext context)
-        => (response.RequestMessage ?? context.GetRequestMessage())?.Method;
+    internal static bool IsRequestIdempotent(HttpRequestMessage? request)
+        => request is not null
+        && (request.Options.TryGetValue(RefitMethodName, out var method) && EndpointIdempotency.TryGetValue(method, out var idempotent)
+            ? idempotent
+            : IsIdempotent(request.Method));
+
+    private static readonly HttpRequestOptionsKey<string> RefitMethodName = new(HttpRequestMessageOptions.MethodName);
+
+    // Verified against the live API: a second publish, new version, immediate unpublish or cancellation fails, while
+    // filter, bulk get and validate only read.
+    private static readonly Dictionary<string, bool> EndpointIdempotency = new()
+    {
+        [nameof(IManagementApi.PublishLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.CreateNewVersionOfLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.UnpublishLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.CancelPublishingOfLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.CancelUnpublishingOfLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.FilterItemsWithVariantsInternalAsync)] = true,
+        [nameof(IManagementApi.BulkGetItemsWithVariantsInternalAsync)] = true,
+        [nameof(IManagementApi.ValidateEnvironmentInternalAsync)] = true,
+    };
 
     // An unknown method — no request message available — is treated as non-idempotent: no retry unless provably safe.
     internal static bool IsIdempotent(HttpMethod? method)
