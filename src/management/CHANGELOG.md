@@ -42,6 +42,17 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   and can throw after the write, and a record's reference values keep the ids they were read with. The docs also
   missed that a partly matching response reads the unmatched elements as `null`.
 
+- **Workflow actions that fail when repeated are no longer retried.**
+
+  Publishing now, creating a new version, unpublishing now and cancelling a schedule are `PUT`s, so a `5xx` or
+  transport failure was retried. When the first attempt had landed, the repeat failed with `213`, `214`, `215`,
+  `218` or `226`, and the call reported a failure for an operation that had succeeded. These calls are now retried
+  only on `429`. Filtering and bulk-getting variants and validating the environment are `POST`s that only read; they
+  are now retried like a `GET`.
+
+  A transient failure on one of those workflow calls now comes back as a failed result instead of being retried.
+  Check the variant's state before calling again.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed
@@ -334,7 +345,6 @@ No consumer-visible effect:
 
 - Enum wire tokens now travel on `[JsonStringEnumMemberName]` and serialize through the built-in `System.Text.Json` converter. The custom converter existed only because that attribute did not exist on .NET 8. All 140 members across 36 enums keep their exact tokens, verified by round-trip — including the ones that are not snake_case (`light-purple`, `fullScreen`, `asc`, `modular_content`).
 - Refit 14 builds request logic at compile time rather than by reflection; the Management interfaces generate completely and gained that with no changes.
-
 
 ## 9.0.0-beta-5 (2026-08-03)  _(prerelease)_
 
@@ -667,10 +677,8 @@ var request = new ItemWithVariantFilterRequestModel
 - No breaking changes in this release.
 - Filter arrays should be omitted/null when unused; empty arrays are rejected by the API.
 
-
 ### What's Changed
 * EN-648 - Add spaces, collections, and publishing states filters to variant filter model by @winklertomas in https://github.com/kontent-ai/management-sdk-net/pull/292
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/8.0.0...8.1.0
 
@@ -803,7 +811,6 @@ In 8.0.0, **filtering and content retrieval are separated**:
 ### What's Changed
 * EN-649 - Replace early-access variant filter with items-with-variant endpoints by @winklertomas in https://github.com/kontent-ai/management-sdk-net/pull/291
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/7.0.2...8.0.0
 
 ## 7.0.2 (2026-02-04)
@@ -821,7 +828,6 @@ In 8.0.0, **filtering and content retrieval are separated**:
 ### What's Changed
 * EN-615 - make taxonomy terms and nested asset folders optional by @winklertomas in https://github.com/kontent-ai/management-sdk-net/pull/289
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/7.0.0...7.0.1
 
 ## 7.0.0 (2025-11-14)
@@ -832,7 +838,6 @@ In 8.0.0, **filtering and content retrieval are separated**:
 ### Related PRs
 * EN-628 remove legacy webhooks by @sevcik-martin in https://github.com/kontent-ai/management-sdk-net/pull/288
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.9.1...7.0.0
 
 ## 6.9.1 (2025-11-05)
@@ -841,7 +846,6 @@ In 8.0.0, **filtering and content retrieval are separated**:
 
 ### What's Changed
 * Fix filtering pagination method by @pokornyd in https://github.com/kontent-ai/management-sdk-net/pull/287
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.9.0...6.9.1
 
@@ -855,7 +859,6 @@ In 8.0.0, **filtering and content retrieval are separated**:
 
 ### Related PR
 * EN-599 Rename completion status completed to ready by @huluvu21 in https://github.com/kontent-ai/management-sdk-net/pull/285
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.8.0...6.9.0
 
@@ -897,7 +900,6 @@ var request = new VariantFilterRequestModel
 var response = await client.EarlyAccess.FilterVariantsAsync(request);
 ```
 
-
 This request retrieves all English language variants using the default ordering.
 
 ###### Rich request
@@ -929,12 +931,10 @@ var request = new VariantFilterRequestModel
 var response = await client.EarlyAccess.FilterVariantsAsync(request);
 ```
 
-
 This request searches for completed English articles containing the word test, ordered by name ascending, including content in the response.
 
 ### What's Changed
 * EN-542 Add early access support for new MAPI endpoint `/early-access/… by @arguit in https://github.com/kontent-ai/management-sdk-net/pull/284
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.7.0...6.8.0
 
@@ -956,7 +956,6 @@ This request searches for completed English articles containing the word test, o
 * Add support for custom HTTP client, make ElementModelProvider public by @pokornyd in https://github.com/kontent-ai/management-sdk-net/pull/282
 * Fix dynamic conversions by @pokornyd in https://github.com/kontent-ai/management-sdk-net/pull/283
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.6.1...6.7.0
 
 ## 6.6.1 (2025-04-25)
@@ -966,7 +965,6 @@ This request searches for completed English articles containing the word test, o
 
 ### What's Changed
 * add missing decorators to LanguageVariantUpsertModel by @pokornyd in https://github.com/kontent-ai/management-sdk-net/pull/281
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.6.0...6.6.1
 
@@ -1005,7 +1003,6 @@ This request searches for completed English articles containing the word test, o
 ### What's Changed
 * EN-207 Add asset folder codenames by @matus12 in https://github.com/kontent-ai/management-sdk-net/pull/274
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.3.0...6.4.0
 
 ## 6.3.0 (2024-07-30)
@@ -1015,7 +1012,6 @@ This request searches for completed English articles containing the word test, o
 
 ### What's Changed
 * EN-238 Add WebSpotlight support via Management Api by @arguit in https://github.com/kontent-ai/management-sdk-net/pull/273
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.2.0...6.3.0
 
@@ -1039,7 +1035,6 @@ This request searches for completed English articles containing the word test, o
 
 ### What's Changed
 * EN-137 - Add access to published content by @VladimirO-kontent in https://github.com/kontent-ai/management-sdk-net/pull/264
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/6.0.0...6.1.0
 
@@ -1075,7 +1070,6 @@ This request searches for completed English articles containing the word test, o
 * Add custom headers to webhooks by @lenkaklimcikova in https://github.com/kontent-ai/management-sdk-net/pull/258
   * more info on custom webhook headers in Kontent.ai [documentation](https://kontent.ai/learn/docs/webhooks/webhooks/net#a-custom-headers)
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/5.1.0...5.2.0
 
 ## 5.1.0 (2024-02-05)
@@ -1085,7 +1079,6 @@ This request searches for completed English articles containing the word test, o
   * collections can now be assigned to spaces, more info [in our documentation](https://kontent.ai/learn/docs/spaces#a-connect-spaces-to-collections)
 * Add new webhook filters by @winklertomas in https://github.com/kontent-ai/management-sdk-net/pull/257
   * new filtering options have been added to the reworked webhooks, introduced in the latest major version see [product updates](https://kontent.ai/learn/product-updates#a-extended-webhook-filters) for more information
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/5.0.0...5.1.0
 
@@ -1106,8 +1099,6 @@ This request searches for completed English articles containing the word test, o
 #### Improved webhook experience
 - webhook methods were adjusted to bring you all the benefits of our reworked webhook experience, allowing more granular trigger event configuration and providing wider range of objects to fire an event from <[Product Update](https://kontent.ai/learn/product-updates#a-easily-track-content-changes-with-new-webhooks) | [Readme](https://kontent.ai/learn/docs/webhooks/webhooks/javascript)>
 -  added related tests and code samples
-
-
 
 ### What's Changed
 * Add new webhooks and rename legacy webhooks by @lenkaklimcikova in https://github.com/kontent-ai/management-sdk-net/pull/254
@@ -1148,7 +1139,6 @@ This request searches for completed English articles containing the word test, o
 * #220 Add support for workflows scoped to collections. by @Iorethan in https://github.com/kontent-ai/management-sdk-net/pull/223
 * #233 Add root item to Spaces by @AdamZ-Kontent in https://github.com/kontent-ai/management-sdk-net/pull/234
 
-
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/4.4.0...4.5.0
 
 ## 4.4.0 (2023-02-02)
@@ -1159,7 +1149,6 @@ This request searches for completed English articles containing the word test, o
 * Add support for X-KC-SDKID by @gormal in https://github.com/kontent-ai/management-sdk-net/pull/222
 * #215 Add support for spaces by @AdamZ-Kontent in https://github.com/kontent-ai/management-sdk-net/pull/221
 * #216 - Add support for managing Preview configuration via MAPI by @robertstebel in https://github.com/kontent-ai/management-sdk-net/pull/218
-
 
 **Full Changelog**: https://github.com/kontent-ai/management-sdk-net/compare/4.3.0...4.4.0
 

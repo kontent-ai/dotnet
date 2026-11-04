@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Kontent.Ai.Management.Extensions;
+using Kontent.Ai.Management.Models.ItemWithVariant;
+using Kontent.Ai.Management.Models.LanguageVariants;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
@@ -187,6 +189,38 @@ public sealed class RetryTuningTests
 
         act.Should().Throw<ArgumentNullException>();
     }
+
+    [Fact]
+    public async Task WorkflowActionThatFailsOnReplay_IsNotRetriedOnServerError()
+    {
+        var handler = new StubHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        using var client = RetryingClient(handler);
+
+        var result = await client.PublishLanguageVariantAsync(
+            new LanguageVariantIdentifier(Reference.ByCodename("item"), Reference.ByCodename("en")));
+
+        result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        handler.Attempts.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ReadOnlyPost_IsRetriedOnServerError()
+    {
+        var handler = new StubHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        using var client = RetryingClient(handler);
+
+        var result = await client.FilterItemsWithVariantsPageAsync(new ItemWithVariantFilterRequestModel());
+
+        result.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        handler.Attempts.Should().Be(4);
+    }
+
+    private static ManagementClient RetryingClient(HttpMessageHandler handler) => ManagementClient.Create(management =>
+    {
+        management.Options.Configure(o => { o.EnvironmentId = Guid.NewGuid().ToString(); o.ApiKey = "key"; });
+        management.HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        management.TuneRetry(retry => retry.Delay = TimeSpan.Zero);
+    });
 
     private static Task<HttpResponseMessage> RateLimited(CancellationToken _)
     {
