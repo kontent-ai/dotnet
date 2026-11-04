@@ -386,7 +386,7 @@ public enum ArticleCategory
 
 ### Notes
 
-- **Models are environment-specific** by virtue of their element IDs. A clone made in the app or through the API keeps the IDs. An environment copied by data-ops export/import, or extended by a sync, has logically identical content models with different element IDs — regenerate for it.
+- **Models are environment-specific** by virtue of their element IDs, which a clone keeps. A content model recreated by a data-ops export/import gets new IDs, as do the types and elements a sync adds — regenerate for that environment. See [environment binding](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/models.md#environment-binding-and-partial-updates).
 - **Snippets are flattened**. If your content type uses an `seo` snippet that contributes `meta_title` and `meta_description`, the generated record has `SeoMetaTitle` and `SeoMetaDescription` properties; the `[ContentElement]` attributes carry the `seo__meta_title` / `seo__meta_description` codenames the API expects.
 - **Content-model constraints are not on the model.** Length, regex, allowed types, count limits, asset rules, and the like are enforced server-side by the Management API and surfaced via `IManagementResult` — the generated records carry element identity and value types only.
 

@@ -17,7 +17,7 @@ A `dotnet tool` (`KontentModelGenerator`, project `Kontent.Ai.ModelGenerator`, `
 
 - **Management models are uniformly nullable.** `null` means "leave this element alone" on upsert, so `--nullability` is a Delivery-only flag and passing it with `-m` is an error with a targeted message.
 - **Content-model constraints are not mirrored** on generated models (no `[StringLength]`, no `[Required]`); they are enforced server-side, and `is_required` is a publish gate, not an upsert-shape constraint. Test-pinned.
-- **Management models are environment-specific** — they carry element ids. A clone (app or API) keeps them; an export/import or a sync mints new ones, so the docs say to regenerate for such a copy.
+- **Management models are environment-specific** — they carry element ids. A clone (app or API) keeps them; an export/import gives the content model new ones, and a sync gives new ones to what it adds, so the docs say to regenerate for that environment.
 - **A parameter that belongs to the other mode is an error**, not a silently ignored argument. `appSettings.json` values are not subject to this.
 - **Legacy (v18 and earlier) and Extended Delivery models are not supported**; the README points at the `9.0.0` tag of the old repository for them.
 - `NullabilityMode.Strict` is the default; the switch to `Semantic` is promised for the next major (XML doc on `CodeGeneratorOptions.Nullability` and the README). Do not flip it in a minor.
