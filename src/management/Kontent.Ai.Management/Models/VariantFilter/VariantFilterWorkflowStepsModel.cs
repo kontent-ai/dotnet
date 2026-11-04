@@ -12,7 +12,7 @@ public sealed record VariantFilterWorkflowStepsModel
     public required Reference Workflow { get; init; }
 
     /// <summary>
-    /// Specific steps within the workflow to match. Omit to match any step.
+    /// Steps within the workflow to match. The API requires at least one; omitting them, or sending none, is rejected.
     /// </summary>
     [JsonPropertyName("step_identifiers")]
     public IReadOnlyList<Reference>? Steps { get; init; }
