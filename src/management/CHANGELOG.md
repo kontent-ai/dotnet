@@ -81,6 +81,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   It calls the API's unpublish-and-archive operation. The docs said only that it unpublishes.
 
+- **The [8 → 9 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/management/docs/upgrade/8-to-9.md) matches the stable release.**
+
+  It still described 9.x as a prerelease targeting `net8.0`, and following its endpoint advice sent every request to
+  a broken URL. It now covers the renamed and removed options, the retry and timeout changes, transport failures as
+  results, and the 8.x API it had left out.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed
