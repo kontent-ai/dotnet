@@ -36,10 +36,13 @@ internal static class RefitApiResponseExtensions
             {
                 if (response.Content is null)
                 {
+                    var status = (int)RefitResponses.StatusOf(response);
                     return ManagementResult<TValue>.Failure(
                         new Error
                         {
-                            Message = "The Management API returned a success status but no readable response body.",
+                            Message = response.Error is { } error
+                                ? $"The request succeeded ({status}), but its response could not be read: {error.InnerException?.Message ?? error.Message}"
+                                : $"The request succeeded ({status}), but the response carried no value.",
                             Exception = response.Error,
                         },
                         RefitResponses.StatusOf(response),

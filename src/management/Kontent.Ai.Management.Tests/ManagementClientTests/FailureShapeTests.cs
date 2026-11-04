@@ -54,7 +54,8 @@ public class FailureShapeTests
         var result = await client.GetContentItemAsync(Reference.ByCodename("x"));
 
         result.IsSuccess.Should().BeFalse();
-        result.Error.Should().NotBeNull();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.Error!.Message.Should().StartWith("The request succeeded (200), but its response could not be read: ");
     }
 
     [Fact]

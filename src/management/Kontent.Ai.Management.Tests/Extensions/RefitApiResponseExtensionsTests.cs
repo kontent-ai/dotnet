@@ -64,7 +64,7 @@ public class RefitApiResponseExtensionsTests
 
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.OK);
-        result.Error!.Message.Should().Contain("no readable response body");
+        result.Error!.Message.Should().Be("The request succeeded (200), but the response carried no value.");
     }
 
     private static ApiResponse<string> CreateTransportFailure(Exception inner)
