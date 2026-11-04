@@ -134,7 +134,7 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
 
 Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator/docs/upgrade); skipping a major means reading them in sequence.
 
-- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move and the removal of `--withtypeprovider` are the work; the generated code itself is unchanged.
+- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move, the removal of `--withtypeprovider` and the stricter validation are the work; Delivery models change only in their header comment, and Management models must be regenerated.
 
 ## Delivery Model Features
 
@@ -386,7 +386,7 @@ public enum ArticleCategory
 
 ### Notes
 
-- **Models are environment-specific** by virtue of their element IDs. Cloning an environment via data-ops produces logically identical content models with different element IDs — regenerate after cloning.
+- **Models are environment-specific** by virtue of their element IDs. A clone made in the app or through the API keeps the IDs. An environment copied by data-ops export/import, or extended by a sync, has logically identical content models with different element IDs — regenerate for it.
 - **Snippets are flattened**. If your content type uses an `seo` snippet that contributes `meta_title` and `meta_description`, the generated record has `SeoMetaTitle` and `SeoMetaDescription` properties; the `[ContentElement]` attributes carry the `seo__meta_title` / `seo__meta_description` codenames the API expects.
 - **Content-model constraints are not on the model.** Length, regex, allowed types, count limits, asset rules, and the like are enforced server-side by the Management API and surfaced via `IManagementResult` — the generated records carry element identity and value types only.
 
