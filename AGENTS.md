@@ -74,7 +74,7 @@ README for the prose.
 
 Plans, analyses, review notes and probe results are working material, not documentation: keep them in the root `scratch/` folder, which is gitignored, and never commit them. What survives of a plan is the code, its tests, the changelog entry and the docs it changed.
 
-Upgrade guides live in `src/<product>/docs/upgrade/<from>-to-<to>.md`, one per major (ASP.NET Core's migration-doc convention): a breaking change is logged in the guide for the major in progress, a guide is frozen the day its major ships stable, and the next guide is opened by the first breaking change after that. Skipping a major means reading the guides in sequence, so a guide never describes an API its own major did not ship.
+Upgrade guides live in `src/<product>/docs/upgrade/<from>-to-<to>.md`, one per major (ASP.NET Core's migration-doc convention): a breaking change is logged in the guide for the major in progress, a guide is frozen the day its major ships stable, and the next guide is opened by the first breaking change after that. Frozen means later minors and patches go in the changelog, not the guide; a statement that was wrong about the major it covers is still corrected. Skipping a major means reading the guides in sequence, so a guide never describes an API its own major did not ship.
 
 So the full release flow is: merge feature PRs (each user-visible change adds to the product's `CHANGELOG.md` under `## Unreleased`) → run *Prepare release* → review and merge its PR → run *Publish*. Releases stay independent — a product can be published or abandoned without affecting the others.
 
