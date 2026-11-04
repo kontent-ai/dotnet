@@ -84,9 +84,8 @@ A failed call is a result. These still throw:
 |---|---|
 | Cancellation via your `CancellationToken` | `OperationCanceledException` |
 | A `null` argument | `ArgumentNullException` |
-| An identifier kind the endpoint does not accept | `InvalidOperationException`, before any request is sent |
 | A scope whose identifier is not configured | `InvalidOperationException`, naming the missing option |
-| Invalid options | `OptionsValidationException`, when the client is built or registered |
+| Invalid options | `OptionsValidationException`, when the client is first resolved or built |
 | `EnsureSuccess()` on a failed result | `ManagementException`, carrying the `IError` |
 | A typed variant response in which no element matches the record | `InvalidOperationException` — a mismatch between your model and the environment, not an outcome of the call. See [environment binding](models.md#environment-binding-and-partial-updates) |
 

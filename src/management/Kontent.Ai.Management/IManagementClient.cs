@@ -860,7 +860,7 @@ public interface IManagementClient
     Task<IManagementResult> CancelPublishingOfLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Unpublishes the language variant.
+    /// Unpublishes the language variant and moves it to the Archived step.
     /// </summary>
     /// <param name="identifier">Identifier of the language variant to be unpublished.</param>
     /// <param name="cancellationToken">Token to cancel the request.</param>
@@ -876,7 +876,7 @@ public interface IManagementClient
     Task<IManagementResult> CancelUnpublishingOfLanguageVariantAsync(LanguageVariantIdentifier identifier, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Schedules unpublishing of the language variant.
+    /// Schedules unpublishing of the language variant, which also moves it to the Archived step.
     /// </summary>
     /// <param name="identifier">The identifier of the language variant that should be unpublished.</param>
     /// <param name="schedule">The time when the language variant will be unpublished</param>

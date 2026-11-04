@@ -146,7 +146,7 @@ next.
 | Publish now | `PublishLanguageVariantAsync(identifier)` |
 | Schedule publishing | `SchedulePublishingOfLanguageVariantAsync(identifier, schedule)` |
 | Schedule both ends of a window | `SchedulePublishingAndUnpublishingOfLanguageVariantAsync(…)` |
-| Unpublish | `UnpublishLanguageVariantAsync(identifier)` |
+| Unpublish and archive | `UnpublishLanguageVariantAsync(identifier)` |
 | Create a new draft of a published variant | `CreateNewVersionOfLanguageVariantAsync(identifier)` |
 | Move to another workflow step | `ChangeLanguageVariantWorkflowAsync(identifier, change)` |
 

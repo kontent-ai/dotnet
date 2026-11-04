@@ -72,6 +72,15 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   message now gives the status and the reason, such as "The request succeeded (201), but its response could not be
   read: …". The request was applied.
 
+- **`ManagementOptions.Timeout` is documented as a per-request ceiling.**
+
+  It is the HTTP client's timeout, so a listing that walks several pages gets it once per page. The docs said it
+  bounded the whole call.
+
+- **`UnpublishLanguageVariantAsync` is documented as archiving the variant.**
+
+  It calls the API's unpublish-and-archive operation. The docs said only that it unpublishes.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed

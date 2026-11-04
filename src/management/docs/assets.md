@@ -68,7 +68,7 @@ report one.
 This is also what makes every upload safe to retry: whichever source you choose, a `429` retry re-sends
 the same bytes rather than a truncated body.
 
-Uploads have no per-attempt timeout by default, and the whole call is bounded by
+Uploads have no per-attempt timeout, and each upload request, retries included, is bounded by
 `ManagementOptions.Timeout` — see [retries and timeouts](configuration.md#retries-and-timeouts).
 
 ## Separate upload from asset creation
