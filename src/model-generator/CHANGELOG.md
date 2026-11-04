@@ -11,11 +11,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
-- **The [10 → 11 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md) matches what 11.x shipped.**
+- **The [10 → 11 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md) matches what 11.0.0 shipped.**
 
-  It promised byte-identical Delivery output, but every file's header comment changed. It also left out that
-  installing the tool needs the .NET 10 SDK, that a failed Delivery listing exits `1` since 11.0.1, the
-  startup-line change, the Management changes since the betas, and several `Core` API changes.
+  It promised byte-identical Delivery output, but every file's header comment changed, the base-record
+  extender lost two `using`s, and a file-name collision between content types now keeps the first type. It
+  also left out that installing the tool needs the .NET 10 SDK, the startup-line change, the Management
+  changes since the betas, and several `Core` API changes. The 11.0.0 notes below made the same promise,
+  and said Management mode had only shipped in prereleases; both are corrected.
 
 - **`-b` overrides a `BaseClass` key in `appSettings.json`.**
 
@@ -114,9 +116,11 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 The first stable release of the **11.x** line. The tool needs the **.NET 10** runtime, and
 `Kontent.Ai.ModelGenerator.Core` targets `net10.0`.
 
-Coming from **10.x**, Delivery output is unchanged, so regenerating Delivery models produces no
-diff. Management mode, which has only ever shipped in prereleases, emits renamed attributes and one
-added `using`. The work is the runtime move and the removal of
+Coming from **10.x**, regenerating Delivery models changes the header comment of every file, and
+little else: with `--baseRecord` the extender drops two unused `using`s, and a content type whose file
+name collides with another's is skipped with a warning instead of overwriting it. Management mode,
+which 10.0.0 removed and the 10.3.0 betas brought back, emits renamed attributes and one added
+`using`. The work is the runtime move and the removal of
 `--withtypeprovider` / `-t`, which the Delivery SDK's own compile-time provider replaced. Arguments are
 now validated against the SDKs' own rules before any request, so a malformed `--environmentId` or a
 flag that belongs to the other mode fails immediately instead of part-way through a run.
@@ -220,7 +224,7 @@ Full migration: [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/m
 
 ## 11.0.0-rc.1 (2026-08-07)  _(prerelease)_
 
-Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release rather than a continuation of the `10.3.0` line. Generated output is unchanged.
+Targets .NET 10. Both packages move from `net8.0` to `net10.0`, which is why this is a major release rather than a continuation of the `10.3.0` line. Generated output is unchanged, except that two content types sanitizing to one file name no longer overwrite each other.
 
 ### Breaking changes
 

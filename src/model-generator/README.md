@@ -134,7 +134,7 @@ There are two ways of configuring advanced Delivery SDK options (such as secure 
 
 Upgrade guides are kept one per major under [`docs/upgrade/`](https://github.com/kontent-ai/dotnet/tree/main/src/model-generator/docs/upgrade); skipping a major means reading them in sequence.
 
-- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move, the removal of `--withtypeprovider` and the stricter validation are the work; Delivery models change only in their header comment, and Management models must be regenerated.
+- Coming from **10.x** — read [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md). The .NET 10 move, the removal of `--withtypeprovider` and the stricter validation are the work; Delivery models change in their header comment and a few edge cases, and Management models must be regenerated.
 
 ## Delivery Model Features
 
