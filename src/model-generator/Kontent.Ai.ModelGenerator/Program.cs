@@ -43,7 +43,7 @@ internal static class Program
                 .Build();
 
             var services = new ServiceCollection();
-            services.Configure<CodeGeneratorOptions>(configuration);
+            services.AddCodeGeneratorOptions(configuration);
 
             var generatorServiceType = managementMode
                 ? ConfigureManagementMode(services, configuration)

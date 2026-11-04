@@ -14,9 +14,15 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 - **The [10 → 11 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md) matches what 11.x shipped.**
 
   It promised byte-identical Delivery output, but every file's header comment changed. It also left out that
-  installing the tool needs the .NET 10 SDK, that a failed Delivery listing exits `1` since 11.0.1, that a
-  `BaseClass` key overrides `-b`, the startup-line change, the Management changes since the betas, and several
-  `Core` API changes.
+  installing the tool needs the .NET 10 SDK, that a failed Delivery listing exits `1` since 11.0.1, the
+  startup-line change, the Management changes since the betas, and several `Core` API changes.
+
+- **`-b` overrides a `BaseClass` key in `appSettings.json`.**
+
+  `BaseClass` is the obsolete alias of `BaseRecord`, and it was applied after `BaseRecord`. So a `BaseClass`
+  key in the file overrode `-b`, `-r` or `--baseRecord` on the command line, and the 10.x template's
+  `"BaseClass": null` silently dropped the base record. The command line now overrides the file whichever of
+  the two names either uses, and within one source `BaseRecord` wins over `BaseClass`.
 
 ## 11.0.2 (2026-09-23)
 
