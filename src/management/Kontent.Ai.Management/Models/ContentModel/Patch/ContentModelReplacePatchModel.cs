@@ -13,5 +13,6 @@ public sealed record ContentModelReplacePatchModel : ContentModelOperationBaseMo
     /// New value at the targeted path. Set to <c>null</c> to clear the property (e.g., remove a previously-configured default value or guidelines).
     /// </summary>
     [JsonPropertyName("value")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public required object? Value { get; init; }
 }

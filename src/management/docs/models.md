@@ -103,7 +103,7 @@ await client.UpsertLanguageVariantAsync(identifier, article);
 ```
 
 The SDK checks current values; it does not track assignment. Omitting an element leaves it unchanged.
-That is not the same as clearing it.
+To clear one, upsert its element record with a `null` value, or `[]` for a list-valued element.
 
 ## Element records and model values
 

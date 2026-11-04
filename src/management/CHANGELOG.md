@@ -8,6 +8,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **A `null` meant to clear a value is sent as `null`.**
+
+  `SpacePatch.RootItem(null)`, `CustomAppPatch.ReplaceConfig(null)` and the text, number, date-time and rich-text
+  element records with a `null` value omitted `value` from the request, which the Management API rejects with `400`.
+  They now send `"value": null`, which clears the value. `ContentTypePatch` replace operations and custom elements
+  send it too; the API already accepted the omitted form there.
+
 - **PATCH operations name the `op` property in lower case.**
 
   Content type, snippet, taxonomy, collection, asset folder, custom app and environment operations sent `"Op"`. The
