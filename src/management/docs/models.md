@@ -103,7 +103,10 @@ await client.UpsertLanguageVariantAsync(identifier, article);
 ```
 
 The SDK checks current values; it does not track assignment. Omitting an element leaves it unchanged.
-To clear one, upsert its element record with a `null` value, or `[]` for a list-valued element.
+A generated record clears only some elements: `[]` clears a list-valued property, and
+`CustomValue { Value = null }` and `UrlSlugValue { Mode = UrlSlugMode.Custom }` clear theirs. With element
+records, a `null` value clears a text, number, date & time, rich-text or custom element, `[]` clears a
+list-valued one, and a URL slug clears with `Mode = UrlSlugMode.Custom` and no value.
 
 ## Element records and model values
 
