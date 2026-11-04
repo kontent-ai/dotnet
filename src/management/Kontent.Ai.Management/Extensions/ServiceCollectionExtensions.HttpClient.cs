@@ -60,7 +60,8 @@ public static partial class ServiceCollectionExtensions
     /// Configures the default resilience pipeline. Retries are idempotency-aware: HTTP 429 retries every request (it
     /// was rejected, not processed), while other transient failures — 408/5xx and transport exceptions, where the
     /// request may already have been applied — retry idempotent requests only. The HTTP method decides, except for the
-    /// endpoints in <see cref="EndpointIdempotency"/>. Unlike Delivery and Sync there is no
+    /// endpoints in <see cref="EndpointIdempotency"/>; a failure to resolve or connect, which sends nothing, retries
+    /// any request. Unlike Delivery and Sync there is no
     /// per-attempt timeout; <see cref="ManagementOptions.Timeout"/> bounds each request, retries included.
     /// </summary>
     internal static void ConfigureDefaultResilience(
@@ -88,12 +89,15 @@ public static partial class ServiceCollectionExtensions
             return !response.IsSuccessStatusCode
                 && (response.StatusCode == HttpStatusCode.TooManyRequests
                     || (HttpRetryPredicates.IsRetryableStatusCode(response.StatusCode)
-                        && IsRequestIdempotent(response.RequestMessage ?? context.GetRequestMessage())));
+                        && IsRequestIdempotent(context.GetRequestMessage() ?? response.RequestMessage)));
         }
 
         return HttpRetryPredicates.IsTransientException(outcome.Exception, context.CancellationToken)
-            && IsRequestIdempotent(context.GetRequestMessage());
+            && (NothingWasSent(outcome.Exception) || IsRequestIdempotent(context.GetRequestMessage()));
     }
+
+    private static bool NothingWasSent(Exception? exception)
+        => exception is HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError };
 
     internal static bool IsRequestIdempotent(HttpRequestMessage? request)
         => request is not null
@@ -103,26 +107,26 @@ public static partial class ServiceCollectionExtensions
 
     private static readonly HttpRequestOptionsKey<string> RefitMethodName = new(HttpRequestMessageOptions.MethodName);
 
-    // Verified against the live API: a second publish, new version, immediate unpublish or cancellation fails, while
-    // filter, bulk get and validate only read.
-    private static readonly Dictionary<string, bool> EndpointIdempotency = new()
+    // Verified against the live API: a repeated publish, new version, immediate unpublish, cancellation or
+    // mark-as-production fails, while filter and bulk get only read.
+    internal static readonly Dictionary<string, bool> EndpointIdempotency = new()
     {
         [nameof(IManagementApi.PublishLanguageVariantInternalAsync)] = false,
         [nameof(IManagementApi.CreateNewVersionOfLanguageVariantInternalAsync)] = false,
         [nameof(IManagementApi.UnpublishLanguageVariantInternalAsync)] = false,
         [nameof(IManagementApi.CancelPublishingOfLanguageVariantInternalAsync)] = false,
         [nameof(IManagementApi.CancelUnpublishingOfLanguageVariantInternalAsync)] = false,
+        [nameof(IManagementApi.MarkEnvironmentAsProductionInternalAsync)] = false,
         [nameof(IManagementApi.FilterItemsWithVariantsInternalAsync)] = true,
         [nameof(IManagementApi.BulkGetItemsWithVariantsInternalAsync)] = true,
-        [nameof(IManagementApi.ValidateEnvironmentInternalAsync)] = true,
     };
 
     // An unknown method — no request message available — is treated as non-idempotent: no retry unless provably safe.
+    // DELETE is not idempotent here: the API answers a repeated delete with 404.
     internal static bool IsIdempotent(HttpMethod? method)
         => method == HttpMethod.Get
         || method == HttpMethod.Head
         || method == HttpMethod.Options
-        || method == HttpMethod.Put
-        || method == HttpMethod.Delete;
+        || method == HttpMethod.Put;
 
 }

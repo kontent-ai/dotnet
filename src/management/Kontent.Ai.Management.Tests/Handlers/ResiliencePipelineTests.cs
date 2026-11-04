@@ -1,9 +1,11 @@
 using AwesomeAssertions;
+using Kontent.Ai.Management.Api;
 using Kontent.Ai.Management.Extensions;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 
 namespace Kontent.Ai.Management.Tests.Handlers;
 
@@ -47,12 +49,47 @@ public class ResiliencePipelineTests
     [InlineData("HEAD", true)]
     [InlineData("OPTIONS", true)]
     [InlineData("PUT", true)]
-    [InlineData("DELETE", true)]
+    [InlineData("DELETE", false)]
     [InlineData("POST", false)]
     [InlineData("PATCH", false)]
     public void IsIdempotent_MatchesExpected(string method, bool expected)
     {
         ServiceCollectionExtensions.IsIdempotent(HttpMethod.Parse(method)).Should().Be(expected);
+    }
+
+    // Probed against the live API: repeating any of these after it succeeded succeeds again. The subscription user
+    // calls need a Subscription API key and were not probed.
+    private static readonly HashSet<string> PutsThatReplaySafely =
+    [
+        nameof(IManagementApi.UpsertAssetInternalAsync),
+        nameof(IManagementApi.UpdateAssetRenditionInternalAsync),
+        nameof(IManagementApi.UpsertContentItemInternalAsync),
+        nameof(IManagementApi.UpdateUserRolesInternalAsync),
+        nameof(IManagementApi.UpsertLanguageVariantInternalAsync),
+        nameof(IManagementApi.UpdatePreviewConfigurationInternalAsync),
+        nameof(IManagementApi.ChangeLanguageVariantWorkflowInternalAsync),
+        nameof(IManagementApi.SchedulePublishingOfLanguageVariantInternalAsync),
+        nameof(IManagementApi.SchedulePublishingAndUnpublishingOfLanguageVariantInternalAsync),
+        nameof(IManagementApi.ScheduleUnpublishingOfLanguageVariantInternalAsync),
+        nameof(IManagementApi.EnableWebhookInternalAsync),
+        nameof(IManagementApi.DisableWebhookInternalAsync),
+        nameof(IManagementApi.UpdateWorkflowInternalAsync),
+        nameof(ISubscriptionApi.ActivateSubscriptionUserInternalAsync),
+        nameof(ISubscriptionApi.DeactivateSubscriptionUserInternalAsync),
+    ];
+
+    [Fact]
+    public void EveryPut_IsClassifiedForRetry()
+    {
+        var puts = new[] { typeof(IManagementApi), typeof(ISubscriptionApi) }
+            .SelectMany(api => api.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            .Where(method => method.GetCustomAttribute<Refit.HttpMethodAttribute>()?.Method == HttpMethod.Put)
+            .Select(method => method.Name)
+            .ToList();
+
+        puts.Should().NotBeEmpty();
+        puts.Where(name => !ServiceCollectionExtensions.EndpointIdempotency.ContainsKey(name) && !PutsThatReplaySafely.Contains(name))
+            .Should().BeEmpty("a PUT the API rejects on repeat must not be retried after a server error");
     }
 
     [Fact]
@@ -79,6 +116,21 @@ public class ResiliencePipelineTests
         };
 
         InvokeShouldRetry(Outcome.FromResult(response), request: null).Should().Be(expected);
+    }
+
+    [Fact]
+    public void ShouldRetry_RequestReplacedByAHandler_StillClassifiesByTheOriginalEndpoint()
+    {
+        var original = new HttpRequestMessage(HttpMethod.Put, "https://example.test/");
+        original.Options.Set(
+            new HttpRequestOptionsKey<string>(Refit.HttpRequestMessageOptions.MethodName),
+            nameof(IManagementApi.PublishLanguageVariantInternalAsync));
+        var response = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            RequestMessage = new HttpRequestMessage(HttpMethod.Put, "https://example.test/"),
+        };
+
+        InvokeShouldRetry(Outcome.FromResult(response), original).Should().BeFalse();
     }
 
     [Fact]

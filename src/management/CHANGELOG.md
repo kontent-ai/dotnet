@@ -55,16 +55,18 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   and can throw after the write, and a record's reference values keep the ids they were read with. The docs also
   missed that a partly matching response reads the unmatched elements as `null`.
 
-- **Workflow actions that fail when repeated are no longer retried.**
+- **Requests the API rejects on repeat are no longer retried.**
 
-  Publishing now, creating a new version, unpublishing now and cancelling a schedule are `PUT`s, so a `5xx` or
-  transport failure was retried. When the first attempt had landed, the repeat failed with `213`, `214`, `215`,
-  `218` or `226`, and the call reported a failure for an operation that had succeeded. These calls are now retried
-  only on `429`. Filtering and bulk-getting variants and validating the environment are `POST`s that only read; they
-  are now retried like a `GET`.
+  Publishing now, creating a new version, unpublishing now, cancelling a schedule and marking the environment as
+  production are `PUT`s, and deletes are `DELETE`s, so a `5xx` or a transport failure was retried. When the first
+  attempt had landed, the repeat failed — with `213`, `214`, `215`, `218`, `226` or `232`, or `404` for a delete —
+  and the call reported a failure for an operation that had succeeded. These calls are now retried only on `429`
+  or when the host could not be resolved or reached. Filtering and bulk-getting variants are `POST`s that only
+  read; they are now retried like a `GET`. Any request is now retried after a failure to resolve or connect, which
+  sends nothing.
 
-  A transient failure on one of those workflow calls now comes back as a failed result instead of being retried.
-  Check the variant's state before calling again.
+  A transient failure on one of those calls now comes back as a failed result instead of being retried. Check the
+  target's state before calling again.
 
 - **A success response the SDK cannot read says so.**
 

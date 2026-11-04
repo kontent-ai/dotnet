@@ -84,6 +84,7 @@ A failed call is a result. These still throw:
 |---|---|
 | Cancellation via your `CancellationToken` | `OperationCanceledException` |
 | A `null` argument | `ArgumentNullException` |
+| An identifier that cannot be a URL path segment — an empty or whitespace codename or external id, one containing `/` or `\`, or `.` / `..` | `ArgumentException`, before any request is sent |
 | A scope whose identifier is not configured | `InvalidOperationException`, naming the missing option |
 | Invalid options | `OptionsValidationException`, when the client is first resolved or built |
 | `EnsureSuccess()` on a failed result | `ManagementException`, carrying the `IError` |
