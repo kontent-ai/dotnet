@@ -35,6 +35,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   Its docs said to omit the steps to match any step. The API rejects a workflow-step filter without them.
 
+- **The typed-model docs say which environments a generated record works in.**
+
+  A clone keeps a record's ids; content recreated by an export/import or a sync gets new ones. The docs called
+  typed writes portable, but the typed upsert reads its response back by id and can throw after the write. They
+  also missed that a partly matching response reads the unmatched elements as `null`.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed
