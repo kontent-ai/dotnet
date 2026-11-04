@@ -17,7 +17,7 @@ A `dotnet tool` (`KontentModelGenerator`, project `Kontent.Ai.ModelGenerator`, `
 
 - **Management models are uniformly nullable.** `null` means "leave this element alone" on upsert, so `--nullability` is a Delivery-only flag and passing it with `-m` is an error with a targeted message.
 - **Content-model constraints are not mirrored** on generated models (no `[StringLength]`, no `[Required]`); they are enforced server-side, and `is_required` is a publish gate, not an upsert-shape constraint. Test-pinned.
-- **Management models are environment-specific** — they carry element ids, so the docs say "regenerate after cloning".
+- **Management models are environment-specific** — they carry element ids. A clone (app or API) keeps them; an export/import or a sync mints new ones, so the docs say to regenerate for such a copy.
 - **A parameter that belongs to the other mode is an error**, not a silently ignored argument. `appSettings.json` values are not subject to this.
 - **Legacy (v18 and earlier) and Extended Delivery models are not supported**; the README points at the `9.0.0` tag of the old repository for them.
 - `NullabilityMode.Strict` is the default; the switch to `Semantic` is promised for the next major (XML doc on `CodeGeneratorOptions.Nullability` and the README). Do not flip it in a minor.
@@ -26,7 +26,7 @@ A `dotnet tool` (`KontentModelGenerator`, project `Kontent.Ai.ModelGenerator`, `
 
 The tool has no public-API approval gate; its arguments are the contract. Mappings live in `CommandLine/ArgMappingsRegister.cs` in three tables (general, Delivery, Management) that are deliberately not unioned — `-i` targets a different options section in each mode. `-p`/`--projectid` are backward-compatibility aliases for the environment id; keep them. Any argument change needs `ArgHelpersTests` coverage, and a behaviour change at the process boundary needs a `ProgramTests` exit-code test. CI smoke-tests the packed tool by installing it and running it with no arguments, asserting on the tool's own `EnvironmentId` validation message — that message is part of the contract too.
 
-`Kontent.Ai.ModelGenerator.Core` *does* have an approval snapshot (`Core.Tests/ApiApproval`). `DeliveryClassCodeGenerator` and `ManagementClassCodeGenerator` are `sealed`; the abstract `ClassCodeGenerator` is the only extension point left.
+`Kontent.Ai.ModelGenerator.Core` *does* have an approval snapshot (`Core.Tests/ApiApproval`). `DeliveryClassCodeGenerator` and `ManagementClassCodeGenerator` are `sealed`; the abstract `ClassCodeGenerator` is the only base for a custom class emitter.
 
 ## Cross-product coupling
 
@@ -51,4 +51,4 @@ The generated Management model shape (records, mapping attributes, collection ty
 
 - `Kontent.Ai.ModelGenerator/` — `Program.cs`, `CommandLine/` (arg mappings, `ArgHelpers`, validation, SDK version probe), `FileSystemOutputProvider`, `UserMessageLogger`, `appSettings.json` (a JSONC template the README tells users to copy; not installed with the tool).
 - `Kontent.Ai.ModelGenerator.Core/` — `CodeGeneratorBase` and the two mode orchestrators, `Generators/` (Roslyn emitters), `Common/` (`ClassDefinition` with the identifier-collision registry, `Property`, the `ManagementElementInput` records, `SnippetExpander`), `Services/` (the Management element metadata adapter and element service).
-- `docs/upgrade/10-to-11.md` — the in-progress major's guide. Its headline promise is that Delivery models are byte-identical to `10.2.0` while Management models must be regenerated; keep both true or update the guide.
+- `docs/upgrade/10-to-11.md` — the 11.x guide, frozen except for corrections. Its headline promise is that Delivery models differ from `10.2.0` only in the header comment while Management models must be regenerated; keep both true or update the guide.

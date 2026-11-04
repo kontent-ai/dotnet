@@ -9,6 +9,15 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **The [10 → 11 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md) matches what 11.x shipped.**
+
+  It promised byte-identical Delivery output, but every file's header comment changed. It also left out that
+  installing the tool needs the .NET 10 SDK, that a failed Delivery listing exits `1` since 11.0.1, that a
+  `BaseClass` key overrides `-b`, the startup-line change, the Management changes since the betas, and several
+  `Core` API changes.
+
 ## 11.0.2 (2026-09-23)
 
 ### Changed
