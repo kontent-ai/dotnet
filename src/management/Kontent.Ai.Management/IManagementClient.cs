@@ -721,9 +721,9 @@ public interface IManagementClient
     /// </summary>
     /// <remarks>
     /// Typed read is environment-bound: the projection matches the response's element and rich-text-component ids
-    /// against the ids on <typeparamref name="T"/>'s annotations. Clones keep the ids; content recreated by an
-    /// export/import or a sync gets new ones, and an element whose id doesn't match reads as <c>null</c> — generate
-    /// <typeparamref name="T"/> against the environment you read from. The typed upsert projects its response the same way.
+    /// against the ids on <typeparamref name="T"/>'s annotations. Clones keep those ids; a content model recreated by an
+    /// export/import gets new ones, as do the types, elements and options a sync adds, and an element whose id doesn't
+    /// match reads as <c>null</c> — generate <typeparamref name="T"/> against the environment you read from.
     /// </remarks>
     /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
     /// <param name="identifier">The identifier of the language variant.</param>
@@ -772,8 +772,9 @@ public interface IManagementClient
     /// <typeparamref name="T"/> is the exception: a model that no longer matches the content type throws.
     /// </summary>
     /// <remarks>
-    /// The write keys off codenames and succeeds in any environment, but the typed response projection is
-    /// environment-bound: like <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>,
+    /// The write keys elements, options and component types by codename, so it does not depend on <typeparamref name="T"/>'s
+    /// ids; reference values (linked items, assets, taxonomy terms) are sent with the identifiers they carry. The typed
+    /// response projection is environment-bound: like <see cref="GetLanguageVariantAsync{T}(LanguageVariantIdentifier, CancellationToken)"/>,
     /// it matches the response's element and rich-text-component ids against the ids on <typeparamref name="T"/>'s
     /// annotations. Where they differ, the variant has already been written when the projection throws — generate
     /// <typeparamref name="T"/> against the environment you write to.

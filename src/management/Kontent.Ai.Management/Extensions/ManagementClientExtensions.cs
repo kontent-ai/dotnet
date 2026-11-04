@@ -195,7 +195,8 @@ public static class ManagementClientExtensions
     /// <para>
     /// The typed variant upsert can also throw after writing, when <typeparamref name="T"/>'s ids come from another
     /// environment (see <see cref="IManagementClient.UpsertLanguageVariantAsync{T}"/>). The item and the variant then
-    /// both exist, and calling this helper again creates a second item.
+    /// both exist, and calling this helper again creates a second item. The throw leaves no result to read the item's
+    /// id from, so give <paramref name="item"/> an external id to find it again.
     /// </para>
     /// </remarks>
     /// <typeparam name="T">The generated content-type record (implements <see cref="IElementsModel"/>).</typeparam>
