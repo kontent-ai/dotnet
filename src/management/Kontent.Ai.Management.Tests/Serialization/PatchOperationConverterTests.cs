@@ -2,6 +2,8 @@ using AwesomeAssertions;
 using Kontent.Ai.Management.Models.AssetFolders;
 using Kontent.Ai.Management.Models.AssetFolders.Patch;
 using Kontent.Ai.Management.Serialization.Converters;
+using Kontent.Ai.Management.Tests.Base;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -9,11 +11,7 @@ namespace Kontent.Ai.Management.Tests.Serialization;
 
 public class PatchOperationConverterTests
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        Converters = { new PatchOperationJsonConverterFactory() },
-    };
+    private static readonly JsonSerializerOptions Options = SharedTestJsonOptions.Default;
 
     [Fact]
     public void Write_HeterogeneousOps_EmitsRuntimeTypeInOrder()
@@ -32,6 +30,23 @@ public class PatchOperationConverterTests
         array[1]!["op"]!.GetValue<string>().Should().Be("remove");
         array[2]!["op"]!.GetValue<string>().Should().Be("rename");
         array[2]!["value"]!.GetValue<string>().Should().Be("renamed");
+    }
+
+    [Fact]
+    public void Write_EveryOperation_EmitsOp()
+    {
+        var factory = new PatchOperationJsonConverterFactory();
+        var operationTypes = typeof(ManagementClient).Assembly.GetTypes()
+            .Where(type => !type.IsAbstract && type.BaseType is { } baseType && factory.CanConvert(baseType))
+            .ToList();
+
+        var withoutOp = operationTypes
+            .Where(type => !JsonNode.Parse(JsonSerializer.Serialize(RuntimeHelpers.GetUninitializedObject(type), type.BaseType!, Options))!
+                .AsObject().ContainsKey("op"))
+            .Select(type => type.Name);
+
+        operationTypes.Should().NotBeEmpty();
+        withoutOp.Should().BeEmpty();
     }
 
     [Fact]

@@ -8,6 +8,7 @@ public sealed record EnvironmentRenamePatchModel : EnvironmentOperationBaseModel
     /// <summary>
     /// Represents the rename_environment operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "rename_environment";
 
     /// <summary>

@@ -8,6 +8,7 @@ public sealed record CollectionAddIntoPatchModel : CollectionOperationBaseModel
     /// <summary>
     /// Represents the addInto operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "addInto";
 
     /// <summary>

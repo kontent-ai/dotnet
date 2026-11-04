@@ -6,6 +6,7 @@ namespace Kontent.Ai.Management.Models.TaxonomyGroups.Patch;
 public sealed record TaxonomyGroupReplacePatchModel : TaxonomyGroupOperationBaseModel
 {
     /// <inheritdoc/>
+    [JsonPropertyName("op")]
     public override string Op => "replace";
 
     /// <summary>

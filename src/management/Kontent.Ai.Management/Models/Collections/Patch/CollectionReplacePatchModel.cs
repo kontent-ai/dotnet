@@ -8,6 +8,7 @@ public sealed record CollectionReplacePatchModel : CollectionOperationBaseModel
     /// <summary>
     /// Represents the replace operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "replace";
 
     /// <summary>

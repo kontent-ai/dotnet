@@ -6,6 +6,13 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Fixed
+
+- **PATCH operations name the `op` property in lower case.**
+
+  Content type, snippet, taxonomy, collection, asset folder, custom app and environment operations sent `"Op"`. The
+  API accepts it, but its contract is `op`.
+
 ## 9.1.0 (2026-09-23)
 
 ### Changed

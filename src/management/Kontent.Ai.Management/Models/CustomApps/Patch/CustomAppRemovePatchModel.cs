@@ -9,5 +9,6 @@ public sealed record CustomAppRemovePatchModel : CustomAppOperationBaseModel
     /// <summary>
     /// Represents the remove operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "remove";
 }

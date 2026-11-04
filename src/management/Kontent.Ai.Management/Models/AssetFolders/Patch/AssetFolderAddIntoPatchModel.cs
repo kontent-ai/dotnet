@@ -8,6 +8,7 @@ public sealed record AssetFolderAddIntoPatchModel : AssetFolderOperationBaseMode
     /// <summary>
     /// Represents addInto operation.
     /// </summary>
+    [JsonPropertyName("op")]
     public override string Op => "addInto";
 
     /// <summary>
