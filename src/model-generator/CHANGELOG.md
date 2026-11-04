@@ -24,7 +24,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   `BaseClass` is the obsolete alias of `BaseRecord`, and it was applied after `BaseRecord`. So a `BaseClass`
   key in the file overrode `-b`, `-r` or `--baseRecord` on the command line, and the 10.x template's
   `"BaseClass": null` silently dropped the base record. The command line now overrides the file whichever of
-  the two names either uses, and within one source `BaseRecord` wins over `BaseClass`.
+  the two names either uses, an empty `-b ""` included, and within one source a non-empty `BaseRecord` wins
+  over `BaseClass`.
 
 ## 11.0.2 (2026-09-23)
 

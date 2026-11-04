@@ -19,6 +19,12 @@ public class CodeGeneratorOptionsRegistrationTests
         { """{ "BaseClass": "FileBase" }""", [], "FileBase" },
         { """{ "BaseRecord": "NewBase", "BaseClass": "OldBase" }""", [], "NewBase" },
         { """{ "BaseRecord": null, "BaseClass": "OldBase" }""", [], "OldBase" },
+        { """{ "BaseClass": "FileBase" }""", ["-r", "CliBase"], "CliBase" },
+        { """{ "BaseClass": "FileBase" }""", ["-m", "-b", "CliBase"], "CliBase" },
+        { """{ "BaseRecord": "FileBase" }""", ["-b", ""], null },
+        { """{ "BaseClass": "FileBase" }""", ["--baseRecord", ""], null },
+        { """{ "BaseRecord": "FileBase" }""", ["--baseClass", ""], null },
+        { """{ "BaseRecord": null }""", [], null },
         { "{}", [], null },
     };
 
@@ -29,7 +35,7 @@ public class CodeGeneratorOptionsRegistrationTests
     {
         var configuration = new ConfigurationBuilder()
             .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(appSettings)))
-            .AddCommandLine(args, ArgHelpers.GetSwitchMappings(args))
+            .AddCommandLine(ArgHelpers.StripModeSwitches(args), ArgHelpers.GetSwitchMappings(args))
             .Build();
 
         var options = new ServiceCollection()
