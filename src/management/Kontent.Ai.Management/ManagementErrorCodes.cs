@@ -36,11 +36,20 @@ public static class ManagementErrorCodes
     /// <summary>A new version cannot be created because the variant is not published.</summary>
     public const int VariantNotPublishedCannotCreateNewVersion = 214;
 
+    /// <summary>The variant cannot be moved to the Published step: it is already published, or a workflow change targeted the Published step instead of using publish.</summary>
+    public const int CannotChangeWorkflowStepToPublished = 215;
+
+    /// <summary>Nothing to cancel: the variant is not scheduled for publishing.</summary>
+    public const int VariantNotScheduledForPublishing = 218;
+
     /// <summary>A new version of a published variant cannot be archived; unpublish it first.</summary>
     public const int NewVersionOfPublishedVariantCannotBeArchived = 222;
 
     /// <summary>The variant is archived and cannot be updated; change its workflow step first.</summary>
     public const int ArchivedVariantCannotBeUpdated = 223;
+
+    /// <summary>Nothing to cancel: the variant is not scheduled for unpublishing.</summary>
+    public const int VariantNotScheduledForUnpublishing = 226;
 
     // Duplicate external IDs — a created entity reused an external ID already present in the environment.
 

@@ -291,6 +291,7 @@ public sealed class ManagementClient : IAsyncDisposable, IDisposable, IManagemen
 // Kontent.Ai.Management
 public static class ManagementErrorCodes
     const Int32 ArchivedVariantCannotBeUpdated = 223
+    const Int32 CannotChangeWorkflowStepToPublished = 215
     const Int32 DuplicateAssetExternalId = 208
     const Int32 DuplicateAssetRenditionExternalId = 234
     const Int32 DuplicateContentTypeExternalId = 211
@@ -305,6 +306,8 @@ public static class ManagementErrorCodes
     const Int32 RateLimitExceeded = 10000
     const Int32 VariantNotPublishedCannotBeUnpublished = 213
     const Int32 VariantNotPublishedCannotCreateNewVersion = 214
+    const Int32 VariantNotScheduledForPublishing = 218
+    const Int32 VariantNotScheduledForUnpublishing = 226
 
 // Kontent.Ai.Management
 public sealed class ManagementException : Exception
@@ -1286,6 +1289,7 @@ public sealed class EnvironmentCloningStateModel : IEquatable<EnvironmentCloning
 // Kontent.Ai.Management.Models.Environments
 public sealed class EnvironmentInformationModel : IEquatable<EnvironmentInformationModel>
     .ctor()
+    Boolean? IsProduction { get; init; }
     required Guid Id { get; init; }
     required String EnvironmentName { get; init; }
     required String ProjectName { get; init; }

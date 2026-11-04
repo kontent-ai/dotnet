@@ -6,6 +6,19 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Added
+
+- **`EnvironmentInformationModel.IsProduction`.**
+
+  The API returns whether the environment is marked as production, and the model dropped it. It is `null` on a
+  validation report, which does not carry it.
+
+- **Error codes for publishing and cancelling conflicts.**
+
+  `ManagementErrorCodes.CannotChangeWorkflowStepToPublished` (`215`), `VariantNotScheduledForPublishing` (`218`)
+  and `VariantNotScheduledForUnpublishing` (`226`): what the API returns for publishing a published variant and for
+  cancelling a schedule that does not exist.
+
 ### Fixed
 
 - **A `null` meant to clear a value is sent as `null`.**

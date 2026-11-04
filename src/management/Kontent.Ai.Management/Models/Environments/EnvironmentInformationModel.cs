@@ -6,7 +6,7 @@ namespace Kontent.Ai.Management.Models.Environments;
 public sealed record EnvironmentInformationModel
 {
     /// <summary>
-    /// Project ID.
+    /// Environment ID.
     /// </summary>
     [JsonPropertyName("id")]
     public required Guid Id { get; init; }
@@ -22,4 +22,10 @@ public sealed record EnvironmentInformationModel
     /// </summary>
     [JsonPropertyName("environment")]
     public required string EnvironmentName { get; init; }
+
+    /// <summary>
+    /// Whether the environment is marked as production. <c>null</c> on a validation report, which does not carry it.
+    /// </summary>
+    [JsonPropertyName("is_production")]
+    public bool? IsProduction { get; init; }
 }
