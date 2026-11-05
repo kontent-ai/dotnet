@@ -9,6 +9,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 11.0.3 (2026-11-05)
+
 ### Fixed
 
 - **The [10 → 11 upgrade guide](https://github.com/kontent-ai/dotnet/blob/main/src/model-generator/docs/upgrade/10-to-11.md) matches what 11.0.0 shipped.**
