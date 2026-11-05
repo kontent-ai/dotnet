@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 9.2.0 (2026-11-05)
+
 ### Added
 
 - **`EnvironmentInformationModel.IsProduction`.**
