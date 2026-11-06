@@ -33,8 +33,8 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
     /// </param>
     internal SyncClient(ISyncApi syncApi, IOptionsAccessor<SyncOptions> optionsAccessor, IDisposable? ownedResources = null)
     {
-        _syncApi = syncApi ?? throw new ArgumentNullException(nameof(syncApi));
-        _optionsAccessor = optionsAccessor ?? throw new ArgumentNullException(nameof(optionsAccessor));
+        _syncApi = syncApi;
+        _optionsAccessor = optionsAccessor;
         _ownedResources = ownedResources;
     }
 

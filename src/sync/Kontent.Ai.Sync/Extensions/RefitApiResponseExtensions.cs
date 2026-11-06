@@ -3,9 +3,6 @@ using Kontent.Ai.Sync.SharedModels;
 
 namespace Kontent.Ai.Sync.Extensions;
 
-/// <summary>
-/// Extension methods for converting Refit responses to sync results.
-/// </summary>
 // Every path disposes the response. Doing so while the result still carries its headers is safe:
 // HttpResponseMessage.Dispose releases the content, not the header collections, and Refit has already
 // buffered everything else the result needs - the deserialized Content and the ApiException's
@@ -14,12 +11,6 @@ internal static class RefitApiResponseExtensions
 {
     private const string ContinuationHeaderName = "X-Continuation";
 
-    /// <summary>
-    /// Converts a Refit API response to a sync result.
-    /// </summary>
-    /// <typeparam name="T">Type of response content.</typeparam>
-    /// <param name="apiResponse">Refit API response.</param>
-    /// <returns>Sync result containing response data or error details.</returns>
     public static Task<ISyncResult<T>> ToSyncResultAsync<T>(this IApiResponse<T> apiResponse)
     {
         if (apiResponse.IsSuccessStatusCode)
@@ -43,15 +34,8 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
-    /// <summary>
-    /// Converts a Refit response that carries no content into a sync result.
-    /// </summary>
-    /// <remarks>
-    /// Initialization takes this path: it establishes a starting point rather than returning content, so
-    /// success depends only on the status code and the token the response carries - never on a body.
-    /// </remarks>
-    /// <param name="apiResponse">Refit API response.</param>
-    /// <returns>Sync result carrying the token, or error details.</returns>
+    // Initialization takes this path: it establishes a starting point rather than returning content, so
+    // success depends only on the status code and the token the response carries - never on a body.
     public static Task<ISyncResult> ToSyncResultAsync(this IApiResponse apiResponse)
     {
         if (apiResponse.IsSuccessStatusCode)
@@ -70,18 +54,10 @@ internal static class RefitApiResponseExtensions
         return MapFailureAsync(apiResponse);
     }
 
-    /// <summary>
-    /// A 2xx whose body did not deserialize - a delta that does not match the models, most likely.
-    /// Reported as a failed result naming the cause, rather than as an empty success.
-    /// </summary>
-    /// <remarks>
-    /// The result keeps the token the response carried. Requesting the same page again fails the same way,
-    /// so that token is a caller's only way past it short of initializing again.
-    /// <para>
-    /// The one success-status path Refit can reach with an error attached, so it is also where a
-    /// cancellation raised while the body was being read arrives - and that one is thrown, not reported.
-    /// </para>
-    /// </remarks>
+    // A 2xx whose body did not deserialize. The result keeps the token the response carried: requesting the
+    // same page again fails the same way, so that token is a caller's only way past it short of initializing
+    // again. This is also the one success-status path Refit can reach with an error attached, so a
+    // cancellation raised while the body was being read arrives here - and that one is thrown, not reported.
     private static ISyncResult<T> UnreadableBody<T>(IApiResponse<T> apiResponse)
     {
         RefitResponses.RethrowIfCanceled(apiResponse.Error);
@@ -136,9 +112,6 @@ internal static class RefitApiResponseExtensions
         }
     }
 
-    /// <summary>
-    /// Builds the error for a failed response, shared by the typed and untyped paths.
-    /// </summary>
     private static async Task<IError> BuildErrorAsync(IApiResponse apiResponse)
     {
         var parsed = await RefitErrorParsing.ParseAsync<Error>(apiResponse.Error).ConfigureAwait(false);
