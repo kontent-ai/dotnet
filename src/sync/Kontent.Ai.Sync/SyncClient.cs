@@ -141,7 +141,7 @@ public sealed class SyncClient : ISyncClient, IDisposable, IAsyncDisposable
 
             yield return result;
 
-            // A fresh token per response is the contract; without it the same page would be requested
+            // A page with changes comes with a new token. The same one back would request the page
             // forever, so stop rather than loop. The caller keeps a token it can resume from.
             if (result.SyncToken == currentToken)
             {
