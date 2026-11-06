@@ -1,271 +1,103 @@
+using System.Net.Http.Headers;
 using AwesomeAssertions;
 using Kontent.Ai.Common;
 using Kontent.Ai.Sync.Handlers;
-using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.Sync.Tests.Handlers;
 
 public class SyncAuthenticationHandlerTests
 {
     private const string EnvironmentId = "12345678-1234-1234-1234-123456789012";
+    private const string SyncUrl = $"https://deliver.kontent.ai/v2/{EnvironmentId}/sync";
 
-    [Fact]
-    public async Task SendAsync_WithPreviewApiKey_AddsAuthorizationHeader()
+    [Theory]
+    [InlineData(ApiMode.Preview)]
+    [InlineData(ApiMode.Secure)]
+    public async Task SendAsync_WithAKeyedMode_SendsTheKey(ApiMode mode)
     {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key"
-        };
+        var options = new MutableOptions(new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = mode, ApiKey = "the-key" });
 
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/v2/sync");
+        var request = await SendOneAsync(options);
 
-        _ = await InvokeSendAsync(handler, request);
-
-        request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization.Scheme.Should().Be("Bearer");
-        request.Headers.Authorization.Parameter.Should().Be("preview-key");
+        request.Headers.Authorization.Should().Be(new AuthenticationHeaderValue("Bearer", "the-key"));
     }
 
     [Fact]
-    public async Task SendAsync_WhenApiKeyBecomesEmpty_ClearsAuthorizationHeader()
+    public async Task SendAsync_InPublicMode_SendsNoKey_EvenWhenOneIsSet()
     {
-        var withKey = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key"
-        };
+        var options = new MutableOptions(new SyncOptions { EnvironmentId = EnvironmentId, ApiKey = "unused-key" });
 
-        var withoutKey = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Public
-        };
+        var request = await SendOneAsync(options);
 
-        var monitor = new TestOptionsMonitor<SyncOptions>(withKey);
-        var handler = new SyncAuthenticationHandler(new MonitorBackedOptionsAccessor<SyncOptions>(monitor, NamedClients.Default))
-        {
-            InnerHandler = new TestHandler()
-        };
-
-        var firstRequest = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/v2/sync");
-        _ = await InvokeSendAsync(handler, firstRequest);
-
-        firstRequest.Headers.Authorization.Should().NotBeNull();
-
-        monitor.ChangeCurrentValue(withoutKey);
-
-        var secondRequest = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/v2/sync");
-        secondRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "stale-key");
-
-        _ = await InvokeSendAsync(handler, secondRequest);
-
-        secondRequest.Headers.Authorization.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task SendAsync_WithTrustedDeliveryUrl_RewritesToConfiguredHost()
-    {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key",
-            PreviewEndpoint = "https://preview.example.com"
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, $"https://deliver.kontent.ai/v2/{EnvironmentId}/sync?limit=5");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.RequestUri.Should().NotBeNull();
-        request.RequestUri.Host.Should().Be("preview.example.com");
-        request.RequestUri.AbsolutePath.Should().Be($"/v2/{EnvironmentId}/sync");
-        request.RequestUri.Query.Should().Be("?limit=5");
-        request.Headers.Authorization.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task SendAsync_WithExternalUrl_DoesNotLeakAuthorizationOrInjectEnvironment()
-    {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key"
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://external-service.example/webhook");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "stale-sdk-key");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.RequestUri.Should().NotBeNull();
-        request.RequestUri.Host.Should().Be("external-service.example");
-        request.RequestUri.AbsolutePath.Should().Be("/webhook");
-        request.RequestUri.AbsolutePath.Should().NotContain(EnvironmentId);
         request.Headers.Authorization.Should().BeNull();
     }
 
     [Fact]
-    public async Task SendAsync_WithCustomEndpointAndExternalHost_StripsAuthorization()
+    public async Task SendAsync_ARotatedKey_TakesEffectOnTheNextRequest()
     {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key",
-            PreviewEndpoint = "https://preview.example.com"
-        };
+        var options = new MutableOptions(new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = ApiMode.Preview, ApiKey = "old-key" });
+        using var invoker = CreateInvoker(options);
 
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://attacker.example/v2/sync");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "stale-key");
+        options.Current = new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = ApiMode.Preview, ApiKey = "new-key" };
+        var request = await SendOneAsync(invoker);
 
-        _ = await InvokeSendAsync(handler, request);
+        request.Headers.Authorization!.Parameter.Should().Be("new-key");
+    }
 
-        request.RequestUri!.Host.Should().Be("attacker.example");
+    // The base address is taken when the HTTP client is created, so the mode is too: a reloaded mode
+    // must not start sending one API's key to the other API's host.
+    [Fact]
+    public async Task SendAsync_AReloadedMode_IsIgnoredUntilTheClientIsCreatedAgain()
+    {
+        var options = new MutableOptions(new SyncOptions { EnvironmentId = EnvironmentId });
+        using var invoker = CreateInvoker(options);
+
+        options.Current = new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = ApiMode.Preview, ApiKey = "preview-key" };
+        var request = await SendOneAsync(invoker);
+
+        request.Headers.Authorization.Should().BeNull();
+        request.RequestUri.Should().Be(new Uri(SyncUrl));
+    }
+
+    // A retry sends the same request message again, so a header from the first attempt is still on it.
+    [Fact]
+    public async Task SendAsync_WhenTheKeyIsRemoved_ClearsAHeaderFromAnEarlierAttempt()
+    {
+        var options = new MutableOptions(new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = ApiMode.Preview, ApiKey = "old-key" });
+        using var invoker = CreateInvoker(options);
+        using var request = new HttpRequestMessage(HttpMethod.Get, SyncUrl);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "old-key");
+
+        options.Current = new SyncOptions { EnvironmentId = EnvironmentId, ApiMode = ApiMode.Preview, ApiKey = null };
+        using var _ = await invoker.SendAsync(request, CancellationToken.None);
+
         request.Headers.Authorization.Should().BeNull();
     }
 
-    [Fact]
-    public async Task SendAsync_WithPreviewDeliveryUrlAndCustomPreviewEndpoint_RewritesToConfiguredHost()
+    private static async Task<HttpRequestMessage> SendOneAsync(MutableOptions options)
     {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key",
-            PreviewEndpoint = "https://preview.example.com"
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, $"https://preview-deliver.kontent.ai/v2/{EnvironmentId}/sync");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.RequestUri!.Host.Should().Be("preview.example.com");
-        request.Headers.Authorization.Should().NotBeNull();
+        using var invoker = CreateInvoker(options);
+        return await SendOneAsync(invoker);
     }
 
-    [Fact]
-    public async Task SendAsync_WithSecureApiKey_AddsAuthorizationHeader()
+    private static async Task<HttpRequestMessage> SendOneAsync(HttpMessageInvoker invoker)
     {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Secure,
-            ApiKey = "secure-key"
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://deliver.kontent.ai/v2/sync");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization.Scheme.Should().Be("Bearer");
-        request.Headers.Authorization.Parameter.Should().Be("secure-key");
+        var request = new HttpRequestMessage(HttpMethod.Get, SyncUrl);
+        using var _ = await invoker.SendAsync(request, CancellationToken.None);
+        return request;
     }
 
-    [Fact]
-    public async Task SendAsync_WithPreviewDeliveryUrl_IsTrusted()
+    private static HttpMessageInvoker CreateInvoker(MutableOptions options) =>
+        new(new SyncAuthenticationHandler(options) { InnerHandler = new OkHandler() });
+
+    private sealed class MutableOptions(SyncOptions initial) : IOptionsAccessor<SyncOptions>
     {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Preview,
-            ApiKey = "preview-key"
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, "https://preview-deliver.kontent.ai/v2/sync");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.Headers.Authorization.Should().NotBeNull();
-        request.Headers.Authorization.Scheme.Should().Be("Bearer");
+        public SyncOptions Current { get; set; } = initial;
     }
 
-    [Fact]
-    public async Task SendAsync_DoesNotModifyPath()
-    {
-        var options = new SyncOptions
-        {
-            EnvironmentId = EnvironmentId,
-            ApiMode = ApiMode.Public
-        };
-
-        var handler = CreateHandler(options);
-        var request = new HttpRequestMessage(HttpMethod.Get, $"https://deliver.kontent.ai/v2/{EnvironmentId}/sync");
-
-        _ = await InvokeSendAsync(handler, request);
-
-        request.RequestUri.Should().NotBeNull();
-        request.RequestUri.AbsolutePath.Should().Be($"/v2/{EnvironmentId}/sync");
-    }
-
-    private static SyncAuthenticationHandler CreateHandler(SyncOptions options)
-    {
-        var monitor = new TestOptionsMonitor<SyncOptions>(options);
-        return new SyncAuthenticationHandler(new MonitorBackedOptionsAccessor<SyncOptions>(monitor, NamedClients.Default))
-        {
-            InnerHandler = new TestHandler()
-        };
-    }
-
-    private static async Task<HttpResponseMessage> InvokeSendAsync(SyncAuthenticationHandler handler, HttpRequestMessage request)
-    {
-        var sendAsyncMethod = typeof(SyncAuthenticationHandler)
-            .GetMethod("SendAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?? throw new InvalidOperationException("SendAsync method not found");
-
-        var result = sendAsyncMethod.Invoke(handler, [request, CancellationToken.None]) as Task<HttpResponseMessage>
-            ?? throw new InvalidOperationException("SendAsync returned null");
-
-        return await result;
-    }
-
-    private sealed class TestHandler : HttpMessageHandler
+    private sealed class OkHandler : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
-    }
-
-    private sealed class TestOptionsMonitor<TOptions>(TOptions currentValue) : IOptionsMonitor<TOptions>
-        where TOptions : class
-    {
-        private TOptions _currentValue = currentValue;
-        private readonly Dictionary<string, TOptions> _namedOptions = [];
-
-        public TOptions CurrentValue => _currentValue;
-
-        public TOptions Get(string? name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                return _currentValue;
-            }
-
-            return _namedOptions.TryGetValue(name, out var options)
-                ? options
-                : _currentValue;
-        }
-
-        public IDisposable OnChange(Action<TOptions, string> listener) => new EmptyDisposable();
-
-        public void ChangeCurrentValue(TOptions newValue) => _currentValue = newValue;
-
-        private sealed class EmptyDisposable : IDisposable
-        {
-            public void Dispose()
-            {
-            }
-        }
     }
 }

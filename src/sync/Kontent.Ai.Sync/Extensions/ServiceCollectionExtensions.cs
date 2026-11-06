@@ -60,9 +60,10 @@ public static class ServiceCollectionExtensions
     /// service under <paramref name="name"/>.
     /// </summary>
     /// <remarks>
-    /// The options are read per request through <see cref="IOptionsMonitor{TOptions}"/>, so a reloaded
-    /// API key takes effect without rebuilding the client. The base address and the resilience pipeline
-    /// are read once, when the HTTP client is first created.
+    /// The API key and the environment ID are read per request through <see cref="IOptionsMonitor{TOptions}"/>,
+    /// so a reloaded key takes effect without rebuilding the client. The API mode, the endpoints and the
+    /// resilience pipeline are read once, when the HTTP client is first created: a sync token belongs to the
+    /// feed that issued it, so switching feeds needs a restart, not a reload.
     /// </remarks>
     /// <param name="services">The service collection.</param>
     /// <param name="name">The client's name. Must be unique across all registrations.</param>

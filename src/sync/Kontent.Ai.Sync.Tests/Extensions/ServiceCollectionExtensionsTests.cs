@@ -369,6 +369,55 @@ public class ServiceCollectionExtensionsTests
         monitor.Get("Default").EnvironmentId.Should().Be(replacement);
     }
 
+    // A sync token belongs to the feed that issued it, so what picks the feed is read once; the key can rotate.
+    [Fact]
+    public async Task AddSyncClient_Reload_RotatesTheKey_ButKeepsTheEndpointAndMode()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Sync:EnvironmentId"] = EnvironmentId,
+                ["Sync:ApiMode"] = "Secure",
+                ["Sync:ApiKey"] = "first-key",
+                ["Sync:ProductionEndpoint"] = "https://proxy-a.example",
+            })
+            .Build();
+        var sent = new List<(string Url, string? Key)>();
+        using var mockHttp = new MockHttpMessageHandler();
+        mockHttp.Fallback.Respond(request =>
+        {
+            sent.Add((request.RequestUri!.ToString(), request.Headers.Authorization?.Parameter));
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"items":[],"types":[],"languages":[],"taxonomies":[]}""", System.Text.Encoding.UTF8, "application/json"),
+            };
+            response.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
+            return response;
+        });
+        var services = new ServiceCollection();
+        services.AddSyncClient(sync =>
+        {
+            sync.Options.Bind(configuration.GetSection("Sync"));
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mockHttp);
+        });
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<ISyncClient>();
+
+        await client.GetDeltaAsync("token");
+
+        configuration["Sync:ApiKey"] = "second-key";
+        configuration["Sync:ProductionEndpoint"] = "https://proxy-b.example";
+        configuration.Reload();
+        await client.GetDeltaAsync("token");
+
+        configuration["Sync:ApiMode"] = "Public";
+        configuration.Reload();
+        await client.GetDeltaAsync("token");
+
+        var url = $"https://proxy-a.example/v2/{EnvironmentId}/sync";
+        sent.Should().Equal((url, "first-key"), (url, "second-key"), (url, "second-key"));
+    }
+
     [Fact]
     public async Task AddSyncClient_BindConfiguration_BindsTheSectionTheClientSendsTo()
     {
