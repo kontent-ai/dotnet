@@ -13,7 +13,22 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   is now the token that response carried. Requesting the same page again fails the same way, so this token is the
   way past it. Continuing from it skips that page's changes. Every other failure still carries no token.
 
+### Changed
+
+- **Reloading `ApiMode` or an endpoint takes effect on restart.**
+
+  The endpoints were documented as read once, but a reload could still move requests between the preview and
+  production hosts. A sync token belongs to the feed that issued it, so switching feeds at runtime sent the token
+  to a feed it did not come from. `ApiMode`, `ProductionEndpoint` and `PreviewEndpoint` are now read when the
+  client is created. A reloaded `ApiKey` or `EnvironmentId` still takes effect on the next request. To switch
+  feeds, restart and initialize again.
+
 ### Fixed
+
+- **Reloading a custom endpoint no longer sends requests without the API key.**
+
+  After a reload away from a custom endpoint, requests kept going to the old host and lost their
+  `Authorization` header. Requests now always go to the endpoint the client was created with, authenticated.
 
 - **An unrecognized change type no longer fails the whole page.**
 

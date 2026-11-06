@@ -48,7 +48,7 @@ public sealed class SyncOptions : IValidatableObject
     public TimeSpan? Timeout { get; set; }
 
     /// <summary>
-    /// Gets or sets the Production API endpoint address.
+    /// Gets or sets the Production API endpoint address. Read once, when the HTTP client is created.
     /// </summary>
     // Fully qualified: Refit is in scope via GlobalUsings.cs and also defines a UrlAttribute,
     // so a bare [Url] is ambiguous. Matches ManagementOptions, which hit the same collision.
@@ -56,18 +56,20 @@ public sealed class SyncOptions : IValidatableObject
     public string ProductionEndpoint { get; set; } = "https://deliver.kontent.ai";
 
     /// <summary>
-    /// Gets or sets the Preview API endpoint address.
+    /// Gets or sets the Preview API endpoint address. Read once, when the HTTP client is created.
     /// </summary>
     [System.ComponentModel.DataAnnotations.Url]
     public string PreviewEndpoint { get; set; } = "https://preview-deliver.kontent.ai";
 
     /// <summary>
-    /// Gets or sets the API mode for accessing Kontent.ai content.
+    /// Gets or sets the API mode for accessing Kontent.ai content. Read once, when the HTTP client is created:
+    /// a sync token belongs to the feed that issued it, so switching feeds needs a restart, not a reload.
     /// </summary>
     public ApiMode ApiMode { get; set; } = ApiMode.Public;
 
     /// <summary>
-    /// Gets or sets the API key for authenticated access (required for Preview and Secure modes).
+    /// Gets or sets the API key for authenticated access (required for Preview and Secure modes). Read per
+    /// request, so a rotated key takes effect without rebuilding the client.
     /// </summary>
     public string? ApiKey { get; set; }
 

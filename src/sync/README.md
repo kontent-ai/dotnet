@@ -223,9 +223,12 @@ services.AddSyncClient(sync => sync.Options.BindConfiguration("MySyncSection"));
 The default section name is available as `SyncOptions.DefaultConfigurationSectionName`, so tooling that
 resolves the SDK's configuration from the same sources does not have to hard-code it.
 
-Binding this way is change-token backed: edits to the underlying source are picked up through
-`IOptionsMonitor<SyncOptions>` without rebuilding the container. Binding and the other steps combine
-freely:
+Binding this way is change-token backed: a reloaded `ApiKey` or `EnvironmentId` takes effect on the next
+request. `ApiMode`, the endpoints, `EnableResilience` and `Timeout` are read once, when the client is
+created. A sync token belongs to the feed that issued it, so switching between the preview and production
+feeds needs a restart and a new `InitializeSyncAsync`, not a reload.
+
+Binding and the other steps combine freely:
 
 ```csharp
 services.AddSyncClient(sync =>
