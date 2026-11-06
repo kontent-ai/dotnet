@@ -32,9 +32,13 @@ public interface ISyncResult
     /// Gets the synchronization token for the next sync operation, read from the X-Continuation header.
     /// </summary>
     /// <remarks>
-    /// Meaningful only when <see cref="IsSuccess"/> is <c>true</c>. The API issues a fresh token with
-    /// every successful response, and a response without one fails rather than producing a result, so on
-    /// a successful result this is always populated.
+    /// Always populated on a successful result: a successful response without a token fails rather than
+    /// producing one.
+    /// <para>
+    /// Null on a failed result, with one exception: when the API answered with a success status but the
+    /// body could not be read, this is the token that response carried. Requesting the same page again
+    /// fails the same way, so this token is the way past it - at the cost of that page's changes.
+    /// </para>
     /// </remarks>
     string SyncToken { get; }
 

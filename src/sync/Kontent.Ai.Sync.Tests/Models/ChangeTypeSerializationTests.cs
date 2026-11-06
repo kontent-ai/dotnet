@@ -4,16 +4,12 @@ using Kontent.Ai.Sync.Configuration;
 
 namespace Kontent.Ai.Sync.Tests.Models;
 
-/// <summary>
-/// A delta read from the API and written back out has to produce the value the API sends. The type-level
-/// converter takes precedence over the one the SDK configures and carried no naming policy, so writing
-/// produced <c>"Changed"</c> against the wire's <c>"changed"</c> - readable, but not round-trippable.
-/// </summary>
 public class ChangeTypeSerializationTests
 {
     [Theory]
     [InlineData(ChangeType.Changed, "changed")]
     [InlineData(ChangeType.Deleted, "deleted")]
+    [InlineData(ChangeType.Unknown, "unknown")]
     public void Write_UsesTheWireName(ChangeType value, string expected)
     {
         JsonSerializer.Serialize(value).Should().Be($"\"{expected}\"");
@@ -27,5 +23,27 @@ public class ChangeTypeSerializationTests
     public void Read_AcceptsTheWireName(string wire, ChangeType expected)
     {
         JsonSerializer.Deserialize<ChangeType>($"\"{wire}\"").Should().Be(expected);
+    }
+
+    // The API may add change types without notice, so a name the SDK does not know is not an error.
+    [Theory]
+    [InlineData("archived")]
+    [InlineData("Changed")]
+    [InlineData("")]
+    public void Read_UnrecognizedName_IsUnknown(string wire)
+    {
+        JsonSerializer.Deserialize<ChangeType>($"\"{wire}\"").Should().Be(ChangeType.Unknown);
+    }
+
+    [Theory]
+    [InlineData("1")]
+    [InlineData("7")]
+    [InlineData("null")]
+    [InlineData("true")]
+    public void Read_NonString_Throws(string wire)
+    {
+        var act = () => JsonSerializer.Deserialize<ChangeType>(wire);
+
+        act.Should().Throw<JsonException>();
     }
 }

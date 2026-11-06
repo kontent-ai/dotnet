@@ -137,7 +137,7 @@ when, and the metadata:
 
 | Member | |
 |---|---|
-| `ChangeType` | `Changed` or `Deleted` |
+| `ChangeType` | `Changed`, `Deleted`, or `Unknown` for a change type the API added after this SDK version |
 | `Timestamp` | when the change occurred in the Delivery API, UTC |
 | `Data` | the entity's metadata, on every change — a deletion names what was deleted |
 
@@ -432,6 +432,10 @@ The SDK does not persist sync tokens. Store `SyncToken` after every successful c
 the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. Every successful response carries one, so it is
 never null on a successful result. A successful response that omits it throws rather than handing back a
 result you could not continue from.
+
+One failure carries a token too: a `2xx` whose body does not match the SDK's models. Requesting that page
+again fails the same way, so the result's `SyncToken` is the way past it, at the cost of that page's
+changes. Every other failure carries none.
 
 Where you store it during a walk is a choice. Saving once after the loop means a crash part-way through
 reprocesses from the previous token — some changes arrive twice, none are missed. Saving after each page

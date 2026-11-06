@@ -8,6 +8,7 @@ public enum ApiMode
 public enum ChangeType
     Changed = 0
     Deleted = 1
+    Unknown = 2
 
 // Kontent.Ai.Sync
 public interface IError

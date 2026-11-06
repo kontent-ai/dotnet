@@ -202,6 +202,76 @@ public sealed class SyncTransportTests : IDisposable
         deleted.Data.System.Codename.Should().Be("my_article");
     }
 
+    [Fact]
+    public async Task GetDeltaAsync_UnrecognizedChangeType_ReadsTheRestOfThePage()
+    {
+        const string body = """
+            {
+              "items": [
+                { "change_type": "changed", "timestamp": "2025-06-20T13:03:06.1310204Z",
+                  "data": { "system": { "id": "335d17ac-b6ba-4c6a-ae31-23c1193215cb", "collection": "default", "name": "A",
+                    "codename": "a", "language": "en-US", "type": "article", "last_modified": "2019-03-27T13:21:11.38Z" } } },
+                { "change_type": "archived", "timestamp": "2025-06-20T13:03:07.1310204Z",
+                  "data": { "system": { "id": "4f2b1f31-0c4e-4b5d-9a55-0f6a8b0c2d11", "collection": "default", "name": "B",
+                    "codename": "b", "language": "en-US", "type": "article", "last_modified": "2019-03-27T13:21:11.38Z" } } }
+              ],
+              "types": [],
+              "languages": [],
+              "taxonomies": []
+            }
+            """;
+
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeTrue();
+        result.SyncToken.Should().Be("next-token");
+        result.Value.Items.Select(i => (i.ChangeType, i.Data.System.Codename))
+            .Should().Equal((ChangeType.Changed, "a"), (ChangeType.Unknown, "b"));
+    }
+
+    // Requesting a page the SDK cannot read only fails again, so the failure keeps the token past it.
+    [Fact]
+    public async Task GetDeltaAsync_UnreadableSuccessBody_FailsCarryingTheTokenPastThePage()
+    {
+        const string body = """
+            {
+              "items": [ { "change_type": 1, "timestamp": "2025-06-20T13:03:06.1310204Z", "data": null } ],
+              "types": [],
+              "languages": [],
+              "taxonomies": []
+            }
+            """;
+
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.SyncToken.Should().Be("next-token");
+    }
+
+    [Fact]
+    public async Task GetDeltaAsync_FailedRequest_CarriesNoToken()
+    {
+        _http.Expect(HttpMethod.Get, SyncUrl).Respond(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent(
+                    """{"message":"The continuation token specified in the 'X-Continuation' request header is malformed. Please validate the token.","request_id":"b2033617e2b7b7ba","error_code":107,"specific_code":0}""",
+                    System.Text.Encoding.UTF8,
+                    "application/json"),
+            };
+            response.Headers.TryAddWithoutValidation("X-Continuation", "not-a-way-forward");
+            return response;
+        });
+
+        var result = await CreateClient().GetDeltaAsync("token");
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.ErrorCode.Should().Be(107);
+        result.SyncToken.Should().BeNull();
+    }
+
     [Theory]
     [InlineData("""{ "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z", "data": null }""")]
     [InlineData("""{ "change_type": "deleted", "timestamp": "2025-06-20T13:03:06.1310204Z" }""")]
