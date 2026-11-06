@@ -5,7 +5,7 @@
     <NoWarn>CS1591</NoWarn>
     <!-- Set just under current coverage so it blocks regression rather than aspiring.
          Measured 93.75% line on 2026-09-02, with the shared src/common sources compiled in and the
-         DI/HTTP registration file not excluded - SyncTransportTests and StandaloneClientTests drive
+         DI/HTTP registration file not excluded - SyncTransportTests and SyncClientCreateTests drive
          both paths end to end. -->
     <Threshold>92</Threshold>
     <ThresholdType>line</ThresholdType>
@@ -29,7 +29,6 @@
   <ItemGroup>
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="RichardSzalay.MockHttp" />

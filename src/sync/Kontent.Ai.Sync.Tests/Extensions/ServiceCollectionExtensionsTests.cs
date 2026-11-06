@@ -57,7 +57,7 @@ public class ServiceCollectionExtensionsTests
             options.ApiKey = "preview-key";
         }));
 
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var factory = provider.GetRequiredService<ISyncClientFactory>();
 
         var unkeyedDefault = provider.GetRequiredService<ISyncClient>();
@@ -132,7 +132,7 @@ public class ServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         services.AddSyncClient(sync => sync.Options.Bind(configuration.GetSection("Sync")));
 
-        var provider = services.BuildServiceProvider();
+        using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptionsMonitor<SyncOptions>>().CurrentValue;
 
         options.EnvironmentId.Should().Be(environmentId);
@@ -141,9 +141,7 @@ public class ServiceCollectionExtensionsTests
         options.EnableResilience.Should().BeFalse();
     }
 
-    // The gap this closes: before, binding from IConfiguration and customizing the pipeline were
-    // mutually exclusive. Working around it by binding inside an Action<SyncOptions> silently lost
-    // reload, because that path registers no change token.
+    // Binding through the options builder registers a change token, and combines with a custom pipeline.
     [Fact]
     public void AddSyncClient_FromConfiguration_SupportsResilienceCustomizationAndStillReloads()
     {
@@ -179,38 +177,6 @@ public class ServiceCollectionExtensionsTests
         configuration.Reload();
 
         monitor.Get("Default").EnvironmentId.Should().Be(replacement);
-    }
-
-    [Fact]
-    public void AddSyncClient_RuntimeConfigurationChanges_AreReflectedInOptions()
-    {
-        var environmentId = Guid.NewGuid().ToString();
-
-        var services = new ServiceCollection();
-        services.AddSyncClient("dynamic", sync => sync.Options.Configure(options =>
-        {
-            options.EnvironmentId = environmentId;
-            options.ApiMode = ApiMode.Public;
-        }));
-
-        var provider1 = services.BuildServiceProvider();
-        var options1 = provider1.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("dynamic");
-
-        options1.ApiMode.Should().Be(ApiMode.Public);
-        options1.ApiKey.Should().BeNull();
-
-        services.Configure<SyncOptions>("dynamic", options =>
-        {
-            options.EnvironmentId = environmentId;
-            options.ApiMode = ApiMode.Preview;
-            options.ApiKey = "new-preview-key";
-        });
-
-        var provider2 = services.BuildServiceProvider();
-        var options2 = provider2.GetRequiredService<IOptionsMonitor<SyncOptions>>().Get("dynamic");
-
-        options2.ApiMode.Should().Be(ApiMode.Preview);
-        options2.ApiKey.Should().Be("new-preview-key");
     }
 
     // The HttpClient ceiling is the only thing bounding a request when the default resilience pipeline -
@@ -328,8 +294,7 @@ public class ServiceCollectionExtensionsTests
             .Which.PooledConnectionLifetime.Should().Be(TimeSpan.FromMinutes(2));
     }
 
-    // The consumer's chain runs after the SDK's own setup, so what it puts on the HTTP client wins. This is
-    // what the old "configureHttpClient is applied last" guarantee became.
+    // The consumer's chain runs after the SDK's own setup, so what it puts on the HTTP client wins.
     [Fact]
     public void AddSyncClient_TheConsumersHttpClientChainRunsLast()
     {

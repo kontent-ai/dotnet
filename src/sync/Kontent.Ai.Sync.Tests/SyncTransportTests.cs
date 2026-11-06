@@ -8,9 +8,8 @@ namespace Kontent.Ai.Sync.Tests;
 
 /// <summary>
 /// Drives a client registered exactly as a consumer registers it, mocking at the transport rather than
-/// stubbing <c>ISyncApi</c>. These are the only tests that execute the Refit route templates, the
-/// handler chain and the serializer settings as they are actually wired - stubbing the API interface
-/// starts below all three.
+/// stubbing <c>ISyncApi</c>, so the Refit route templates, the handler chain and the serializer settings
+/// run as they are actually wired - stubbing the API interface starts below all three.
 /// </summary>
 public sealed class SyncTransportTests : IDisposable
 {
@@ -141,6 +140,8 @@ public sealed class SyncTransportTests : IDisposable
 
         var result = await CreateClient().GetDeltaAsync("token");
 
+        // The item carries the deprecated sitemap_locations, deliberately not modelled; it must not upset
+        // deserialization.
         result.IsSuccess.Should().BeTrue();
 
         var item = result.Value.Items.Should().ContainSingle().Subject;
@@ -153,11 +154,9 @@ public sealed class SyncTransportTests : IDisposable
         item.Data.System.Workflow.Should().Be("default");
         item.Data.System.WorkflowStep.Should().Be("published");
 
-        // Deprecated and scheduled for removal, so deliberately not modelled - its presence in the
-        // payload must not upset deserialization.
         result.Value.Types.Should().ContainSingle().Which.Data.System.Codename.Should().Be("article");
 
-        // The narrowest payload: no last_modified, and nothing the API guarantees.
+        // The narrowest payload: no last_modified.
         var language = result.Value.Languages.Should().ContainSingle().Subject;
         language.Data.System.Codename.Should().Be("default");
 

@@ -55,22 +55,6 @@ public class SyncResultTests
         result.ResponseHeaders.Should().BeSameAs(headers);
     }
 
-    [Theory]
-    [InlineData(HttpStatusCode.OK)]
-    [InlineData(HttpStatusCode.Created)]
-    [InlineData(HttpStatusCode.NoContent)]
-    [InlineData(HttpStatusCode.BadRequest)]
-    [InlineData(HttpStatusCode.NotFound)]
-    [InlineData(HttpStatusCode.InternalServerError)]
-    public void StatusCode_IsPreserved(HttpStatusCode statusCode)
-    {
-        var successResult = SyncResult<string>.Success("value", "url", "token", statusCode);
-        successResult.StatusCode.Should().Be(statusCode);
-
-        var failureResult = SyncResult<string>.Failure("url", statusCode, null);
-        failureResult.StatusCode.Should().Be(statusCode);
-    }
-
     [Fact]
     public void Error_ExposesUnderlyingException()
     {

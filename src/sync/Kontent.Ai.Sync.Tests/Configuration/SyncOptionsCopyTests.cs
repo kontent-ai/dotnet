@@ -52,7 +52,7 @@ public class SyncOptionsCopyTests
     private static object DistinctValueFor(PropertyInfo property) => property.PropertyType switch
     {
         var t when t == typeof(string) => $"copied-{property.Name}",
-        var t when t == typeof(bool) => true,
+        var t when t == typeof(bool) => !(bool)property.GetValue(new SyncOptions())!,
         var t when t.IsEnum => Enum.GetValues(t).GetValue(Enum.GetValues(t).Length - 1)!,
         var t when t == typeof(TimeSpan?) => TimeSpan.FromMinutes(7),
         _ => throw new NotSupportedException(

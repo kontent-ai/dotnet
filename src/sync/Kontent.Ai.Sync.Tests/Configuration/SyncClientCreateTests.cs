@@ -4,6 +4,8 @@ using AwesomeAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.Retry;
 using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.Sync.Tests.Configuration;
@@ -146,21 +148,150 @@ public sealed class SyncClientCreateTests : IDisposable
         probe.Disposed.Should().BeTrue();
     }
 
+    // Each client owns its own transport, so disposing one must leave the other usable.
     [Fact]
-    public void Create_MultipleCalls_ProduceIndependentClients()
+    public async Task Create_MultipleCalls_ProduceIndependentClients()
     {
-        Action<ISyncClientBuilder> configure = sync => sync.Options.Configure(o => o.EnvironmentId = EnvironmentId);
+        using var http1 = new MockHttpMessageHandler();
+        using var http2 = new MockHttpMessageHandler();
+        http2.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(_ => EmptyDelta());
 
-        using var client1 = SyncClient.Create(configure);
-        using var client2 = SyncClient.Create(configure);
+        var client1 = SyncClient.Create(sync =>
+        {
+            sync.Options.Configure(o => o.EnvironmentId = EnvironmentId);
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => http1);
+        });
+        using var client2 = SyncClient.Create(sync =>
+        {
+            sync.Options.Configure(o => o.EnvironmentId = EnvironmentId);
+            sync.HttpClient.ConfigurePrimaryHttpMessageHandler(() => http2);
+        });
 
-        // Each client owns its own transport, so disposing one must leave the other usable.
-        client1.Should().NotBeSameAs(client2);
+        await client1.DisposeAsync();
 
-        client1.Dispose();
+        (await client2.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        http2.VerifyNoOutstandingExpectation();
+    }
 
-        var act = () => client2.Dispose();
+    [Fact]
+    public async Task Create_SendsTheSdkTrackingHeader()
+    {
+        var captured = ExpectDelta(ProductionSyncUrl);
+
+        using var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        captured.Request!.Headers.GetValues("X-KC-SDKID").Should().ContainSingle()
+            .Which.Should().StartWith("nuget.org;Kontent.Ai.Sync;");
+    }
+
+    [Fact]
+    public async Task Create_RetriesTransientFailures()
+    {
+        _http.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
+        _http.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(_ => EmptyDelta());
+
+        using var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        _http.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task Create_WithResilienceDisabled_DoesNotRetry()
+    {
+        _http.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
+
+        using var client = CreateClient(o =>
+        {
+            o.EnvironmentId = EnvironmentId;
+            o.EnableResilience = false;
+        });
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeFalse();
+        _http.VerifyNoOutstandingExpectation();
+    }
+
+    [Fact]
+    public async Task Create_CustomResilience_ReplacesTheDefault()
+    {
+        // One retry where the default allows three, so a third response is never requested.
+        _http.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
+        _http.Expect(HttpMethod.Get, ProductionSyncUrl).Respond(HttpStatusCode.ServiceUnavailable);
+
+        using var client = CreateClient(
+            o => o.EnvironmentId = EnvironmentId,
+            sync => sync.ConfigureResilience(builder => builder.AddRetry(new RetryStrategyOptions<HttpResponseMessage>
+            {
+                MaxRetryAttempts = 1,
+                Delay = TimeSpan.Zero,
+                ShouldHandle = args => ValueTask.FromResult(args.Outcome.Result?.IsSuccessStatusCode == false),
+            })));
+
+        (await client.GetDeltaAsync("token")).IsSuccess.Should().BeFalse();
+        _http.VerifyNoOutstandingExpectation();
+    }
+
+    // DisposeAsync and Dispose are separate paths through the owned resources, so each is pinned.
+    [Fact]
+    public async Task DisposeAsync_StopsFurtherRequests()
+    {
+        _http.When(HttpMethod.Get, ProductionSyncUrl).Respond(_ => EmptyDelta());
+
+        SyncClient client;
+        await using (client = CreateClient(o => o.EnvironmentId = EnvironmentId))
+        {
+            (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        }
+
+        await AssertRequestsFail(client);
+    }
+
+    [Fact]
+    public async Task Dispose_StopsFurtherRequests()
+    {
+        _http.When(HttpMethod.Get, ProductionSyncUrl).Respond(_ => EmptyDelta());
+
+        SyncClient client;
+        using (client = CreateClient(o => o.EnvironmentId = EnvironmentId))
+        {
+            (await client.GetDeltaAsync("token")).IsSuccess.Should().BeTrue();
+        }
+
+        await AssertRequestsFail(client);
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        client.Dispose();
+        var act = () => client.Dispose();
+
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task DisposeAsync_IsIdempotent()
+    {
+        var client = CreateClient(o => o.EnvironmentId = EnvironmentId);
+
+        await client.DisposeAsync();
+        var act = async () => await client.DisposeAsync();
+
+        await act.Should().NotThrowAsync();
+    }
+
+    // The transport failure is reported as a result rather than thrown, as every non-cancellation
+    // failure in this SDK is; what matters here is that the request no longer reaches the handler.
+    private static async Task AssertRequestsFail(SyncClient client)
+    {
+        var afterDispose = await client.GetDeltaAsync("token");
+
+        afterDispose.IsSuccess.Should().BeFalse();
+        afterDispose.Error!.Exception.Should().BeOfType<Refit.ApiRequestException>()
+            .Which.InnerException.Should().BeOfType<ObjectDisposedException>();
     }
 
     [Fact]
@@ -206,17 +337,22 @@ public sealed class SyncClientCreateTests : IDisposable
         _http.Expect(HttpMethod.Get, url).Respond(request =>
         {
             captured.Request = request;
-            var response = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(
-                    """{"items":[],"types":[],"languages":[],"taxonomies":[]}""",
-                    System.Text.Encoding.UTF8,
-                    "application/json"),
-            };
-            response.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
-            return response;
+            return EmptyDelta();
         });
         return captured;
+    }
+
+    private static HttpResponseMessage EmptyDelta()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"items":[],"types":[],"languages":[],"taxonomies":[]}""",
+                System.Text.Encoding.UTF8,
+                "application/json"),
+        };
+        response.Headers.TryAddWithoutValidation("X-Continuation", "next-token");
+        return response;
     }
 
     private sealed class CapturedRequest
