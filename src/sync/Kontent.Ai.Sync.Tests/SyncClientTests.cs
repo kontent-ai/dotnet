@@ -153,23 +153,45 @@ public class SyncClientTests
         _ = syncApi.DidNotReceiveWithAnyArgs().GetDeltaAsync(default!, default!, default);
     }
 
-    // The API issues a token with every successful response; without one there is no way to continue,
-    // so the result is refused rather than handed back in a state the caller cannot act on.
-    [Fact]
-    public async Task GetDeltaAsync_ResponseWithoutContinuationToken_Throws()
+    // Without a token there is no way to continue, so a page that came without one is not a success.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task GetDeltaAsync_ResponseWithoutContinuationToken_Fails(string? nextToken)
     {
         var syncApi = Substitute.For<ISyncApi>();
         var client = new SyncClient(syncApi, TestOptions());
 
-        var page = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
+        var page = CreateSuccessDeltaResponse(nextToken, itemCount: 1);
 
         syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(page));
 
-        Func<Task> act = async () => await client.GetDeltaAsync("token-1");
+        var result = await client.GetDeltaAsync("token-1");
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*X-Continuation*");
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.SyncToken.Should().BeNull();
+        result.Error!.Message.Should().Contain("X-Continuation");
+    }
+
+    [Fact]
+    public async Task EnumerateDeltaAsync_PageWithoutContinuationToken_YieldsTheFailureAndStops()
+    {
+        var syncApi = Substitute.For<ISyncApi>();
+        var client = new SyncClient(syncApi, TestOptions());
+
+        var page1 = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 1);
+        var tokenless = CreateSuccessDeltaResponse(nextToken: null, itemCount: 1);
+
+        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(page1), Task.FromResult(tokenless));
+
+        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
+
+        pages.Select(p => p.IsSuccess).Should().Equal(true, false);
+        await syncApi.Received(2).GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     private static SyncItemSystem SystemFor(string codename) => new()
@@ -199,7 +221,10 @@ public class SyncClientTests
                     Timestamp = DateTime.UnixEpoch.AddMinutes(i),
                     Data = new SyncItemData { System = SystemFor($"item_{i}") },
                 })
-                .ToList()
+                .ToList(),
+            Types = [],
+            Languages = [],
+            Taxonomies = [],
         });
 
         var httpResponse = new HttpResponseMessage(HttpStatusCode.OK);

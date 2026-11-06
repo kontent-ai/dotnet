@@ -398,12 +398,11 @@ status, the continuation token — and `ISyncResult<T>` adds `Value` for the cal
 content; `GetDeltaAsync` and `EnumerateDeltaAsync` return the generic one.
 
 > [!IMPORTANT]
-> Four things still throw:
+> Three things still throw:
 >
 > - **Cancellation** — a cancelled call throws `OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers behave normally.
 > - **Programmer errors** — a `null` argument throws `ArgumentNullException`.
 > - **Invalid configuration** — validated when the client is built or registered, as `OptionsValidationException`.
-> - **A successful response with no `X-Continuation` header** — `InvalidOperationException`. There is no result worth handing back: you could read that page and then be unable to advance.
 
 ```csharp
 var result = await syncClient.GetDeltaAsync(syncToken);
@@ -432,9 +431,8 @@ Important fields:
 ## Token Persistence
 
 The SDK does not persist sync tokens. Store `SyncToken` after every successful call and pass it into
-the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. Every successful response carries one, so it is
-never null on a successful result. A successful response that omits it throws rather than handing back a
-result you could not continue from.
+the next `GetDeltaAsync` or `EnumerateDeltaAsync` call. It is never null on a successful result: a `2xx`
+that comes without one is a failed result, because there is nothing to continue from.
 
 One failure carries a token too: a `2xx` whose body does not match the SDK's models. Requesting that page
 again fails the same way, so the result's `SyncToken` is the way past it, at the cost of that page's

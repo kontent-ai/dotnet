@@ -20,8 +20,7 @@ public class RefitSettingsProviderTests
     [Fact]
     public void Deserialize_DeltaWithRecasedPropertyNames_StillBinds()
     {
-        // The delta lists default to [] rather than being required, so a casing change the SDK could not
-        // match would report an empty delta instead of throwing - a sync that silently sees no changes.
+        // The delta lists are required, so a casing change the SDK could not match would fail every page.
         const string json = """
         {
           "Items": [
@@ -37,7 +36,10 @@ public class RefitSettingsProviderTests
                   "type": "article",
                   "last_modified": "2026-01-01T00:00:00Z" } }
             }
-          ]
+          ],
+          "Types": [],
+          "LANGUAGES": [],
+          "taxonomies": []
         }
         """;
 
