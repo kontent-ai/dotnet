@@ -26,14 +26,17 @@ internal static class RefitApiResponseExtensions
         {
             using (apiResponse)
             {
-                return Task.FromResult(apiResponse.Content is null
-                    ? UnreadableBody<T>(apiResponse)
-                    : SyncResult<T>.Success(
-                        apiResponse.Content,
-                        RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                        RequireSyncToken(apiResponse),
-                        RefitResponses.StatusOf(apiResponse),
-                        apiResponse.Headers));
+                if (apiResponse.Content is null)
+                {
+                    return Task.FromResult(UnreadableBody(apiResponse));
+                }
+
+                var requestUrl = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
+                var statusCode = RefitResponses.StatusOf(apiResponse);
+
+                return Task.FromResult(ReadSyncToken(apiResponse) is { } syncToken
+                    ? SyncResult<T>.Success(apiResponse.Content, requestUrl, syncToken, statusCode, apiResponse.Headers)
+                    : SyncResult<T>.Failure(requestUrl, statusCode, MissingToken(), apiResponse.Headers));
             }
         }
 
@@ -55,11 +58,12 @@ internal static class RefitApiResponseExtensions
         {
             using (apiResponse)
             {
-                return Task.FromResult(SyncResult.Success(
-                    RefitResponses.RequestUrl(apiResponse) ?? string.Empty,
-                    RequireSyncToken(apiResponse),
-                    RefitResponses.StatusOf(apiResponse),
-                    apiResponse.Headers));
+                var requestUrl = RefitResponses.RequestUrl(apiResponse) ?? string.Empty;
+                var statusCode = RefitResponses.StatusOf(apiResponse);
+
+                return Task.FromResult(ReadSyncToken(apiResponse) is { } syncToken
+                    ? SyncResult.Success(requestUrl, syncToken, statusCode, apiResponse.Headers)
+                    : SyncResult.Failure(requestUrl, statusCode, MissingToken(), apiResponse.Headers));
             }
         }
 
@@ -147,23 +151,21 @@ internal static class RefitApiResponseExtensions
         };
     }
 
-    /// <summary>
-    /// Reads the continuation token every successful Sync API response carries.
-    /// </summary>
-    /// <remarks>
-    /// The API issues a fresh token on every initialization and every delta, and it is the only way to
-    /// make the next request. A successful response without one is the API breaking that contract, and
-    /// there is no result worth handing back: the caller could read this page and would then be unable
-    /// to continue. Failing here says so once, rather than surfacing later as a token that cannot be
-    /// stored or a walk that cannot advance.
-    /// </remarks>
-    private static string RequireSyncToken(IApiResponse apiResponse) =>
-        ReadSyncToken(apiResponse) ?? throw new InvalidOperationException(
-            $"The Sync API returned a successful response without an {ContinuationHeaderName} header, " +
-            $"so synchronization cannot continue. Request: {RefitResponses.RequestUrl(apiResponse)}");
+    // Every successful response carries a token, and it is the only way to make the next request. A success
+    // status without one is the API breaking that contract: a page the caller could read but never continue
+    // from is no success, so it is reported as a failure like any other response the SDK cannot use.
+    private static Error MissingToken() => new()
+    {
+        Message = $"The Sync API returned a success status without an {ContinuationHeaderName} header, " +
+                  "so synchronization cannot continue from this response.",
+    };
 
-    private static string? ReadSyncToken(IApiResponse apiResponse) =>
-        apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
+    private static string? ReadSyncToken(IApiResponse apiResponse)
+    {
+        var token = apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
             ? values.FirstOrDefault()
             : null;
+
+        return string.IsNullOrWhiteSpace(token) ? null : token;
+    }
 }

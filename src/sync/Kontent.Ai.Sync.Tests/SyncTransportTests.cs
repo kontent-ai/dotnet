@@ -330,6 +330,33 @@ public sealed class SyncTransportTests : IDisposable
         result.Error.Should().NotBeNull();
     }
 
+    // A collection that is not there is not the same as one with no changes in it: read as empty, a walk
+    // would carry its token past whatever the missing or renamed collection held.
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{ "types": [], "languages": [], "taxonomies": [] }""")]
+    [InlineData("""{ "content_items": [], "types": [], "languages": [], "taxonomies": [] }""")]
+    public async Task GetDeltaAsync_MissingCollection_FailsInsteadOfReportingNoChanges(string body)
+    {
+        var result = await RespondWithAsync(body);
+
+        result.IsSuccess.Should().BeFalse();
+        result.Error!.Exception!.InnerException.Should().BeOfType<System.Text.Json.JsonException>();
+    }
+
+    [Fact]
+    public async Task InitializeSyncAsync_ResponseWithoutContinuationToken_Fails()
+    {
+        _http.Expect(HttpMethod.Post, InitUrl).Respond(_ => EmptyJsonObject());
+
+        var result = await CreateClient().InitializeSyncAsync();
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.OK);
+        result.SyncToken.Should().BeNull();
+        result.Error!.Message.Should().Contain("X-Continuation");
+    }
+
     private async Task<ISyncResult<ISyncDeltaResponse>> RespondWithAsync(string body)
     {
         _http.Expect(HttpMethod.Get, SyncUrl)

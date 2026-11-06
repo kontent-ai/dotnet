@@ -23,7 +23,21 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
   client is created. A reloaded `ApiKey` or `EnvironmentId` still takes effect on the next request. To switch
   feeds, restart and initialize again.
 
+- **A success response without a continuation token is a failed result.**
+
+  It threw `InvalidOperationException` instead, from the middle of `EnumerateDeltaAsync` too, where every other
+  failure ends the walk as a yielded result. It is now a failed result with the response's status code and no
+  token, and an empty `X-Continuation` value counts as missing; before, it was accepted as an empty token and the
+  next request threw `ArgumentException`. A `catch (InvalidOperationException)` around sync calls no longer fires
+  for it; check `IsSuccess`.
+
 ### Fixed
+
+- **A delta response missing a collection fails instead of reporting no changes.**
+
+  The 2.0.0-rc.3 notes said a response missing one of the four collections would fail, but each defaulted to
+  empty. A missing or renamed collection read as "nothing changed", and a walk could carry its token past
+  changes it never saw. It now fails like any other response the SDK cannot read, carrying the response's token.
 
 - **Reloading a custom endpoint no longer sends requests without the API key.**
 

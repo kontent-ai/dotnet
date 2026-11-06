@@ -5,14 +5,14 @@ namespace Kontent.Ai.Sync.Models;
 internal sealed record SyncDeltaResponse : ISyncDeltaResponse
 {
     [JsonPropertyName("items")]
-    public IReadOnlyList<SyncChange<SyncItemData>> Items { get; init; } = [];
+    public required IReadOnlyList<SyncChange<SyncItemData>> Items { get; init; }
 
     [JsonPropertyName("types")]
-    public IReadOnlyList<SyncChange<SyncTypeData>> Types { get; init; } = [];
+    public required IReadOnlyList<SyncChange<SyncTypeData>> Types { get; init; }
 
     [JsonPropertyName("languages")]
-    public IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; init; } = [];
+    public required IReadOnlyList<SyncChange<SyncLanguageData>> Languages { get; init; }
 
     [JsonPropertyName("taxonomies")]
-    public IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; init; } = [];
+    public required IReadOnlyList<SyncChange<SyncTaxonomyData>> Taxonomies { get; init; }
 }
