@@ -402,7 +402,7 @@ content; `GetDeltaAsync` and `EnumerateDeltaAsync` return the generic one.
 >
 > - **Cancellation** — a cancelled call throws `OperationCanceledException`, so `Task.IsCanceled` and cancellation handlers behave normally.
 > - **Programmer errors** — a `null` argument throws `ArgumentNullException`.
-> - **Invalid configuration** — validated when the client is built or registered, as `OptionsValidationException`.
+> - **Invalid configuration** — `OptionsValidationException`: at host start, when the client is first resolved without a host or built with `SyncClient.Create`, and on every call after a reload that fails validation, until the configuration is fixed.
 
 ```csharp
 var result = await syncClient.GetDeltaAsync(syncToken);
@@ -442,6 +442,9 @@ Where you store it during a walk is a choice. Saving once after the loop means a
 reprocesses from the previous token — some changes arrive twice, none are missed. Saving after each page
 resumes closer to where you stopped. Saving *before* processing a page is the one variant that can lose
 work.
+
+The Sync API is served through a CDN, so for a few seconds after a change a request can still get a cached
+empty page. Nothing is lost: an empty page does not move your token, and the next poll picks the change up.
 
 ## Source Tracking (for Tool Authors)
 

@@ -9,8 +9,10 @@ namespace Kontent.Ai.Sync;
 public sealed class SyncOptions : IValidatableObject
 {
     /// <summary>
-    /// The configuration section name <c>AddSyncClient</c> binds by default. Design-time tools that
-    /// resolve the SDK's configuration from the same sources should probe this section.
+    /// The conventional configuration section for these options, as in
+    /// <c>sync.Options.BindConfiguration(SyncOptions.DefaultConfigurationSectionName)</c>. Nothing binds it
+    /// automatically. Design-time tools that resolve the SDK's configuration from the same sources should probe
+    /// this section.
     /// </summary>
     public const string DefaultConfigurationSectionName = "SyncOptions";
 
