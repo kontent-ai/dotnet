@@ -71,8 +71,12 @@ internal static class RefitApiResponseExtensions
     /// Reported as a failed result naming the cause, rather than as an empty success.
     /// </summary>
     /// <remarks>
+    /// The result keeps the token the response carried. Requesting the same page again fails the same way,
+    /// so that token is a caller's only way past it short of initializing again.
+    /// <para>
     /// The one success-status path Refit can reach with an error attached, so it is also where a
     /// cancellation raised while the body was being read arrives - and that one is thrown, not reported.
+    /// </para>
     /// </remarks>
     private static ISyncResult<T> UnreadableBody<T>(IApiResponse<T> apiResponse)
     {
@@ -90,7 +94,8 @@ internal static class RefitApiResponseExtensions
                     : $"The Sync API returned a success status but its response body could not be read: {cause}",
                 Exception = apiResponse.Error,
             },
-            apiResponse.Headers);
+            apiResponse.Headers,
+            ReadSyncToken(apiResponse));
     }
 
     private static async Task<ISyncResult> MapFailureAsync(IApiResponse apiResponse)
@@ -152,14 +157,13 @@ internal static class RefitApiResponseExtensions
     /// to continue. Failing here says so once, rather than surfacing later as a token that cannot be
     /// stored or a walk that cannot advance.
     /// </remarks>
-    private static string RequireSyncToken(IApiResponse apiResponse)
-    {
-        var token = apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
-            ? values.FirstOrDefault()
-            : null;
-
-        return token ?? throw new InvalidOperationException(
+    private static string RequireSyncToken(IApiResponse apiResponse) =>
+        ReadSyncToken(apiResponse) ?? throw new InvalidOperationException(
             $"The Sync API returned a successful response without an {ContinuationHeaderName} header, " +
             $"so synchronization cannot continue. Request: {RefitResponses.RequestUrl(apiResponse)}");
-    }
+
+    private static string? ReadSyncToken(IApiResponse apiResponse) =>
+        apiResponse.Headers?.TryGetValues(ContinuationHeaderName, out var values) == true
+            ? values.FirstOrDefault()
+            : null;
 }

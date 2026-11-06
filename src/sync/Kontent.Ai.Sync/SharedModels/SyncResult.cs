@@ -60,17 +60,19 @@ internal sealed class SyncResult<T> : ISyncResult<T>
     /// <param name="statusCode">The HTTP status code.</param>
     /// <param name="error">The error that occurred.</param>
     /// <param name="responseHeaders">HTTP response headers returned by the API.</param>
+    /// <param name="syncToken">The token the failed response carried, if any.</param>
     internal SyncResult(
         string requestUrl,
         HttpStatusCode statusCode,
         IError? error,
-        HttpResponseHeaders? responseHeaders)
+        HttpResponseHeaders? responseHeaders,
+        string? syncToken)
     {
         Value = default!;
         IsSuccess = false;
         Error = error;
         StatusCode = statusCode;
-        SyncToken = null!;
+        SyncToken = syncToken!;
         RequestUrl = requestUrl;
         ResponseHeaders = responseHeaders;
     }
@@ -93,8 +95,9 @@ internal sealed class SyncResult<T> : ISyncResult<T>
         string requestUrl,
         HttpStatusCode statusCode,
         IError? error,
-        HttpResponseHeaders? responseHeaders = null)
-        => new SyncResult<T>(requestUrl, statusCode, error, responseHeaders);
+        HttpResponseHeaders? responseHeaders = null,
+        string? syncToken = null)
+        => new SyncResult<T>(requestUrl, statusCode, error, responseHeaders, syncToken);
 }
 
 

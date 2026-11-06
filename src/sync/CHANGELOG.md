@@ -5,6 +5,24 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Added
+
+- **A failed result for an unreadable success response carries its token.**
+
+  When the API answers with a `2xx` whose body does not match the SDK's models, `SyncToken` on the failed result
+  is now the token that response carried. Requesting the same page again fails the same way, so this token is the
+  way past it. Continuing from it skips that page's changes. Every other failure still carries no token.
+
+### Fixed
+
+- **An unrecognized change type no longer fails the whole page.**
+
+  The Sync API may add change types without notice. One the SDK did not know failed the page it arrived in, and
+  since the failed result carried no token, every later request for that page failed too. Unrecognized change
+  types now read as the new `ChangeType.Unknown`, and the entry still identifies its entity; handle it wherever
+  you switch on `ChangeType`. A numeric `change_type` now fails the page instead of reading as an undefined
+  enum value.
+
 ## 2.0.0 (2026-09-16)
 
 The first stable release of the **2.x** line. Targets `net10.0` and Sync API v2.
