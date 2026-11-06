@@ -33,6 +33,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ### Fixed
 
+- **A JSON error body that is not the API's envelope keeps its details.**
+
+  A failed response whose body was JSON but not the API's error envelope, such as a proxy's or the CDN's, was
+  reported as `"Unknown error"`, dropping the status and the body. Its `Error.Message` now carries the HTTP status
+  and the response body, as a non-JSON error body's already did.
+
 - **A delta response missing a collection fails instead of reporting no changes.**
 
   The 2.0.0-rc.3 notes said a response missing one of the four collections would fail, but each defaulted to
