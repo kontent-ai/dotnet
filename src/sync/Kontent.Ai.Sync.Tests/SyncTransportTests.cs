@@ -485,6 +485,23 @@ public sealed class SyncTransportTests : IDisposable
         result.Error.ErrorCode.Should().Be(2);
     }
 
+    [Fact]
+    public async Task NonEnvelopeJsonError_IsReportedWithItsStatusAndBody()
+    {
+        _http.Expect(HttpMethod.Get, SyncUrl).Respond(
+            HttpStatusCode.BadGateway,
+            "application/json",
+            """{"error":"upstream unavailable"}""");
+
+        var result = await CreateClient(options => options.EnableResilience = false).GetDeltaAsync("token");
+
+        result.IsSuccess.Should().BeFalse();
+        result.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+        result.Error!.Message.Should().Contain("502").And.Contain("""{"error":"upstream unavailable"}""");
+        result.Error.RequestId.Should().BeNull();
+        result.Error.ErrorCode.Should().BeNull();
+    }
+
     // Every successful Sync API response carries a continuation token, so fixtures must too.
     private static HttpResponseMessage EmptyDelta() => WithContinuation(
         new HttpResponseMessage(HttpStatusCode.OK)

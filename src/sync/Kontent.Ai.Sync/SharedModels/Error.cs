@@ -8,6 +8,9 @@ namespace Kontent.Ai.Sync.SharedModels;
 internal sealed record Error : IError
 {
     /// <inheritdoc/>
+    // Required on the wire so that a JSON body which is not the API's envelope - a proxy's or the CDN's - fails
+    // to parse and is reported with its status and raw body, rather than as an envelope with nothing in it.
+    [JsonRequired]
     [JsonPropertyName("message")]
     public string Message { get; init; } = "Unknown error";
 
