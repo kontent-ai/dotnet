@@ -160,8 +160,8 @@ public class SyncOptionsValidationTests
     }
 
     [Theory]
-    [InlineData("https://deliver.kontent.ai/v2")]
     [InlineData("https://custom.endpoint.com")]
+    [InlineData("https://proxy.example/kontent")]
     public void DataAnnotations_ValidEndpointUrl_PassesValidation(string validUrl)
     {
         var options = new SyncOptions

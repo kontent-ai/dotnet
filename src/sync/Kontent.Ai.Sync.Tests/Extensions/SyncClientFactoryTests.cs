@@ -14,7 +14,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
         var client = factory.Get("production");
@@ -32,7 +32,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
         var unkeyed = serviceProvider.GetRequiredService<ISyncClient>();
@@ -52,7 +52,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
         Action act = () => factory.Get("nonexistent");
@@ -74,7 +74,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
         Action act = () => factory.Get(invalidName!);
@@ -91,7 +91,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factory = serviceProvider.GetRequiredService<ISyncClientFactory>();
 
         var first = factory.Get("production");
@@ -115,7 +115,7 @@ public class SyncClientFactoryTests
             options.EnvironmentId = Guid.NewGuid().ToString();
         }));
 
-        var serviceProvider = services.BuildServiceProvider();
+        using var serviceProvider = services.BuildServiceProvider();
         var factories = serviceProvider.GetServices<ISyncClientFactory>().ToList();
 
         factories.Should().HaveCount(1);

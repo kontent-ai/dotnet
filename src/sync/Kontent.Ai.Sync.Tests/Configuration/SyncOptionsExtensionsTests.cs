@@ -113,4 +113,47 @@ public class SyncOptionsExtensionsTests
 
         act.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void GetBaseUrl_NullOptions_Throws()
+    {
+        var act = () => ((SyncOptions)null!).GetBaseUrl();
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("options");
+    }
+
+    [Fact]
+    public void GetApiKey_NullOptions_Throws()
+    {
+        var act = () => ((SyncOptions)null!).GetApiKey();
+
+        act.Should().Throw<ArgumentNullException>().WithParameterName("options");
+    }
+
+    [Theory]
+    [InlineData(ApiMode.Public, "https://production.example")]
+    [InlineData(ApiMode.Secure, "https://production.example")]
+    [InlineData(ApiMode.Preview, "https://preview.example")]
+    public void GetBaseUrl_PicksTheEndpointForTheMode(ApiMode mode, string expected)
+    {
+        var options = new SyncOptions
+        {
+            ApiMode = mode,
+            ProductionEndpoint = "https://production.example",
+            PreviewEndpoint = "https://preview.example",
+        };
+
+        options.GetBaseUrl().Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(ApiMode.Public, null)]
+    [InlineData(ApiMode.Secure, "the-key")]
+    [InlineData(ApiMode.Preview, "the-key")]
+    public void GetApiKey_ReturnsTheKeyOnlyForAKeyedMode(ApiMode mode, string? expected)
+    {
+        var options = new SyncOptions { ApiMode = mode, ApiKey = "the-key" };
+
+        options.GetApiKey().Should().Be(expected);
+    }
 }

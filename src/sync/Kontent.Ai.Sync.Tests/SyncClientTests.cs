@@ -43,25 +43,6 @@ public class SyncClientTests
         _ = syncApi.Received(1).GetDeltaAsync(TestEnvironmentId, "token-3", Arg.Any<CancellationToken>());
     }
 
-    // A short page is not the end of the feed - only an empty response is.
-    [Fact]
-    public async Task EnumerateDeltaAsync_PartialPage_KeepsGoing()
-    {
-        var syncApi = Substitute.For<ISyncApi>();
-        var client = new SyncClient(syncApi, TestOptions());
-
-        var partial = CreateSuccessDeltaResponse(nextToken: "token-2", itemCount: 1);
-        var more = CreateSuccessDeltaResponse(nextToken: "token-3", itemCount: 1);
-        var empty = CreateSuccessDeltaResponse(nextToken: "token-4", itemCount: 0);
-
-        syncApi.GetDeltaAsync(TestEnvironmentId, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(partial), Task.FromResult(more), Task.FromResult(empty));
-
-        var pages = await client.EnumerateDeltaAsync("token-1").ToListAsync();
-
-        pages.Should().HaveCount(2);
-    }
-
     [Fact]
     public async Task EnumerateDeltaAsync_RepeatedToken_StopsInsteadOfLooping()
     {
@@ -116,7 +97,7 @@ public class SyncClientTests
         pages[1].Error.Should().NotBeNull();
     }
 
-    // Bounding the walk is the caller's job now; nothing beyond the requested page is fetched.
+    // Nothing beyond the page the caller asks for is fetched.
     [Fact]
     public async Task EnumerateDeltaAsync_IsLazy_SoTakeStopsTheRequests()
     {

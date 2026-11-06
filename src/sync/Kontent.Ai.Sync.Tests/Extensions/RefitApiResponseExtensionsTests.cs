@@ -8,19 +8,21 @@ namespace Kontent.Ai.Sync.Tests.Extensions;
 
 public class RefitApiResponseExtensionsTests
 {
+    private const string SyncUrl = "https://deliver.kontent.ai/v2/00000000-0000-0000-0000-000000000001/sync";
+
     [Fact]
     public async Task ToSyncResultAsync_SuccessfulResponse_ReturnsValueTokenHeadersAndStatus()
     {
         var apiResponse = CreateSuccessResponse(
             content: "payload",
-            requestUrl: "https://test.com/sync",
+            requestUrl: SyncUrl,
             syncToken: "token-1");
 
         var result = await apiResponse.ToSyncResultAsync();
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be("payload");
-        result.RequestUrl.Should().Be("https://test.com/sync");
+        result.RequestUrl.Should().Be(SyncUrl);
         result.SyncToken.Should().Be("token-1");
         result.StatusCode.Should().Be(HttpStatusCode.OK);
         result.ResponseHeaders.Should().NotBeNull();
@@ -32,16 +34,16 @@ public class RefitApiResponseExtensionsTests
     {
         const string json = """
             {
-              "message": "The sync token is invalid.",
-              "request_id": "req-123",
-              "error_code": 400,
-              "specific_code": 1010
+              "message": "The continuation token specified in the 'X-Continuation' request header is malformed. Please validate the token.",
+              "request_id": "b2033617e2b7b7ba",
+              "error_code": 107,
+              "specific_code": 0
             }
             """;
 
         var apiResponse = await CreateFailedResponse<string>(
             statusCode: HttpStatusCode.BadRequest,
-            requestUrl: "https://test.com/sync",
+            requestUrl: SyncUrl,
             errorContent: json);
 
         var result = await apiResponse.ToSyncResultAsync();
@@ -49,10 +51,10 @@ public class RefitApiResponseExtensionsTests
         result.IsSuccess.Should().BeFalse();
         result.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         result.Error.Should().NotBeNull();
-        result.Error.Message.Should().Be("The sync token is invalid.");
-        result.Error.RequestId.Should().Be("req-123");
-        result.Error.ErrorCode.Should().Be(400);
-        result.Error.SpecificCode.Should().Be(1010);
+        result.Error.Message.Should().StartWith("The continuation token specified in the 'X-Continuation' request header is malformed.");
+        result.Error.RequestId.Should().Be("b2033617e2b7b7ba");
+        result.Error.ErrorCode.Should().Be(107);
+        result.Error.SpecificCode.Should().Be(0);
         result.Error.Exception.Should().BeOfType<ApiException>();
     }
 
@@ -62,7 +64,7 @@ public class RefitApiResponseExtensionsTests
         const string rawBody = "<html><body>gateway down</body></html>";
         var apiResponse = await CreateFailedResponse<string>(
             statusCode: HttpStatusCode.BadGateway,
-            requestUrl: "https://test.com/sync",
+            requestUrl: SyncUrl,
             errorContent: rawBody);
 
         var result = await apiResponse.ToSyncResultAsync();
@@ -82,7 +84,7 @@ public class RefitApiResponseExtensionsTests
 
         var apiResponse = await CreateFailedResponse<string>(
             statusCode: HttpStatusCode.InternalServerError,
-            requestUrl: "https://test.com/sync",
+            requestUrl: SyncUrl,
             errorContent: json);
 
         var result = await apiResponse.ToSyncResultAsync();
@@ -98,7 +100,7 @@ public class RefitApiResponseExtensionsTests
     {
         var apiResponse = CreateFailedResponseWithoutApiException<string>(
             statusCode: HttpStatusCode.ServiceUnavailable,
-            requestUrl: "https://test.com/sync");
+            requestUrl: SyncUrl);
 
         var result = await apiResponse.ToSyncResultAsync();
 
@@ -126,7 +128,7 @@ public class RefitApiResponseExtensionsTests
     [Fact]
     public async Task ToSyncResultAsync_SuccessfulResponse_DisposesTheResponse()
     {
-        var apiResponse = CreateSuccessResponse("payload", "https://sync.kontent.ai/test", "token");
+        var apiResponse = CreateSuccessResponse("payload", SyncUrl, "token");
 
         var result = await apiResponse.ToSyncResultAsync();
 
@@ -138,7 +140,7 @@ public class RefitApiResponseExtensionsTests
     [Fact]
     public async Task ToSyncResultAsync_FailedResponse_DisposesTheResponse()
     {
-        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.NotFound, "https://sync.kontent.ai/test", null);
+        var apiResponse = await CreateFailedResponse<string>(HttpStatusCode.NotFound, SyncUrl, null);
 
         await apiResponse.ToSyncResultAsync();
 
@@ -228,7 +230,7 @@ public class RefitApiResponseExtensionsTests
     public async Task ToSyncResultAsync_CanceledWhileReadingTheBody_Throws()
     {
         // Refit has the status by then, so the response is a 2xx with no content and the cancellation in
-        // Error. It used to be mapped as an unreadable body; it is the caller withdrawing the request.
+        // Error. That is the caller withdrawing the request, not an unreadable body.
         var apiResponse = Substitute.For<IApiResponse<string>>();
         apiResponse.IsSuccessStatusCode.Returns(true);
         apiResponse.StatusCode.Returns(HttpStatusCode.OK);
