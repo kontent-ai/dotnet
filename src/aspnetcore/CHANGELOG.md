@@ -18,7 +18,15 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
   A batch with a language notification returned `true` and evicted nothing, so the change stayed stale until entries expired unless the application purged on its own. The method now purges when the manager is an `IDeliveryCachePurger`, which the SDK's own managers are, and returns the purge's result. A manager that cannot purge skips the notification and still returns `true`, because a retry could not succeed. An application that purges before calling it can drop that code.
 
+- **`<img-asset>` leaves out an empty `title`.**
+
+  An asset with no description rendered `title=""`. An empty `alt` still renders.
+
 ### Fixed
+
+- **The non-positive width error names both of its sources.**
+
+  The message named `ImageTransformationOptions.ResponsiveWidths` even when the value came from the tag's own `responsive-widths` attribute.
 
 - **A failed asset lookup no longer stops the rest of the batch.**
 
