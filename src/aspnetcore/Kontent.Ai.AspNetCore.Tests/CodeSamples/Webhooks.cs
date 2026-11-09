@@ -26,7 +26,7 @@ public sealed class Webhooks
 
         // DocSection: webhooks_validate_signature
         // Validates the 'X-Kontent-ai-Signature' header against the raw webhook payload.
-        static bool IsWebhookSignatureValid(string payload, string sharedSecret, string signatureHeader)
+        static bool IsWebhookSignatureValid(byte[] payload, string sharedSecret, string signatureHeader)
         {
             if (string.IsNullOrWhiteSpace(signatureHeader))
             {
@@ -36,11 +36,10 @@ public sealed class Webhooks
             // Header values can be quoted depending on hosting pipeline/proxy behavior.
             var normalizedSignature = signatureHeader.Trim().Trim('"');
 
-            var payloadBytes = Encoding.UTF8.GetBytes(payload ?? string.Empty);
             var keyBytes = Encoding.UTF8.GetBytes(sharedSecret ?? string.Empty);
 
             using var hmac = new HMACSHA256(keyBytes);
-            var computedBytes = hmac.ComputeHash(payloadBytes);
+            var computedBytes = hmac.ComputeHash(payload);
             var computedSignature = Convert.ToBase64String(computedBytes);
 
             // Use constant-time comparison to avoid timing attacks.
@@ -50,8 +49,9 @@ public sealed class Webhooks
         }
         // EndDocSection
 
-        Assert.Equal(expected, IsWebhookSignatureValid(payload, secret, signatureHeader));
-        Assert.False(IsWebhookSignatureValid(payload, secret, ""));
+        var body = Encoding.UTF8.GetBytes(payload);
+        Assert.Equal(expected, IsWebhookSignatureValid(body, secret, signatureHeader));
+        Assert.False(IsWebhookSignatureValid(body, secret, ""));
     }
 
     internal static void ParseNotifications(string[] args)
