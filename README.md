@@ -20,6 +20,13 @@ examples, and guides. Each product has its own version and release cadence.
 The badges show published package versions. Documentation describes the code on the branch
 you are viewing.
 
+## Support
+
+Each product targets the current .NET LTS and adopts a new LTS in a new major within six months of
+its release, which leaves at least six months of fixes on the previous line. The latest major for
+each .NET LTS in Microsoft support receives fixes: the newest line gets all changes, older lines get
+security and critical fixes only. A line ends when its .NET version leaves Microsoft support.
+
 ## Building
 
 Requires the .NET SDK pinned in [`global.json`](./global.json). From the repository root:
