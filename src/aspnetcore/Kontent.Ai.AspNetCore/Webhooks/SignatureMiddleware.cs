@@ -1,8 +1,9 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Kontent.Ai.AspNetCore.Logging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.AspNetCore.Webhooks;
@@ -13,6 +14,7 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 internal sealed class SignatureMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<SignatureMiddleware> _logger;
     private readonly byte[] _secret;
 
     /// <exception cref="InvalidOperationException">
@@ -20,7 +22,7 @@ internal sealed class SignatureMiddleware
     /// continuing would admit unsigned requests. Thrown here, while the host builds its pipeline, so a
     /// misconfigured deployment fails at startup rather than at the first webhook.
     /// </exception>
-    public SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions)
+    public SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions, ILogger<SignatureMiddleware> logger)
     {
         var secret = webhookOptions.Value.Secret;
         if (string.IsNullOrEmpty(secret))
@@ -31,6 +33,7 @@ internal sealed class SignatureMiddleware
         }
 
         _next = next;
+        _logger = logger;
         _secret = Encoding.UTF8.GetBytes(secret);
     }
 
@@ -43,8 +46,16 @@ internal sealed class SignatureMiddleware
             ?? request.Headers["X-KC-Signature"].FirstOrDefault();
 
         // Reject missing or malformed signature headers before buffering the body.
-        if (!TryDecodeSignature(providedSignature, out var provided))
+        if (providedSignature is null)
         {
+            LoggerMessages.WebhookSignatureMissing(_logger);
+            httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            return;
+        }
+
+        if (DecodeSignature(providedSignature) is not { } provided)
+        {
+            LoggerMessages.WebhookSignatureMalformed(_logger);
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             return;
         }
@@ -71,6 +82,7 @@ internal sealed class SignatureMiddleware
         // differing character, which a caller who can time the response can exploit.
         if (!CryptographicOperations.FixedTimeEquals(expected, provided))
         {
+            LoggerMessages.WebhookSignatureMismatch(_logger);
             httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             return;
         }
@@ -81,22 +93,11 @@ internal sealed class SignatureMiddleware
     // Decodes the header into one HMAC-SHA256 digest; anything that does not decode to exactly that many
     // bytes is rejected. The value is normalised like the documented sample does, because a hosting
     // pipeline or proxy may quote it.
-    private static bool TryDecodeSignature(string? header, [NotNullWhen(true)] out byte[]? signature)
+    private static byte[]? DecodeSignature(string header)
     {
-        signature = null;
-        if (header is null)
-        {
-            return false;
-        }
-
         var buffer = new byte[HMACSHA256.HashSizeInBytes];
-        if (!Convert.TryFromBase64String(header.Trim().Trim('"'), buffer, out var decodedLength)
-            || decodedLength != buffer.Length)
-        {
-            return false;
-        }
-
-        signature = buffer;
-        return true;
+        return Convert.TryFromBase64String(header.Trim().Trim('"'), buffer, out var decodedLength) && decodedLength == buffer.Length
+            ? buffer
+            : null;
     }
 }

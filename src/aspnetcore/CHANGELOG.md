@@ -6,6 +6,12 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Added
+
+- **A rejected webhook logs why at `Debug`.**
+
+  The signature middleware logs whether the header was missing, malformed or did not match the body. Header values are never logged.
+
 ### Changed
 
 - **`InvalidateAsync` purges the cache on a language event.**

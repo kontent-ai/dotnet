@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using Kontent.Ai.AspNetCore.Webhooks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.AspNetCore.Tests;
@@ -14,7 +16,7 @@ public class SignatureMiddlewareTests
     [Fact]
     public async Task RequestWithoutSignature_ReturnsUnauthorized()
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware();
         var ctx = new DefaultHttpContext();
 
         await middleware.InvokeAsync(ctx);
@@ -27,7 +29,7 @@ public class SignatureMiddlewareTests
     [InlineData("X-Kontent-ai-Signature")]
     public async Task RequestWithInvalidSignatureEmptyBody_ReturnsUnauthorized(string headerName)
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware();
         var ctx = new DefaultHttpContext();
         ctx.Request.Headers.Append(headerName, "ABC");
 
@@ -44,7 +46,7 @@ public class SignatureMiddlewareTests
     public void MissingSecret_ThrowsAtConstruction(string? secret)
     {
         var exception = Assert.Throws<InvalidOperationException>(
-            () => new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = secret })));
+            () => new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = secret }), NullLogger<SignatureMiddleware>.Instance));
 
         Assert.Contains(nameof(WebhookOptions.Secret), exception.Message);
     }
@@ -60,7 +62,7 @@ public class SignatureMiddlewareTests
         var nextCalled = false;
         const string body = "payload";
         var ctx = CreateHttpContext(body, "X-Kontent-ai-Signature", string.Format(format, ComputeHmacSha256(body, Secret)));
-        var middleware = new SignatureMiddleware(_ => { nextCalled = true; return Task.CompletedTask; }, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware(_ => { nextCalled = true; return Task.CompletedTask; });
 
         await middleware.InvokeAsync(ctx);
 
@@ -72,7 +74,7 @@ public class SignatureMiddlewareTests
     {
         var ctx = new DefaultHttpContext();
         ctx.Request.Body = new ThrowingStream();
-        var middleware = new SignatureMiddleware(_ => Task.CompletedTask, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware();
 
         await middleware.InvokeAsync(ctx);
 
@@ -87,7 +89,7 @@ public class SignatureMiddlewareTests
     [InlineData("")]
     public async Task MalformedOrWrongLengthSignature_ReturnsUnauthorized(string signature)
     {
-        var middleware = new SignatureMiddleware(null!, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware();
         var ctx = new DefaultHttpContext();
         ctx.Request.Headers.Append("X-KC-Signature", signature);
 
@@ -99,9 +101,7 @@ public class SignatureMiddlewareTests
     [Fact]
     public async Task RequestWithInvalidSignatureNonEmptyBody_ReturnsUnauthorized()
     {
-        var middleware = new SignatureMiddleware(
-            _ => Task.CompletedTask,
-            Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware();
 
         var ctx = CreateHttpContext("""{"notifications":[]}""", headerName: "X-Kontent-ai-Signature", headerValue: "not-a-real-signature");
 
@@ -124,7 +124,7 @@ public class SignatureMiddlewareTests
 
         const string body = """{"notifications":[]}""";
         var ctx = CreateHttpContext(body, headerName, ComputeHmacSha256(body, Secret));
-        var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware(next);
 
         await middleware.InvokeAsync(ctx);
 
@@ -144,7 +144,7 @@ public class SignatureMiddlewareTests
         };
 
         var httpContext = CreateHttpContext(body, "X-Kontent-ai-Signature", ComputeHmacSha256(body, Secret));
-        var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware(next);
 
         await middleware.InvokeAsync(httpContext);
 
@@ -170,7 +170,7 @@ public class SignatureMiddlewareTests
         ctx.Request.Headers.Append("X-Kontent-ai-Signature", validSignature);
         ctx.Request.Headers.Append("X-KC-Signature", "invalid-legacy");
 
-        var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware(next);
         await middleware.InvokeAsync(ctx);
 
         Assert.True(nextCalled);
@@ -192,12 +192,40 @@ public class SignatureMiddlewareTests
         ctx.Request.Headers.Append("X-Kontent-ai-Signature", "invalid-modern");
         ctx.Request.Headers.Append("X-KC-Signature", ComputeHmacSha256(body, Secret));
 
-        var middleware = new SignatureMiddleware(next, Options.Create(new WebhookOptions { Secret = Secret }));
+        var middleware = CreateMiddleware(next);
         await middleware.InvokeAsync(ctx);
 
         Assert.False(nextCalled);
         Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
+
+    public static TheoryData<string?, string> Rejections => new()
+    {
+        { null, "no signature header" },
+        { "c2hvcnQ=", "not a well-formed" },
+        { ComputeHmacSha256("payload", "wrong-secret"), "does not match" },
+    };
+
+    [Theory]
+    [MemberData(nameof(Rejections))]
+    public async Task RejectedRequest_LogsTheReasonAtDebug_WithoutTheHeaderValue(string? signature, string reason)
+    {
+        var logger = new RecordingLogger();
+        var ctx = CreateHttpContext("payload", "X-Kontent-ai-Signature", signature);
+
+        await CreateMiddleware(logger: logger).InvokeAsync(ctx);
+
+        var (level, message) = Assert.Single(logger.Entries);
+        Assert.Equal(LogLevel.Debug, level);
+        Assert.Contains(reason, message);
+        if (signature is not null)
+        {
+            Assert.DoesNotContain(signature, message);
+        }
+    }
+
+    private static SignatureMiddleware CreateMiddleware(RequestDelegate? next = null, ILogger<SignatureMiddleware>? logger = null) =>
+        new(next ?? (_ => Task.CompletedTask), Options.Create(new WebhookOptions { Secret = Secret }), logger ?? NullLogger<SignatureMiddleware>.Instance);
 
     private static DefaultHttpContext CreateHttpContext(string body, string? headerName = null, string? headerValue = null)
     {
@@ -210,6 +238,17 @@ public class SignatureMiddlewareTests
             ctx.Request.Headers.Append(headerName, headerValue);
         }
         return ctx;
+    }
+
+    private sealed class RecordingLogger : ILogger<SignatureMiddleware>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Entries.Add((logLevel, formatter(state, exception)));
     }
 
     private sealed class ThrowingStream : Stream
