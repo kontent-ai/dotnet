@@ -59,7 +59,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     public string? Rendition { get; set; }
 
     /// <summary>
-    /// Target image format (e.g. <c>webp</c>).
+    /// Target image format, as an <see cref="ImageFormat"/> value: <c>format="ImageFormat.Webp"</c>.
     /// </summary>
     [HtmlAttributeName("format")]
     public ImageFormat? Format { get; set; }
@@ -71,7 +71,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     public int? Quality { get; set; }
 
     /// <summary>
-    /// Fit transformation mode (<c>clip</c> / <c>scale</c> / <c>crop</c>).
+    /// Fit transformation mode, as an <see cref="ImageFitMode"/> value: <c>fit="ImageFitMode.Crop"</c>.
     /// </summary>
     [HtmlAttributeName("fit")]
     public ImageFitMode? Fit { get; set; }
@@ -83,7 +83,8 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
     public bool AutoFormat { get; set; }
 
     /// <summary>
-    /// WebP compression mode (<c>lossless</c> / <c>lossy</c>). Only meaningful when the delivered format is WebP.
+    /// WebP compression mode, as an <see cref="ImageCompression"/> value: <c>compression="ImageCompression.Lossless"</c>.
+    /// Only meaningful when the delivered format is WebP.
     /// </summary>
     [HtmlAttributeName("compression")]
     public ImageCompression? Compression { get; set; }
