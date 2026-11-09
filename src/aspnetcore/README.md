@@ -228,7 +228,7 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 
 ### Cache invalidation
 
-`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates the supported dependency keys and asset usages for a batch. Language changes require a separate purge, and renames cannot invalidate detail keys using the old codename. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`:
+`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates the supported dependency keys and asset usages for a batch, and purges the cache when the batch carries a language change. Renames cannot invalidate detail keys using the old codename. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`:
 
 | Notification | Keys |
 |---|---|
@@ -236,7 +236,7 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 | `content_type` | `type_{codename}`, types-list scope, items-list scope |
 | `taxonomy` | `taxonomy_{group}`, taxonomies-list scope, items-list scope (the group is `TaxonomyGroup` for a term event, `Codename` for a group event) |
 | `asset` | `asset_{id}`, which reaches rich-text usages. An asset element carries no asset id, so the items holding the asset that way are found through the SDK's used-in lookup — that is why `InvalidateAsync` takes the client |
-| `language` | nothing — see below |
+| `language` | no key; `InvalidateAsync` purges the cache instead |
 
 Type and taxonomy changes can alter item-list membership. The items-list scope also reaches empty or projected responses that have no matching type or taxonomy key.
 
@@ -285,13 +285,6 @@ app.MapPost("/webhooks/kontent", async (
         .Where(n => n.Message.ObjectType != WebhookObjectTypes.ContentItem || n.Message.DeliverySlot == WebhookDeliverySlots.Published)
         .ToList();
 
-    // A language change can reach any cached response through fallbacks and has no key of its own.
-    if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
-    {
-        var purged = await purger.PurgeAsync(cancellationToken: cancellationToken);
-        return purged ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-    }
-
     // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.
     var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
     return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
@@ -300,13 +293,13 @@ app.MapPost("/webhooks/kontent", async (
 app.Run();
 ```
 
-The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days. Notifications are delivered in order, so the ones created after it wait until it succeeds or is dropped. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset is invalidated; letting it propagate is a `500` and the same retry.
+The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days. Notifications are delivered in order, so the ones created after it wait until it succeeds or is dropped. A failed usage lookup for an asset throws `DeliveryRequestException` once the rest of the batch has been processed; letting it propagate is a `500`, which is retried too.
 
 What invalidation does not cover:
 
 - **Renames.** A notification carries only the new codename, so a response cached under the old key — the item itself, or a parent tagged with it — lives until it expires. The list scopes evict listings. An application that renames routinely purges instead.
 - **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()` asks the API for the latest content; in this SDK that call bypasses the SDK cache, so it returns fresh content but does not warm the cache.
-- **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
+- **Language changes on a cache that cannot purge.** The SDK's own cache managers implement `IDeliveryCachePurger`. With a custom `IDeliveryCacheManager` that does not, `InvalidateAsync` skips a language notification and still returns `true`, because a retry could not succeed.
 
 ## Contributing
 

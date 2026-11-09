@@ -6,6 +6,18 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+### Changed
+
+- **`InvalidateAsync` purges the cache on a language event.**
+
+  A batch with a language notification returned `true` and evicted nothing, so the change stayed stale until entries expired unless the application purged on its own. The method now purges when the manager is an `IDeliveryCachePurger`, which the SDK's own managers are, and returns the purge's result. A manager that cannot purge skips the notification and still returns `true`, because a retry could not succeed. An application that purges before calling it can drop that code.
+
+### Fixed
+
+- **A failed asset lookup no longer stops the rest of the batch.**
+
+  `InvalidateAsync` stopped at the first asset whose usage lookup failed, so the assets after it stayed stale until the retry. It now processes every asset and then throws the first `DeliveryRequestException`.
+
 ## 1.0.0 (2026-09-16)
 
 The first stable release. Targets `net10.0` and requires `Kontent.Ai.Delivery` **20** or later.
