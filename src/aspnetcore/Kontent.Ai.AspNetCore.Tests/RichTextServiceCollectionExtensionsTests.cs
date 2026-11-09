@@ -6,29 +6,23 @@ namespace Kontent.Ai.AspNetCore.Tests;
 
 public class RichTextServiceCollectionExtensionsTests
 {
-    [Fact]
-    public void AddKontentRichText_RegistersIHtmlResolver()
+    public enum Overload
     {
-        var services = new ServiceCollection();
-        services.AddKontentRichText();
-
-        using var provider = services.BuildServiceProvider();
-        var resolver = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.NotNull(resolver);
+        BuilderOnly,
+        WithServiceProvider,
     }
 
-    [Fact]
-    public void AddKontentRichText_RegistersAsSingleton()
+    [Theory]
+    [InlineData(Overload.BuilderOnly)]
+    [InlineData(Overload.WithServiceProvider)]
+    public void AddKontentRichText_RegistersASingleton(Overload overload)
     {
         var services = new ServiceCollection();
-        services.AddKontentRichText();
+        Register(services, overload, () => { });
 
         using var provider = services.BuildServiceProvider();
-        var first = provider.GetRequiredService<IHtmlResolver>();
-        var second = provider.GetRequiredService<IHtmlResolver>();
 
-        Assert.Same(first, second);
+        Assert.Same(provider.GetRequiredService<IHtmlResolver>(), provider.GetRequiredService<IHtmlResolver>());
     }
 
     [Fact]
@@ -40,32 +34,53 @@ public class RichTextServiceCollectionExtensionsTests
         using var provider = services.BuildServiceProvider();
         var resolver = provider.GetRequiredService<IHtmlResolver>();
 
-        var result = await resolver.ResolveAsync(new EmptyRichTextContent());
-        Assert.Equal(string.Empty, result);
+        Assert.Equal("a &lt; b", await resolver.ResolveAsync(new TextRichTextContent("a < b")));
+    }
+
+    [Theory]
+    [InlineData(Overload.BuilderOnly)]
+    [InlineData(Overload.WithServiceProvider)]
+    public void AddKontentRichText_RunsTheCallbackOnFirstResolution(Overload overload)
+    {
+        var calls = 0;
+        var services = new ServiceCollection();
+        Register(services, overload, () => calls++);
+
+        using var provider = services.BuildServiceProvider();
+        Assert.Equal(0, calls);
+
+        _ = provider.GetRequiredService<IHtmlResolver>();
+        Assert.Equal(1, calls);
     }
 
     [Fact]
-    public void AddKontentRichText_WithConfigure_InvokesConfigurator()
+    public void AddKontentRichText_WithServiceProviderConfigure_ExposesServiceProvider()
     {
-        var configCalled = false;
+        var marker = new object();
         var services = new ServiceCollection();
-        services.AddKontentRichText(_ => configCalled = true);
+        services.AddSingleton(marker);
+
+        object? resolvedFromConfigure = null;
+        services.AddKontentRichText((sp, _) => resolvedFromConfigure = sp.GetRequiredService<object>());
 
         using var provider = services.BuildServiceProvider();
         _ = provider.GetRequiredService<IHtmlResolver>();
 
-        Assert.True(configCalled);
+        Assert.Same(marker, resolvedFromConfigure);
     }
 
-    [Fact]
-    public void AddKontentRichText_CalledTwice_LastConfigurationWins()
+    [Theory]
+    [InlineData(Overload.BuilderOnly, Overload.BuilderOnly)]
+    [InlineData(Overload.BuilderOnly, Overload.WithServiceProvider)]
+    [InlineData(Overload.WithServiceProvider, Overload.BuilderOnly)]
+    [InlineData(Overload.WithServiceProvider, Overload.WithServiceProvider)]
+    public void AddKontentRichText_CalledTwice_LastWins(Overload first, Overload second)
     {
         var firstCalled = false;
         var secondCalled = false;
         var services = new ServiceCollection();
-
-        services.AddKontentRichText(_ => firstCalled = true);
-        services.AddKontentRichText(_ => secondCalled = true);
+        Register(services, first, () => firstCalled = true);
+        Register(services, second, () => secondCalled = true);
 
         using var provider = services.BuildServiceProvider();
         _ = provider.GetRequiredService<IHtmlResolver>();
@@ -74,98 +89,15 @@ public class RichTextServiceCollectionExtensionsTests
         Assert.True(secondCalled);
     }
 
-    [Fact]
-    public void AddKontentRichText_WithServiceProviderConfigure_InvokesConfigurator()
+    private static void Register(IServiceCollection services, Overload overload, Action onConfigure)
     {
-        var configCalled = false;
-        var services = new ServiceCollection();
-        services.AddKontentRichText((_, _) => configCalled = true);
-
-        using var provider = services.BuildServiceProvider();
-        _ = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.True(configCalled);
+        if (overload == Overload.BuilderOnly)
+        {
+            services.AddKontentRichText(_ => onConfigure());
+        }
+        else
+        {
+            services.AddKontentRichText((_, _) => onConfigure());
+        }
     }
-
-    [Fact]
-    public void AddKontentRichText_WithServiceProviderConfigure_ExposesServiceProvider()
-    {
-        var marker = new Marker();
-        var services = new ServiceCollection();
-        services.AddSingleton(marker);
-
-        Marker? resolvedFromConfigure = null;
-        services.AddKontentRichText((sp, _) =>
-            resolvedFromConfigure = sp.GetRequiredService<Marker>());
-
-        using var provider = services.BuildServiceProvider();
-        _ = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.Same(marker, resolvedFromConfigure);
-    }
-
-    [Fact]
-    public void AddKontentRichText_WithServiceProviderConfigure_BuiltLazily()
-    {
-        var configCalled = false;
-        var services = new ServiceCollection();
-        services.AddKontentRichText((_, _) => configCalled = true);
-
-        using var provider = services.BuildServiceProvider();
-
-        Assert.False(configCalled);
-
-        _ = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.True(configCalled);
-    }
-
-    [Fact]
-    public void AddKontentRichText_WithServiceProviderConfigure_RegistersAsSingleton()
-    {
-        var services = new ServiceCollection();
-        services.AddKontentRichText((_, _) => { });
-
-        using var provider = services.BuildServiceProvider();
-        var first = provider.GetRequiredService<IHtmlResolver>();
-        var second = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.Same(first, second);
-    }
-
-    [Fact]
-    public void AddKontentRichText_CalledTwice_AcrossOverloads_LastWins()
-    {
-        var builderOnlyCalled = false;
-        var spAwareCalled = false;
-        var services = new ServiceCollection();
-
-        services.AddKontentRichText(_ => builderOnlyCalled = true);
-        services.AddKontentRichText((_, _) => spAwareCalled = true);
-
-        using var provider = services.BuildServiceProvider();
-        _ = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.False(builderOnlyCalled);
-        Assert.True(spAwareCalled);
-    }
-
-    [Fact]
-    public void AddKontentRichText_SpAwareThenBuilderOnly_LastWins()
-    {
-        var spAwareCalled = false;
-        var builderOnlyCalled = false;
-        var services = new ServiceCollection();
-
-        services.AddKontentRichText((_, _) => spAwareCalled = true);
-        services.AddKontentRichText(_ => builderOnlyCalled = true);
-
-        using var provider = services.BuildServiceProvider();
-        _ = provider.GetRequiredService<IHtmlResolver>();
-
-        Assert.False(spAwareCalled);
-        Assert.True(builderOnlyCalled);
-    }
-
-    private sealed class Marker;
 }

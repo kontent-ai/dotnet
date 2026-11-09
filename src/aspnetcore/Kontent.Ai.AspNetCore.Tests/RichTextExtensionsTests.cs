@@ -18,12 +18,12 @@ public class RichTextExtensionsTests
     [Fact]
     public async Task ToHtmlContentAsync_WithoutResolver_UsesDefaultResolver()
     {
-        var richText = new EmptyRichTextContent();
+        var richText = new TextRichTextContent("a < b");
 
         var result = await richText.ToHtmlContentAsync();
 
         Assert.IsType<HtmlString>(result);
-        Assert.Equal(string.Empty, result.ToString());
+        Assert.Equal("a &lt; b", result.ToString());
     }
 
     [Fact]

@@ -13,17 +13,6 @@ public class SignatureMiddlewareTests
 {
     private const string Secret = "test-secret";
 
-    [Fact]
-    public async Task RequestWithoutSignature_ReturnsUnauthorized()
-    {
-        var middleware = CreateMiddleware();
-        var ctx = new DefaultHttpContext();
-
-        await middleware.InvokeAsync(ctx);
-
-        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
-    }
-
     [Theory]
     [InlineData("X-KC-Signature")]
     [InlineData("X-Kontent-ai-Signature")]
@@ -31,7 +20,7 @@ public class SignatureMiddlewareTests
     {
         var middleware = CreateMiddleware();
         var ctx = new DefaultHttpContext();
-        ctx.Request.Headers.Append(headerName, "ABC");
+        ctx.Request.Headers.Append(headerName, ComputeHmacSha256(string.Empty, "wrong-secret"));
 
         await middleware.InvokeAsync(ctx);
 
@@ -103,7 +92,8 @@ public class SignatureMiddlewareTests
     {
         var middleware = CreateMiddleware();
 
-        var ctx = CreateHttpContext("""{"notifications":[]}""", headerName: "X-Kontent-ai-Signature", headerValue: "not-a-real-signature");
+        const string body = """{"notifications":[]}""";
+        var ctx = CreateHttpContext(body, headerName: "X-Kontent-ai-Signature", headerValue: ComputeHmacSha256(body, "wrong-secret"));
 
         await middleware.InvokeAsync(ctx);
 

@@ -9,11 +9,15 @@ using RichardSzalay.MockHttp;
 
 namespace Kontent.Ai.AspNetCore.Tests;
 
-public class WebhookNotificationExtensionsTests
+public sealed class WebhookNotificationExtensionsTests : IDisposable
 {
     private const string EnvironmentId = "195a50c1-f1b8-0066-9eb4-83f7246d5459";
     private const string BaseUrl = $"https://deliver.kontent.ai/{EnvironmentId}";
     private static readonly Guid AssetId = Guid.Parse("f24e4721-f081-50ef-9a47-2ebd45b0c915");
+
+    private readonly List<ServiceProvider> _providers = [];
+
+    public void Dispose() => _providers.ForEach(provider => provider.Dispose());
 
     [Theory]
     [InlineData("ContentItemPublished.json", "item_this_changes_everything", DeliveryCacheDependencies.ItemsListScope)]
@@ -273,7 +277,7 @@ public class WebhookNotificationExtensionsTests
         { "items": [{ "system": { "id": "22222222-2222-2222-2222-222222222222", "name": "{{codename}}", "codename": "{{codename}}", "language": "default", "type": "article", "collection": "default", "workflow": "default", "workflow_step": "published", "last_modified": "2026-09-08T00:00:00Z" } }] }
         """;
 
-    private static IDeliveryClient CreateClient(MockHttpMessageHandler mock)
+    private IDeliveryClient CreateClient(MockHttpMessageHandler mock)
     {
         mock.When($"{BaseUrl}/languages").Respond("application/json", """
             {
@@ -285,7 +289,9 @@ public class WebhookNotificationExtensionsTests
         services.AddDeliveryClient(
             new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false },
             delivery => delivery.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock));
-        return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
+        var provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        return provider.GetRequiredService<IDeliveryClient>();
     }
 
     private sealed class PurgingCacheManager : RecordingCacheManager, IDeliveryCachePurger
