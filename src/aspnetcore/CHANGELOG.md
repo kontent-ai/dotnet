@@ -6,6 +6,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 1.1.0 (2026-11-09)
+
 ### Added
 
 - **A rejected webhook logs why at `Debug`.**
