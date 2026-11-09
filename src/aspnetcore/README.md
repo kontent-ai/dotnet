@@ -222,6 +222,17 @@ app.UseWebhookSignatureValidator(
 
 Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, or nothing — in which case the options come from the container (`builder.Services.Configure<WebhookOptions>(…)`).
 
+#### Local development
+
+Keep the secret out of source control with [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), which `WebApplication.CreateBuilder` reads in the `Development` environment:
+
+```bash
+dotnet user-secrets init
+dotnet user-secrets set "WebhookOptions:Secret" "<your_secret>"
+```
+
+Kontent.ai needs a publicly available URL, so to receive webhooks on your machine, point the webhook at a tunnel such as [dev tunnels](https://learn.microsoft.com/azure/developer/dev-tunnels/overview). A dev tunnel is private by default; host it with `--allow-anonymous`, because Kontent.ai cannot sign in to it. The middleware still rejects requests without a valid signature.
+
 ### Notification models
 
 `WebhookNotification` binds the payload Kontent.ai sends: a batch of `Notifications`, each with `Data.System` (id, name, codename, last modified, and for content items the collection, workflow, step, language and type; for taxonomy terms the group) and `Message` (environment, object type, action, delivery slot, and for workflow-step changes the previous state). The members the API sends on every event are `required`; the rest are `null` when the event does not carry them. `WebhookObjectTypes`, `WebhookActions` and `WebhookDeliverySlots` hold the documented values.
