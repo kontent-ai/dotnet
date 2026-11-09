@@ -102,7 +102,7 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         output.TagMode = TagMode.SelfClosing;
 
         var image = new TagBuilder("img");
-        var rendition = ResolveRendition();
+        var rendition = ResolveRendition(Asset);
 
         if (rendition != null)
         {
@@ -148,15 +148,8 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         output.MergeAttributes(image);
     }
 
-    private IAssetRendition? ResolveRendition()
-    {
-        if (Asset == null || string.IsNullOrEmpty(Rendition))
-        {
-            return null;
-        }
-        Asset.Renditions.TryGetValue(Rendition, out var rendition);
-        return rendition;
-    }
+    private IAssetRendition? ResolveRendition(IAsset asset) =>
+        !string.IsNullOrEmpty(Rendition) && asset.Renditions.TryGetValue(Rendition, out var rendition) ? rendition : null;
 
     // A srcset width descriptor must be the candidate's real width and the CDN never upscales, so the
     // configured widths are capped at the natural width: the original's, or the applied rendition's when
@@ -212,16 +205,9 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         if (Compression.HasValue) builder.WithCompression(Compression.Value);
     }
 
-    /// <summary>
-    /// Reads a <c>width</c>/<c>height</c> attribute as a transformation dimension, or <c>null</c> when it
-    /// is not one.
-    /// </summary>
-    /// <remarks>
-    /// HTML allows values the image API has no equivalent for - <c>100%</c>, <c>auto</c>, a CSS calc - and
-    /// those must still render: the attribute stays on the element and simply does not drive the
-    /// transformation. Parsing is invariant because the value is authored in markup and because
-    /// <see cref="ImageUrlBuilder"/> formats it back invariantly, regardless of the server's culture.
-    /// </remarks>
+    // HTML allows values the image API has no equivalent for - 100%, auto, a CSS calc - and those must still render:
+    // the attribute stays on the element and does not drive the transformation. Parsing is invariant because
+    // ImageUrlBuilder formats the value back invariantly, regardless of the server's culture.
     private static double? ParseNumeric(object? value) =>
         double.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
