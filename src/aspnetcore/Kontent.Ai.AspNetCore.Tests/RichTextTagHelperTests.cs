@@ -77,13 +77,12 @@ public class RichTextTagHelperTests
     [Fact]
     public async Task ProcessAsync_NoResolverAnywhere_UsesSdkBuiltInDefaults()
     {
-        // No DI-injected resolver, no attribute resolver — falls back to new HtmlResolverBuilder().Build().
-        var helper = new RichTextTagHelper { Content = new EmptyRichTextContent() };
+        var helper = new RichTextTagHelper { Content = new TextRichTextContent("a < b") };
         var output = CreateOutput();
 
         await helper.ProcessAsync(CreateContext(), output);
 
-        Assert.Equal(string.Empty, RenderContent(output));
+        Assert.Equal("a &lt; b", RenderContent(output));
     }
 
     private static TagHelperContext CreateContext() =>

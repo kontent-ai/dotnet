@@ -500,7 +500,7 @@ public class AssetTagHelperTests
     [Fact]
     public async Task ProcessAsync_WithCustomDomainAssetUrl_PreservesCustomDomain()
     {
-        // Simulates SDK configured with WithCustomAssetDomain — Asset.Url is already rewritten.
+        // With DeliveryOptions.CustomAssetDomain set, Asset.Url is already rewritten.
         const string customUrl = "https://cdn.example.org/975bf280/asset.jpg";
         var helper = new AssetTagHelper
         {
@@ -535,8 +535,8 @@ public class AssetTagHelperTests
     [Fact]
     public async Task ProcessAsync_WithFractionalWidth_ParsesInvariantlyRegardlessOfServerCulture()
     {
-        // de-DE reads "." as a digit group separator, so a current-culture parse turned 1.5 into 15 -
-        // while ImageUrlBuilder writes the value back invariantly. The round trip has to agree.
+        // de-DE reads "." as a digit group separator, and ImageUrlBuilder writes the value back invariantly,
+        // so the attribute has to be parsed invariantly too.
         var original = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = new CultureInfo("de-DE");
         try

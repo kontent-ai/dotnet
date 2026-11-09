@@ -1,10 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <!-- Per-product coverage gate, set just under current coverage so it blocks
-         regression rather than aspiring. Measured 98.58% line on 2026-08-03. -->
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <!-- Set well under current coverage so it blocks regression rather than aspiring, with room
+         for platform variance between the ubuntu and windows CI legs. 100% line measured on macOS
+         2026-11-09. -->
     <Threshold>95</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
@@ -24,9 +26,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Kontent.Ai.Delivery.Abstractions" />
     <PackageReference Include="Kontent.Ai.Delivery.Caching" />
-    <PackageReference Include="Kontent.Ai.Urls" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="RichardSzalay.MockHttp" />
