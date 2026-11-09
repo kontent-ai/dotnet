@@ -213,8 +213,9 @@ public class SignatureMiddlewareTests
         }
     }
 
+    // A test without its own next expects a rejection. Asserting the 401 alone would pass even if the request went on.
     private static SignatureMiddleware CreateMiddleware(RequestDelegate? next = null, ILogger<SignatureMiddleware>? logger = null) =>
-        new(next ?? (_ => Task.CompletedTask), Options.Create(new WebhookOptions { Secret = Secret }), logger ?? NullLogger<SignatureMiddleware>.Instance);
+        new(next ?? (_ => throw new InvalidOperationException("A rejected request reached the next middleware.")), Options.Create(new WebhookOptions { Secret = Secret }), logger ?? NullLogger<SignatureMiddleware>.Instance);
 
     private static DefaultHttpContext CreateHttpContext(string body, string? headerName = null, string? headerValue = null)
     {
