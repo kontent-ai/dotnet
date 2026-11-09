@@ -13,6 +13,7 @@ Run the commands below from the repository root.
 - [Recover a failed publish](#when-a-publish-run-fails)
 - [Hotfix an earlier major](#hotfixing-an-earlier-major)
 - [Update dependency floors](#cross-product-dependency-floors)
+- [Handle dependency updates](#dependency-updates)
 - [Check a prepared but unpublished version](#prepared-but-not-published)
 
 ## Prepare a release
@@ -124,6 +125,28 @@ dotnet run eng/scripts/dependency-floors.cs
 Prepare release includes the same report in its PR, and **Actions → Dependency floors** runs it
 monthly. A floor behind the latest release is reported, not rejected. A floor that names a version
 absent from NuGet fails the check.
+
+## Dependency updates
+
+Dependabot checks `main` weekly and groups minor and patch updates into `actions`, `tooling` (test
+and build packages) and `runtime` (packages that ship as dependencies). `vnext` and `maintenance/*`
+branches get no updates.
+
+- **Auto-merged** once CI passes and a code owner approves: the `actions` and `tooling` groups, and
+  .NET SDK updates within the .NET 10 line.
+- **Individual PRs for review:** major updates of actions and of test and build packages.
+- **Merged by hand:** the `runtime` group, as described below.
+- **Never offered:** major updates of shipped packages and of the .NET SDK, and `Kontent.Ai.*`
+  versions, which follow [Cross-product dependency floors](#cross-product-dependency-floors).
+
+Third-party versions in `Directory.Packages.props` are floors too: each lands in the published
+package as the minimum a consumer may resolve. Raise one only when a security advisory or a needed
+fix calls for it, and make the change by hand, because Dependabot's `runtime` PR also adds direct
+references the shipped packages do not need. Otherwise close that PR.
+
+A security fix in a shipped dependency does not wait for other changes: merge it on its own and
+release a patch of every affected product. Advisories appear as Dependabot alerts and in the Aikido
+feed, which gives each finding a remediation date.
 
 ## Prepared but not published
 
