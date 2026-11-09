@@ -97,7 +97,7 @@ The source image is 1000 pixels wide, so the configured `1200`–`2000` widths c
 | Attribute | Purpose |
 |---|---|
 | `asset` | `IAsset` to render (required). |
-| `title` | Overrides the `alt`/`title` attributes (defaults to `asset.Description`). |
+| `title` | Overrides the `alt`/`title` attributes (defaults to `asset.Description`). When the value is empty, `alt` renders empty and `title` is left out. |
 | `default-width` | Width used as the last entry of the generated `sizes` attribute (default `300`). |
 | `responsive-widths` | Per-tag override for the widths used to build `srcset` (falls back to `ImageTransformationOptions.ResponsiveWidths`). |
 | `rendition` | Name of an asset rendition to apply. Today Kontent.ai supports only `default`. See [Renditions](#renditions) below. |

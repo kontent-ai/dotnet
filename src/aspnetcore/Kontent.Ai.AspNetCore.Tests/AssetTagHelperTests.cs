@@ -110,7 +110,7 @@ public class AssetTagHelperTests
     }
 
     [Fact]
-    public async Task ProcessAsync_WithoutDescriptionAndTitle_UsesEmptyString()
+    public async Task ProcessAsync_WithoutDescriptionAndTitle_RendersEmptyAltAndNoTitle()
     {
         var helper = new AssetTagHelper { Asset = new TestAsset { Url = AssetUrl } };
         var context = CreateContext();
@@ -119,7 +119,7 @@ public class AssetTagHelperTests
         await helper.ProcessAsync(context, output);
 
         Assert.Equal(string.Empty, AttrValue(output, "alt"));
-        Assert.Equal(string.Empty, AttrValue(output, "title"));
+        Assert.False(output.Attributes.ContainsName("title"));
     }
 
     [Fact]
@@ -252,6 +252,7 @@ public class AssetTagHelperTests
         };
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => helper.ProcessAsync(CreateContext(), CreateOutput()));
+        Assert.Contains("responsive-widths", exception.Message);
         Assert.Contains(nameof(ImageTransformationOptions.ResponsiveWidths), exception.Message);
     }
 

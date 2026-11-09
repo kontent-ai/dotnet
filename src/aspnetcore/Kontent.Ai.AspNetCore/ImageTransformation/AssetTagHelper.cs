@@ -141,7 +141,10 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
 
         var titleToUse = Title ?? Asset.Description ?? string.Empty;
         image.MergeAttribute("alt", titleToUse);
-        image.MergeAttribute("title", titleToUse);
+        if (titleToUse.Length > 0)
+        {
+            image.MergeAttribute("title", titleToUse);
+        }
         output.MergeAttributes(image);
     }
 
@@ -163,8 +166,8 @@ public sealed class AssetTagHelper(IOptions<ImageTransformationOptions>? imageTr
         if (responsiveWidths.Any(w => w <= 0))
         {
             throw new InvalidOperationException(
-                $"{nameof(ImageTransformationOptions)}.{nameof(ResponsiveWidths)} must contain positive widths only; " +
-                $"got [{string.Join(", ", responsiveWidths)}].");
+                "The widths of <img-asset> must all be positive, whether set by its responsive-widths attribute or by " +
+                $"{nameof(ImageTransformationOptions)}.{nameof(ResponsiveWidths)}; got [{string.Join(", ", responsiveWidths)}].");
         }
 
         // A rendition counts as applied when every one of its parameters is on the URL with the same value,
