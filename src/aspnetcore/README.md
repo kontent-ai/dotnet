@@ -228,7 +228,7 @@ Other overloads take a `WebhookOptions` instance, an `Action<WebhookOptions>`, o
 
 ### Cache invalidation
 
-`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates the supported dependency keys and asset usages for a batch, and purges the cache when the batch carries a language change. Renames cannot invalidate detail keys using the old codename. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`:
+`InvalidateAsync(notification, client)` on `IDeliveryCacheManager` invalidates the supported dependency keys and asset usages for a batch, and purges the cache when the batch carries a language change, keeping fail-safe copies as every invalidation does. A created asset is skipped, because no cached response can hold it yet. Renames cannot invalidate detail keys using the old codename. `GetCacheDependencyKeys()` exposes the key mapping on its own, for a notification or any subset of a batch. The keys are composed with the SDK's `DeliveryCacheDependencies`:
 
 | Notification | Keys |
 |---|---|

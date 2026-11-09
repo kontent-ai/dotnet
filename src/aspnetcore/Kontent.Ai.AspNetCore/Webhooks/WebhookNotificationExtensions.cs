@@ -51,12 +51,13 @@ public static class WebhookNotificationExtensions
     /// <summary>
     /// Invalidates the batch's supported dependency keys and, for an asset notification, the items using the asset, which
     /// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> resolves through <paramref name="client"/>.
-    /// A batch with a language notification purges the whole cache instead, when <paramref name="cacheManager"/> is an
-    /// <see cref="IDeliveryCachePurger"/>.
+    /// A batch with a language notification purges the whole cache instead, keeping fail-safe copies, when
+    /// <paramref name="cacheManager"/> is an <see cref="IDeliveryCachePurger"/>.
     /// </summary>
     /// <remarks>
     /// A manager that cannot purge skips the language notification without reporting <c>false</c>, because a retry could
-    /// not succeed. Renames cannot invalidate detail keys using the old codename.
+    /// not succeed. A created asset is skipped, because no cached response can hold it yet. Renames cannot invalidate
+    /// detail keys using the old codename.
     /// Environment and delivery-slot filtering are the caller's responsibility.
     /// </remarks>
     /// <returns><c>false</c> when any invalidation did not complete, so the webhook can be answered with a status Kontent.ai retries.</returns>
@@ -89,14 +90,15 @@ public static class WebhookNotificationExtensions
 
         if (cacheManager is IDeliveryCachePurger purger && batch.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language))
         {
-            return await purger.PurgeAsync(cancellationToken: cancellationToken);
+            return await purger.PurgeAsync(allowFailSafe: true, cancellationToken);
         }
 
         var keys = batch.Where(n => n.Message.ObjectType != WebhookObjectTypes.Asset).GetCacheDependencyKeys();
         var invalidated = keys.Length == 0 || await cacheManager.InvalidateAsync(keys, cancellationToken);
 
+        // A new asset's used-in can answer 404 for a few seconds, and no cached response can hold the asset yet.
         var assets = batch
-            .Where(n => n.Message.ObjectType == WebhookObjectTypes.Asset)
+            .Where(n => n.Message.ObjectType == WebhookObjectTypes.Asset && n.Message.Action != WebhookActions.Created)
             .Select(n => n.Data.System)
             .DistinctBy(asset => asset.Id);
 

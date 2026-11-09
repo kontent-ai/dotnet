@@ -16,7 +16,7 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 - **`InvalidateAsync` purges the cache on a language event.**
 
-  A batch with a language notification returned `true` and evicted nothing, so the change stayed stale until entries expired unless the application purged on its own. The method now purges when the manager is an `IDeliveryCachePurger`, which the SDK's own managers are, and returns the purge's result. A manager that cannot purge skips the notification and still returns `true`, because a retry could not succeed. An application that purges before calling it can drop that code.
+  A language notification had no effect on the cache, so the change stayed stale until entries expired unless the application purged on its own. The method now purges when the manager is an `IDeliveryCachePurger`, which the SDK's own managers are, keeps fail-safe copies as every other invalidation does, and returns the purge's result. A manager that cannot purge skips the notification and still returns `true`, because a retry could not succeed. An application that purges before calling it can drop that code.
 
 - **`<img-asset>` leaves out an empty `title`.**
 
@@ -27,6 +27,10 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 - **The non-positive width error names both of its sources.**
 
   The message named `ImageTransformationOptions.ResponsiveWidths` even when the value came from the tag's own `responsive-widths` attribute.
+
+- **`InvalidateAsync` skips the usage lookup for a created asset.**
+
+  No cached response can hold a new asset, and its lookup can answer `404` for a few seconds, which failed the webhook and held back the notifications behind it.
 
 - **A failed asset lookup no longer stops the rest of the batch.**
 
