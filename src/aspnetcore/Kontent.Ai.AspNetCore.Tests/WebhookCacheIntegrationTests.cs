@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Kontent.Ai.AspNetCore.Webhooks;
 using Kontent.Ai.AspNetCore.Webhooks.Models;
@@ -75,12 +76,33 @@ public class WebhookCacheIntegrationTests
         mock.VerifyNoOutstandingExpectation();
     }
 
-    private static ServiceProvider CreateProvider(MockHttpMessageHandler mock)
+    [Fact]
+    public async Task LanguageChange_ThenOutage_ServesTheFailSafeCopy()
+    {
+        using var mock = new MockHttpMessageHandler();
+        mock.Expect($"{BaseUrl}/items/article").Respond("application/json", Item("Old name"));
+        using var provider = CreateProvider(mock, failSafe: true);
+        var client = provider.GetRequiredService<IDeliveryClient>();
+        var cache = provider.GetRequiredService<IDeliveryCacheManager>();
+        var query = client.GetItem<IDynamicElements>("article");
+
+        Assert.True((await query.ExecuteAsync()).IsSuccess);
+        Assert.True(await cache.InvalidateAsync([Notification(WebhookObjectTypes.Language)], client));
+
+        mock.Expect($"{BaseUrl}/items/article").Respond(HttpStatusCode.ServiceUnavailable);
+        var after = await query.ExecuteAsync();
+
+        Assert.True(after.IsSuccess);
+        Assert.Equal(ResponseSource.FailSafe, after.ResponseSource);
+        mock.VerifyNoOutstandingExpectation();
+    }
+
+    private static ServiceProvider CreateProvider(MockHttpMessageHandler mock, bool failSafe = false)
     {
         var services = new ServiceCollection();
         services.AddDeliveryClient(new DeliveryOptions { EnvironmentId = EnvironmentId, EnableResilience = false }, delivery =>
         {
-            delivery.UseMemoryCache();
+            delivery.UseMemoryCache(cache => cache.IsFailSafeEnabled = failSafe);
             delivery.HttpClient.ConfigurePrimaryHttpMessageHandler(() => mock);
         });
         return services.BuildServiceProvider();

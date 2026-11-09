@@ -26,7 +26,7 @@ One package, `Kontent.Ai.AspNetCore`, on `<AspNetCoreVersion>`: the `<img-asset>
 ## Live-API notes
 
 - A deleted asset's used-in answers `200` with no items.
-- A just-created asset's used-in can answer `404` for a few seconds.
+- A just-created asset's used-in can answer `404` for a few seconds, so `InvalidateAsync` skips created assets.
 
 ## Testing conventions
 

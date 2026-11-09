@@ -350,7 +350,7 @@ Use the default `StorageMode` (`CacheStorageMode.HydratedObject`) for hydrated-o
 | Honour `expiration`, falling back to your own default when it is `null` | It carries the per-query `WithCacheExpiration` override. |
 | Evict on `InvalidateAsync`: cascade over dependency keys, match case-insensitively, stay idempotent | Return `false` when invalidation did not complete. Returning `true` unconditionally tells a webhook endpoint its work succeeded when nothing was evicted. |
 | `null` from the factory: cache nothing, drop any stale copy, return `null` | This is how an unpublished item stops being served. |
-| Declare `StorageMode`, and implement `IDeliveryCachePurger` if your store can be cleared | Purge is what a language webhook needs; the ASP.NET Core sample pattern-matches for it. |
+| Declare `StorageMode`, and implement `IDeliveryCachePurger` if your store can be cleared | Purge is what a language webhook needs. `InvalidateAsync` in `Kontent.Ai.AspNetCore` calls it when the manager implements it; without it, a language event is skipped and still reported as success. |
 
 There is no starter implementation here because a sketch that satisfies half of that list fails
 silently. Start from the worked reference:

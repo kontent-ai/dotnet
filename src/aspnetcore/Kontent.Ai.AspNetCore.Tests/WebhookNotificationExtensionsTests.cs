@@ -165,6 +165,7 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
         Assert.Equal(purgeOutcome, await manager.InvalidateAsync(batch, CreateClient(mock)));
 
         Assert.Equal(1, manager.Purges);
+        Assert.True(manager.AllowFailSafe);
         Assert.Empty(manager.Invalidations);
     }
 
@@ -235,6 +236,34 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     }
 
     [Fact]
+    public async Task InvalidateAsync_SkipsACreatedAsset()
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.Fallback.Throw(new InvalidOperationException("The API was called."));
+        var manager = new RecordingCacheManager();
+        WebhookModel[] batch = [Notification(WebhookObjectTypes.Asset, WebhookActions.Created, "new_jpg")];
+
+        Assert.True(await manager.InvalidateAsync(batch, CreateClient(mock)));
+
+        Assert.Empty(manager.Invalidations);
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_LooksUpACreatedAsset_ThatAlsoChangedInTheBatch()
+    {
+        var mock = new MockHttpMessageHandler();
+        var usedIn = mock.When($"{BaseUrl}/assets/sofia_patel_jpg/used-in").Respond("application/json", UsagePage("about"));
+        var manager = new RecordingCacheManager();
+        var asset = Load("AssetMetadataChanged.json").Notifications[0];
+        WebhookModel[] batch = [asset with { Message = asset.Message with { Action = WebhookActions.Created } }, asset];
+
+        Assert.True(await manager.InvalidateAsync(batch, CreateClient(mock)));
+
+        Assert.Single(manager.Invalidations);
+        Assert.Equal(1, mock.GetMatchCount(usedIn));
+    }
+
+    [Fact]
     public async Task InvalidateAsync_RejectsNulls()
     {
         var manager = new RecordingCacheManager();
@@ -299,11 +328,13 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     private sealed class PurgingCacheManager : RecordingCacheManager, IDeliveryCachePurger
     {
         public int Purges { get; private set; }
+        public bool AllowFailSafe { get; private set; }
         public bool PurgeOutcome { get; init; } = true;
 
         public Task<bool> PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
         {
             Purges++;
+            AllowFailSafe = allowFailSafe;
             return Task.FromResult(PurgeOutcome);
         }
     }
