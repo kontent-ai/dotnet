@@ -131,6 +131,20 @@ jobs:
         if: steps.plan.outputs.count != '0'
         run: dotnet run eng/scripts/dependency-floors.cs --no-build
 
+      # Only what is being published: an advisory in a test dependency must not block a release,
+      # least of all a security patch. NU1903 and NU1904 are NuGet's high and critical audit codes;
+      # %3B escapes the semicolon for MSBuild.
+      - name: Verify shipped dependencies have no high or critical advisories
+        if: steps.plan.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r product _; do
+            for proj in $(jq -r --arg p "$product" '.[$p].projects[]' eng/products.json); do
+              dotnet restore "$proj" /p:UseProjectReferences=false '/p:WarningsAsErrors=NU1903%3BNU1904'
+            done
+          done < /tmp/order.tsv
+
       # Explicit, not inherited: in source mode the nuspec would take sibling versions from
       # eng/Versions.props instead of the declared floors. Restore alone is not an exact floor
       # check: NuGet can resolve a higher version with warning NU1603.

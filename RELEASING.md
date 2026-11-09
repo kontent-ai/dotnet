@@ -72,9 +72,10 @@ Publish defaults to a dry run: it builds, packs, and renders the release notes w
 Run it once to inspect the output, then run it again with dry run disabled. The packages and
 notes are available as workflow artifacts in both cases.
 
-The workflow refuses to publish a product if its changelog has no entry for the declared version
-or a cross-product dependency floor names a version that is not on NuGet. It records each release
-with a `<product>-v<version>` tag and a GitHub Release whose notes come from the changelog.
+The workflow refuses to publish a product if its changelog has no entry for the declared version,
+a cross-product dependency floor names a version that is not on NuGet, or a shipped project has a
+dependency with a known high or critical advisory. It records each release with a
+`<product>-v<version>` tag and a GitHub Release whose notes come from the changelog.
 Repository links in those notes are pinned to the tag; links inside the destination guides may
 still point to `main`.
 
@@ -129,7 +130,8 @@ absent from NuGet fails the check.
 ## Dependency updates
 
 Dependabot checks `main` weekly and groups minor and patch updates into `actions`, `tooling` (test
-and build packages) and `runtime` (packages that ship as dependencies). `vnext` and `maintenance/*`
+and build packages) and `runtime` (packages that ship as dependencies). New NuGet and action
+versions wait a week before being offered; security updates do not. `vnext` and `maintenance/*`
 branches get no updates.
 
 - **Auto-merged** once CI passes and a code owner approves: the `actions` and `tooling` groups, and
@@ -145,8 +147,8 @@ fix calls for it, and make the change by hand, because Dependabot's `runtime` PR
 references the shipped packages do not need. Otherwise close that PR.
 
 A security fix in a shipped dependency does not wait for other changes: merge it on its own and
-release a patch of every affected product. Advisories appear as Dependabot alerts and in the Aikido
-feed, which gives each finding a remediation date.
+release a patch of every affected product. Advisories appear as Dependabot alerts, in the Aikido
+feed, which gives each finding a remediation date, and as `NU190x` warnings during restore.
 
 ## Prepared but not published
 
