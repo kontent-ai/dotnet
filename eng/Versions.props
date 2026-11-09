@@ -5,9 +5,9 @@
        tagging <product>-v<version> itself. -->
   <PropertyGroup>
     <DeliveryVersion>20.1.0</DeliveryVersion>
-    <SyncVersion>2.0.0</SyncVersion>
+    <SyncVersion>2.1.0</SyncVersion>
     <ManagementVersion>9.2.0</ManagementVersion>
-    <AspNetCoreVersion>1.0.0</AspNetCoreVersion>
+    <AspNetCoreVersion>1.1.0</AspNetCoreVersion>
     <ModelGeneratorVersion>11.0.3</ModelGeneratorVersion>
   </PropertyGroup>
 </Project>

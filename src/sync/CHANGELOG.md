@@ -5,6 +5,8 @@ Entries before the move to this monorepo were imported from the GitHub Releases 
 
 ## Unreleased
 
+## 2.1.0 (2026-11-09)
+
 ### Added
 
 - **A failed result for an unreadable success response carries its token.**
