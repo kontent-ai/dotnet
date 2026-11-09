@@ -129,8 +129,9 @@ public class WebhookNotificationExtensionsTests
         Assert.Equal(["item_hero", DeliveryCacheDependencies.ItemsListScope], Assert.Single(manager.Invalidations));
     }
 
+    // A retry could not make a manager able to purge, and a false would hold the webhook's queue for days.
     [Fact]
-    public async Task InvalidateAsync_WithNothingToInvalidate_TouchesNothing()
+    public async Task InvalidateAsync_WhenTheManagerCannotPurge_SkipsALanguageEvent()
     {
         var manager = new RecordingCacheManager();
         var batch = new[] { Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en") };
@@ -138,6 +139,39 @@ public class WebhookNotificationExtensionsTests
         Assert.True(await manager.InvalidateAsync(batch, CreateClient(new MockHttpMessageHandler())));
 
         Assert.Empty(manager.Invalidations);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InvalidateAsync_PurgesOnALanguageEvent_InsteadOfInvalidatingKeys(bool purgeOutcome)
+    {
+        var mock = new MockHttpMessageHandler();
+        mock.Fallback.Throw(new InvalidOperationException("The API was called."));
+        var manager = new PurgingCacheManager { PurgeOutcome = purgeOutcome };
+        var batch = new[]
+        {
+            Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero"),
+            Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en"),
+            Load("AssetMetadataChanged.json").Notifications[0],
+        };
+
+        Assert.Equal(purgeOutcome, await manager.InvalidateAsync(batch, CreateClient(mock)));
+
+        Assert.Equal(1, manager.Purges);
+        Assert.Empty(manager.Invalidations);
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_WithoutALanguageEvent_DoesNotPurge()
+    {
+        var manager = new PurgingCacheManager();
+        var batch = new[] { Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero") };
+
+        Assert.True(await manager.InvalidateAsync(batch, CreateClient(new MockHttpMessageHandler())));
+
+        Assert.Equal(0, manager.Purges);
+        Assert.Single(manager.Invalidations);
     }
 
     [Theory]
@@ -172,6 +206,26 @@ public class WebhookNotificationExtensionsTests
         await Assert.ThrowsAsync<DeliveryRequestException>(() => manager.InvalidateAsync(batch, CreateClient(mock)));
 
         Assert.Equal(["item_hero", DeliveryCacheDependencies.ItemsListScope], Assert.Single(manager.Invalidations));
+    }
+
+    [Fact]
+    public async Task InvalidateAsync_FinishesTheOtherAssets_ThenThrowsTheFirstFailure()
+    {
+        var mock = new MockHttpMessageHandler();
+        var failing = mock.When($"{BaseUrl}/assets/failing_jpg/used-in").Respond(HttpStatusCode.InternalServerError);
+        var used = mock.When($"{BaseUrl}/assets/used_jpg/used-in").Respond("application/json", UsagePage("about"));
+        var manager = new RecordingCacheManager();
+        var batch = new[]
+        {
+            Notification(WebhookObjectTypes.Asset, WebhookActions.Changed, "failing_jpg"),
+            Notification(WebhookObjectTypes.Asset, WebhookActions.Changed, "used_jpg"),
+        };
+
+        await Assert.ThrowsAsync<DeliveryRequestException>(() => manager.InvalidateAsync(batch, CreateClient(mock)));
+
+        Assert.Equal(1, mock.GetMatchCount(failing));
+        Assert.Equal(1, mock.GetMatchCount(used));
+        Assert.Contains("item_about", Assert.Single(manager.Invalidations));
     }
 
     [Fact]
@@ -234,7 +288,19 @@ public class WebhookNotificationExtensionsTests
         return services.BuildServiceProvider().GetRequiredService<IDeliveryClient>();
     }
 
-    private sealed class RecordingCacheManager : IDeliveryCacheManager
+    private sealed class PurgingCacheManager : RecordingCacheManager, IDeliveryCachePurger
+    {
+        public int Purges { get; private set; }
+        public bool PurgeOutcome { get; init; } = true;
+
+        public Task<bool> PurgeAsync(bool allowFailSafe = false, CancellationToken cancellationToken = default)
+        {
+            Purges++;
+            return Task.FromResult(PurgeOutcome);
+        }
+    }
+
+    private class RecordingCacheManager : IDeliveryCacheManager
     {
         public List<string[]> Invalidations { get; } = [];
         public Queue<bool> Outcomes { get; init; } = new();

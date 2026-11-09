@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Kontent.Ai.AspNetCore.Webhooks.Models;
 using Kontent.Ai.Delivery.Abstractions;
 
@@ -21,9 +22,10 @@ namespace Kontent.Ai.AspNetCore.Webhooks;
 /// <see cref="InvalidateAsync(IDeliveryCacheManager, WebhookNotification, IDeliveryClient, CancellationToken)"/> does both.
 /// </para>
 /// <para>
-/// A language notification maps to nothing: the SDK keeps no language dependency, and a language change can affect
-/// any cached response through fallbacks. Purge the cache for those (<see cref="IDeliveryCachePurger"/>). A rename
-/// carries only the new codename, so a response cached under the old key lives until it expires.
+/// A language notification maps to no key: the SDK keeps no language dependency, and a language change can affect
+/// any cached response through fallbacks. <see cref="InvalidateAsync(IDeliveryCacheManager, WebhookNotification, IDeliveryClient, CancellationToken)"/>
+/// purges the cache for it instead (<see cref="IDeliveryCachePurger"/>). A rename carries only the new codename, so a
+/// response cached under the old key lives until it expires.
 /// </para>
 /// </remarks>
 public static class WebhookNotificationExtensions
@@ -49,13 +51,19 @@ public static class WebhookNotificationExtensions
     /// <summary>
     /// Invalidates the batch's supported dependency keys and, for an asset notification, the items using the asset, which
     /// <see cref="DeliveryCacheManagerExtensions.InvalidateAssetAsync"/> resolves through <paramref name="client"/>.
+    /// A batch with a language notification purges the whole cache instead, when <paramref name="cacheManager"/> is an
+    /// <see cref="IDeliveryCachePurger"/>.
     /// </summary>
     /// <remarks>
-    /// Language events require a separate purge. Renames cannot invalidate detail keys using the old codename.
+    /// A manager that cannot purge skips the language notification without reporting <c>false</c>, because a retry could
+    /// not succeed. Renames cannot invalidate detail keys using the old codename.
     /// Environment and delivery-slot filtering are the caller's responsibility.
     /// </remarks>
     /// <returns><c>false</c> when any invalidation did not complete, so the webhook can be answered with a status Kontent.ai retries.</returns>
-    /// <exception cref="DeliveryRequestException">An asset's usage lookup failed; nothing was invalidated for that asset.</exception>
+    /// <exception cref="DeliveryRequestException">
+    /// An asset's usage lookup failed; nothing was invalidated for that asset. Thrown once the remaining assets have been
+    /// processed; when several fail, the first failure is thrown.
+    /// </exception>
     public static Task<bool> InvalidateAsync(
         this IDeliveryCacheManager cacheManager,
         WebhookNotification notification,
@@ -78,6 +86,12 @@ public static class WebhookNotificationExtensions
         ArgumentNullException.ThrowIfNull(client);
 
         var batch = notifications.ToList();
+
+        if (cacheManager is IDeliveryCachePurger purger && batch.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language))
+        {
+            return await purger.PurgeAsync(cancellationToken: cancellationToken);
+        }
+
         var keys = batch.Where(n => n.Message.ObjectType != WebhookObjectTypes.Asset).GetCacheDependencyKeys();
         var invalidated = keys.Length == 0 || await cacheManager.InvalidateAsync(keys, cancellationToken);
 
@@ -85,11 +99,22 @@ public static class WebhookNotificationExtensions
             .Where(n => n.Message.ObjectType == WebhookObjectTypes.Asset)
             .Select(n => n.Data.System)
             .DistinctBy(asset => asset.Id);
+
+        // A failure gets the notification retried, possibly hours later; the other assets should not stay stale until then.
+        ExceptionDispatchInfo? firstFailure = null;
         foreach (var asset in assets)
         {
-            invalidated &= await cacheManager.InvalidateAssetAsync(client, asset.Codename, asset.Id, cancellationToken);
+            try
+            {
+                invalidated &= await cacheManager.InvalidateAssetAsync(client, asset.Codename, asset.Id, cancellationToken);
+            }
+            catch (DeliveryRequestException failure)
+            {
+                firstFailure ??= ExceptionDispatchInfo.Capture(failure);
+            }
         }
 
+        firstFailure?.Throw();
         return invalidated;
     }
 

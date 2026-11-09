@@ -855,7 +855,7 @@ package owns the pieces in between and is the supported way to wire them:
   dependencies: item plus `ItemsListScope`, type plus `TypesListScope` and `ItemsListScope`, taxonomy *group* plus
   `TaxonomiesListScope` and `ItemsListScope` (for a term event the payload's codename is the term's; the group is carried
   separately), and for an asset event `InvalidateAssetAsync` through the client, which is what reaches the
-  items holding the asset in an asset element. Language events require a separate purge; renames cannot
+  items holding the asset in an asset element. A language event purges the cache when the manager can; renames cannot
   invalidate old-codename detail keys. `GetCacheDependencyKeys()` exposes the key mapping alone.
 
 A complete endpoint, and what invalidation does not cover, are in the
