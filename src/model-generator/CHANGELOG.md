@@ -151,6 +151,14 @@ Full migration: [10 → 11](https://github.com/kontent-ai/dotnet/blob/main/src/m
   the generated file failed with `CS0246`. Management mode now emits both namespaces. Regenerate, or
   add `using Kontent.Ai.Management.Models.Shared;` to the affected files by hand.
 
+### Dependencies
+
+- **Delivery and Management floors move to the stable releases.**
+
+  `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions`, `Kontent.Ai.Urls` and
+  `Kontent.Ai.Delivery.SourceGeneration` **20.0.0-rc.2** → **20.0.0**, and `Kontent.Ai.Management`
+  **9.0.0-rc.2** → **9.0.0**.
+
 ## 11.0.0-rc.3 (2026-09-08)  _(prerelease)_
 
 ### Breaking changes

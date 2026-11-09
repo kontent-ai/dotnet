@@ -31,7 +31,7 @@ The package targets `net10.0` and depends on `Kontent.Ai.Delivery` **20** or lat
 
 ### `img-asset` tag helper
 
-Useful for rendering responsive images. Accepts any `IAsset` returned by the Delivery SDK (rich-text asset elements, asset element values, etc.).
+Useful for rendering responsive images. Accepts any `IAsset` returned by the Delivery SDK, such as an asset element's values. A rich-text inline image is an `IInlineImage`, which this tag helper does not take.
 
 `appsettings.json`:
 
@@ -58,6 +58,7 @@ var app = builder.Build();
 
 ```razor
 @addTagHelper *, Kontent.Ai.AspNetCore
+@using Kontent.Ai.Urls.ImageTransformation
 ```
 
 `View.cshtml`:
@@ -89,7 +90,7 @@ Renders as:
 />
 ```
 
-The source image is 1000 pixels wide, so the configured `1200`–`2000` widths collapse to `1000`: the CDN never upscales, a `srcset` width descriptor has to be the candidate's real width, and the tag helper caps candidates at `IAsset.Width` (or at the rendition's width when the URL already carries a rendition query, see [Renditions](#renditions)). Widths must be positive; the helper throws on a non-positive one, since a global misconfiguration should fail loudly rather than emit a broken `srcset` on every page.
+The source image is 1000 pixels wide, so the configured `1200`–`2000` widths collapse to `1000`: the CDN never upscales, a `srcset` width descriptor has to be the candidate's real width, and the tag helper caps candidates at `IAsset.Width` (or at the rendition's width when the URL already carries a rendition query, see [Renditions](#renditions)). Widths must be positive; the helper throws on a non-positive one.
 
 #### Supported attributes
 
@@ -100,17 +101,19 @@ The source image is 1000 pixels wide, so the configured `1200`–`2000` widths c
 | `default-width` | Width used as the last entry of the generated `sizes` attribute (default `300`). |
 | `responsive-widths` | Per-tag override for the widths used to build `srcset` (falls back to `ImageTransformationOptions.ResponsiveWidths`). |
 | `rendition` | Name of an asset rendition to apply. Today Kontent.ai supports only `default`. See [Renditions](#renditions) below. |
-| `format` | Target image format (`jpg`, `png`, `png8`, `pjpg`, `gif`, `webp`). |
+| `format` | Target image format, an `ImageFormat` value (`ImageFormat.Jpg`, `Png`, `Png8`, `Pjpg`, `Gif`, `Webp`). |
 | `quality` | Compression quality for lossy formats (`1`–`100`). |
-| `fit` | Fit transformation (`clip`, `scale`, `crop`). |
+| `fit` | Fit transformation, an `ImageFitMode` value (`ImageFitMode.Clip`, `Scale`, `Crop`). |
 | `auto-format` | Enables WebP delivery when the browser advertises support. |
-| `compression` | WebP compression (`lossless` / `lossy`); only meaningful when WebP is delivered. |
+| `compression` | WebP compression, an `ImageCompression` value (`ImageCompression.Lossless`, `Lossy`); only meaningful when WebP is delivered. |
+
+`format`, `fit` and `compression` take the enum value, as in `format="ImageFormat.Webp"`, which needs the `@using` shown above. A bare `format="webp"` does not compile.
 
 Standard HTML `width` and `height` attributes on the `<img-asset>` are honored and translate to `w=`/`h=` query parameters. Setting either one disables `srcset`/`sizes` generation.
 
 #### Renditions
 
-When `rendition="default"` is set and the asset exposes that rendition, its query string is appended to the asset URL to produce `src`, `srcset`/`sizes` are **not** generated (a rendition represents a single chosen crop), and only encoding-level transforms (`format`, `quality`, `auto-format`, `compression`) layer on top. The tag helper's `width`, `height`, and `fit` attributes are ignored because the rendition already defines those.
+When `rendition="default"` is set and the asset exposes that rendition, its query string replaces the asset URL's query to produce `src`, `srcset`/`sizes` are **not** generated (a rendition represents a single chosen crop), and only encoding-level transforms (`format`, `quality`, `auto-format`, `compression`) layer on top. The tag helper's `width`, `height`, and `fit` attributes are ignored because the rendition already defines those.
 
 If the named rendition is not present on the asset, the tag helper silently falls back to the non-rendition path.
 
@@ -203,7 +206,8 @@ Verifies the `X-Kontent-ai-Signature` header, falling back to the legacy `X-KC-S
 ```
 
 The secret is required. Without it no signature can be verified, so the host refuses to start rather than
-letting unsigned requests through. Signatures are compared in constant time over the raw HMAC bytes.
+letting unsigned requests through. Signatures are compared in constant time over the raw HMAC bytes. The
+secret is read once, when the host builds its pipeline, so rotating it takes a restart.
 
 `Program.cs`:
 
@@ -296,7 +300,7 @@ app.MapPost("/webhooks/kontent", async (
 app.Run();
 ```
 
-The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed invalidation wants. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset is invalidated; letting it propagate is a `500` and the same retry.
+The default client's `IDeliveryCacheManager` resolves unkeyed; a named client's is keyed by its name (`[FromKeyedServices("production")]`), and a client from `DeliveryClient.Create` exposes it as `CacheManager`. Respond with a `2xx` once the invalidation is done, and with anything else when it is not: any other status makes Kontent.ai retry the notification, with backoff, for up to three days. Notifications are delivered in order, so the ones created after it wait until it succeeds or is dropped. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset is invalidated; letting it propagate is a `500` and the same retry.
 
 What invalidation does not cover:
 

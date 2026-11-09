@@ -17,7 +17,7 @@ missing a documented member fails to bind rather than arriving half-populated.
 
 Full migration: [0 → 1](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/docs/upgrade/0-to-1.md).
 
-The sections below list what changed since `1.0.0-rc.2`; the `rc` entries further down record the rest
+The sections below list what changed since `1.0.0-rc.3`; the `rc` entries further down record the rest
 of the line.
 
 ### Fixed
@@ -25,6 +25,12 @@ of the line.
 - **`<img-asset>` keeps the percent-encoding of the asset's filename.**
 
   The transformed URL was rendered with `Uri.ToString()`, the display form, which unescapes `%20` and non-ASCII characters. An asset named `Patient care.jpg` was emitted with a literal space, which `srcset` reads as the delimiter before the width descriptor, so every candidate for such an asset was malformed and `src` carried an unencoded URL. Both the responsive and the rendition path now render `AbsoluteUri`, which is the escaped absolute URL.
+
+### Dependencies
+
+- **Delivery floors move to 20.0.0.**
+
+  `Kontent.Ai.Delivery`, `Kontent.Ai.Delivery.Abstractions` and `Kontent.Ai.Urls` **20.0.0-rc.3** → **20.0.0**.
 
 ## 1.0.0-rc.3 (2026-09-09)  _(prerelease)_
 
