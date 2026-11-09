@@ -1,7 +1,7 @@
 namespace Kontent.Ai.AspNetCore.ImageTransformation;
 
 /// <summary>
-/// A configuration object allowing to adjust the image transformation behavior.
+/// Options for the image transformation tag helpers.
 /// </summary>
 public sealed class ImageTransformationOptions
 {

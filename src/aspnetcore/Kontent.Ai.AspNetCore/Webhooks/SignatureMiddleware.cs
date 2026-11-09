@@ -1,4 +1,3 @@
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Kontent.Ai.AspNetCore.Logging;
@@ -8,20 +7,14 @@ using Microsoft.Extensions.Options;
 
 namespace Kontent.Ai.AspNetCore.Webhooks;
 
-/// <summary>
-/// Verifies signatures of Kontent.ai webhooks. Registered through <see cref="ApplicationBuilderExtensions.UseWebhookSignatureValidator(Microsoft.AspNetCore.Builder.IApplicationBuilder, Func{HttpContext, bool})"/>.
-/// </summary>
 internal sealed class SignatureMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<SignatureMiddleware> _logger;
     private readonly byte[] _secret;
 
-    /// <exception cref="InvalidOperationException">
-    /// <see cref="WebhookOptions.Secret"/> is not configured. Without it no signature can be verified, and
-    /// continuing would admit unsigned requests. Thrown here, while the host builds its pipeline, so a
-    /// misconfigured deployment fails at startup rather than at the first webhook.
-    /// </exception>
+    // A missing secret throws here, while the host builds its pipeline, so a misconfigured deployment fails at
+    // startup rather than at the first webhook.
     public SignatureMiddleware(RequestDelegate next, IOptions<WebhookOptions> webhookOptions, ILogger<SignatureMiddleware> logger)
     {
         var secret = webhookOptions.Value.Secret;
@@ -49,14 +42,14 @@ internal sealed class SignatureMiddleware
         if (providedSignature is null)
         {
             LoggerMessages.WebhookSignatureMissing(_logger);
-            httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 
         if (DecodeSignature(providedSignature) is not { } provided)
         {
             LoggerMessages.WebhookSignatureMalformed(_logger);
-            httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 
@@ -72,10 +65,7 @@ internal sealed class SignatureMiddleware
         {
             // Rewind even if the read was cancelled: anything upstream that catches the cancellation
             // and continues would otherwise hand the rest of the pipeline a mid-stream body.
-            if (request.Body.CanSeek)
-            {
-                request.Body.Seek(0, SeekOrigin.Begin);
-            }
+            request.Body.Seek(0, SeekOrigin.Begin);
         }
 
         // Constant time over the digest bytes: a string comparison of the Base64 text returns at the first
@@ -83,7 +73,7 @@ internal sealed class SignatureMiddleware
         if (!CryptographicOperations.FixedTimeEquals(expected, provided))
         {
             LoggerMessages.WebhookSignatureMismatch(_logger);
-            httpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 

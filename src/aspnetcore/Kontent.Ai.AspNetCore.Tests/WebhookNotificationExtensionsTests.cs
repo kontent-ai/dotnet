@@ -38,11 +38,11 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     [Fact]
     public void Taxonomy_KeysOnTheGroup_WhetherCarriedSeparatelyOrAsTheCodename()
     {
-        var term = Notification(WebhookObjectTypes.Taxonomy, WebhookActions.TermChanged, "handheld", taxonomyGroup: "product_category");
-        var group = Notification(WebhookObjectTypes.Taxonomy, WebhookActions.MetadataChanged, "product_category");
+        WebhookModel[] term = [Notification(WebhookObjectTypes.Taxonomy, WebhookActions.TermChanged, "handheld", taxonomyGroup: "product_category")];
+        WebhookModel[] group = [Notification(WebhookObjectTypes.Taxonomy, WebhookActions.MetadataChanged, "product_category")];
 
-        Assert.Equal("taxonomy_product_category", new[] { term }.GetCacheDependencyKeys()[0]);
-        Assert.Equal("taxonomy_product_category", new[] { group }.GetCacheDependencyKeys()[0]);
+        Assert.Equal("taxonomy_product_category", term.GetCacheDependencyKeys()[0]);
+        Assert.Equal("taxonomy_product_category", group.GetCacheDependencyKeys()[0]);
     }
 
     [Fact]
@@ -65,17 +65,19 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     [Fact]
     public void UnknownObjectType_MapsToNothing()
     {
-        Assert.Empty(new[] { Notification("something_new", WebhookActions.Created, "x") }.GetCacheDependencyKeys());
+        WebhookModel[] unknown = [Notification("something_new", WebhookActions.Created, "x")];
+
+        Assert.Empty(unknown.GetCacheDependencyKeys());
     }
 
     [Fact]
     public void ASubsetOfTheBatch_CanBeMapped()
     {
-        var models = new[]
-        {
+        WebhookModel[] models =
+        [
             Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero"),
             Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en"),
-        };
+        ];
 
         Assert.Equal(["item_hero", DeliveryCacheDependencies.ItemsListScope], models.Where(n => n.Message.ObjectType != WebhookObjectTypes.Language).GetCacheDependencyKeys());
     }
@@ -108,7 +110,7 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
         var usedIn = mock.When($"{BaseUrl}/assets/sofia_patel_jpg/used-in").Respond("application/json", UsagePage("about"));
         var manager = new RecordingCacheManager();
         var asset = Load("AssetMetadataChanged.json").Notifications[0];
-        var batch = new[] { asset, asset with { Message = asset.Message with { Action = WebhookActions.Changed } } };
+        WebhookModel[] batch = [asset, asset with { Message = asset.Message with { Action = WebhookActions.Changed } }];
 
         Assert.True(await manager.InvalidateAsync(batch, CreateClient(mock)));
 
@@ -122,11 +124,11 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
         var mock = new MockHttpMessageHandler();
         mock.Fallback.Throw(new InvalidOperationException("The API was called."));
         var manager = new RecordingCacheManager();
-        var batch = new[]
-        {
+        WebhookModel[] batch =
+        [
             Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero"),
             Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en"),
-        };
+        ];
 
         Assert.True(await manager.InvalidateAsync(batch, CreateClient(mock)));
 
@@ -138,7 +140,7 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     public async Task InvalidateAsync_WhenTheManagerCannotPurge_SkipsALanguageEvent()
     {
         var manager = new RecordingCacheManager();
-        var batch = new[] { Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en") };
+        WebhookModel[] batch = [Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en")];
 
         Assert.True(await manager.InvalidateAsync(batch, CreateClient(new MockHttpMessageHandler())));
 
@@ -153,12 +155,12 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
         var mock = new MockHttpMessageHandler();
         mock.Fallback.Throw(new InvalidOperationException("The API was called."));
         var manager = new PurgingCacheManager { PurgeOutcome = purgeOutcome };
-        var batch = new[]
-        {
+        WebhookModel[] batch =
+        [
             Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero"),
             Notification(WebhookObjectTypes.Language, WebhookActions.Changed, "en"),
             Load("AssetMetadataChanged.json").Notifications[0],
-        };
+        ];
 
         Assert.Equal(purgeOutcome, await manager.InvalidateAsync(batch, CreateClient(mock)));
 
@@ -170,7 +172,7 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
     public async Task InvalidateAsync_WithoutALanguageEvent_DoesNotPurge()
     {
         var manager = new PurgingCacheManager();
-        var batch = new[] { Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero") };
+        WebhookModel[] batch = [Notification(WebhookObjectTypes.ContentItem, WebhookActions.Published, "hero")];
 
         Assert.True(await manager.InvalidateAsync(batch, CreateClient(new MockHttpMessageHandler())));
 
@@ -219,11 +221,11 @@ public sealed class WebhookNotificationExtensionsTests : IDisposable
         var failing = mock.When($"{BaseUrl}/assets/failing_jpg/used-in").Respond(HttpStatusCode.InternalServerError);
         var used = mock.When($"{BaseUrl}/assets/used_jpg/used-in").Respond("application/json", UsagePage("about"));
         var manager = new RecordingCacheManager();
-        var batch = new[]
-        {
+        WebhookModel[] batch =
+        [
             Notification(WebhookObjectTypes.Asset, WebhookActions.Changed, "failing_jpg"),
             Notification(WebhookObjectTypes.Asset, WebhookActions.Changed, "used_jpg"),
-        };
+        ];
 
         await Assert.ThrowsAsync<DeliveryRequestException>(() => manager.InvalidateAsync(batch, CreateClient(mock)));
 

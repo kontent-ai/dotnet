@@ -1,4 +1,3 @@
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Kontent.Ai.AspNetCore.Webhooks;
@@ -24,7 +23,7 @@ public class SignatureMiddlewareTests
 
         await middleware.InvokeAsync(ctx);
 
-        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     // Without a secret nothing can be verified, so construction fails: the host builds the pipeline at
@@ -67,7 +66,7 @@ public class SignatureMiddlewareTests
 
         await middleware.InvokeAsync(ctx);
 
-        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     // The signature is compared as raw bytes, so anything that is not a well-formed digest is rejected
@@ -84,7 +83,7 @@ public class SignatureMiddlewareTests
 
         await middleware.InvokeAsync(ctx);
 
-        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     [Fact]
@@ -97,7 +96,7 @@ public class SignatureMiddlewareTests
 
         await middleware.InvokeAsync(ctx);
 
-        Assert.Equal((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+        Assert.Equal(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     [Theory]
@@ -119,7 +118,7 @@ public class SignatureMiddlewareTests
         await middleware.InvokeAsync(ctx);
 
         Assert.True(nextCalled);
-        Assert.NotEqual((int)HttpStatusCode.Unauthorized, ctx.Response.StatusCode);
+        Assert.NotEqual(StatusCodes.Status401Unauthorized, ctx.Response.StatusCode);
     }
 
     [Fact]

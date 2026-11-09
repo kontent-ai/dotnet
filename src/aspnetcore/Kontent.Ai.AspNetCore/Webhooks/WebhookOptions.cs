@@ -1,7 +1,7 @@
 namespace Kontent.Ai.AspNetCore.Webhooks;
 
 /// <summary>
-/// A configuration object that allows to adjust the Kontent.ai webhook behavior.
+/// Options for validating Kontent.ai webhooks.
 /// </summary>
 public sealed class WebhookOptions
 {

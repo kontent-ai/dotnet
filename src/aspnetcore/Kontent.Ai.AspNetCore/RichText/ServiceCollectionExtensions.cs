@@ -24,12 +24,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddKontentRichText(
         this IServiceCollection services,
         Action<IHtmlResolverBuilder>? configure = null)
-    {
-        ArgumentNullException.ThrowIfNull(services);
-
-        return services.AddKontentRichText(
-            configure is null ? null : (_, builder) => configure(builder));
-    }
+        => services.AddKontentRichText(configure is null ? null : (_, builder) => configure(builder));
 
     /// <summary>
     /// Registers the <see cref="IHtmlResolver"/> singleton the <c>&lt;rich-text&gt;</c> tag helper renders with,

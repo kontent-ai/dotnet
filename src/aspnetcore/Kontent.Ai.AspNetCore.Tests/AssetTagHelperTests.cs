@@ -16,7 +16,7 @@ public class AssetTagHelperTests
     {
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 200, 400, 800 }
+            ResponsiveWidths = [200, 400, 800]
         });
         var helper = new AssetTagHelper(options)
         {
@@ -140,7 +140,7 @@ public class AssetTagHelperTests
     {
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 1600, 200, 800, 400 } // unordered
+            ResponsiveWidths = [1600, 200, 800, 400] // unordered
         });
         var helper = new AssetTagHelper(options)
         {
@@ -261,12 +261,12 @@ public class AssetTagHelperTests
     {
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 100, 200 }
+            ResponsiveWidths = [100, 200]
         });
         var helper = new AssetTagHelper(options)
         {
             Asset = new TestAsset { Url = AssetUrl },
-            ResponsiveWidths = new[] { 500, 1000 }
+            ResponsiveWidths = [500, 1000]
         };
         var context = CreateContext();
         var output = CreateOutput();
@@ -353,7 +353,7 @@ public class AssetTagHelperTests
     {
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 200, 400 }
+            ResponsiveWidths = [200, 400]
         });
         var helper = new AssetTagHelper(options)
         {
@@ -403,7 +403,7 @@ public class AssetTagHelperTests
         var rendition = new TestRendition { Query = "w=500&h=403&fit=clip" };
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 200, 400, 800 }
+            ResponsiveWidths = [200, 400, 800]
         });
         var helper = new AssetTagHelper(options)
         {
@@ -481,7 +481,7 @@ public class AssetTagHelperTests
     {
         var options = Options.Create(new ImageTransformationOptions
         {
-            ResponsiveWidths = new[] { 200, 400 }
+            ResponsiveWidths = [200, 400]
         });
         var helper = new AssetTagHelper(options)
         {
