@@ -764,8 +764,9 @@ An asset element value carries the asset's URL and no id, and the GUID in that U
 `InvalidateAssetAsync` fetches all language pages, then queries asset usages with an explicit language filter. Both lookups wait for fresh content. It invalidates the asset key, `ForItem` for each usage, and the items-list scope. The language lookup is required because the used-in endpoint defaults to the default language and does not apply language fallbacks.
 
 ```csharp
-// notification.Data.Items entry with Type == "asset"
-var invalidated = await cacheManager.InvalidateAssetAsync(client, item.Codename, Guid.Parse(item.Id));
+// notification is a Kontent.Ai.AspNetCore WebhookModel whose Message.ObjectType is "asset"
+var asset = notification.Data.System;
+var invalidated = await cacheManager.InvalidateAssetAsync(client, asset.Codename, asset.Id);
 ```
 
 It returns what `InvalidateAsync` returns, so `false` means retry. A failed language or usage page throws `DeliveryRequestException` before anything is invalidated. Return a failure response from the webhook for either outcome so Kontent.ai can retry it.
@@ -857,72 +858,10 @@ package owns the pieces in between and is the supported way to wire them:
   items holding the asset in an asset element. Language events require a separate purge; renames cannot
   invalidate old-codename detail keys. `GetCacheDependencyKeys()` exposes the key mapping alone.
 
-```csharp
-using Kontent.Ai.AspNetCore.Webhooks;
-using Kontent.Ai.AspNetCore.Webhooks.Models;
-using Kontent.Ai.Delivery.Abstractions;
-using Microsoft.Extensions.Options;
-
-builder.Services.AddDeliveryClient(delivery =>
-{
-    delivery.Options.BindConfiguration("DeliveryOptions");
-    delivery.UseMemoryCache(cache => cache.DefaultExpiration = TimeSpan.FromHours(1));
-});
-builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection(nameof(WebhookOptions)));
-
-var app = builder.Build();
-
-app.UseWebhookSignatureValidator(context => context.Request.Path.StartsWithSegments("/webhooks"));
-
-app.MapPost("/webhooks/kontent", async (
-    WebhookNotification notification,
-    IDeliveryCacheManager cache,
-    IDeliveryClient client,
-    IOptions<DeliveryOptions> delivery,
-    CancellationToken cancellationToken) =>
-{
-    // The keys carry no environment; only act on notifications for the environment this client reads.
-    // Compared as GUIDs: the option is a string and validates in any GUID format, including upper case.
-    var environmentId = Guid.Parse(delivery.Value.EnvironmentId);
-
-    var relevant = notification.Notifications
-        .Where(n => n.Message.EnvironmentId == environmentId)
-        // A preview client bypasses the cache, so a content item change in the preview slot has nothing to
-        // invalidate. Assets, types, taxonomies and languages are shared between the slots and always count.
-        .Where(n => n.Message.ObjectType != WebhookObjectTypes.ContentItem || n.Message.DeliverySlot == WebhookDeliverySlots.Published)
-        .ToList();
-
-    // A language change can reach any cached response through fallbacks and has no key of its own.
-    if (relevant.Any(n => n.Message.ObjectType == WebhookObjectTypes.Language) && cache is IDeliveryCachePurger purger)
-    {
-        var purged = await purger.PurgeAsync(cancellationToken: cancellationToken);
-        return purged ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-    }
-
-    // Return a retryable status on incomplete invalidation; asset lookup exceptions propagate as 500s.
-    var invalidated = await cache.InvalidateAsync(relevant, client, cancellationToken);
-    return invalidated ? Results.NoContent() : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-});
-```
-
-The default client's manager resolves unkeyed; a named client's is keyed by its name
-(`[FromKeyedServices("production")]`); a client from `DeliveryClient.Create` exposes it as `CacheManager`.
-Respond `2xx` once the invalidation is done, and with anything else when it is not — any other status
-makes Kontent.ai retry the notification, with backoff, for up to three days, which is the retry a failed
-invalidation wants. A failed usage lookup for an asset throws `DeliveryRequestException` before that asset
-is invalidated ([Asset events](#asset-events)); letting it propagate is a `500` and the same retry.
-
-What this does not cover:
-
-- **Renames.** A notification carries only the new codename, so a response cached under the old key —
-  the item itself, or a parent tagged with it — lives until it expires. The list scopes evict listings. An
-  application that renames routinely purges instead.
-- **Freshness after invalidation.** The Delivery CDN can serve the pre-change copy for a short while after
-  the webhook arrives, and an ordinary read that follows caches whatever it gets. `.WaitForLoadingNewContent()`
-  asks the API for the latest content; that call bypasses the SDK cache, so it returns fresh content but
-  does not warm the cache.
-- **Purging is optional.** `IDeliveryCachePurger` is implemented by the SDK's own cache managers; a custom
-  `IDeliveryCacheManager` may not implement it, which is why the sample pattern-matches.
+A complete endpoint, and what invalidation does not cover, are in the
+[package's README](https://github.com/kontent-ai/dotnet/blob/main/src/aspnetcore/README.md#cache-invalidation).
+Respond `2xx` only once the invalidation is done: any other status makes Kontent.ai retry the notification, and
+the notifications created after it wait, because delivery is in order.
 
 In Kontent.ai, create the webhook under *Environment settings → Webhooks* pointing at the endpoint, choose
 the published-data triggers for the content the cache serves, and copy its secret into `WebhookOptions:Secret`.
