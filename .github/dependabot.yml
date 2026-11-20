@@ -67,6 +67,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: ZiggyCreatures.*
         update-types: ["version-update:semver-major"]
+      # The source generator builds against the compiler host's copy; a newer major fails to load on an older host.
+      - dependency-name: System.Text.Json
+        update-types: ["version-update:semver-major"]
 
   # global.json pins the SDK; roll forward within the .NET 10 line only.
   - package-ecosystem: dotnet-sdk
