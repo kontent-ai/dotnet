@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kontent.Ai.Delivery.Abstractions\Kontent.Ai.Delivery.Abstractions.csproj" />
+    <!-- Models generated from a snapshot name SDK types such as Asset, so compiling them needs the SDK itself. -->
+    <ProjectReference Include="..\Kontent.Ai.Delivery\Kontent.Ai.Delivery.csproj" />
     <ProjectReference Include="..\Kontent.Ai.Delivery.SourceGeneration\Kontent.Ai.Delivery.SourceGeneration.csproj" />
   </ItemGroup>
 

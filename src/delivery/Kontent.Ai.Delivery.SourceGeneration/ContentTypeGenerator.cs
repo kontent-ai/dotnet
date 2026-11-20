@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text;
+using Kontent.Ai.Delivery.SourceGeneration.Snapshot;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -53,10 +54,14 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             .Where(static info => info is not null)
             .Select(static (info, _) => info!.Value);
 
-        // Stage 2: Collect all content type infos and generate
-        var collected = typeDeclarations.Collect();
+        // Models generated from a content model snapshot, when the project names one. Generators can't see each
+        // other's output, so the provider below can list them only because this generator generates them too.
+        var snapshotModels = SnapshotPipeline.Register(context);
 
-        context.RegisterSourceOutput(collected, static (spc, infos) => Execute(spc, infos));
+        // Stage 2: Collect all content type infos and generate
+        var collected = typeDeclarations.Collect().Combine(snapshotModels);
+
+        context.RegisterSourceOutput(collected, static (spc, input) => Execute(spc, input.Left, input.Right));
     }
 
     private static ContentTypeInfo? GetContentTypeInfo(GeneratorAttributeSyntaxContext context, CancellationToken ct)
@@ -107,13 +112,15 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         }
     }
 
-    private static void Execute(SourceProductionContext context, ImmutableArray<ContentTypeInfo> infos)
+    private static void Execute(SourceProductionContext context, ImmutableArray<ContentTypeInfo> infos, EquatableArray<SnapshotModelEntry> snapshotModels)
     {
         // Group by codename to detect duplicates
         var validInfos = new List<ContentTypeInfo>();
         var codenameToTypes = new Dictionary<string, List<ContentTypeInfo>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var info in infos)
+        // Snapshot models pass the checks below by construction and meet the declared models in the duplicate
+        // check: a content type modelled both ways is a duplicate codename like any other.
+        foreach (var info in infos.Concat(snapshotModels.Select(ContentTypeInfo.FromSnapshot)))
         {
             // Check for invalid codename
             if (string.IsNullOrWhiteSpace(info.Codename))
@@ -244,7 +251,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         return sb.ToString();
     }
 
-    private static string EscapeString(string value)
+    internal static string EscapeString(string value)
     {
         return value
             .Replace("\\", "\\\\")
@@ -288,6 +295,19 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
         public bool IsValueType { get; } = isValueType;
         public bool IsGeneric { get; } = isGeneric;
         public bool IsInaccessible { get; } = isInaccessible;
+
+        public static ContentTypeInfo FromSnapshot(SnapshotModelEntry model) => new(
+            codename: model.Codename,
+            fullyQualifiedTypeName: model.FullyQualifiedName,
+            typeName: $"{model.ClassName} (snapshot {Path.GetFileName(model.FilePath)})",
+            filePath: model.FilePath,
+            textSpan: default,
+            lineSpan: default,
+            isInterface: false,
+            isAbstract: false,
+            isValueType: false,
+            isGeneric: false,
+            isInaccessible: false);
 
         public bool Equals(ContentTypeInfo other) =>
             Codename == other.Codename &&

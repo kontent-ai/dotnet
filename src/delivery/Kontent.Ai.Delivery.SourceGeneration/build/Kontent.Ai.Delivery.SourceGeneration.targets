@@ -1,0 +1,24 @@
+<Project>
+
+  <!-- Opt-in: nothing here applies unless the project sets KontentModelSnapshot to a folder made by
+       'kontent model snapshot'. Only the files the models are built from reach the compiler, so a change to a
+       taxonomy, language or workflow file doesn't recompile anything. -->
+  <PropertyGroup Condition="'$(KontentModelSnapshot)' != ''">
+    <_KontentModelSnapshotDir>$([MSBuild]::EnsureTrailingSlash('$(KontentModelSnapshot)'))</_KontentModelSnapshotDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(KontentModelSnapshot)' != ''">
+    <CompilerVisibleProperty Include="KontentModelNamespace" />
+    <CompilerVisibleProperty Include="KontentModelNullability" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="KontentSnapshotKind" />
+
+    <!-- Listed even when missing, so a wrong path is reported instead of silently generating nothing. -->
+    <AdditionalFiles Include="$(_KontentModelSnapshotDir)manifest.json" KontentSnapshotKind="manifest" />
+    <AdditionalFiles Include="$(_KontentModelSnapshotDir)types/*.json" KontentSnapshotKind="types" />
+    <AdditionalFiles Include="$(_KontentModelSnapshotDir)snippets/*.json" KontentSnapshotKind="snippets" />
+
+    <!-- The Web and Worker SDKs copy every *.json in the project to the output and publish folders. -->
+    <Content Remove="$(_KontentModelSnapshotDir)**" />
+  </ItemGroup>
+
+</Project>

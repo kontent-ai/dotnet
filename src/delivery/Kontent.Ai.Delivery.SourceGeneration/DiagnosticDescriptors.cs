@@ -56,4 +56,40 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "The generated type provider is a separate type in a separate file, so it can map only types accessible throughout the assembly.");
+
+    /// <summary>
+    /// KDSG005: The content model snapshot can't be used, so no models are generated from it.
+    /// </summary>
+    public static readonly DiagnosticDescriptor SnapshotUnusable = new(
+        id: "KDSG005",
+        title: "Content model snapshot can't be used",
+        messageFormat: "The content model snapshot can't be used: {0}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "KontentModelSnapshot names a folder made by 'kontent model snapshot'. Its manifest and its content type and snippet files must be readable, and its format version one this package reads.");
+
+    /// <summary>
+    /// KDSG006: A snapshot element has no model property.
+    /// </summary>
+    public static readonly DiagnosticDescriptor SnapshotElementSkipped = new(
+        id: "KDSG006",
+        title: "Content type element skipped",
+        messageFormat: "{0}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "The element's type has no Delivery model mapping, its codename makes no valid C# identifier, or its identifier is already taken by another member of the model.");
+
+    /// <summary>
+    /// KDSG007: A snapshot content type has no model.
+    /// </summary>
+    public static readonly DiagnosticDescriptor SnapshotContentTypeSkipped = new(
+        id: "KDSG007",
+        title: "Content type skipped",
+        messageFormat: "{0}",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "The content type's codename makes no valid C# identifier, or another content type's codename makes the same one.");
 }
