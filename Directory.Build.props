@@ -50,7 +50,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
     <!-- Sonar runs for every product. Product-specific rule suppressions live in each
          src/<product>/.editorconfig, scoped by path and each carrying its reason. -->
     <PackageReference Include="SonarAnalyzer.CSharp"
