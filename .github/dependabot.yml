@@ -44,7 +44,7 @@ updates:
           - "StackExchange.Redis"
           - "BenchmarkDotNet"
           - "SonarAnalyzer.CSharp"
-          - "Microsoft.SourceLink.*"
+          - "System.Security.Cryptography.Pkcs"
         update-types: [minor, patch]
       runtime:
         patterns:
